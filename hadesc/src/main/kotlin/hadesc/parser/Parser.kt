@@ -272,6 +272,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, file: SourcePath) 
     }
 
     private fun parseOptionalAnnotation(): TypeAnnotation? = if (at(tt.COLON)) {
+        expect(tt.COLON)
         parseTypeAnnotation()
     } else {
         null
