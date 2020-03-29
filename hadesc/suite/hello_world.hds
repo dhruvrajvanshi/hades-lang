@@ -1,0 +1,5 @@
+extern def puts(*Byte): Void = puts;
+
+def main(): Void {
+    puts(b"Hello world");
+}
