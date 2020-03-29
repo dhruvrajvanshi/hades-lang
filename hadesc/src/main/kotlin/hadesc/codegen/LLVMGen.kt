@@ -35,13 +35,13 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
         linkWithRuntime()
     }
 
-    fun lowerSourceFile(sourceFile: SourceFile) {
+    private fun lowerSourceFile(sourceFile: SourceFile) {
         for (declaration in sourceFile.declarations) {
             lowerDeclaration(declaration)
         }
     }
 
-    fun lowerDeclaration(declaration: Declaration) = when (declaration.kind) {
+    private fun lowerDeclaration(declaration: Declaration) = when (declaration.kind) {
         is Declaration.Kind.ImportAs -> {
             // Imports don't generate anything
         }
@@ -62,7 +62,7 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerFunctionDefDeclaration(declaration: Declaration, def: Declaration.Kind.FunctionDef) {
-        // TODO: Replace this with actual type of the function
+        // TODO: Replace this with actual types of the function
         val type = FunctionType.new(
             VoidType.new(llvmCtx),
             listOf(),
@@ -113,7 +113,7 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
         return PointerValue(ptrRef)
     }
 
-    var nextLiteralIndex = 0
+    private var nextLiteralIndex = 0
     private fun stringLiteralName(): String {
         nextLiteralIndex++
         return "\$string_literal_$nextLiteralIndex"
@@ -137,7 +137,7 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
         kind: Expression.Kind.Call
     ): InstructionValue {
         return builder.buildCall(
-            lowerExpression(expr),
+            lowerExpression(kind.callee),
             kind.args.map { lowerExpression(it.expression) }
         )
     }
