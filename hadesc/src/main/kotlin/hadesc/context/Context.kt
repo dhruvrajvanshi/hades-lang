@@ -2,6 +2,7 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.Name
+import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.location.SourcePath
@@ -9,7 +10,11 @@ import hadesc.parser.Parser
 import hadesc.qualifiedpath.QualifiedName
 import java.nio.file.Path
 
-class Context(val options: BuildOptions) {
+class Context(
+    val options: BuildOptions
+) {
+    val checker: Checker = Checker(this)
+
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() {

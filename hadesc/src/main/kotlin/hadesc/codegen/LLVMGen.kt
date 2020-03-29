@@ -9,6 +9,7 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.logging.logger
 import hadesc.qualifiedpath.QualifiedName
+import hadesc.types.Type
 import llvm.FunctionType
 import llvm.Value
 import llvm.VoidType
@@ -17,7 +18,7 @@ import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.global.LLVM
 
 @OptIn(ExperimentalStdlibApi::class)
-class LLVMGen(val ctx: Context) : AutoCloseable {
+class LLVMGen(private val ctx: Context) : AutoCloseable {
     private val log = logger()
     private val llvmCtx = llvm.Context.create()
     private val llvmModule = llvm.Module.create(ctx.options.main.toString(), llvmCtx)
@@ -27,12 +28,16 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
         log.info("Generating LLVM IR")
         lowerSourceFile(ctx.sourceFile(QualifiedName(), ctx.mainPath()))
         llvmModule.dump()
+        verifyModule()
+        writeModuleToFile()
+        linkWithRuntime()
+    }
 
+    private fun verifyModule() {
+        // TODO: Handle this in a better way
         val buffer = ByteArray(100)
         val len = LLVM.LLVMVerifyModule(llvmModule.getUnderlyingReference(), 100, buffer)
         println(buffer.decodeToString().slice(0 until len))
-        writeModuleToFile()
-        linkWithRuntime()
     }
 
     private fun lowerSourceFile(sourceFile: SourceFile) {
@@ -64,8 +69,8 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
     private fun lowerFunctionDefDeclaration(declaration: Declaration, def: Declaration.Kind.FunctionDef) {
         // TODO: Replace this with actual types of the function
         val type = FunctionType.new(
-            VoidType.new(llvmCtx),
-            listOf(),
+            lowerTypeAnnotation(def.returnType),
+            def.params.map { lowerParamToType(it) },
             false
         )
         val func = llvmModule.addFunction(lowerBinder(def.name), type)
@@ -80,6 +85,26 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
         builder.buildRetVoid()
 
         LLVM.LLVMVerifyFunction(func.getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
+    }
+
+    private fun lowerTypeAnnotation(annotation: TypeAnnotation): llvm.Type {
+        return lowerType(ctx.checker.annotationToType(annotation))
+    }
+
+    private fun lowerType(type: Type): llvm.Type = when (type) {
+        Type.Byte -> byteTy
+        Type.Void -> voidTy
+        is Type.RawPtr -> ptrTy(lowerType(type.to))
+        is Type.Function -> FunctionType.new(
+            returns = lowerType(type.to),
+            types = type.from.map { lowerType(it) },
+            variadic = false
+        )
+    }
+
+    private fun lowerParamToType(param: Param): llvm.Type {
+        assert(param.annotation != null) { "Inferred param types not implemented yet" }
+        return lowerTypeAnnotation(param.annotation as TypeAnnotation)
     }
 
     private fun lowerBlockMember(member: Block.Member): Unit = when (member) {
@@ -121,6 +146,11 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
 
     private val byteTy = IntType.new(8, llvmCtx)
     private val bytePtrTy = PointerType.new(byteTy)
+    private val voidTy = VoidType.new(llvmCtx)
+
+    private fun ptrTy(to: llvm.Type): llvm.Type {
+        return PointerType.new(to)
+    }
 
     private fun lowerVarExpression(expr: Expression, kind: Expression.Kind.Var): Value {
         return FunctionValue(
