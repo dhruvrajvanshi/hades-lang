@@ -13,9 +13,7 @@ import llvm.FunctionType
 import llvm.Value
 import llvm.VoidType
 import org.bytedeco.javacpp.BytePointer
-import org.bytedeco.javacpp.PointerPointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
-import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -134,37 +132,14 @@ class LLVMGen(val ctx: Context) : AutoCloseable {
     }
 
 
-    private fun lowerCallExpression(expr: Expression, kind: Expression.Kind.Call): llvm.Value {
-        val fn = lowerExpression(kind.callee)
-        val args = buildList {
-            for (arg in kind.args) {
-                add(lowerExpression(arg.expression))
-            }
-        }
-
-        val fnType = FunctionType.new(
-            returns = VoidType.new(),
-            types = listOf(bytePtrTy),
-            variadic = false
+    private fun lowerCallExpression(
+        expr: Expression,
+        kind: Expression.Kind.Call
+    ): InstructionValue {
+        return builder.buildCall(
+            lowerExpression(expr),
+            kind.args.map { lowerExpression(it.expression) }
         )
-
-        val argsArray = args.toTypedArray()
-        val argsPtr: PointerPointer<LLVMValueRef> =
-            PointerPointer(*(arrayOf(args[0].getUnderlyingReference())))
-        val first = argsPtr[0]
-        assert(first.address() == argsArray[0].getUnderlyingReference().address())
-
-        val ty = LLVM.LLVMPrintTypeToString(fnType.getUnderlyingReference()).string
-        val arg = args[0]
-        val argType = LLVM.LLVMPrintTypeToString(arg.getType().getUnderlyingReference()).string
-        val ref = LLVM.LLVMBuildCall(
-            builder.getUnderlyingRef(),
-            fn.getUnderlyingReference(),
-            argsPtr,
-            kind.args.size,
-            ""
-        )
-        return InstructionValue(ref)
     }
 
 
