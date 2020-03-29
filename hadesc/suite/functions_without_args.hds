@@ -1,0 +1,17 @@
+
+extern def puts(*Byte): Void = puts;
+
+def print_message_2(): Void {
+    puts(b"message_2");
+}
+def print_message_1(): Void {
+    puts(b"message_1");
+    print_message_2();
+}
+def print_message(): Void {
+    puts(b"message");
+    print_message_1();
+}
+def main(): Void {
+    print_message();
+}
