@@ -8,7 +8,8 @@ import dev.supergrecko.kllvm.core.values.PointerValue
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.logging.logger
-import hadesc.qualifiedpath.QualifiedName
+import hadesc.qualifiedname.QualifiedName
+import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 import llvm.FunctionType
 import llvm.Value
@@ -23,6 +24,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private val llvmCtx = llvm.Context.create()
     private val llvmModule = llvm.Module.create(ctx.options.main.toString(), llvmCtx)
     private val builder = llvm.Builder.create(llvmCtx)
+    private val qualifiedNameToFunctionValue = mutableMapOf<QualifiedName, FunctionValue>()
 
     fun generate() {
         log.info("Generating LLVM IR")
@@ -67,13 +69,22 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerFunctionDefDeclaration(declaration: Declaration, def: Declaration.Kind.FunctionDef) {
-        // TODO: Replace this with actual types of the function
+        val binding = ctx.resolver.getBinding(def.name.identifier)
+        val qualifiedName = when (binding) {
+            is ValueBinding.GlobalFunction -> binding.qualifiedName
+            else -> throw AssertionError(
+                "Expected function def declaration to bind to ValueBinding.GlobalFunction"
+            )
+        }
+
         val type = FunctionType.new(
             lowerTypeAnnotation(def.returnType),
             def.params.map { lowerParamToType(it) },
             false
         )
         val func = llvmModule.addFunction(lowerBinder(def.name), type)
+
+        qualifiedNameToFunctionValue[qualifiedName] = func
 
         LLVM.LLVMSetLinkage(func.getUnderlyingReference(), LLVM.LLVMExternalLinkage)
         val basicBlock = func.appendBasicBlock("entry")
@@ -83,7 +94,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             lowerBlockMember(member)
         }
         builder.buildRetVoid()
-
+        log.debug("function: $qualifiedName; params: ${def.params.size}")
+        log.debug(func.dumpToString())
         LLVM.LLVMVerifyFunction(func.getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
     }
 
@@ -116,7 +128,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerExpression(expr: Expression): llvm.Value = when (expr.kind) {
-        Expression.Kind.Error -> builder.buildRetVoid()
+        Expression.Kind.Error -> TODO("Syntax error: ${expr.location}")
         is Expression.Kind.Var -> lowerVarExpression(expr, expr.kind)
         is Expression.Kind.Call -> {
             lowerCallExpression(expr, expr.kind)
@@ -153,12 +165,33 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerVarExpression(expr: Expression, kind: Expression.Kind.Var): Value {
-        return FunctionValue(
-            LLVM.LLVMGetNamedFunction(
-                llvmModule.getUnderlyingReference(),
-                BytePointer(kind.name.name.text)
+        val binding = ctx.resolver.getBinding(kind.name)
+        return when (binding) {
+            is ValueBinding.GlobalFunction -> FunctionValue(
+                LLVM.LLVMGetNamedFunction(
+                    llvmModule.getUnderlyingReference(),
+                    lowerQualifiedName(binding.qualifiedName)
+                )
             )
-        )
+            is ValueBinding.ExternFunction -> FunctionValue(
+                LLVM.LLVMGetNamedFunction(
+                    llvmModule.getUnderlyingReference(),
+                    lowerQualifiedName(binding.qualifiedName)
+                )
+            )
+            is ValueBinding.FunctionParam -> {
+                val functionQualifiedName = ctx.resolver.getBinding(binding.kind.name.identifier).qualifiedName
+                val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
+                    ?: throw AssertionError("no function value for param binding")
+                val index = binding.kind.params.indexOfFirst { it.binder.identifier.name == kind.name.name }
+                assert(index > -1)
+                FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
+            }
+        }
+    }
+
+    private fun lowerQualifiedName(qualifiedName: QualifiedName): String {
+        return qualifiedName.mangle()
     }
 
 

@@ -4,9 +4,10 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.location.HasLocation
+import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.qualifiedpath.QualifiedName
+import hadesc.qualifiedname.QualifiedName
 
 internal typealias tt = Token.Kind
 
@@ -17,12 +18,19 @@ private val byteStringEscapes = mapOf(
 )
 
 @OptIn(ExperimentalStdlibApi::class)
-class Parser(val ctx: Context, val moduleName: QualifiedName, file: SourcePath) {
+class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePath) {
     private val lexer = Lexer(file)
     private var currentToken = lexer.nextToken()
 
     fun parseSourceFile(): SourceFile {
-        return SourceFile(moduleName, parseDeclarations())
+        val declarations = parseDeclarations()
+        val firstCharLoc = Position(0, 0)
+        val start = declarations.firstOrNull()?.location?.start ?: firstCharLoc
+        val stop = declarations.lastOrNull()?.location?.stop ?: firstCharLoc
+        val location = SourceLocation(file, start, stop)
+        val sourceFile = SourceFile(location, moduleName, declarations)
+        ctx.resolver.onParseSourceFile(sourceFile)
+        return sourceFile
     }
 
     private fun parseDeclarations(): List<Declaration> = buildList {
@@ -32,7 +40,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, file: SourcePath) 
     }.toList()
 
     private fun parseDeclaration(): Declaration {
-        return when (currentToken.kind) {
+        val decl = when (currentToken.kind) {
             tt.IMPORT -> parseDeclarationImportAs()
             tt.DEF -> parseDeclarationFunctionDef()
             tt.EXTERN -> parseExternFunctionDef()
@@ -44,6 +52,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, file: SourcePath) 
                 )
             }
         }
+        ctx.resolver.onParseDeclaration(decl)
+        return decl
     }
 
     private fun parseExternFunctionDef(): Declaration {
@@ -133,7 +143,9 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, file: SourcePath) 
         val start = expect(tt.LBRACE)
         val members = parseBlockMembers()
         val stop = expect(tt.RBRACE)
-        return Block(makeLocation(start, stop), members)
+        val result = Block(makeLocation(start, stop), members)
+        ctx.resolver.onParseBlock(result)
+        return result
     }
 
     private fun parseBlockMembers(): List<Block.Member> = buildList {
@@ -204,7 +216,13 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, file: SourcePath) 
             tt.LPAREN -> {
                 advance()
                 val args = buildList {
+                    var first = true
                     while (!(at(tt.RPAREN) || at(tt.EOF))) {
+                        if (!first) {
+                            expect(tt.COMMA)
+                        } else {
+                            first = false
+                        }
                         add(parseArg())
                     }
                 }

@@ -7,13 +7,15 @@ import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.location.SourcePath
 import hadesc.parser.Parser
-import hadesc.qualifiedpath.QualifiedName
+import hadesc.qualifiedname.QualifiedName
+import hadesc.resolver.Resolver
 import java.nio.file.Path
 
 class Context(
     val options: BuildOptions
 ) {
     val checker: Checker = Checker(this)
+    val resolver = Resolver()
 
     val diagnosticReporter = DiagnosticReporter()
 
