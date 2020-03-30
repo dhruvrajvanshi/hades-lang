@@ -12,6 +12,7 @@ import hadesc.qualifiedname.QualifiedName
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN)
+private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN)
 private val byteStringEscapes = mapOf(
     'n' to '\n',
     '0' to '\u0000'
@@ -24,9 +25,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     fun parseSourceFile(): SourceFile {
         val declarations = parseDeclarations()
-        val firstCharLoc = Position(0, 0)
-        val start = declarations.firstOrNull()?.location?.start ?: firstCharLoc
-        val stop = declarations.lastOrNull()?.location?.stop ?: firstCharLoc
+        val start = Position(1, 1)
+        val stop = declarations.lastOrNull()?.location?.stop ?: start
         val location = SourceLocation(file, start, stop)
         val sourceFile = SourceFile(location, moduleName, declarations)
         ctx.resolver.onParseSourceFile(sourceFile)
@@ -156,16 +156,33 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseBlockMember(): Block.Member {
         return when (currentToken.kind) {
+            tt.RETURN -> Block.Member.Statement(parseStatement())
             else -> {
                 val expr = parseExpression()
-                if (expr.kind is Expression.Kind.Error) {
-                    recoverFromError()
-                } else {
-                    expect(tt.SEMICOLON)
-                }
+                expect(tt.SEMICOLON)
                 Block.Member.Expression(expr)
             }
         }
+    }
+
+    private fun parseStatement(): Statement {
+        return when (currentToken.kind) {
+            tt.RETURN -> parseReturnStatement()
+            else -> {
+                val location = recoverFromError(Diagnostic.Kind.StatementExpected, statementRecoveryTokens)
+                Statement(location, Statement.Kind.Error)
+            }
+        }
+    }
+
+    private fun parseReturnStatement(): Statement {
+        val start = expect(tt.RETURN)
+        val value = parseExpression()
+        expect(tt.SEMICOLON)
+        return Statement(
+            makeLocation(start, value),
+            Statement.Kind.Return(value)
+        )
     }
 
     private fun parseExpression(): Expression {

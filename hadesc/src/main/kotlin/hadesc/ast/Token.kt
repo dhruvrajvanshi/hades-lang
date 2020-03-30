@@ -13,6 +13,7 @@ data class Token(
         DEF,
         AS,
         EXTERN,
+        RETURN,
 
         ID,
 

@@ -1,0 +1,19 @@
+extern def puts(*Byte): Void = puts;
+
+def id(bytes: *Byte): *Byte {
+    return bytes;
+}
+
+def first(first: *Byte, second: *Byte): *Byte {
+    return first;
+}
+
+def second(first: *Byte, second: *Byte): *Byte {
+    return second;
+}
+
+def main(): Void {
+    puts(id(b"id"));
+    puts(first(b"first", b"second"));
+    puts(second(b"first", b"second"));
+}

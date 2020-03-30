@@ -8,6 +8,7 @@ data class Statement(
     val kind: Kind
 ) : HasLocation {
     sealed class Kind {
+        data class Return(val value: Expression) : Kind()
         object Error : Kind()
     }
 }

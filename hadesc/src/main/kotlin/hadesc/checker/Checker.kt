@@ -5,7 +5,6 @@ import hadesc.ast.TypeAnnotation
 import hadesc.context.Context
 import hadesc.types.Type
 
-
 class Checker(val ctx: Context) {
     fun annotationToType(annotation: TypeAnnotation): Type {
         return when (annotation.kind) {

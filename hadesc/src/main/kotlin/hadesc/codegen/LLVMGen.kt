@@ -72,11 +72,14 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         val binding = ctx.resolver.getBinding(def.name.identifier)
         val qualifiedName = when (binding) {
             is ValueBinding.GlobalFunction -> binding.qualifiedName
-            else -> throw AssertionError(
-                "Expected function def declaration to bind to ValueBinding.GlobalFunction"
-            )
+            else -> {
+                throw AssertionError(
+                    "Expected function def declaration to bind to ValueBinding.GlobalFunction"
+                )
+            }
         }
 
+        val returnType = ctx.checker.annotationToType(def.returnType)
         val type = FunctionType.new(
             lowerTypeAnnotation(def.returnType),
             def.params.map { lowerParamToType(it) },
@@ -93,7 +96,9 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         for (member in def.body.members) {
             lowerBlockMember(member)
         }
-        builder.buildRetVoid()
+        if (returnType == Type.Void) {
+            builder.buildRetVoid()
+        }
         log.debug("function: $qualifiedName; params: ${def.params.size}")
         log.debug(func.dumpToString())
         LLVM.LLVMVerifyFunction(func.getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
@@ -124,7 +129,19 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             lowerExpression(member.expression)
             Unit
         }
-        is Block.Member.Statement -> TODO()
+        is Block.Member.Statement -> {
+            lowerStatement(member.statement)
+            Unit
+        }
+    }
+
+    private fun lowerStatement(statement: Statement): Unit = when (statement.kind) {
+        is Statement.Kind.Return -> lowerReturnStatement(statement, statement.kind)
+        Statement.Kind.Error -> TODO()
+    }
+
+    private fun lowerReturnStatement(statement: Statement, kind: Statement.Kind.Return) {
+        LLVM.LLVMBuildRet(builder.getUnderlyingRef(), lowerExpression(kind.value).getUnderlyingReference())
     }
 
     private fun lowerExpression(expr: Expression): llvm.Value = when (expr.kind) {

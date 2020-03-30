@@ -12,7 +12,8 @@ val KEYWORDS = mapOf(
     "import" to tt.IMPORT,
     "def" to tt.DEF,
     "as" to tt.AS,
-    "extern" to tt.EXTERN
+    "extern" to tt.EXTERN,
+    "return" to tt.RETURN
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

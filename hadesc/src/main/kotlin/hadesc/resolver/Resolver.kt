@@ -6,7 +6,6 @@ import hadesc.ast.Identifier
 import hadesc.ast.SourceFile
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 
 sealed class ValueBinding {
@@ -46,14 +45,13 @@ sealed class ScopeNode {
 
     val location
         get(): SourceLocation = when (this) {
-            is FunctionDef -> declaration.location
+            is FunctionDef -> SourceLocation.between(kind.params.firstOrNull() ?: kind.body, kind.body)
             is SourceFile -> sourceFile.location
             is Block -> block.location
         }
 }
 
 class Resolver {
-    private val log = logger()
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeNode>>()
 
     fun getBinding(ident: Identifier): ValueBinding {
@@ -79,7 +77,7 @@ class Resolver {
                 return binding
             }
         }
-        TODO("Unbound variable $ident at ${ident.location}")
+        TODO("${ident.location}: Unbound variable ${ident.name.text} at")
     }
 
     private fun findInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
@@ -145,7 +143,6 @@ class Resolver {
     }
 
     fun onParseDeclaration(declaration: Declaration) {
-        log.debug("onParseDeclaration: ${locRange(declaration.location)}")
         when (declaration.kind) {
             is Declaration.Kind.FunctionDef -> {
                 addScopeNode(declaration.location.file, ScopeNode.FunctionDef(declaration, declaration.kind))
@@ -157,12 +154,10 @@ class Resolver {
     }
 
     fun onParseSourceFile(sourceFile: SourceFile) {
-        log.debug("onParseSourceFile: ${sourceFile.location.file}")
         addScopeNode(sourceFile.location.file, ScopeNode.SourceFile(sourceFile))
     }
 
     fun onParseBlock(block: Block) {
-        log.debug("onParseBlock: ${locRange(block.location)}")
         addScopeNode(block.location.file, ScopeNode.Block(block))
     }
 
@@ -170,9 +165,5 @@ class Resolver {
         sourceFileScopes
             .computeIfAbsent(file) { mutableListOf() }
             .add(scopeNode)
-    }
-
-    private fun locRange(location: SourceLocation) {
-        log.debug("${location.file}: ${location.start} to ${location.stop}")
     }
 }
