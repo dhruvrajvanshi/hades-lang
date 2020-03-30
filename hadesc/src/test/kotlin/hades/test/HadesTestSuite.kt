@@ -14,7 +14,7 @@ class HadesTestSuite {
     fun `should run test suite`() {
         val directory = File("suite")
         val outputDirectory = Path.of("suite_build")
-        File(outputDirectory.toUri()).mkdirs();
+        File(outputDirectory.toUri()).mkdirs()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
                 logger().debug("Running suite file {}", file)
@@ -30,7 +30,7 @@ class HadesTestSuite {
                 Compiler(
                     arrayOf(
                         "--output", outputPath.toString(),
-                        "--directories", "stdlib",
+                        "--directories", "stdlib", directory.toString(),
                         "--main", file.toString()
                     )
                 ).run()

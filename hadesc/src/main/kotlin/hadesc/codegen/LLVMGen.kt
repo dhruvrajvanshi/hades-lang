@@ -7,6 +7,7 @@ import dev.supergrecko.kllvm.core.values.InstructionValue
 import dev.supergrecko.kllvm.core.values.PointerValue
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.ValueBinding
@@ -42,10 +43,17 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         println(buffer.decodeToString().slice(0 until len))
     }
 
+    private val completedSourceFiles = mutableSetOf<SourcePath>()
     private fun lowerSourceFile(sourceFile: SourceFile) {
+        if (completedSourceFiles.contains(sourceFile.location.file)) {
+            return
+        }
+        log.debug("START: LLVMGen::lowerSourceFile(${sourceFile.location.file})")
         for (declaration in sourceFile.declarations) {
             lowerDeclaration(declaration)
         }
+        completedSourceFiles.add(sourceFile.location.file)
+        log.debug("DONE: LLVMGen::lowerSourceFile(${sourceFile.location.file})")
     }
 
     private fun lowerDeclaration(declaration: Declaration) = when (declaration.kind) {
@@ -91,8 +99,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
         LLVM.LLVMSetLinkage(func.getUnderlyingReference(), LLVM.LLVMExternalLinkage)
         val basicBlock = func.appendBasicBlock("entry")
+        val previousPosition = builder.getInsertBlock()
         builder.positionAtEnd(basicBlock)
-
         for (member in def.body.members) {
             lowerBlockMember(member)
         }
@@ -101,6 +109,9 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
         log.debug("function: $qualifiedName; params: ${def.params.size}")
         log.debug(func.dumpToString())
+        if (previousPosition != null) {
+            builder.positionAtEnd(previousPosition)
+        }
         LLVM.LLVMVerifyFunction(func.getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
     }
 
@@ -149,8 +160,28 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         is Expression.Kind.Call -> {
             lowerCallExpression(expr, expr.kind)
         }
-        is Expression.Kind.Property -> TODO("Property")
+        is Expression.Kind.Property -> lowerPropertyExpression(expr, expr.kind)
         is Expression.Kind.ByteString -> lowerByteStringExpression(expr, expr.kind)
+    }
+
+    private fun lowerPropertyExpression(expr: Expression, kind: Expression.Kind.Property): Value {
+        return when (kind.lhs.kind) {
+            is Expression.Kind.Var -> {
+                val binding = ctx.resolver.getBinding(kind.lhs.kind.name)
+                when (binding) {
+                    is ValueBinding.ImportAs -> {
+                        val sourceFile = ctx.resolveSourceFile(binding.kind.modulePath)
+                        lowerSourceFile(sourceFile)
+                        val qualifiedName = ctx.resolver.findInSourceFile(kind.property, sourceFile)?.qualifiedName
+                            ?: throw AssertionError("${expr.location}: No such property")
+                        lowerQualifiedValueName(qualifiedName)
+                    }
+                    else -> TODO("${expr.location}: Can't select property on this expression")
+                }
+            }
+            else -> TODO("${expr.location}: Can't select property on this expression")
+
+        }
     }
 
     private fun lowerByteStringExpression(expr: Expression, kind: Expression.Kind.ByteString): Value {
@@ -180,32 +211,42 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         return PointerType.new(to)
     }
 
-    private fun lowerVarExpression(expr: Expression, kind: Expression.Kind.Var): Value {
-        val binding = ctx.resolver.getBinding(kind.name)
+    private fun lowerQualifiedValueName(qualifiedName: QualifiedName): Value {
+        val binding = ctx.resolver.resolveQualifiedName(qualifiedName)
         return when (binding) {
-            is ValueBinding.GlobalFunction ->
-                llvmModule.getFunction(lowerQualifiedName(binding.qualifiedName))
+            null -> TODO("Unbound name $qualifiedName")
+            is ValueBinding.GlobalFunction -> {
+                llvmModule.getFunction(mangleQualifiedName(binding.qualifiedName))
                     ?: throw AssertionError(
                         "Function ${binding.qualifiedName} hasn't been added to llvm module"
                     )
+            }
             is ValueBinding.ExternFunction ->
-                llvmModule.getFunction(lowerQualifiedName(binding.qualifiedName))
+                llvmModule.getFunction(binding.kind.binder.identifier.name.text)
                     ?: throw AssertionError(
                         "Function ${binding.qualifiedName} hasn't been added to llvm module"
                     )
 
             is ValueBinding.FunctionParam -> {
+                assert(qualifiedName.size == 1)
+                val name = qualifiedName.first
                 val functionQualifiedName = ctx.resolver.getBinding(binding.kind.name.identifier).qualifiedName
                 val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
                     ?: throw AssertionError("no function value for param binding")
-                val index = binding.kind.params.indexOfFirst { it.binder.identifier.name == kind.name.name }
+                val index = binding.kind.params.indexOfFirst { it.binder.identifier.name == name }
                 assert(index > -1)
                 FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
             }
+            is ValueBinding.ImportAs -> TODO("${binding.kind.asName.identifier.name.text} is not a valid expression")
         }
     }
 
-    private fun lowerQualifiedName(qualifiedName: QualifiedName): String {
+    private fun lowerVarExpression(expr: Expression, kind: Expression.Kind.Var): Value {
+        val binding = ctx.resolver.getBinding(kind.name)
+        return lowerQualifiedValueName(binding.qualifiedName)
+    }
+
+    private fun mangleQualifiedName(qualifiedName: QualifiedName): String {
         return qualifiedName.mangle()
     }
 
@@ -222,11 +263,10 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
 
     private fun lowerBinder(binder: Binder): String {
-        // TODO: Use a fully resolved name here
         return if (binder.identifier.name.text == "main") {
             "hades_main"
         } else {
-            binder.identifier.name.text
+            mangleQualifiedName(ctx.resolver.getBinding(binder.identifier).qualifiedName)
         }
     }
 

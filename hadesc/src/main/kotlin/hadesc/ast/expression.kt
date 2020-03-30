@@ -11,7 +11,7 @@ data class Expression(
         object Error : Kind()
         data class Var(val name: Identifier) : Kind()
         data class Call(val callee: Expression, val args: List<Arg>) : Kind()
-        data class Property(val lhs: Expression, val name: Identifier) : Kind()
+        data class Property(val lhs: Expression, val property: Identifier) : Kind()
         data class ByteString(val bytes: ByteArray) : Kind()
     }
 }

@@ -17,7 +17,8 @@ sealed class ValueBinding {
     ) : ValueBinding()
 
     data class ExternFunction(
-        override val qualifiedName: QualifiedName
+        override val qualifiedName: QualifiedName,
+        val kind: Declaration.Kind.ExternFunctionDef
     ) : ValueBinding()
 
     data class FunctionParam(
@@ -29,6 +30,11 @@ sealed class ValueBinding {
             assert(qualifiedName.size == 1)
         }
     }
+
+    data class ImportAs(
+        override val qualifiedName: QualifiedName,
+        val kind: Declaration.Kind.ImportAs
+    ) : ValueBinding()
 }
 
 sealed class ScopeNode {
@@ -53,6 +59,7 @@ sealed class ScopeNode {
 
 class Resolver {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeNode>>()
+    private val valueBindings = mutableMapOf<QualifiedName, ValueBinding>()
 
     fun getBinding(ident: Identifier): ValueBinding {
         val scopeStack = sourceFileScopes
@@ -67,6 +74,16 @@ class Resolver {
     }
 
     private fun findInScopeStack(ident: Identifier, parentName: QualifiedName, scopes: List<ScopeNode>): ValueBinding {
+        val binding = findInScopeStackHelper(ident, parentName, scopes)
+        valueBindings[binding.qualifiedName] = binding
+        return binding
+    }
+
+    private fun findInScopeStackHelper(
+        ident: Identifier,
+        parentName: QualifiedName,
+        scopes: List<ScopeNode>
+    ): ValueBinding {
         for (scope in scopes) {
             val binding = when (scope) {
                 is ScopeNode.FunctionDef -> findInFunctionDef(parentName, ident, scope.declaration, scope.kind)
@@ -80,24 +97,47 @@ class Resolver {
         TODO("${ident.location}: Unbound variable ${ident.name.text} at")
     }
 
-    private fun findInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
+    fun findInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
+        val sourceFileModuleName = sourceFile.moduleName
         for (declaration in sourceFile.declarations) {
             val binding = when (declaration.kind) {
                 Declaration.Kind.Error -> null
-                is Declaration.Kind.ImportAs -> TODO()
-                is Declaration.Kind.FunctionDef -> {
-                    if (declaration.kind.name.identifier.name == ident.name) {
-                        ValueBinding.GlobalFunction(
-                            sourceFile.moduleName.append(declaration.kind.name.identifier.name),
+                is Declaration.Kind.ImportAs -> {
+                    if (declaration.kind.asName.identifier.name == ident.name) {
+                        ValueBinding.ImportAs(
+                            QualifiedName(
+                                listOf(
+                                    declaration.kind.asName.identifier.name
+                                )
+                            ),
                             declaration.kind
                         )
                     } else {
                         null
                     }
                 }
+                is Declaration.Kind.FunctionDef -> {
+                    if (declaration.kind.name.identifier.name == ident.name) {
+                        val qualifiedName = sourceFileModuleName.append(declaration.kind.name.identifier.name)
+                        val binding = ValueBinding.GlobalFunction(
+                            qualifiedName,
+                            declaration.kind
+                        )
+                        valueBindings[qualifiedName] = binding
+                        binding
+                    } else {
+                        null
+                    }
+                }
                 is Declaration.Kind.ExternFunctionDef -> {
                     if (declaration.kind.binder.identifier.name == ident.name) {
-                        ValueBinding.ExternFunction(QualifiedName(listOf(declaration.kind.externName.name)))
+                        val qualifiedName = sourceFileModuleName.append(declaration.kind.binder.identifier.name)
+                        val binding = ValueBinding.ExternFunction(
+                            qualifiedName,
+                            declaration.kind
+                        )
+                        valueBindings[qualifiedName] = binding
+                        binding
                     } else {
                         null
                     }
@@ -165,5 +205,9 @@ class Resolver {
         sourceFileScopes
             .computeIfAbsent(file) { mutableListOf() }
             .add(scopeNode)
+    }
+
+    fun resolveQualifiedName(qualifiedName: QualifiedName): ValueBinding? {
+        return valueBindings[qualifiedName]
     }
 }

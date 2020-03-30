@@ -12,4 +12,6 @@ data class QualifiedName(
     fun mangle(): String = names.joinToString { it.text }
 
     val size get() = names.size
+
+    val first get(): Name = names[0]
 }
