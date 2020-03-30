@@ -131,7 +131,6 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
         is Block.Member.Statement -> {
             lowerStatement(member.statement)
-            Unit
         }
     }
 
@@ -141,7 +140,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerReturnStatement(statement: Statement, kind: Statement.Kind.Return) {
-        LLVM.LLVMBuildRet(builder.getUnderlyingRef(), lowerExpression(kind.value).getUnderlyingReference())
+        builder.buildRet(lowerExpression(kind.value))
     }
 
     private fun lowerExpression(expr: Expression): llvm.Value = when (expr.kind) {
@@ -184,18 +183,17 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private fun lowerVarExpression(expr: Expression, kind: Expression.Kind.Var): Value {
         val binding = ctx.resolver.getBinding(kind.name)
         return when (binding) {
-            is ValueBinding.GlobalFunction -> FunctionValue(
-                LLVM.LLVMGetNamedFunction(
-                    llvmModule.getUnderlyingReference(),
-                    lowerQualifiedName(binding.qualifiedName)
-                )
-            )
-            is ValueBinding.ExternFunction -> FunctionValue(
-                LLVM.LLVMGetNamedFunction(
-                    llvmModule.getUnderlyingReference(),
-                    lowerQualifiedName(binding.qualifiedName)
-                )
-            )
+            is ValueBinding.GlobalFunction ->
+                llvmModule.getFunction(lowerQualifiedName(binding.qualifiedName))
+                    ?: throw AssertionError(
+                        "Function ${binding.qualifiedName} hasn't been added to llvm module"
+                    )
+            is ValueBinding.ExternFunction ->
+                llvmModule.getFunction(lowerQualifiedName(binding.qualifiedName))
+                    ?: throw AssertionError(
+                        "Function ${binding.qualifiedName} hasn't been added to llvm module"
+                    )
+
             is ValueBinding.FunctionParam -> {
                 val functionQualifiedName = ctx.resolver.getBinding(binding.kind.name.identifier).qualifiedName
                 val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
