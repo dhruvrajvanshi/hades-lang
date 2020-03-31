@@ -14,6 +14,7 @@ data class Token(
         AS,
         EXTERN,
         RETURN,
+        VAL,
 
         ID,
 

@@ -12,7 +12,7 @@ import hadesc.qualifiedname.QualifiedName
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN)
-private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN)
+private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN, tt.VAL)
 private val byteStringEscapes = mapOf(
     'n' to '\n',
     '0' to '\u0000'
@@ -156,7 +156,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseBlockMember(): Block.Member {
         return when (currentToken.kind) {
-            tt.RETURN -> Block.Member.Statement(parseStatement())
+            tt.RETURN, tt.VAL -> Block.Member.Statement(parseStatement())
             else -> {
                 val expr = parseExpression()
                 expect(tt.SEMICOLON)
@@ -168,6 +168,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     private fun parseStatement(): Statement {
         return when (currentToken.kind) {
             tt.RETURN -> parseReturnStatement()
+            tt.VAL -> parseValStatement()
             else -> {
                 val location = recoverFromError(Diagnostic.Kind.StatementExpected, statementRecoveryTokens)
                 Statement(location, Statement.Kind.Error)
@@ -182,6 +183,19 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return Statement(
             makeLocation(start, value),
             Statement.Kind.Return(value)
+        )
+    }
+
+    private fun parseValStatement(): Statement {
+        val start = expect(tt.VAL)
+        val binder = parseBinder()
+        val typeAnnotation = parseOptionalAnnotation()
+        expect(tt.EQ)
+        val rhs = parseExpression()
+        expect(tt.SEMICOLON)
+        return Statement(
+            makeLocation(start, rhs),
+            Statement.Kind.Val(binder, typeAnnotation, rhs)
         )
     }
 

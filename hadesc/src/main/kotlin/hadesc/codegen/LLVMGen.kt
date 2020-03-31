@@ -7,6 +7,7 @@ import dev.supergrecko.kllvm.core.values.InstructionValue
 import dev.supergrecko.kllvm.core.values.PointerValue
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
@@ -147,7 +148,31 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     private fun lowerStatement(statement: Statement): Unit = when (statement.kind) {
         is Statement.Kind.Return -> lowerReturnStatement(statement, statement.kind)
+        is Statement.Kind.Val -> lowerValStatement(statement, statement.kind)
         Statement.Kind.Error -> TODO()
+    }
+
+    private val localVariables = mutableMapOf<SourceLocation, llvm.Value>()
+    private fun lowerValStatement(statement: Statement, kind: Statement.Kind.Val) {
+        val instr = InstructionValue(
+            LLVM.LLVMBuildAlloca(
+                builder.getUnderlyingRef(),
+                lowerType(ctx.checker.typeOfExpression(kind.rhs)).getUnderlyingReference(),
+                kind.binder.identifier.name.text
+            )
+        )
+        val rhs = lowerExpression(kind.rhs)
+
+        val ty = LLVM.LLVMPrintTypeToString(rhs.getType().getUnderlyingReference()).string
+        val value = InstructionValue(
+            LLVM.LLVMBuildStore(
+                builder.getUnderlyingRef(),
+                rhs.getUnderlyingReference(),
+                instr.getUnderlyingReference()
+            )
+        )
+        localVariables[kind.binder.location] = instr
+        log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
     }
 
     private fun lowerReturnStatement(statement: Statement, kind: Statement.Kind.Return) {
@@ -238,6 +263,14 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                 FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
             }
             is ValueBinding.ImportAs -> TODO("${binding.kind.asName.identifier.name.text} is not a valid expression")
+            is ValueBinding.ValBinding ->
+                InstructionValue(
+                    LLVM.LLVMBuildLoad(
+                        builder.getUnderlyingRef(),
+                        localVariables[binding.kind.binder.location]?.getUnderlyingReference(),
+                        binding.kind.binder.identifier.name.text
+                    )
+                )
         }
     }
 
@@ -276,7 +309,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             "gcc",
             "-no-pie",
             "-o", ctx.options.output.toString(),
-            "runtime.c",
+            ctx.options.runtime.toString(),
             objectFilePath
         ).inheritIO()
         log.debug(builder.command().joinToString(","))

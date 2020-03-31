@@ -31,7 +31,8 @@ class HadesTestSuite {
                     arrayOf(
                         "--output", outputPath.toString(),
                         "--directories", "stdlib", directory.toString(),
-                        "--main", file.toString()
+                        "--main", file.toString(),
+                        "--runtime", "runtime.c"
                     )
                 ).run()
                 assert(File(outputPath.toUri()).exists()) {

@@ -1,9 +1,6 @@
 package hadesc.resolver
 
-import hadesc.ast.Block
-import hadesc.ast.Declaration
-import hadesc.ast.Identifier
-import hadesc.ast.SourceFile
+import hadesc.ast.*
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
@@ -34,6 +31,12 @@ sealed class ValueBinding {
     data class ImportAs(
         override val qualifiedName: QualifiedName,
         val kind: Declaration.Kind.ImportAs
+    ) : ValueBinding()
+
+    data class ValBinding(
+        override val qualifiedName: QualifiedName,
+        val statement: Statement,
+        val kind: Statement.Kind.Val
     ) : ValueBinding()
 }
 
@@ -172,7 +175,7 @@ class Resolver {
         for (member in block.members) {
             val binding: ValueBinding? = when (member) {
                 is Block.Member.Expression -> null
-                is Block.Member.Statement -> null
+                is Block.Member.Statement -> findInStatement(ident, member.statement)
             }
 
             if (binding != null) {
@@ -180,6 +183,21 @@ class Resolver {
             }
         }
         return null
+    }
+
+    private fun findInStatement(ident: Identifier, statement: Statement): ValueBinding? = when (statement.kind) {
+        is Statement.Kind.Val -> {
+            if (ident.name == statement.kind.binder.identifier.name) {
+                ValueBinding.ValBinding(
+                    QualifiedName(listOf(ident.name)),
+                    statement,
+                    statement.kind
+                )
+            } else {
+                null
+            }
+        }
+        else -> null
     }
 
     fun onParseDeclaration(declaration: Declaration) {

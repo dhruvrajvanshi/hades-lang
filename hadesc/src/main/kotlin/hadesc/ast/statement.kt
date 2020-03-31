@@ -9,6 +9,7 @@ data class Statement(
 ) : HasLocation {
     sealed class Kind {
         data class Return(val value: Expression) : Kind()
+        data class Val(val binder: Binder, val typeAnnotation: TypeAnnotation?, val rhs: Expression) : Kind()
         object Error : Kind()
     }
 }

@@ -1,6 +1,5 @@
 package hadesc
 
-import hadesc.codegen.LLVMGen
 import hadesc.context.Context
 import hadesc.logging.logger
 import java.nio.file.Path
@@ -12,6 +11,7 @@ sealed class Options {
 
         fun fromArgs(args: Array<String>): Options {
             val output = Path.of(args.getString("--output"))
+            val runtime = Path.of(args.getString("--runtime"))
             val main = Path.of(args.getString("--main"))
             val directories = args.getList("--directories").map { Path.of(it) }
             directories.forEach {
@@ -20,7 +20,8 @@ sealed class Options {
             return BuildOptions(
                 directories = directories,
                 output = output,
-                main = main
+                main = main,
+                runtime = runtime
             )
         }
 
@@ -28,6 +29,7 @@ sealed class Options {
             assert(indexOf(long) > -1) { "Missing flag $long" }
             val indexOfNext = indexOf(long) + 1
             assert(indexOfNext < size)
+            assert(!this[indexOfNext].startsWith("--"))
             return this[indexOfNext]
         }
 
@@ -45,7 +47,8 @@ sealed class Options {
 data class BuildOptions(
     val directories: List<Path>,
     val output: Path,
-    val main: Path
+    val main: Path,
+    val runtime: Path
 ) : Options()
 
 class Compiler(

@@ -1,5 +1,6 @@
 package hadesc.checker
 
+import hadesc.ast.Expression
 import hadesc.ast.Identifier
 import hadesc.ast.TypeAnnotation
 import hadesc.context.Context
@@ -17,6 +18,11 @@ class Checker(val ctx: Context) {
             }
             is TypeAnnotation.Kind.Ptr -> Type.RawPtr(annotationToType(annotation.kind.to))
         }
+    }
+
+    fun typeOfExpression(expression: Expression): Type {
+        // TODO: Actually infer type
+        return Type.RawPtr(Type.Byte)
     }
 
     private fun identToString(identifier: Identifier): String {
