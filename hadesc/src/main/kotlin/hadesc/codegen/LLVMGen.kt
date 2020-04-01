@@ -3,10 +3,10 @@ package hadesc.codegen
 import dev.supergrecko.kllvm.core.types.IntType
 import dev.supergrecko.kllvm.core.types.PointerType
 import dev.supergrecko.kllvm.core.types.StructType
+import dev.supergrecko.kllvm.core.values.ArrayValue
 import dev.supergrecko.kllvm.core.values.FunctionValue
 import dev.supergrecko.kllvm.core.values.InstructionValue
 import dev.supergrecko.kllvm.core.values.IntValue
-import dev.supergrecko.kllvm.core.values.PointerValue
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.location.SourceLocation
@@ -83,27 +83,25 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
         generateInBlock(basicBlock) {
 
-            val thisPtr = LLVM.LLVMBuildAlloca(
-                getUnderlyingRef(),
-                lowerType(instanceType).getUnderlyingReference(),
+            val thisPtr = buildAlloca(
+                lowerType(instanceType),
                 "instance"
             )
 
             val instanceStructType = instanceType as Type.Struct
             for (i in instanceStructType.memberTypes.entries.indices) {
-                val paramRef = LLVM.LLVMGetParam(constructorFunction.getUnderlyingReference(), i)
-                val elementPtr = LLVM.LLVMBuildStructGEP(
-                    getUnderlyingRef(),
+                val paramRef = constructorFunction.getParam(i)
+                val elementPtr = buildStructGEP(
                     thisPtr,
                     i,
                     "field_${i}"
                 )
-                LLVM.LLVMBuildStore(getUnderlyingRef(), paramRef, elementPtr)
+                buildStore(paramRef, elementPtr)
 
             }
 
-            val result = LLVM.LLVMBuildLoad(getUnderlyingRef(), thisPtr, "result")
-            buildRet(PointerValue(result))
+            val result = buildLoad(thisPtr, "result")
+            buildRet(result)
 
         }
         constructorFunction.verify()
@@ -230,21 +228,12 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     private val localVariables = mutableMapOf<SourceLocation, llvm.Value>()
     private fun lowerValStatement(statement: Statement, kind: Statement.Kind.Val) {
-        val instr = InstructionValue(
-            LLVM.LLVMBuildAlloca(
-                builder.getUnderlyingRef(),
-                lowerType(ctx.checker.typeOfExpression(kind.rhs)).getUnderlyingReference(),
-                kind.binder.identifier.name.text + "_tmp"
-            )
+        val instr = builder.buildAlloca(
+            lowerType(ctx.checker.typeOfExpression(kind.rhs)),
+            kind.binder.identifier.name.text + "_tmp"
         )
         val rhs = lowerExpression(kind.rhs)
-        InstructionValue(
-            LLVM.LLVMBuildStore(
-                builder.getUnderlyingRef(),
-                rhs.getUnderlyingReference(),
-                instr.getUnderlyingReference()
-            )
-        )
+        builder.buildStore(rhs, instr)
         localVariables[kind.binder.location] = instr
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
     }
@@ -316,14 +305,10 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             is Type.Struct -> {
                 val rhsName = kind.property.name
                 val index = type.memberTypes.keys.indexOf(rhsName)
-                val extractValueRef = LLVM.LLVMBuildExtractValue(
-                    builder.getUnderlyingRef(),
-                    lhsPtr.getUnderlyingReference(),
+                builder.buildExtractValue(
+                    lhsPtr,
                     index,
                     ""
-                )
-                InstructionValue(
-                    extractValueRef
                 )
             }
             is Type.ModuleAlias -> TODO("Should not be reached")
@@ -334,15 +319,13 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     private fun lowerByteStringExpression(expr: Expression, kind: Expression.Kind.ByteString): Value {
         val text = kind.bytes.decodeToString()
-        val constStringRef = LLVM.LLVMConstString(text, text.length, 0)
-        val globalRef = LLVM.LLVMAddGlobal(
-            llvmModule.getUnderlyingReference(),
-            LLVM.LLVMTypeOf(constStringRef),
+        val constStringRef = ArrayValue(text, nullTerminate = false, context = llvmCtx)
+        val globalRef = llvmModule.addGlobal(
+            constStringRef.getType(),
             stringLiteralName()
         )
-        LLVM.LLVMSetInitializer(globalRef, constStringRef)
-        val ptrRef = LLVM.LLVMConstPointerCast(globalRef, bytePtrTy.getUnderlyingReference())
-        return PointerValue(ptrRef)
+        globalRef.initializer = constStringRef
+        return globalRef.constPointerCast(bytePtrTy)
     }
 
     private var nextLiteralIndex = 0
@@ -392,21 +375,18 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                 assert(index > -1)
                 val specialization = specializationStacks[functionQualifiedName]?.lastOrNull()
                 if (specialization != null) {
-                    FunctionValue(LLVM.LLVMGetParam(specialization.getUnderlyingReference(), index))
+                    specialization.getParam(index)
                 } else {
                     val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
                         ?: throw AssertionError("no function value for param binding")
-                    FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
+                    functionValue.getParam(index)
                 }
             }
             is ValueBinding.ImportAs -> TODO("${binding.kind.asName.identifier.name.text} is not a valid expression")
             is ValueBinding.ValBinding ->
-                InstructionValue(
-                    LLVM.LLVMBuildLoad(
-                        builder.getUnderlyingRef(),
-                        localVariables[binding.kind.binder.location]?.getUnderlyingReference(),
-                        generateUniqueName()
-                    )
+                builder.buildLoad(
+                    localVariables[binding.kind.binder.location] ?: TODO("Unbound"),
+                    generateUniqueName()
                 )
             is ValueBinding.Struct ->
                 llvmModule.getFunction(mangleQualifiedName(binding.qualifiedName))
