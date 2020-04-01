@@ -4,7 +4,16 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
 data class Param(
-    override val location: SourceLocation,
     val binder: Binder,
     val annotation: TypeAnnotation?
-) : HasLocation
+) : HasLocation {
+    override val location: SourceLocation
+        get() = SourceLocation.between(binder, annotation ?: binder)
+}
+
+data class TypeParam(
+    val binder: Binder
+) : HasLocation {
+    override val location: SourceLocation
+        get() = binder.location
+}

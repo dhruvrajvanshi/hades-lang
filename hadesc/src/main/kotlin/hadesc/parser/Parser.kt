@@ -164,6 +164,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     private fun parseDeclarationFunctionDef(): Declaration {
         val start = expect(tt.DEF)
         val name = parseBinder()
+        val typeParams = parseOptionalTypeParams()
         val params = parseParams()
         expect(tt.COLON)
         val annotation = parseTypeAnnotation()
@@ -172,11 +173,31 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             location = makeLocation(start, block),
             kind = Declaration.Kind.FunctionDef(
                 name = name,
+                typeParams = typeParams,
                 params = params,
                 returnType = annotation,
                 body = block
             )
         )
+    }
+
+    private fun parseOptionalTypeParams(): List<TypeParam> = buildList {
+
+        if (currentToken.kind == tt.LSQB) {
+            advance()
+            var isFirst = true
+            while (!isEOF() && !at(tt.RSQB)) {
+                if (!isFirst) {
+                    expect(tt.COMMA)
+                } else {
+                    isFirst = false
+                }
+                val binder = parseBinder()
+                add(TypeParam(binder = binder))
+            }
+
+            expect(tt.RSQB)
+        }
     }
 
     private fun parseBlock(): Block {
@@ -350,7 +371,6 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val binder = parseBinder()
         val annotation = parseOptionalAnnotation()
         return Param(
-            location = makeLocation(binder, annotation ?: binder),
             binder = binder,
             annotation = annotation
         )

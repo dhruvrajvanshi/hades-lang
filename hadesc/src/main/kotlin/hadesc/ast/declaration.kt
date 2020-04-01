@@ -16,6 +16,7 @@ data class Declaration(
 
         data class FunctionDef(
             val name: Binder,
+            val typeParams: List<TypeParam>,
             val params: List<Param>,
             val returnType: TypeAnnotation,
             val body: Block

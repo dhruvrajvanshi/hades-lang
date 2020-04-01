@@ -30,7 +30,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     fun generate() {
         log.info("Generating LLVM IR")
         lowerSourceFile(ctx.sourceFile(QualifiedName(), ctx.mainPath()))
-        llvmModule.dump()
+        log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
@@ -50,6 +50,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
         log.debug("START: LLVMGen::lowerSourceFile(${sourceFile.location.file})")
         for (declaration in sourceFile.declarations) {
+            ctx.checker.checkDeclaration(declaration)
             lowerDeclaration(declaration)
         }
         completedSourceFiles.add(sourceFile.location.file)
@@ -132,6 +133,14 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerFunctionDefDeclaration(declaration: Declaration, def: Declaration.Kind.FunctionDef) {
+        if (def.typeParams.isNotEmpty()) {
+            // we can't lower generic functions here.
+            // we have to generate seperate versions
+            // of this function for each call site with
+            // type parameters substituted with actual
+            // types
+            return
+        }
         val binding = ctx.resolver.getBinding(def.name.identifier)
         val qualifiedName = when (binding) {
             is ValueBinding.GlobalFunction -> binding.qualifiedName
@@ -178,6 +187,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         Type.Error -> TODO()
         Type.Byte -> byteTy
         Type.Void -> voidTy
+        is Type.ModuleAlias -> TODO("Bug: Module alias can't be lowered")
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> FunctionType.new(
             returns = lowerType(type.to),
@@ -189,6 +199,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             packed = false,
             ctx = llvmCtx
         )
+        is Type.ParamRef, is Type.GenericFunction -> TODO("Can't lower unspecialized type param")
     }
 
     private fun lowerParamToType(param: Param): llvm.Type {
@@ -229,14 +240,6 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                 instr.getUnderlyingReference()
             )
         )
-
-//        val value = InstructionValue(
-//            LLVM.LLVMBuildLoad(
-//                builder.getUnderlyingRef(),
-//                instr.getUnderlyingReference(),
-//                kind.binder.identifier.name.text
-//            )
-//        )
         localVariables[kind.binder.location] = instr
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
     }
@@ -245,14 +248,20 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         builder.buildRet(lowerExpression(kind.value))
     }
 
-    private fun lowerExpression(expr: Expression): llvm.Value = when (expr.kind) {
-        Expression.Kind.Error -> TODO("Syntax error: ${expr.location}")
-        is Expression.Kind.Var -> lowerVarExpression(expr, expr.kind)
-        is Expression.Kind.Call -> {
-            lowerCallExpression(expr, expr.kind)
+    private fun lowerExpression(expr: Expression): llvm.Value {
+        // for now, this is only to ensure that we check each expression
+        // eventually, the pipeline should ensure that everything is
+        // typechecked before we reach codegen phase
+        ctx.checker.typeOfExpression(expr)
+        return when (expr.kind) {
+            Expression.Kind.Error -> TODO("Syntax error: ${expr.location}")
+            is Expression.Kind.Var -> lowerVarExpression(expr, expr.kind)
+            is Expression.Kind.Call -> {
+                lowerCallExpression(expr, expr.kind)
+            }
+            is Expression.Kind.Property -> lowerPropertyExpression(expr, expr.kind)
+            is Expression.Kind.ByteString -> lowerByteStringExpression(expr, expr.kind)
         }
-        is Expression.Kind.Property -> lowerPropertyExpression(expr, expr.kind)
-        is Expression.Kind.ByteString -> lowerByteStringExpression(expr, expr.kind)
     }
 
     private fun lowerPropertyExpression(expr: Expression, kind: Expression.Kind.Property): Value {
@@ -304,6 +313,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                     extractValueRef
                 )
             }
+            is Type.ModuleAlias -> TODO("Should not be reached")
+            is Type.ParamRef, is Type.GenericFunction -> TODO("Can't lower unspecialized type")
         }
     }
 
@@ -397,10 +408,37 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         expr: Expression,
         kind: Expression.Kind.Call
     ): InstructionValue {
+        if (ctx.checker.isGenericCallSite(kind)) {
+            return generateGenericCall(expr, kind)
+        }
         return builder.buildCall(
             lowerExpression(kind.callee),
             kind.args.map { lowerExpression(it.expression) }
         )
+    }
+
+    private fun generateGenericCall(expr: Expression, kind: Expression.Kind.Call): InstructionValue {
+        val def = getFunctionDef(kind.callee)
+        TODO()
+    }
+
+    private fun getFunctionDef(callee: Expression): Declaration.Kind.FunctionDef {
+        return when (callee.kind) {
+            is Expression.Kind.Var -> resolveGlobalFunctionDefFromVariable(callee.kind.name)
+            is Expression.Kind.Property -> resolveGlobalFunctionDefForModule(callee.kind.lhs, callee.kind.property)
+            else -> TODO("${callee.location}: Can't lower generic call for non global functions right now")
+        }
+    }
+
+    private fun resolveGlobalFunctionDefFromVariable(name: Identifier): Declaration.Kind.FunctionDef {
+        return when (val binding = ctx.resolver.getBinding(name)) {
+            is ValueBinding.GlobalFunction -> binding.kind
+            else -> TODO("${name.location}: Not a function definition")
+        }
+    }
+
+    private fun resolveGlobalFunctionDefForModule(lhs: Expression, property: Identifier): Declaration.Kind.FunctionDef {
+        TODO("Generic functions not implemented across modules")
     }
 
 
@@ -414,13 +452,15 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     private fun linkWithRuntime() {
         log.info("Linking using gcc")
-        val builder = ProcessBuilder(
+        val commandParts = listOf(
             "gcc",
             "-no-pie",
             "-o", ctx.options.output.toString(),
             ctx.options.runtime.toString(),
             objectFilePath
-        ).inheritIO()
+        )
+        log.info(commandParts.joinToString(" "))
+        val builder = ProcessBuilder(commandParts).inheritIO()
         log.debug(builder.command().joinToString(","))
         val process = builder.start()
         val exitCode = process.waitFor()

@@ -1,6 +1,7 @@
 package hadesc.resolver
 
 import hadesc.ast.*
+import hadesc.context.Context
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
@@ -21,6 +22,7 @@ sealed class ValueBinding {
     data class FunctionParam(
         override val qualifiedName: QualifiedName,
         val declaration: Declaration,
+        val param: Param,
         val kind: Declaration.Kind.FunctionDef
     ) : ValueBinding() {
         init {
@@ -30,6 +32,7 @@ sealed class ValueBinding {
 
     data class ImportAs(
         override val qualifiedName: QualifiedName,
+        val aliasedModule: QualifiedName,
         val kind: Declaration.Kind.ImportAs
     ) : ValueBinding()
 
@@ -45,6 +48,14 @@ sealed class ValueBinding {
     ) : ValueBinding()
 }
 
+sealed class TypeBinding {
+    data class FunctionDefTypeParam(
+        val def: Declaration.Kind.FunctionDef,
+        val binder: Binder,
+        val paramIndex: Int
+    ) : TypeBinding()
+}
+
 sealed class ScopeNode {
     data class FunctionDef(
         val declaration: Declaration,
@@ -56,7 +67,10 @@ sealed class ScopeNode {
     ) : ScopeNode()
 
     data class Block(val block: hadesc.ast.Block) : ScopeNode()
-    data class Struct(val declaration: Declaration, val kind: Declaration.Kind.Struct) : ScopeNode()
+    data class Struct(
+        val declaration: Declaration,
+        val kind: Declaration.Kind.Struct
+    ) : ScopeNode()
 
     val location
         get(): SourceLocation = when (this) {
@@ -67,24 +81,81 @@ sealed class ScopeNode {
         }
 }
 
-class Resolver {
+data class ScopeStack(val scopes: List<ScopeNode>) : Iterable<ScopeNode> {
+    val sourceFile: SourceFile
+
+    init {
+        val sourceFileScopeNode = scopes.last()
+        if (sourceFileScopeNode !is ScopeNode.SourceFile) {
+            throw AssertionError("Expected a sourcefile at the end of scope stack")
+        }
+        sourceFile = sourceFileScopeNode.sourceFile
+    }
+
+    override fun iterator(): Iterator<ScopeNode> {
+        return scopes.iterator()
+    }
+
+}
+
+class Resolver(val ctx: Context) {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeNode>>()
     private val valueBindings = mutableMapOf<QualifiedName, ValueBinding>()
 
     fun getBinding(ident: Identifier): ValueBinding {
-        val scopeStack = sourceFileScopes
+        val scopeStack = getScopeStack(ident)
+        // TODO: remove moduleName param becuase it can be queried
+        // from the scope stack
+        return findInScopeStack(ident, scopeStack.sourceFile.moduleName, scopeStack)
+    }
+
+    fun getTypeBinding(ident: Identifier): TypeBinding {
+        val scopeStack = getScopeStack(ident)
+        return findTypeBindingInScopeStack(ident, scopeStack)
+    }
+
+    private fun findTypeBindingInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding {
+        for (scope in scopeStack) {
+            val binding = when (scope) {
+                is ScopeNode.FunctionDef -> findTypeBindingInFunctionDef(ident, scope.kind)
+                is ScopeNode.SourceFile -> null
+                is ScopeNode.Block -> null
+                is ScopeNode.Struct -> TODO()
+            }
+
+            if (binding != null) {
+                return binding
+            }
+        }
+        TODO("${ident.location}: Unbound type variable: $ident")
+    }
+
+    private fun findTypeBindingInFunctionDef(
+        ident: Identifier,
+        kind: Declaration.Kind.FunctionDef
+    ): TypeBinding? {
+        var index = -1
+        for (typeParam in kind.typeParams) {
+            index++
+            if (typeParam.binder.identifier.name == ident.name) {
+                return TypeBinding.FunctionDefTypeParam(kind, typeParam.binder, index)
+            }
+        }
+        return null
+    }
+
+    private fun getScopeStack(ident: Identifier): ScopeStack {
+        val scopes = sourceFileScopes
             .getOrDefault(ident.location.file, emptyList<ScopeNode>())
             .filter { it.location contains ident }
             .sortedByDescending { it.location }
-        val sourceFileScopeNode = scopeStack.last()
-        if (sourceFileScopeNode !is ScopeNode.SourceFile) {
-            throw AssertionError("Expected a sourcefile at the end of scope stack")
-        }
-        return findInScopeStack(ident, sourceFileScopeNode.sourceFile.moduleName, scopeStack)
+
+        return ScopeStack(scopes)
     }
 
-    private fun findInScopeStack(ident: Identifier, parentName: QualifiedName, scopes: List<ScopeNode>): ValueBinding {
-        val binding = findInScopeStackHelper(ident, parentName, scopes)
+
+    private fun findInScopeStack(ident: Identifier, parentName: QualifiedName, scopeStack: ScopeStack): ValueBinding {
+        val binding = findInScopeStackHelper(ident, parentName, scopeStack)
         valueBindings[binding.qualifiedName] = binding
         return binding
     }
@@ -92,7 +163,7 @@ class Resolver {
     private fun findInScopeStackHelper(
         ident: Identifier,
         parentName: QualifiedName,
-        scopes: List<ScopeNode>
+        scopes: ScopeStack
     ): ValueBinding {
         for (scope in scopes) {
             val binding = when (scope) {
@@ -121,6 +192,7 @@ class Resolver {
                                     declaration.kind.asName.identifier.name
                                 )
                             ),
+                            pathToQualifiedName(declaration.kind.modulePath),
                             declaration.kind
                         )
                     } else {
@@ -174,6 +246,8 @@ class Resolver {
         return null
     }
 
+    private fun pathToQualifiedName(path: QualifiedPath): QualifiedName = ctx.qualifiedPathToName(path)
+
     private fun findInFunctionDef(
         parentName: QualifiedName,
         ident: Identifier,
@@ -183,7 +257,12 @@ class Resolver {
         for (param in kind.params) {
             if (param.binder.identifier.name == ident.name) {
                 val name = param.binder.identifier.name
-                return ValueBinding.FunctionParam(QualifiedName(listOf(name)), declaration, kind)
+                return ValueBinding.FunctionParam(
+                    QualifiedName(listOf(name)),
+                    declaration,
+                    param,
+                    kind
+                )
             }
         }
         if (kind.name.identifier.name == ident.name) {
@@ -209,6 +288,9 @@ class Resolver {
     private fun findInStatement(ident: Identifier, statement: Statement): ValueBinding? = when (statement.kind) {
         is Statement.Kind.Val -> {
             if (ident.name == statement.kind.binder.identifier.name) {
+                // TODO: If rhs is a reference to a global, then we should
+                // recursively resolve that here and give the root binding
+                // instead of this alias
                 ValueBinding.ValBinding(
                     QualifiedName(listOf(ident.name)),
                     statement,
@@ -248,5 +330,9 @@ class Resolver {
 
     fun resolveQualifiedName(qualifiedName: QualifiedName): ValueBinding? {
         return valueBindings[qualifiedName]
+    }
+
+    fun resolveModuleMember(qualifiedName: QualifiedName, propertyName: Identifier): ValueBinding {
+        return findInSourceFile(propertyName, ctx.resolveSourceFile(qualifiedName)) ?: TODO()
     }
 }

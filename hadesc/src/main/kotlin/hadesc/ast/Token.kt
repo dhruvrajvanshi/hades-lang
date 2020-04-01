@@ -30,6 +30,8 @@ data class Token(
         COMMA,
         COLON,
         STAR,
+        LSQB,
+        RSQB,
 
         EQ,
 
