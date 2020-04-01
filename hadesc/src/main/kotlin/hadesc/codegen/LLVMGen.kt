@@ -5,7 +5,6 @@ import dev.supergrecko.kllvm.core.types.PointerType
 import dev.supergrecko.kllvm.core.types.StructType
 import dev.supergrecko.kllvm.core.values.FunctionValue
 import dev.supergrecko.kllvm.core.values.InstructionValue
-import dev.supergrecko.kllvm.core.values.IntValue
 import dev.supergrecko.kllvm.core.values.PointerValue
 import hadesc.ast.*
 import hadesc.context.Context
@@ -23,9 +22,9 @@ import org.bytedeco.llvm.global.LLVM
 @OptIn(ExperimentalStdlibApi::class)
 class LLVMGen(private val ctx: Context) : AutoCloseable {
     private val log = logger()
-    private val llvmCtx = llvm.Context()
-    private val llvmModule = llvm.Module(ctx.options.main.toString(), llvmCtx)
-    private val builder = llvm.Builder(llvmCtx)
+    private val llvmCtx = llvm.Context.create()
+    private val llvmModule = llvm.Module.create(ctx.options.main.toString(), llvmCtx)
+    private val builder = llvm.Builder.create(llvmCtx)
     private val qualifiedNameToFunctionValue = mutableMapOf<QualifiedName, FunctionValue>()
     private val specializationStacks = mutableMapOf<QualifiedName, MutableList<FunctionValue>>()
 
@@ -77,7 +76,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         val instanceType = ctx.checker.typeOfStructInstance(kind)
         val constructorFunction = llvmModule.addFunction(
             lowerBinder(kind.binder),
-            lowerType(constructorType) as FunctionType
+            lowerType(constructorType).asFunctionType()
         )
         val basicBlock = constructorFunction.appendBasicBlock("entry")
 
@@ -130,7 +129,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     private fun lowerExternDefDeclaration(declaration: Declaration, kind: Declaration.Kind.ExternFunctionDef) {
         llvmModule.addFunction(
-            kind.externName.name.text, FunctionType(
+            kind.externName.name.text, FunctionType.new(
                 returns = lowerTypeAnnotation(kind.returnType),
                 types = kind.paramTypes.map { lowerTypeAnnotation(it) },
                 variadic = false
@@ -158,7 +157,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
 
         val returnType = ctx.checker.annotationToType(def.returnType)
-        val type = FunctionType(
+        val type = FunctionType.new(
             lowerTypeAnnotation(def.returnType),
             def.params.map { lowerParamToType(it) },
             false
@@ -196,12 +195,12 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         is Type.ModuleAlias -> TODO("Bug: Module alias can't be lowered")
         is Type.Bool -> boolTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
-        is Type.Function -> FunctionType(
+        is Type.Function -> FunctionType.new(
             returns = lowerType(type.to),
             types = type.from.map { lowerType(it) },
             variadic = false
         )
-        is Type.Struct -> StructType(
+        is Type.Struct -> StructType.new(
             type.memberTypes.values.map { lowerType(it) },
             packed = false,
             ctx = llvmCtx
@@ -360,15 +359,15 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         return "\$_$nextNameIndex"
     }
 
-    private val byteTy = IntType(8, llvmCtx)
-    private val bytePtrTy = PointerType(byteTy)
-    private val voidTy = VoidType(llvmCtx)
-    private val boolTy = IntType(1, llvmCtx)
-    private val trueValue = IntValue(boolTy, 1, false)
-    private val falseValue = IntValue(0, false)
+    private val byteTy = IntType.new(8, llvmCtx)
+    private val bytePtrTy = PointerType.new(byteTy)
+    private val voidTy = VoidType.new(llvmCtx)
+    private val boolTy = IntType.new(1, llvmCtx)
+    private val trueValue = boolTy.getConstantInt(1, false)
+    private val falseValue = boolTy.getConstantInt(0, false)
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
-        return PointerType(to)
+        return PointerType.new(to)
     }
 
     private fun lowerQualifiedValueName(qualifiedName: QualifiedName): Value {
@@ -395,11 +394,11 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                 assert(index > -1)
                 val specialization = specializationStacks[functionQualifiedName]?.lastOrNull()
                 if (specialization != null) {
-                    Value(LLVM.LLVMGetParam(specialization.getUnderlyingReference(), index))
+                    FunctionValue(LLVM.LLVMGetParam(specialization.getUnderlyingReference(), index))
                 } else {
                     val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
                         ?: throw AssertionError("no function value for param binding")
-                    Value(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
+                    FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
                 }
             }
             is ValueBinding.ImportAs -> TODO("${binding.kind.asName.identifier.name.text} is not a valid expression")
@@ -451,7 +450,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         val specializedFunctionName = originalFunctionName.append(ctx.makeName(expr.location.toString()))
         val fn = llvmModule.addFunction(
             mangleQualifiedName(specializedFunctionName),
-            lowerType(specializedFunctionType) as dev.supergrecko.kllvm.core.types.FunctionType
+            lowerType(specializedFunctionType).asFunctionType()
         )
         val stack = specializationStacks
             .computeIfAbsent(originalFunctionName) { mutableListOf() }
