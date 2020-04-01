@@ -15,6 +15,7 @@ data class Token(
         EXTERN,
         RETURN,
         VAL,
+        STRUCT,
 
         ID,
 

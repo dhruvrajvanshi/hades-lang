@@ -2,6 +2,7 @@ package hadesc.codegen
 
 import dev.supergrecko.kllvm.core.types.IntType
 import dev.supergrecko.kllvm.core.types.PointerType
+import dev.supergrecko.kllvm.core.types.StructType
 import dev.supergrecko.kllvm.core.values.FunctionValue
 import dev.supergrecko.kllvm.core.values.InstructionValue
 import dev.supergrecko.kllvm.core.values.PointerValue
@@ -13,9 +14,7 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
-import llvm.FunctionType
-import llvm.Value
-import llvm.VoidType
+import llvm.*
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.global.LLVM
@@ -65,6 +64,61 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         Declaration.Kind.Error -> {
         }
         is Declaration.Kind.ExternFunctionDef -> lowerExternDefDeclaration(declaration, declaration.kind)
+        is Declaration.Kind.Struct -> {
+            lowerStructDeclaration(declaration, declaration.kind)
+        }
+    }
+
+    private fun lowerStructDeclaration(declaration: Declaration, kind: Declaration.Kind.Struct) {
+        val constructorType = ctx.checker.typeOfStructConstructor(kind)
+        val instanceType = ctx.checker.typeOfStructInstance(kind)
+        val constructorFunction = llvmModule.addFunction(
+            lowerBinder(kind.binder),
+            lowerType(constructorType).asFunctionType()
+        )
+        val basicBlock = constructorFunction.appendBasicBlock("entry")
+
+        generateInBlock(basicBlock) {
+
+            val thisPtr = LLVM.LLVMBuildAlloca(
+                getUnderlyingRef(),
+                lowerType(instanceType).getUnderlyingReference(),
+                "instance"
+            )
+
+            val instanceStructType = instanceType as Type.Struct
+            for (i in instanceStructType.memberTypes.entries.indices) {
+                val paramRef = LLVM.LLVMGetParam(constructorFunction.getUnderlyingReference(), i)
+                val elementPtr = LLVM.LLVMBuildStructGEP(
+                    getUnderlyingRef(),
+                    thisPtr,
+                    i,
+                    "field_${i}"
+                )
+                LLVM.LLVMBuildStore(getUnderlyingRef(), paramRef, elementPtr)
+
+            }
+
+            val result = LLVM.LLVMBuildLoad(getUnderlyingRef(), thisPtr, "result")
+            buildRet(PointerValue(result))
+
+        }
+        constructorFunction.verify()
+    }
+
+    private fun FunctionValue.verify() {
+        LLVM.LLVMVerifyFunction(getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
+    }
+
+    private fun generateInBlock(basicBlock: BasicBlock, function: Builder.() -> Unit) {
+        val oldPosition = builder.getInsertBlock()
+        builder.positionAtEnd(basicBlock)
+
+        builder.function()
+
+        if (oldPosition != null) {
+            builder.positionAtEnd(oldPosition)
+        }
     }
 
     private fun lowerExternDefDeclaration(declaration: Declaration, kind: Declaration.Kind.ExternFunctionDef) {
@@ -113,7 +167,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         if (previousPosition != null) {
             builder.positionAtEnd(previousPosition)
         }
-        LLVM.LLVMVerifyFunction(func.getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
+        func.verify()
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): llvm.Type {
@@ -121,6 +175,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerType(type: Type): llvm.Type = when (type) {
+        Type.Error -> TODO()
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
@@ -128,6 +183,11 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             returns = lowerType(type.to),
             types = type.from.map { lowerType(it) },
             variadic = false
+        )
+        is Type.Struct -> StructType.new(
+            type.memberTypes.values.map { lowerType(it) },
+            packed = false,
+            ctx = llvmCtx
         )
     }
 
@@ -158,19 +218,25 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             LLVM.LLVMBuildAlloca(
                 builder.getUnderlyingRef(),
                 lowerType(ctx.checker.typeOfExpression(kind.rhs)).getUnderlyingReference(),
-                kind.binder.identifier.name.text
+                kind.binder.identifier.name.text + "_tmp"
             )
         )
         val rhs = lowerExpression(kind.rhs)
-
-        val ty = LLVM.LLVMPrintTypeToString(rhs.getType().getUnderlyingReference()).string
-        val value = InstructionValue(
+        InstructionValue(
             LLVM.LLVMBuildStore(
                 builder.getUnderlyingRef(),
                 rhs.getUnderlyingReference(),
                 instr.getUnderlyingReference()
             )
         )
+
+//        val value = InstructionValue(
+//            LLVM.LLVMBuildLoad(
+//                builder.getUnderlyingRef(),
+//                instr.getUnderlyingReference(),
+//                kind.binder.identifier.name.text
+//            )
+//        )
         localVariables[kind.binder.location] = instr
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
     }
@@ -190,10 +256,16 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun lowerPropertyExpression(expr: Expression, kind: Expression.Kind.Property): Value {
+        // the reason this isn't as simple as lowerLHS -> extractvalue on lowered lhs
+        // is because lhs might not be an actual runtime value, for example when
+        // it refers to a module alias (import x as y). Here, y isn't a real value
+        // in that case, we have to resolve y.z to a qualified name and use that
+        // value instead (x.y.z).
+        // If it's not a module alias, then we do the extractvalue (lower lhs) thingy
+        // (lowerValuePropertyExpression)
         return when (kind.lhs.kind) {
             is Expression.Kind.Var -> {
-                val binding = ctx.resolver.getBinding(kind.lhs.kind.name)
-                when (binding) {
+                when (val binding = ctx.resolver.getBinding(kind.lhs.kind.name)) {
                     is ValueBinding.ImportAs -> {
                         val sourceFile = ctx.resolveSourceFile(binding.kind.modulePath)
                         lowerSourceFile(sourceFile)
@@ -201,11 +273,37 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                             ?: throw AssertionError("${expr.location}: No such property")
                         lowerQualifiedValueName(qualifiedName)
                     }
-                    else -> TODO("${expr.location}: Can't select property on this expression")
+                    else -> {
+                        lowerValuePropertyExpression(expr, kind)
+                    }
                 }
             }
-            else -> TODO("${expr.location}: Can't select property on this expression")
+            else ->
+                lowerValuePropertyExpression(expr, kind)
+        }
+    }
 
+    private fun lowerValuePropertyExpression(expr: Expression, kind: Expression.Kind.Property): Value {
+        val lhsPtr = lowerExpression(kind.lhs)
+        return when (val type = ctx.checker.typeOfExpression(kind.lhs)) {
+            Type.Byte,
+            Type.Void,
+            Type.Error,
+            is Type.RawPtr,
+            is Type.Function -> TODO("Can't call dot operator")
+            is Type.Struct -> {
+                val rhsName = kind.property.name
+                val index = type.memberTypes.keys.indexOf(rhsName)
+                val extractValueRef = LLVM.LLVMBuildExtractValue(
+                    builder.getUnderlyingRef(),
+                    lhsPtr.getUnderlyingReference(),
+                    index,
+                    ""
+                )
+                InstructionValue(
+                    extractValueRef
+                )
+            }
         }
     }
 
@@ -226,6 +324,12 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private fun stringLiteralName(): String {
         nextLiteralIndex++
         return "\$string_literal_$nextLiteralIndex"
+    }
+
+    private var nextNameIndex = 0
+    private fun generateUniqueName(): String {
+        nextNameIndex++
+        return "\$_$nextNameIndex"
     }
 
     private val byteTy = IntType.new(8, llvmCtx)
@@ -268,9 +372,14 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                     LLVM.LLVMBuildLoad(
                         builder.getUnderlyingRef(),
                         localVariables[binding.kind.binder.location]?.getUnderlyingReference(),
-                        binding.kind.binder.identifier.name.text
+                        generateUniqueName()
                     )
                 )
+            is ValueBinding.Struct ->
+                llvmModule.getFunction(mangleQualifiedName(binding.qualifiedName))
+                    ?: throw AssertionError(
+                        "Function ${binding.qualifiedName} hasn't been added to llvm module"
+                    )
         }
     }
 

@@ -1,0 +1,16 @@
+import libc as libc;
+
+struct StringPair {
+    val first: *Byte;
+    val second: *Byte;
+}
+
+def main(): Void {
+    val pair = StringPair(b"first", b"second");
+    libc.puts(pair.first);
+    libc.puts(pair.second);
+    val third = StringPair(b"third", b"nothing").first;
+    libc.puts(third);
+    libc.puts(StringPair(b"third", b"fourth").second);
+}
+

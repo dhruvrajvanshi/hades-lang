@@ -6,9 +6,9 @@ import hadesc.location.SourceLocation
 data class Declaration(
     override val location: SourceLocation,
     val kind: Kind
-): HasLocation {
+) : HasLocation {
     sealed class Kind {
-        object Error: Kind()
+        object Error : Kind()
         data class ImportAs(
             val modulePath: QualifiedPath,
             val asName: Binder
@@ -27,6 +27,17 @@ data class Declaration(
             val returnType: TypeAnnotation,
             val externName: Identifier
         ) : Kind()
+
+        data class Struct(
+            val binder: Binder,
+            val members: List<Member>
+        ) : Kind() {
+
+            sealed class Member {
+                object Error : Member()
+                data class Field(val binder: Binder, val typeAnnotation: TypeAnnotation) : Member()
+            }
+        }
     }
 
 }

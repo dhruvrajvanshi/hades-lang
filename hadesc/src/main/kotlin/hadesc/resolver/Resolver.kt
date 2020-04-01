@@ -38,6 +38,11 @@ sealed class ValueBinding {
         val statement: Statement,
         val kind: Statement.Kind.Val
     ) : ValueBinding()
+
+    data class Struct(
+        override val qualifiedName: QualifiedName,
+        val kind: Declaration.Kind.Struct
+    ) : ValueBinding()
 }
 
 sealed class ScopeNode {
@@ -51,12 +56,14 @@ sealed class ScopeNode {
     ) : ScopeNode()
 
     data class Block(val block: hadesc.ast.Block) : ScopeNode()
+    data class Struct(val declaration: Declaration, val kind: Declaration.Kind.Struct) : ScopeNode()
 
     val location
         get(): SourceLocation = when (this) {
             is FunctionDef -> SourceLocation.between(kind.params.firstOrNull() ?: kind.body, kind.body)
             is SourceFile -> sourceFile.location
             is Block -> block.location
+            is Struct -> declaration.location
         }
 }
 
@@ -92,6 +99,7 @@ class Resolver {
                 is ScopeNode.FunctionDef -> findInFunctionDef(parentName, ident, scope.declaration, scope.kind)
                 is ScopeNode.SourceFile -> findInSourceFile(ident, scope.sourceFile)
                 is ScopeNode.Block -> findInBlock(ident, scope.block)
+                is ScopeNode.Struct -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -136,6 +144,19 @@ class Resolver {
                     if (declaration.kind.binder.identifier.name == ident.name) {
                         val qualifiedName = sourceFileModuleName.append(declaration.kind.binder.identifier.name)
                         val binding = ValueBinding.ExternFunction(
+                            qualifiedName,
+                            declaration.kind
+                        )
+                        valueBindings[qualifiedName] = binding
+                        binding
+                    } else {
+                        null
+                    }
+                }
+                is Declaration.Kind.Struct -> {
+                    if (declaration.kind.binder.identifier.name == ident.name) {
+                        val qualifiedName = sourceFileModuleName.append(declaration.kind.binder.identifier.name)
+                        val binding = ValueBinding.Struct(
                             qualifiedName,
                             declaration.kind
                         )

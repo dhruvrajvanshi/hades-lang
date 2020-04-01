@@ -11,7 +11,8 @@ import hadesc.qualifiedname.QualifiedName
 
 internal typealias tt = Token.Kind
 
-private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN)
+private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT)
+private val structMemberRecoveryTokens = setOf(tt.EOF, tt.VAL, tt.DEF)
 private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN, tt.VAL)
 private val byteStringEscapes = mapOf(
     'n' to '\n',
@@ -43,6 +44,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val decl = when (currentToken.kind) {
             tt.IMPORT -> parseDeclarationImportAs()
             tt.DEF -> parseDeclarationFunctionDef()
+            tt.STRUCT -> parseStructDeclaration()
             tt.EXTERN -> parseExternFunctionDef()
             else -> {
                 val location = recoverFromError(Diagnostic.Kind.DeclarationExpected)
@@ -54,6 +56,44 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseStructDeclaration(): Declaration {
+        val start = expect(tt.STRUCT)
+        val binder = parseBinder()
+
+        expect(tt.LBRACE)
+        val members = buildList {
+            while (!isEOF() && !at(tt.RBRACE)) {
+                add(parseStructMember())
+            }
+        }
+        val stop = expect(tt.RBRACE)
+
+        return Declaration(
+            makeLocation(start, stop),
+            Declaration.Kind.Struct(binder, members)
+        )
+    }
+
+    private fun parseStructMember(): Declaration.Kind.Struct.Member = when (currentToken.kind) {
+        tt.VAL -> parseValStructMember()
+        else -> {
+            recoverFromError()
+            Declaration.Kind.Struct.Member.Error
+        }
+    }
+
+    private fun parseValStructMember(): Declaration.Kind.Struct.Member {
+        expect(tt.VAL)
+        val binder = parseBinder()
+        expect(tt.COLON)
+        val annotation = parseTypeAnnotation()
+        expect(tt.SEMICOLON)
+        return Declaration.Kind.Struct.Member.Field(
+            binder,
+            annotation
+        )
     }
 
     private fun parseExternFunctionDef(): Declaration {
