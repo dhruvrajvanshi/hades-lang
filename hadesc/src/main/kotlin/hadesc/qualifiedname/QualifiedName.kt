@@ -9,7 +9,7 @@ data class QualifiedName(
         return QualifiedName(names + name)
     }
 
-    fun mangle(): String = names.joinToString { it.text }
+    fun mangle(): String = names.joinToString(separator = ".") { it.text }
 
     val size get() = names.size
 
