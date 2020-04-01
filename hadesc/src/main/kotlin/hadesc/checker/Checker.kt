@@ -20,6 +20,7 @@ class Checker(val ctx: Context) {
                 // is it a good idea?
                 "Byte" -> Type.Byte
                 "Void" -> Type.Void
+                "Bool" -> Type.Bool
                 else -> when (val typeBinding = ctx.resolver.getTypeBinding(annotation.kind.name)) {
                     is TypeBinding.FunctionDefTypeParam -> Type.ParamRef(
                         typeBinding.binder,
@@ -47,6 +48,7 @@ class Checker(val ctx: Context) {
             typeOfProperty(lhsType, expression.kind.property)
         }
         is Expression.Kind.ByteString -> Type.RawPtr(Type.Byte)
+        is Expression.Kind.BoolLiteral -> Type.Bool
     }
 
     fun typeOfProperty(type: Type, propertyName: Identifier): Type = when (type) {

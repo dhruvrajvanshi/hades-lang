@@ -16,6 +16,8 @@ data class Token(
         RETURN,
         VAL,
         STRUCT,
+        TRUE,
+        FALSE,
 
         ID,
 

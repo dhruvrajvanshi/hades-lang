@@ -108,7 +108,11 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun FunctionValue.verify() {
-        LLVM.LLVMVerifyFunction(getUnderlyingReference(), LLVM.LLVMAbortProcessAction)
+        val validate = LLVM.LLVMVerifyFunction(getUnderlyingReference(), LLVM.LLVMPrintMessageAction)
+        if (validate > 0) {
+            log.debug("Bad function: ${dumpToString()}")
+            TODO()
+        }
     }
 
     private fun generateInBlock(basicBlock: BasicBlock, function: Builder.() -> Unit) {
@@ -125,8 +129,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private fun lowerExternDefDeclaration(declaration: Declaration, kind: Declaration.Kind.ExternFunctionDef) {
         llvmModule.addFunction(
             kind.externName.name.text, FunctionType.new(
-                returns = VoidType.new(llvmCtx),
-                types = listOf(PointerType.new(IntType.new(8, llvmCtx))),
+                returns = lowerTypeAnnotation(kind.returnType),
+                types = kind.paramTypes.map { lowerTypeAnnotation(it) },
                 variadic = false
             )
         )
@@ -188,6 +192,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.ModuleAlias -> TODO("Bug: Module alias can't be lowered")
+        is Type.Bool -> boolTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> FunctionType.new(
             returns = lowerType(type.to),
@@ -261,6 +266,13 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             }
             is Expression.Kind.Property -> lowerPropertyExpression(expr, expr.kind)
             is Expression.Kind.ByteString -> lowerByteStringExpression(expr, expr.kind)
+            is Expression.Kind.BoolLiteral -> {
+                if (expr.kind.value) {
+                    trueValue
+                } else {
+                    falseValue
+                }
+            }
         }
     }
 
@@ -298,6 +310,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             Type.Byte,
             Type.Void,
             Type.Error,
+            Type.Bool,
             is Type.RawPtr,
             is Type.Function -> TODO("Can't call dot operator")
             is Type.Struct -> {
@@ -346,6 +359,9 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private val byteTy = IntType.new(8, llvmCtx)
     private val bytePtrTy = PointerType.new(byteTy)
     private val voidTy = VoidType.new(llvmCtx)
+    private val boolTy = IntType.new(1, llvmCtx)
+    private val trueValue = boolTy.getConstantInt(1, false)
+    private val falseValue = boolTy.getConstantInt(0, false)
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
         return PointerType.new(to)
@@ -362,7 +378,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                     )
             }
             is ValueBinding.ExternFunction ->
-                llvmModule.getFunction(binding.kind.binder.identifier.name.text)
+                llvmModule.getFunction(binding.kind.externName.name.text)
                     ?: throw AssertionError(
                         "Function ${binding.qualifiedName} hasn't been added to llvm module"
                     )

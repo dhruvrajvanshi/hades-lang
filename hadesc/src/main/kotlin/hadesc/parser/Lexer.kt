@@ -15,7 +15,9 @@ val KEYWORDS = mapOf(
     "extern" to tt.EXTERN,
     "return" to tt.RETURN,
     "val" to tt.VAL,
-    "struct" to tt.STRUCT
+    "struct" to tt.STRUCT,
+    "true" to tt.TRUE,
+    "false" to tt.FALSE
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

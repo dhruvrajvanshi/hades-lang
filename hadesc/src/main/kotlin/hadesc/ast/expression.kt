@@ -13,6 +13,7 @@ data class Expression(
         data class Call(val callee: Expression, val args: List<Arg>) : Kind()
         data class Property(val lhs: Expression, val property: Identifier) : Kind()
         data class ByteString(val bytes: ByteArray) : Kind()
+        data class BoolLiteral(val value: Boolean) : Kind()
     }
 }
 

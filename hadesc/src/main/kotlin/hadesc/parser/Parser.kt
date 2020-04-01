@@ -104,7 +104,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             expect(tt.LPAREN)
             var isFirst = true
             while (!(at(tt.RPAREN) || at(tt.EOF))) {
-                if (!isFirst && !at(tt.RPAREN)) {
+                if (!isFirst) {
                     expect(tt.COMMA)
                 } else {
                     isFirst = false
@@ -264,6 +264,12 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val head = when (currentToken.kind) {
             tt.ID -> parseExpressionVar()
             tt.BYTE_STRING -> parseExpressionByteString()
+            tt.TRUE -> {
+                Expression(advance().location, Expression.Kind.BoolLiteral(true))
+            }
+            tt.FALSE -> {
+                Expression(advance().location, Expression.Kind.BoolLiteral(false))
+            }
             else -> {
                 val location = advance().location
                 ctx.diagnosticReporter.report(location, Diagnostic.Kind.ExpressionExpected)

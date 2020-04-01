@@ -9,6 +9,7 @@ sealed class Type {
     object Error : Type()
     object Byte : Type()
     object Void : Type()
+    object Bool : Type()
     data class RawPtr(val to: Type) : Type()
     data class Function(val from: List<Type>, val to: Type) : Type()
     data class GenericFunction(
