@@ -3,6 +3,7 @@ package hadesc.types
 import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.ast.TypeParam
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
 sealed class Type {
@@ -31,5 +32,10 @@ sealed class Type {
     data class ParamRef(
         val binder: Binder,
         val typeParamIndex: Int
+    ) : Type()
+
+    data class Deferred(
+        val paramRef: ParamRef,
+        val callLocation: SourceLocation
     ) : Type()
 }

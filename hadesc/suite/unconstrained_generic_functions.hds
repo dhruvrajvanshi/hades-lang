@@ -14,6 +14,6 @@ def second[A, B](first: A, second: B): B {
 
 def main(): Void {
     c.puts(id(b"id"));
-    c.puts(first(b"first", b"second"));
-    c.puts(second(b"first", b"second"));
+    c.puts(first(b"first", true));
+    c.puts(second(false, b"second"));
 }

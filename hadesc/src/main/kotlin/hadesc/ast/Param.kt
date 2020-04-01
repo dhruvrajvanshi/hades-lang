@@ -16,4 +16,12 @@ data class TypeParam(
 ) : HasLocation {
     override val location: SourceLocation
         get() = binder.location
+
+    override fun hashCode(): Int {
+        return location.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is Binder && location == other.location
+    }
 }

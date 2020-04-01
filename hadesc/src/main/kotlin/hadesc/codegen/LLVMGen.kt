@@ -26,6 +26,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private val llvmModule = llvm.Module.create(ctx.options.main.toString(), llvmCtx)
     private val builder = llvm.Builder.create(llvmCtx)
     private val qualifiedNameToFunctionValue = mutableMapOf<QualifiedName, FunctionValue>()
+    private val specializationStacks = mutableMapOf<QualifiedName, MutableList<FunctionValue>>()
 
     fun generate() {
         log.info("Generating LLVM IR")
@@ -204,7 +205,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             packed = false,
             ctx = llvmCtx
         )
-        is Type.ParamRef, is Type.GenericFunction -> TODO("Can't lower unspecialized type param")
+        is Type.ParamRef, is Type.GenericFunction, is Type.Deferred ->
+            TODO("Can't lower unspecialized type param")
     }
 
     private fun lowerParamToType(param: Param): llvm.Type {
@@ -328,6 +330,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             }
             is Type.ModuleAlias -> TODO("Should not be reached")
             is Type.ParamRef, is Type.GenericFunction -> TODO("Can't lower unspecialized type")
+            is Type.Deferred -> TODO("Can't lower unspecialized type")
         }
     }
 
@@ -387,11 +390,16 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                 assert(qualifiedName.size == 1)
                 val name = qualifiedName.first
                 val functionQualifiedName = ctx.resolver.getBinding(binding.kind.name.identifier).qualifiedName
-                val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
-                    ?: throw AssertionError("no function value for param binding")
                 val index = binding.kind.params.indexOfFirst { it.binder.identifier.name == name }
                 assert(index > -1)
-                FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
+                val specialization = specializationStacks[functionQualifiedName]?.lastOrNull()
+                if (specialization != null) {
+                    FunctionValue(LLVM.LLVMGetParam(specialization.getUnderlyingReference(), index))
+                } else {
+                    val functionValue: FunctionValue = qualifiedNameToFunctionValue[functionQualifiedName]
+                        ?: throw AssertionError("no function value for param binding")
+                    FunctionValue(LLVM.LLVMGetParam(functionValue.getUnderlyingReference(), index))
+                }
             }
             is ValueBinding.ImportAs -> TODO("${binding.kind.asName.identifier.name.text} is not a valid expression")
             is ValueBinding.ValBinding ->
@@ -435,7 +443,38 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     private fun generateGenericCall(expr: Expression, kind: Expression.Kind.Call): InstructionValue {
         val def = getFunctionDef(kind.callee)
-        TODO()
+        val specializedFunctionType = ctx.checker
+            .getGenericSpecializedFunctionType(def, expr.location, kind.args)
+        val originalFunctionName =
+            ctx.resolver.getBinding(def.name.identifier).qualifiedName
+        val specializedFunctionName = originalFunctionName.append(ctx.makeName(expr.location.toString()))
+        val fn = llvmModule.addFunction(
+            mangleQualifiedName(specializedFunctionName),
+            lowerType(specializedFunctionType).asFunctionType()
+        )
+        val stack = specializationStacks
+            .computeIfAbsent(originalFunctionName) { mutableListOf() }
+        stack.add(fn)
+        generateSpecializedFunctionBody(fn, specializedFunctionType, def)
+        stack.removeLast()
+        return builder.buildCall(
+            fn,
+            kind.args.map { lowerExpression(it.expression) }
+        )
+    }
+
+    private fun generateSpecializedFunctionBody(
+        fn: FunctionValue,
+        specializedFunctionType: Type.Function,
+        def: Declaration.Kind.FunctionDef
+    ) {
+        val basicBlock = fn.appendBasicBlock("entry")
+        generateInBlock(basicBlock) {
+            def.body.members.forEach {
+                lowerBlockMember(it)
+            }
+        }
+
     }
 
     private fun getFunctionDef(callee: Expression): Declaration.Kind.FunctionDef {
