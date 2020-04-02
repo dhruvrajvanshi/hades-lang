@@ -37,21 +37,21 @@ class Checker(val ctx: Context) {
 
     fun typeError() = Type.Error
 
-    fun typeOfExpression(expression: Expression): Type = when (expression.kind) {
-        Expression.Kind.Error -> typeError()
-        is Expression.Kind.Var -> typeOfBinding(ctx.resolver.getBinding(expression.kind.name))
-        is Expression.Kind.Call -> {
-            when (val funcType = typeOfExpression(expression.kind.callee)) {
+    fun typeOfExpression(expression: Expression): Type = when (expression) {
+        is Expression.Error -> typeError()
+        is Expression.Var -> typeOfBinding(ctx.resolver.getBinding(expression.name))
+        is Expression.Call -> {
+            when (val funcType = typeOfExpression(expression.callee)) {
                 is Type.Function -> funcType.to
                 else -> typeError()
             }
         }
-        is Expression.Kind.Property -> {
-            val lhsType = typeOfExpression(expression.kind.lhs)
-            typeOfProperty(lhsType, expression.kind.property)
+        is Expression.Property -> {
+            val lhsType = typeOfExpression(expression.lhs)
+            typeOfProperty(lhsType, expression.property)
         }
-        is Expression.Kind.ByteString -> Type.RawPtr(Type.Byte)
-        is Expression.Kind.BoolLiteral -> Type.Bool
+        is Expression.ByteString -> Type.RawPtr(Type.Byte)
+        is Expression.BoolLiteral -> Type.Bool
     }
 
     fun typeOfProperty(type: Type, propertyName: Identifier): Type = when (type) {
@@ -163,8 +163,8 @@ class Checker(val ctx: Context) {
         // TODO
     }
 
-    fun isGenericCallSite(kind: Expression.Kind.Call): Boolean {
-        val ty = typeOfExpression(kind.callee)
+    fun isGenericCallSite(call: Expression.Call): Boolean {
+        val ty = typeOfExpression(call.callee)
         return ty is Type.GenericFunction
     }
 

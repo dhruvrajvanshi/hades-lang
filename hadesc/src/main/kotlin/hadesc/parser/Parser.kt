@@ -265,18 +265,15 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.ID -> parseExpressionVar()
             tt.BYTE_STRING -> parseExpressionByteString()
             tt.TRUE -> {
-                Expression(advance().location, Expression.Kind.BoolLiteral(true))
+                Expression.BoolLiteral(advance().location, true)
             }
             tt.FALSE -> {
-                Expression(advance().location, Expression.Kind.BoolLiteral(false))
+                Expression.BoolLiteral(advance().location, false)
             }
             else -> {
                 val location = advance().location
                 ctx.diagnosticReporter.report(location, Diagnostic.Kind.ExpressionExpected)
-                Expression(
-                    location = location,
-                    kind = Expression.Kind.Error
-                )
+                Expression.Error(location)
             }
         }
         return parseExpressionTail(head)
@@ -306,7 +303,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 i++
             }
         }
-        return Expression(token.location, Expression.Kind.ByteString(bytes.toByteArray()))
+        return Expression.ByteString(token.location, bytes.toByteArray())
     }
 
     private fun parseExpressionTail(head: Expression): Expression {
@@ -326,12 +323,10 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 }
                 val stop = expect(tt.RPAREN)
                 parseExpressionTail(
-                    Expression(
-                        location = makeLocation(head, stop),
-                        kind = Expression.Kind.Call(
-                            head,
-                            args
-                        )
+                    Expression.Call(
+                        makeLocation(head, stop),
+                        head,
+                        args
                     )
                 )
             }
@@ -339,9 +334,10 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 advance()
                 val ident = parseIdentifier()
                 parseExpressionTail(
-                    Expression(
+                    Expression.Property(
                         makeLocation(head, ident),
-                        Expression.Kind.Property(head, ident)
+                        head,
+                        ident
                     )
                 )
             }
@@ -353,10 +349,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseExpressionVar(): Expression {
         val identifier = parseIdentifier()
-        return Expression(
-            location = identifier.location,
-            kind = Expression.Kind.Var(identifier)
-        )
+        return Expression.Var(identifier)
     }
 
     private fun parseParams(): List<Param> = buildList {

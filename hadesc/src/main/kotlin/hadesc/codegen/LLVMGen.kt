@@ -247,16 +247,16 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         // eventually, the pipeline should ensure that everything is
         // typechecked before we reach codegen phase
         ctx.checker.typeOfExpression(expr)
-        return when (expr.kind) {
-            Expression.Kind.Error -> TODO("Syntax error: ${expr.location}")
-            is Expression.Kind.Var -> lowerVarExpression(expr, expr.kind)
-            is Expression.Kind.Call -> {
-                lowerCallExpression(expr, expr.kind)
+        return when (expr) {
+            is Expression.Error -> TODO("Syntax error: ${expr.location}")
+            is Expression.Var -> lowerVarExpression(expr)
+            is Expression.Call -> {
+                lowerCallExpression(expr)
             }
-            is Expression.Kind.Property -> lowerPropertyExpression(expr, expr.kind)
-            is Expression.Kind.ByteString -> lowerByteStringExpression(expr, expr.kind)
-            is Expression.Kind.BoolLiteral -> {
-                if (expr.kind.value) {
+            is Expression.Property -> lowerPropertyExpression(expr)
+            is Expression.ByteString -> lowerByteStringExpression(expr)
+            is Expression.BoolLiteral -> {
+                if (expr.value) {
                     trueValue
                 } else {
                     falseValue
@@ -265,7 +265,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
     }
 
-    private fun lowerPropertyExpression(expr: Expression, kind: Expression.Kind.Property): Value {
+    private fun lowerPropertyExpression(expr: Expression.Property): Value {
         // the reason this isn't as simple as lowerLHS -> extractvalue on lowered lhs
         // is because lhs might not be an actual runtime value, for example when
         // it refers to a module alias (import x as y). Here, y isn't a real value
@@ -273,29 +273,31 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         // value instead (x.y.z).
         // If it's not a module alias, then we do the extractvalue (lower lhs) thingy
         // (lowerValuePropertyExpression)
-        return when (kind.lhs.kind) {
-            is Expression.Kind.Var -> {
-                when (val binding = ctx.resolver.getBinding(kind.lhs.kind.name)) {
+        return when (expr.lhs) {
+            is Expression.Var -> {
+                when (val binding = ctx.resolver.getBinding(expr.lhs.name)) {
                     is ValueBinding.ImportAs -> {
                         val sourceFile = ctx.resolveSourceFile(binding.kind.modulePath)
                         lowerSourceFile(sourceFile)
-                        val qualifiedName = ctx.resolver.findInSourceFile(kind.property, sourceFile)?.qualifiedName
+                        val qualifiedName = ctx.resolver.findInSourceFile(expr.property, sourceFile)?.qualifiedName
                             ?: throw AssertionError("${expr.location}: No such property")
                         lowerQualifiedValueName(qualifiedName)
                     }
                     else -> {
-                        lowerValuePropertyExpression(expr, kind)
+                        lowerValuePropertyExpression(expr)
                     }
                 }
             }
             else ->
-                lowerValuePropertyExpression(expr, kind)
+                lowerValuePropertyExpression(expr)
         }
     }
 
-    private fun lowerValuePropertyExpression(expr: Expression, kind: Expression.Kind.Property): Value {
-        val lhsPtr = lowerExpression(kind.lhs)
-        return when (val type = ctx.checker.typeOfExpression(kind.lhs)) {
+    private fun lowerValuePropertyExpression(
+        expression: Expression.Property
+    ): Value {
+        val lhsPtr = lowerExpression(expression.lhs)
+        return when (val type = ctx.checker.typeOfExpression(expression.lhs)) {
             Type.Byte,
             Type.Void,
             Type.Error,
@@ -303,7 +305,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             is Type.RawPtr,
             is Type.Function -> TODO("Can't call dot operator")
             is Type.Struct -> {
-                val rhsName = kind.property.name
+                val rhsName = expression.property.name
                 val index = type.memberTypes.keys.indexOf(rhsName)
                 builder.buildExtractValue(
                     lhsPtr,
@@ -317,8 +319,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
     }
 
-    private fun lowerByteStringExpression(expr: Expression, kind: Expression.Kind.ByteString): Value {
-        val text = kind.bytes.decodeToString()
+    private fun lowerByteStringExpression(expression: Expression.ByteString): Value {
+        val text = expression.bytes.decodeToString()
         val constStringRef = ArrayValue(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             constStringRef.getType(),
@@ -396,7 +398,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
     }
 
-    private fun lowerVarExpression(expr: Expression, kind: Expression.Kind.Var): Value {
+    private fun lowerVarExpression(kind: Expression.Var): Value {
         val binding = ctx.resolver.getBinding(kind.name)
         return lowerQualifiedValueName(binding.qualifiedName)
     }
@@ -407,25 +409,24 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
 
     private fun lowerCallExpression(
-        expr: Expression,
-        kind: Expression.Kind.Call
+        call: Expression.Call
     ): InstructionValue {
-        if (ctx.checker.isGenericCallSite(kind)) {
-            return generateGenericCall(expr, kind)
+        if (ctx.checker.isGenericCallSite(call)) {
+            return generateGenericCall(call)
         }
         return builder.buildCall(
-            lowerExpression(kind.callee),
-            kind.args.map { lowerExpression(it.expression) }
+            lowerExpression(call.callee),
+            call.args.map { lowerExpression(it.expression) }
         )
     }
 
-    private fun generateGenericCall(expr: Expression, kind: Expression.Kind.Call): InstructionValue {
-        val def = getFunctionDef(kind.callee)
+    private fun generateGenericCall(call: Expression.Call): InstructionValue {
+        val def = getFunctionDef(call.callee)
         val specializedFunctionType = ctx.checker
-            .getGenericSpecializedFunctionType(def, expr.location, kind.args)
+            .getGenericSpecializedFunctionType(def, call.location, call.args)
         val originalFunctionName =
             ctx.resolver.getBinding(def.name.identifier).qualifiedName
-        val specializedFunctionName = originalFunctionName.append(ctx.makeName(expr.location.toString()))
+        val specializedFunctionName = originalFunctionName.append(ctx.makeName(call.location.toString()))
         val fn = llvmModule.addFunction(
             mangleQualifiedName(specializedFunctionName),
             lowerType(specializedFunctionType) as FunctionType
@@ -437,7 +438,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         stack.removeLast()
         return builder.buildCall(
             fn,
-            kind.args.map { lowerExpression(it.expression) }
+            call.args.map { lowerExpression(it.expression) }
         )
     }
 
@@ -456,9 +457,9 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     }
 
     private fun getFunctionDef(callee: Expression): Declaration.Kind.FunctionDef {
-        return when (callee.kind) {
-            is Expression.Kind.Var -> resolveGlobalFunctionDefFromVariable(callee.kind.name)
-            is Expression.Kind.Property -> resolveGlobalFunctionDefForModule(callee.kind.lhs, callee.kind.property)
+        return when (callee) {
+            is Expression.Var -> resolveGlobalFunctionDefFromVariable(callee.name)
+            is Expression.Property -> resolveGlobalFunctionDefForModule(callee.lhs, callee.property)
             else -> TODO("${callee.location}: Can't lower generic call for non global functions right now")
         }
     }
