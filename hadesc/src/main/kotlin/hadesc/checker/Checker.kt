@@ -16,22 +16,22 @@ class Checker(val ctx: Context) {
         if (annotation == null) {
             return Type.Error
         }
-        return when (annotation.kind) {
-            TypeAnnotation.Kind.Error -> Type.Error
-            is TypeAnnotation.Kind.Var -> when (identToString(annotation.kind.name)) {
+        return when (annotation) {
+            is TypeAnnotation.Error -> Type.Error
+            is TypeAnnotation.Var -> when (identToString(annotation.name)) {
                 // TODO: Should be able to override built in types?
                 // is it a good idea?
                 "Byte" -> Type.Byte
                 "Void" -> Type.Void
                 "Bool" -> Type.Bool
-                else -> when (val typeBinding = ctx.resolver.getTypeBinding(annotation.kind.name)) {
+                else -> when (val typeBinding = ctx.resolver.getTypeBinding(annotation.name)) {
                     is TypeBinding.FunctionDefTypeParam -> Type.ParamRef(
                         typeBinding.binder,
                         typeBinding.paramIndex
                     )
                 }
             }
-            is TypeAnnotation.Kind.Ptr -> Type.RawPtr(annotationToType(annotation.kind.to))
+            is TypeAnnotation.Ptr -> Type.RawPtr(annotationToType(annotation.to))
         }
     }
 
@@ -68,47 +68,47 @@ class Checker(val ctx: Context) {
 
     fun typeOfBinding(binding: ValueBinding): Type = when (binding) {
         is ValueBinding.GlobalFunction -> {
-            if (binding.kind.typeParams.isNotEmpty()) {
+            if (binding.declaration.typeParams.isNotEmpty()) {
                 Type.GenericFunction(
-                    typeParams = binding.kind.typeParams,
-                    from = binding.kind.params.map {
+                    typeParams = binding.declaration.typeParams,
+                    from = binding.declaration.params.map {
                         annotationToType(it.annotation ?: TODO("Type annotation required"))
                     },
-                    to = annotationToType(binding.kind.returnType)
+                    to = annotationToType(binding.declaration.returnType)
                 )
             } else {
                 Type.Function(
-                    from = binding.kind.params.map {
+                    from = binding.declaration.params.map {
                         annotationToType(it.annotation ?: TODO("Type annotation required"))
                     },
-                    to = annotationToType(binding.kind.returnType)
+                    to = annotationToType(binding.declaration.returnType)
                 )
             }
         }
         is ValueBinding.ExternFunction -> Type.Function(
-            from = binding.kind.paramTypes.map { annotationToType(it) },
-            to = annotationToType(binding.kind.returnType)
+            from = binding.declaration.paramTypes.map { annotationToType(it) },
+            to = annotationToType(binding.declaration.returnType)
         )
         is ValueBinding.FunctionParam -> annotationToType(binding.param.annotation ?: TODO("Annotation required"))
         is ValueBinding.ImportAs -> {
             Type.ModuleAlias(binding.aliasedModule)
         }
-        is ValueBinding.ValBinding -> typeOfExpression(binding.kind.rhs)
-        is ValueBinding.Struct -> typeOfStructConstructor(binding.kind)
+        is ValueBinding.ValBinding -> typeOfExpression(binding.statement.rhs)
+        is ValueBinding.Struct -> typeOfStructConstructor(binding.declaration)
     }
 
     private fun identToString(identifier: Identifier): String {
         return identifier.name.text
     }
 
-    fun typeOfStructInstance(kind: Declaration.Kind.Struct): Type {
-        val name = ctx.resolver.getBinding(kind.binder.identifier).qualifiedName
+    fun typeOfStructInstance(structDecl: Declaration.Struct): Type {
+        val name = ctx.resolver.getBinding(structDecl.binder.identifier).qualifiedName
         val memberTypes = mutableMapOf<Name, Type>()
-        for (member in kind.members) {
+        for (member in structDecl.members) {
             val exhaustive = when (member) {
-                Declaration.Kind.Struct.Member.Error -> {
+                Declaration.Struct.Member.Error -> {
                 }
-                is Declaration.Kind.Struct.Member.Field -> {
+                is Declaration.Struct.Member.Field -> {
                     val type = annotationToType(member.typeAnnotation)
                     memberTypes[member.binder.identifier.name] = type
                     Unit
@@ -121,37 +121,37 @@ class Checker(val ctx: Context) {
         )
     }
 
-    fun typeOfStructConstructor(kind: Declaration.Kind.Struct): Type {
+    fun typeOfStructConstructor(decl: Declaration.Struct): Type {
 
         val memberTypeList = buildList {
-            kind.members.forEach {
-                if (it is Declaration.Kind.Struct.Member.Field) {
+            decl.members.forEach {
+                if (it is Declaration.Struct.Member.Field) {
                     add(annotationToType(it.typeAnnotation))
                 }
             }
         }
-        return Type.Function(from = memberTypeList, to = typeOfStructInstance(kind))
+        return Type.Function(from = memberTypeList, to = typeOfStructInstance(decl))
     }
 
-    fun checkDeclaration(declaration: Declaration) = when (declaration.kind) {
-        Declaration.Kind.Error -> {
+    fun checkDeclaration(declaration: Declaration) = when (declaration) {
+        is Declaration.Error -> {
         }
-        is Declaration.Kind.ImportAs -> checkImportAsDeclaration(declaration, declaration.kind)
-        is Declaration.Kind.FunctionDef -> checkFunctionDef(declaration, declaration.kind)
-        is Declaration.Kind.ExternFunctionDef -> checkExternFunctionDef(declaration, declaration.kind)
-        is Declaration.Kind.Struct -> checkStructDeclaration(declaration, declaration.kind)
+        is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
+        is Declaration.FunctionDef -> checkFunctionDef(declaration)
+        is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
+        is Declaration.Struct -> checkStructDeclaration(declaration)
     }
 
-    private fun checkStructDeclaration(declaration: Declaration, kind: Declaration.Kind.Struct) {
+    private fun checkStructDeclaration(decl: Declaration.Struct) {
         // TODO
     }
 
-    private fun checkExternFunctionDef(declaration: Declaration, kind: Declaration.Kind.ExternFunctionDef) {
+    private fun checkExternFunctionDef(decl: Declaration.ExternFunctionDef) {
         // TODO
     }
 
-    private fun checkFunctionDef(declaration: Declaration, kind: Declaration.Kind.FunctionDef) {
-        for (param in kind.params) {
+    private fun checkFunctionDef(def: Declaration.FunctionDef) {
+        for (param in def.params) {
             if (param.annotation != null) {
                 annotationToType(param.annotation)
             }
@@ -159,7 +159,7 @@ class Checker(val ctx: Context) {
         // TODO
     }
 
-    private fun checkImportAsDeclaration(declaration: Declaration, kind: Declaration.Kind.ImportAs) {
+    private fun checkImportAsDeclaration(decl: Declaration.ImportAs) {
         // TODO
     }
 
@@ -169,7 +169,7 @@ class Checker(val ctx: Context) {
     }
 
     fun getGenericSpecializedFunctionType(
-        function: Declaration.Kind.FunctionDef,
+        function: Declaration.FunctionDef,
         callLocation: SourceLocation,
         args: List<Arg>
     ): Type.Function {

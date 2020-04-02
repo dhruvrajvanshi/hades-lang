@@ -3,46 +3,48 @@ package hadesc.ast
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
-data class Declaration(
-    override val location: SourceLocation,
-    val kind: Kind
-) : HasLocation {
-    sealed class Kind {
-        object Error : Kind()
-        data class ImportAs(
-            val modulePath: QualifiedPath,
-            val asName: Binder
-        ) : Kind()
+sealed class Declaration : HasLocation {
+    data class Error(override val location: SourceLocation) : Declaration()
+    data class ImportAs(
+        val modulePath: QualifiedPath,
+        val asName: Binder
+    ) : Declaration() {
+        override val location: SourceLocation
+            get() = SourceLocation.between(modulePath, asName)
+    }
 
-        data class FunctionDef(
-            val name: Binder,
-            val typeParams: List<TypeParam>,
-            val params: List<Param>,
-            val returnType: TypeAnnotation,
-            val body: Block
-        ) : Kind()
+    data class FunctionDef(
+        override val location: SourceLocation,
+        val name: Binder,
+        val typeParams: List<TypeParam>,
+        val params: List<Param>,
+        val returnType: TypeAnnotation,
+        val body: Block
+    ) : Declaration()
 
-        data class ExternFunctionDef(
-            val binder: Binder,
-            val paramTypes: List<TypeAnnotation>,
-            val returnType: TypeAnnotation,
-            val externName: Identifier
-        ) : Kind()
+    data class ExternFunctionDef(
+        override val location: SourceLocation,
+        val binder: Binder,
+        val paramTypes: List<TypeAnnotation>,
+        val returnType: TypeAnnotation,
+        val externName: Identifier
+    ) : Declaration()
 
-        data class Struct(
-            val binder: Binder,
-            val members: List<Member>
-        ) : Kind() {
+    data class Struct(
+        override val location: SourceLocation,
+        val binder: Binder,
+        val members: List<Member>
+    ) : Declaration() {
 
-            sealed class Member {
-                object Error : Member()
-                data class Field(val binder: Binder, val typeAnnotation: TypeAnnotation) : Member()
-            }
+        sealed class Member {
+            object Error : Member()
+            data class Field(
+                val binder: Binder,
+                val typeAnnotation: TypeAnnotation
+            ) : Member()
         }
     }
 
 }
-
-typealias DeclarationKind = Declaration.Kind
 
 

@@ -3,13 +3,15 @@ package hadesc.ast
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
-data class TypeAnnotation(
-    override val location: SourceLocation,
-    val kind: Kind
-) : HasLocation {
-    sealed class Kind {
-        object Error: Kind()
-        data class Var(val name: Identifier) : Kind()
-        data class Ptr(val to: TypeAnnotation) : Kind()
+sealed class TypeAnnotation : HasLocation {
+    data class Error(override val location: SourceLocation) : TypeAnnotation()
+    data class Var(val name: Identifier) : TypeAnnotation() {
+        override val location: SourceLocation
+            get() = name.location
     }
+
+    data class Ptr(
+        override val location: SourceLocation,
+        val to: TypeAnnotation
+    ) : TypeAnnotation()
 }

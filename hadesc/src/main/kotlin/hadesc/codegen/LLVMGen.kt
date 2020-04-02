@@ -59,24 +59,24 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         log.debug("DONE: LLVMGen::lowerSourceFile(${sourceFile.location.file})")
     }
 
-    private fun lowerDeclaration(declaration: Declaration) = when (declaration.kind) {
-        is Declaration.Kind.ImportAs -> {
+    private fun lowerDeclaration(declaration: Declaration) = when (declaration) {
+        is Declaration.ImportAs -> {
             // Imports don't generate anything
         }
-        is Declaration.Kind.FunctionDef -> lowerFunctionDefDeclaration(declaration, declaration.kind)
-        Declaration.Kind.Error -> {
+        is Declaration.FunctionDef -> lowerFunctionDefDeclaration(declaration)
+        is Declaration.Error -> {
         }
-        is Declaration.Kind.ExternFunctionDef -> lowerExternDefDeclaration(declaration, declaration.kind)
-        is Declaration.Kind.Struct -> {
-            lowerStructDeclaration(declaration, declaration.kind)
+        is Declaration.ExternFunctionDef -> lowerExternDefDeclaration(declaration)
+        is Declaration.Struct -> {
+            lowerStructDeclaration(declaration)
         }
     }
 
-    private fun lowerStructDeclaration(declaration: Declaration, kind: Declaration.Kind.Struct) {
-        val constructorType = ctx.checker.typeOfStructConstructor(kind)
-        val instanceType = ctx.checker.typeOfStructInstance(kind)
+    private fun lowerStructDeclaration(decl: Declaration.Struct) {
+        val constructorType = ctx.checker.typeOfStructConstructor(decl)
+        val instanceType = ctx.checker.typeOfStructInstance(decl)
         val constructorFunction = llvmModule.addFunction(
-            lowerBinder(kind.binder),
+            lowerBinder(decl.binder),
             lowerType(constructorType) as FunctionType
         )
         val basicBlock = constructorFunction.appendBasicBlock("entry")
@@ -126,17 +126,19 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
     }
 
-    private fun lowerExternDefDeclaration(declaration: Declaration, kind: Declaration.Kind.ExternFunctionDef) {
+    private fun lowerExternDefDeclaration(
+        decl: Declaration.ExternFunctionDef
+    ) {
         llvmModule.addFunction(
-            kind.externName.name.text, FunctionType(
-                returns = lowerTypeAnnotation(kind.returnType),
-                types = kind.paramTypes.map { lowerTypeAnnotation(it) },
+            decl.externName.name.text, FunctionType(
+                returns = lowerTypeAnnotation(decl.returnType),
+                types = decl.paramTypes.map { lowerTypeAnnotation(it) },
                 variadic = false
             )
         )
     }
 
-    private fun lowerFunctionDefDeclaration(declaration: Declaration, def: Declaration.Kind.FunctionDef) {
+    private fun lowerFunctionDefDeclaration(def: Declaration.FunctionDef) {
         if (def.typeParams.isNotEmpty()) {
             // we can't lower generic functions here.
             // we have to generate seperate versions
@@ -220,14 +222,14 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
     }
 
-    private fun lowerStatement(statement: Statement): Unit = when (statement.kind) {
-        is Statement.Kind.Return -> lowerReturnStatement(statement, statement.kind)
-        is Statement.Kind.Val -> lowerValStatement(statement, statement.kind)
-        Statement.Kind.Error -> TODO()
+    private fun lowerStatement(statement: Statement): Unit = when (statement) {
+        is Statement.Return -> lowerReturnStatement(statement)
+        is Statement.Val -> lowerValStatement(statement)
+        is Statement.Error -> TODO()
     }
 
     private val localVariables = mutableMapOf<SourceLocation, llvm.Value>()
-    private fun lowerValStatement(statement: Statement, kind: Statement.Kind.Val) {
+    private fun lowerValStatement(kind: Statement.Val) {
         val instr = builder.buildAlloca(
             lowerType(ctx.checker.typeOfExpression(kind.rhs)),
             kind.binder.identifier.name.text + "_tmp"
@@ -238,8 +240,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
     }
 
-    private fun lowerReturnStatement(statement: Statement, kind: Statement.Kind.Return) {
-        builder.buildRet(lowerExpression(kind.value))
+    private fun lowerReturnStatement(statement: Statement.Return) {
+        builder.buildRet(lowerExpression(statement.value))
     }
 
     private fun lowerExpression(expr: Expression): llvm.Value {
@@ -277,7 +279,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             is Expression.Var -> {
                 when (val binding = ctx.resolver.getBinding(expr.lhs.name)) {
                     is ValueBinding.ImportAs -> {
-                        val sourceFile = ctx.resolveSourceFile(binding.kind.modulePath)
+                        val sourceFile = ctx.resolveSourceFile(binding.declaration.modulePath)
                         lowerSourceFile(sourceFile)
                         val qualifiedName = ctx.resolver.findInSourceFile(expr.property, sourceFile)?.qualifiedName
                             ?: throw AssertionError("${expr.location}: No such property")
@@ -364,7 +366,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                     )
             }
             is ValueBinding.ExternFunction ->
-                llvmModule.getFunction(binding.kind.externName.name.text)
+                llvmModule.getFunction(binding.declaration.externName.name.text)
                     ?: throw AssertionError(
                         "Function ${binding.qualifiedName} hasn't been added to llvm module"
                     )
@@ -372,8 +374,8 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
             is ValueBinding.FunctionParam -> {
                 assert(qualifiedName.size == 1)
                 val name = qualifiedName.first
-                val functionQualifiedName = ctx.resolver.getBinding(binding.kind.name.identifier).qualifiedName
-                val index = binding.kind.params.indexOfFirst { it.binder.identifier.name == name }
+                val functionQualifiedName = ctx.resolver.getBinding(binding.declaration.name.identifier).qualifiedName
+                val index = binding.declaration.params.indexOfFirst { it.binder.identifier.name == name }
                 assert(index > -1)
                 val specialization = specializationStacks[functionQualifiedName]?.lastOrNull()
                 if (specialization != null) {
@@ -384,10 +386,10 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
                     functionValue.getParam(index)
                 }
             }
-            is ValueBinding.ImportAs -> TODO("${binding.kind.asName.identifier.name.text} is not a valid expression")
+            is ValueBinding.ImportAs -> TODO("${binding.declaration.asName.identifier.name.text} is not a valid expression")
             is ValueBinding.ValBinding ->
                 builder.buildLoad(
-                    localVariables[binding.kind.binder.location] ?: TODO("Unbound"),
+                    localVariables[binding.statement.binder.location] ?: TODO("Unbound"),
                     generateUniqueName()
                 )
             is ValueBinding.Struct ->
@@ -445,7 +447,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
     private fun generateSpecializedFunctionBody(
         fn: FunctionValue,
         specializedFunctionType: Type.Function,
-        def: Declaration.Kind.FunctionDef
+        def: Declaration.FunctionDef
     ) {
         val basicBlock = fn.appendBasicBlock("entry")
         generateInBlock(basicBlock) {
@@ -456,7 +458,7 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
 
     }
 
-    private fun getFunctionDef(callee: Expression): Declaration.Kind.FunctionDef {
+    private fun getFunctionDef(callee: Expression): Declaration.FunctionDef {
         return when (callee) {
             is Expression.Var -> resolveGlobalFunctionDefFromVariable(callee.name)
             is Expression.Property -> resolveGlobalFunctionDefForModule(callee.lhs, callee.property)
@@ -464,14 +466,14 @@ class LLVMGen(private val ctx: Context) : AutoCloseable {
         }
     }
 
-    private fun resolveGlobalFunctionDefFromVariable(name: Identifier): Declaration.Kind.FunctionDef {
+    private fun resolveGlobalFunctionDefFromVariable(name: Identifier): Declaration.FunctionDef {
         return when (val binding = ctx.resolver.getBinding(name)) {
-            is ValueBinding.GlobalFunction -> binding.kind
+            is ValueBinding.GlobalFunction -> binding.declaration
             else -> TODO("${name.location}: Not a function definition")
         }
     }
 
-    private fun resolveGlobalFunctionDefForModule(lhs: Expression, property: Identifier): Declaration.Kind.FunctionDef {
+    private fun resolveGlobalFunctionDefForModule(lhs: Expression, property: Identifier): Declaration.FunctionDef {
         TODO("Generic functions not implemented across modules")
     }
 

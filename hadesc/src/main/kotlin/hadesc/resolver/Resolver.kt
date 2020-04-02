@@ -11,46 +11,44 @@ sealed class ValueBinding {
 
     data class GlobalFunction(
         override val qualifiedName: QualifiedName,
-        val kind: Declaration.Kind.FunctionDef
+        val declaration: Declaration.FunctionDef
     ) : ValueBinding()
 
     data class ExternFunction(
         override val qualifiedName: QualifiedName,
-        val kind: Declaration.Kind.ExternFunctionDef
+        val declaration: Declaration.ExternFunctionDef
     ) : ValueBinding()
 
     data class FunctionParam(
         override val qualifiedName: QualifiedName,
-        val declaration: Declaration,
         val param: Param,
-        val kind: Declaration.Kind.FunctionDef
+        val declaration: Declaration.FunctionDef
     ) : ValueBinding() {
         init {
-            assert(qualifiedName.size == 1)
+            require(qualifiedName.size == 1)
         }
     }
 
     data class ImportAs(
         override val qualifiedName: QualifiedName,
         val aliasedModule: QualifiedName,
-        val kind: Declaration.Kind.ImportAs
+        val declaration: Declaration.ImportAs
     ) : ValueBinding()
 
     data class ValBinding(
         override val qualifiedName: QualifiedName,
-        val statement: Statement,
-        val kind: Statement.Kind.Val
+        val statement: Statement.Val
     ) : ValueBinding()
 
     data class Struct(
         override val qualifiedName: QualifiedName,
-        val kind: Declaration.Kind.Struct
+        val declaration: Declaration.Struct
     ) : ValueBinding()
 }
 
 sealed class TypeBinding {
     data class FunctionDefTypeParam(
-        val def: Declaration.Kind.FunctionDef,
+        val def: Declaration.FunctionDef,
         val binder: Binder,
         val paramIndex: Int
     ) : TypeBinding()
@@ -58,8 +56,7 @@ sealed class TypeBinding {
 
 sealed class ScopeNode {
     data class FunctionDef(
-        val declaration: Declaration,
-        val kind: Declaration.Kind.FunctionDef
+        val declaration: Declaration.FunctionDef
     ) : ScopeNode()
 
     data class SourceFile(
@@ -67,14 +64,14 @@ sealed class ScopeNode {
     ) : ScopeNode()
 
     data class Block(val block: hadesc.ast.Block) : ScopeNode()
-    data class Struct(
-        val declaration: Declaration,
-        val kind: Declaration.Kind.Struct
-    ) : ScopeNode()
+    data class Struct(val declaration: Declaration.Struct) : ScopeNode()
 
     val location
         get(): SourceLocation = when (this) {
-            is FunctionDef -> SourceLocation.between(kind.params.firstOrNull() ?: kind.body, kind.body)
+            is FunctionDef -> SourceLocation.between(
+                declaration.params.firstOrNull() ?: declaration.body,
+                declaration.body
+            )
             is SourceFile -> sourceFile.location
             is Block -> block.location
             is Struct -> declaration.location
@@ -117,7 +114,7 @@ class Resolver(val ctx: Context) {
     private fun findTypeBindingInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding {
         for (scope in scopeStack) {
             val binding = when (scope) {
-                is ScopeNode.FunctionDef -> findTypeBindingInFunctionDef(ident, scope.kind)
+                is ScopeNode.FunctionDef -> findTypeBindingInFunctionDef(ident, scope.declaration)
                 is ScopeNode.SourceFile -> null
                 is ScopeNode.Block -> null
                 is ScopeNode.Struct -> TODO()
@@ -132,13 +129,13 @@ class Resolver(val ctx: Context) {
 
     private fun findTypeBindingInFunctionDef(
         ident: Identifier,
-        kind: Declaration.Kind.FunctionDef
+        def: Declaration.FunctionDef
     ): TypeBinding? {
         var index = -1
-        for (typeParam in kind.typeParams) {
+        for (typeParam in def.typeParams) {
             index++
             if (typeParam.binder.identifier.name == ident.name) {
-                return TypeBinding.FunctionDefTypeParam(kind, typeParam.binder, index)
+                return TypeBinding.FunctionDefTypeParam(def, typeParam.binder, index)
             }
         }
         return null
@@ -167,7 +164,11 @@ class Resolver(val ctx: Context) {
     ): ValueBinding {
         for (scope in scopes) {
             val binding = when (scope) {
-                is ScopeNode.FunctionDef -> findInFunctionDef(parentName, ident, scope.declaration, scope.kind)
+                is ScopeNode.FunctionDef -> findInFunctionDef(
+                    parentName,
+                    ident,
+                    scope.declaration
+                )
                 is ScopeNode.SourceFile -> findInSourceFile(ident, scope.sourceFile)
                 is ScopeNode.Block -> findInBlock(ident, scope.block)
                 is ScopeNode.Struct -> TODO()
@@ -182,29 +183,29 @@ class Resolver(val ctx: Context) {
     fun findInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
         val sourceFileModuleName = sourceFile.moduleName
         for (declaration in sourceFile.declarations) {
-            val binding = when (declaration.kind) {
-                Declaration.Kind.Error -> null
-                is Declaration.Kind.ImportAs -> {
-                    if (declaration.kind.asName.identifier.name == ident.name) {
+            val binding = when (declaration) {
+                is Declaration.Error -> null
+                is Declaration.ImportAs -> {
+                    if (declaration.asName.identifier.name == ident.name) {
                         ValueBinding.ImportAs(
                             QualifiedName(
                                 listOf(
-                                    declaration.kind.asName.identifier.name
+                                    declaration.asName.identifier.name
                                 )
                             ),
-                            pathToQualifiedName(declaration.kind.modulePath),
-                            declaration.kind
+                            pathToQualifiedName(declaration.modulePath),
+                            declaration
                         )
                     } else {
                         null
                     }
                 }
-                is Declaration.Kind.FunctionDef -> {
-                    if (declaration.kind.name.identifier.name == ident.name) {
-                        val qualifiedName = sourceFileModuleName.append(declaration.kind.name.identifier.name)
+                is Declaration.FunctionDef -> {
+                    if (declaration.name.identifier.name == ident.name) {
+                        val qualifiedName = sourceFileModuleName.append(declaration.name.identifier.name)
                         val binding = ValueBinding.GlobalFunction(
                             qualifiedName,
-                            declaration.kind
+                            declaration
                         )
                         valueBindings[qualifiedName] = binding
                         binding
@@ -212,12 +213,12 @@ class Resolver(val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.Kind.ExternFunctionDef -> {
-                    if (declaration.kind.binder.identifier.name == ident.name) {
-                        val qualifiedName = sourceFileModuleName.append(declaration.kind.binder.identifier.name)
+                is Declaration.ExternFunctionDef -> {
+                    if (declaration.binder.identifier.name == ident.name) {
+                        val qualifiedName = sourceFileModuleName.append(declaration.binder.identifier.name)
                         val binding = ValueBinding.ExternFunction(
                             qualifiedName,
-                            declaration.kind
+                            declaration
                         )
                         valueBindings[qualifiedName] = binding
                         binding
@@ -225,12 +226,12 @@ class Resolver(val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.Kind.Struct -> {
-                    if (declaration.kind.binder.identifier.name == ident.name) {
-                        val qualifiedName = sourceFileModuleName.append(declaration.kind.binder.identifier.name)
+                is Declaration.Struct -> {
+                    if (declaration.binder.identifier.name == ident.name) {
+                        val qualifiedName = sourceFileModuleName.append(declaration.binder.identifier.name)
                         val binding = ValueBinding.Struct(
                             qualifiedName,
-                            declaration.kind
+                            declaration
                         )
                         valueBindings[qualifiedName] = binding
                         binding
@@ -251,22 +252,23 @@ class Resolver(val ctx: Context) {
     private fun findInFunctionDef(
         parentName: QualifiedName,
         ident: Identifier,
-        declaration: Declaration,
-        kind: Declaration.Kind.FunctionDef
+        declaration: Declaration.FunctionDef
     ): ValueBinding? {
-        for (param in kind.params) {
+        for (param in declaration.params) {
             if (param.binder.identifier.name == ident.name) {
                 val name = param.binder.identifier.name
                 return ValueBinding.FunctionParam(
                     QualifiedName(listOf(name)),
-                    declaration,
                     param,
-                    kind
+                    declaration
                 )
             }
         }
-        if (kind.name.identifier.name == ident.name) {
-            return ValueBinding.GlobalFunction(parentName.append(kind.name.identifier.name), kind)
+        if (declaration.name.identifier.name == ident.name) {
+            return ValueBinding.GlobalFunction(
+                parentName.append(declaration.name.identifier.name),
+                declaration
+            )
         }
         return null
     }
@@ -285,16 +287,15 @@ class Resolver(val ctx: Context) {
         return null
     }
 
-    private fun findInStatement(ident: Identifier, statement: Statement): ValueBinding? = when (statement.kind) {
-        is Statement.Kind.Val -> {
-            if (ident.name == statement.kind.binder.identifier.name) {
+    private fun findInStatement(ident: Identifier, statement: Statement): ValueBinding? = when (statement) {
+        is Statement.Val -> {
+            if (ident.name == statement.binder.identifier.name) {
                 // TODO: If rhs is a reference to a global, then we should
                 // recursively resolve that here and give the root binding
                 // instead of this alias
                 ValueBinding.ValBinding(
                     QualifiedName(listOf(ident.name)),
-                    statement,
-                    statement.kind
+                    statement
                 )
             } else {
                 null
@@ -304,11 +305,14 @@ class Resolver(val ctx: Context) {
     }
 
     fun onParseDeclaration(declaration: Declaration) {
-        when (declaration.kind) {
-            is Declaration.Kind.FunctionDef -> {
-                addScopeNode(declaration.location.file, ScopeNode.FunctionDef(declaration, declaration.kind))
+        when (declaration) {
+            is Declaration.FunctionDef -> {
+                addScopeNode(
+                    declaration.location.file,
+                    ScopeNode.FunctionDef(declaration)
+                )
             }
-            is Declaration.Kind.ExternFunctionDef -> {
+            is Declaration.ExternFunctionDef -> {
             }
 
         }

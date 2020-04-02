@@ -48,10 +48,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.EXTERN -> parseExternFunctionDef()
             else -> {
                 val location = recoverFromError(Diagnostic.Kind.DeclarationExpected)
-                Declaration(
-                    location,
-                    Declaration.Kind.Error
-                )
+                Declaration.Error(location)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
@@ -70,27 +67,28 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         }
         val stop = expect(tt.RBRACE)
 
-        return Declaration(
+        return Declaration.Struct(
             makeLocation(start, stop),
-            Declaration.Kind.Struct(binder, members)
+            binder,
+            members
         )
     }
 
-    private fun parseStructMember(): Declaration.Kind.Struct.Member = when (currentToken.kind) {
+    private fun parseStructMember(): Declaration.Struct.Member = when (currentToken.kind) {
         tt.VAL -> parseValStructMember()
         else -> {
             recoverFromError()
-            Declaration.Kind.Struct.Member.Error
+            Declaration.Struct.Member.Error
         }
     }
 
-    private fun parseValStructMember(): Declaration.Kind.Struct.Member {
+    private fun parseValStructMember(): Declaration.Struct.Member {
         expect(tt.VAL)
         val binder = parseBinder()
         expect(tt.COLON)
         val annotation = parseTypeAnnotation()
         expect(tt.SEMICOLON)
-        return Declaration.Kind.Struct.Member.Field(
+        return Declaration.Struct.Member.Field(
             binder,
             annotation
         )
@@ -120,14 +118,12 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val externName = parseIdentifier()
 
         expect(tt.SEMICOLON)
-        return Declaration(
+        return Declaration.ExternFunctionDef(
             makeLocation(start, returnType),
-            Declaration.Kind.ExternFunctionDef(
-                binder = name,
-                paramTypes = params,
-                returnType = returnType,
-                externName = externName
-            )
+            binder = name,
+            paramTypes = params,
+            returnType = returnType,
+            externName = externName
         )
     }
 
@@ -142,10 +138,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val asName = parseBinder()
         expect(Token.Kind.SEMICOLON)
 
-        return Declaration(
-            makeLocation(start, asName),
-            Declaration.Kind.ImportAs(modulePath, asName)
-        )
+        return Declaration.ImportAs(modulePath, asName)
     }
 
     private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(buildList {
@@ -169,15 +162,13 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         expect(tt.COLON)
         val annotation = parseTypeAnnotation()
         val block = parseBlock()
-        return Declaration(
+        return Declaration.FunctionDef(
             location = makeLocation(start, block),
-            kind = Declaration.Kind.FunctionDef(
-                name = name,
-                typeParams = typeParams,
-                params = params,
-                returnType = annotation,
-                body = block
-            )
+            name = name,
+            typeParams = typeParams,
+            params = params,
+            returnType = annotation,
+            body = block
         )
     }
 
@@ -232,7 +223,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.VAL -> parseValStatement()
             else -> {
                 val location = recoverFromError(Diagnostic.Kind.StatementExpected, statementRecoveryTokens)
-                Statement(location, Statement.Kind.Error)
+                Statement.Error(location)
             }
         }
     }
@@ -241,9 +232,9 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val start = expect(tt.RETURN)
         val value = parseExpression()
         expect(tt.SEMICOLON)
-        return Statement(
+        return Statement.Return(
             makeLocation(start, value),
-            Statement.Kind.Return(value)
+            value
         )
     }
 
@@ -254,9 +245,11 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         expect(tt.EQ)
         val rhs = parseExpression()
         expect(tt.SEMICOLON)
-        return Statement(
+        return Statement.Val(
             makeLocation(start, rhs),
-            Statement.Kind.Val(binder, typeAnnotation, rhs)
+            binder,
+            typeAnnotation,
+            rhs
         )
     }
 
@@ -390,26 +383,20 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return when (currentToken.kind) {
             tt.ID -> {
                 val id = parseIdentifier()
-                TypeAnnotation(
-                    id.location,
-                    TypeAnnotation.Kind.Var(id)
-                )
+                TypeAnnotation.Var(id)
             }
             tt.STAR -> {
                 val start = advance()
                 val to = parseTypeAnnotation()
-                TypeAnnotation(
+                TypeAnnotation.Ptr(
                     makeLocation(start, to),
-                    TypeAnnotation.Kind.Ptr(to)
+                    to
                 )
             }
             else -> {
                 val location = advance().location
                 ctx.diagnosticReporter.report(location, Diagnostic.Kind.TypeAnnotationExpected)
-                TypeAnnotation(
-                    location,
-                    TypeAnnotation.Kind.Error
-                )
+                TypeAnnotation.Error(location)
 
             }
         }
