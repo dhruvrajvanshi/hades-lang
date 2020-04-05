@@ -2,11 +2,14 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.Name
+import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
+import hadesc.ir.IRGen
+import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.parser.Parser
 import hadesc.qualifiedname.QualifiedName
@@ -18,10 +21,12 @@ class Context(
 ) {
     val checker: Checker = Checker(this)
     val resolver = Resolver(this)
+    private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() {
+        val irModule = IRGen(this).generate()
         LLVMGen(this).use {
             it.generate()
         }
@@ -60,7 +65,26 @@ class Context(
             TODO("$moduleNameStr has conflicting files $paths")
         }
         return sourceFile(moduleName, makeSourcePath(paths[0]))
+    }
 
-        TODO()
+    fun forEachSourceFile(action: (SourceFile) -> Unit) {
+        fun visitSourceFile(sourceFile: SourceFile) {
+            if (collectedFiles.containsKey(sourceFile.location.file)) {
+                return
+            }
+            collectedFiles[sourceFile.location.file] = sourceFile
+            for (declaration in sourceFile.declarations) {
+                if (declaration is Declaration.ImportAs) {
+                    visitSourceFile(resolveSourceFile(declaration.modulePath))
+                }
+            }
+        }
+
+        visitSourceFile(sourceFile(QualifiedName(), mainPath()))
+        collectedFiles.values.forEach(action)
+    }
+
+    fun getSourceFileOf(node: HasLocation): SourceFile {
+        return requireNotNull(collectedFiles[node.location.file])
     }
 }

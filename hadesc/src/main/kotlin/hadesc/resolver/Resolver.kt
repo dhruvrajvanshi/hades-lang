@@ -2,6 +2,7 @@ package hadesc.resolver
 
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
@@ -101,9 +102,12 @@ class Resolver(val ctx: Context) {
 
     fun getBinding(ident: Identifier): ValueBinding {
         val scopeStack = getScopeStack(ident)
-        // TODO: remove moduleName param becuase it can be queried
-        // from the scope stack
-        return findInScopeStack(ident, scopeStack.sourceFile.moduleName, scopeStack)
+        return findInScopeStack(ident, scopeStack)
+    }
+
+    fun getBinding(binder: Binder): ValueBinding {
+        val scope = findEnclosingScope(binder)
+        return requireNotNull(findBindingInScope(binder.identifier, scope))
     }
 
     fun getTypeBinding(ident: Identifier): TypeBinding {
@@ -141,6 +145,16 @@ class Resolver(val ctx: Context) {
         return null
     }
 
+    private fun findEnclosingScope(node: HasLocation): ScopeNode {
+        val location = node.location
+        return requireNotNull(sourceFileScopes.getOrDefault(location.file, emptyList<ScopeNode>())
+            .sortedByDescending { it.location }
+            .find { it.location contains node }) {
+            "${node.location} not inside any scope"
+        }
+
+    }
+
     private fun getScopeStack(ident: Identifier): ScopeStack {
         val scopes = sourceFileScopes
             .getOrDefault(ident.location.file, emptyList<ScopeNode>())
@@ -151,28 +165,28 @@ class Resolver(val ctx: Context) {
     }
 
 
-    private fun findInScopeStack(ident: Identifier, parentName: QualifiedName, scopeStack: ScopeStack): ValueBinding {
-        val binding = findInScopeStackHelper(ident, parentName, scopeStack)
+    private fun findInScopeStack(ident: Identifier, scopeStack: ScopeStack): ValueBinding {
+        val binding = findInScopeStackHelper(ident, scopeStack)
         valueBindings[binding.qualifiedName] = binding
         return binding
     }
 
+    private fun findBindingInScope(ident: Identifier, scope: ScopeNode): ValueBinding? = when (scope) {
+        is ScopeNode.FunctionDef -> findInFunctionDef(
+            ident,
+            scope.declaration
+        )
+        is ScopeNode.SourceFile -> findInSourceFile(ident, scope.sourceFile)
+        is ScopeNode.Block -> findInBlock(ident, scope.block)
+        is ScopeNode.Struct -> TODO()
+    }
+
     private fun findInScopeStackHelper(
         ident: Identifier,
-        parentName: QualifiedName,
         scopes: ScopeStack
     ): ValueBinding {
         for (scope in scopes) {
-            val binding = when (scope) {
-                is ScopeNode.FunctionDef -> findInFunctionDef(
-                    parentName,
-                    ident,
-                    scope.declaration
-                )
-                is ScopeNode.SourceFile -> findInSourceFile(ident, scope.sourceFile)
-                is ScopeNode.Block -> findInBlock(ident, scope.block)
-                is ScopeNode.Struct -> TODO()
-            }
+            val binding = findBindingInScope(ident, scope)
             if (binding != null) {
                 return binding
             }
@@ -217,7 +231,7 @@ class Resolver(val ctx: Context) {
                     if (declaration.binder.identifier.name == ident.name) {
                         val qualifiedName = sourceFileModuleName.append(declaration.binder.identifier.name)
                         val binding = ValueBinding.ExternFunction(
-                            qualifiedName,
+                            QualifiedName(listOf(declaration.externName.name)),
                             declaration
                         )
                         valueBindings[qualifiedName] = binding
@@ -250,7 +264,6 @@ class Resolver(val ctx: Context) {
     private fun pathToQualifiedName(path: QualifiedPath): QualifiedName = ctx.qualifiedPathToName(path)
 
     private fun findInFunctionDef(
-        parentName: QualifiedName,
         ident: Identifier,
         declaration: Declaration.FunctionDef
     ): ValueBinding? {
@@ -266,11 +279,15 @@ class Resolver(val ctx: Context) {
         }
         if (declaration.name.identifier.name == ident.name) {
             return ValueBinding.GlobalFunction(
-                parentName.append(declaration.name.identifier.name),
+                sourceFileModuleName(declaration).append(declaration.name.identifier.name),
                 declaration
             )
         }
         return null
+    }
+
+    private fun sourceFileModuleName(node: HasLocation): QualifiedName {
+        return ctx.getSourceFileOf(node).moduleName
     }
 
     private fun findInBlock(ident: Identifier, block: Block): ValueBinding? {

@@ -38,4 +38,20 @@ sealed class Type {
         val paramRef: ParamRef,
         val callLocation: SourceLocation
     ) : Type()
+
+    fun prettyPrint(): String = when (this) {
+        Error -> "<ErrorType>"
+        Byte -> "Byte"
+        Void -> "Void"
+        Bool -> "Bool"
+        is RawPtr -> "*${to.prettyPrint()}"
+        is Function -> "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
+        is GenericFunction ->
+            "[${typeParams.joinToString(", ") { it.prettyPrint() }}]" +
+                    "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
+        is Struct -> TODO()
+        is ModuleAlias -> TODO()
+        is ParamRef -> TODO()
+        is Deferred -> TODO()
+    }
 }

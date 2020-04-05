@@ -14,6 +14,7 @@ data class Param(
 data class TypeParam(
     val binder: Binder
 ) : HasLocation {
+    fun prettyPrint(): String = binder.identifier.toString()
     override val location: SourceLocation
         get() = binder.location
 

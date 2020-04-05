@@ -241,4 +241,6 @@ class Checker(val ctx: Context) {
         return Type.Deferred(paramRef, callLocation)
     }
 
+    fun typeOfBinder(name: Binder): Type = typeOfBinding(ctx.resolver.getBinding(name))
+
 }

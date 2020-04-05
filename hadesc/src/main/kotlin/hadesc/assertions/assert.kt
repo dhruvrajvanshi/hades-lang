@@ -1,7 +1,5 @@
 package hadesc.assertions
 
-fun assert(condition: Boolean) {
-    if (!condition) {
-        throw AssertionError()
-    }
+fun requireUnreachable(lazyMessage: () -> String = { "Compiler bug: Unreachable assertion failed" }): Nothing {
+    throw IllegalStateException(lazyMessage())
 }
