@@ -11,6 +11,7 @@ import hadesc.diagnostics.DiagnosticReporter
 import hadesc.ir.IRGen
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
+import hadesc.logging.logger
 import hadesc.parser.Parser
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
@@ -19,6 +20,7 @@ import java.nio.file.Path
 class Context(
     val options: BuildOptions
 ) {
+    val log = logger()
     val checker: Checker = Checker(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
@@ -27,6 +29,7 @@ class Context(
 
     fun build() {
         val irModule = IRGen(this).generate()
+        log.debug(irModule.prettyPrint())
         LLVMGen(this).use {
             it.generate()
         }
@@ -50,7 +53,7 @@ class Context(
     }
 
     fun resolveSourceFile(moduleName: QualifiedName): SourceFile {
-        val parts = moduleName.names.map { it.text }.joinToString("/")
+        val parts = moduleName.names.joinToString("/") { it.text }
         val paths = mutableListOf<Path>()
         for (directory in options.directories) {
             val path = Path.of(directory.toString(), "$parts.hds")

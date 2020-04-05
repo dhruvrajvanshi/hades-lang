@@ -67,10 +67,21 @@ class IRModule {
         return func
     }
 
+    fun addExternFunction(location: SourceLocation, name: IRGlobalName, type: Type): IRGlobalDeclaration {
+        require(globals[name] == null) { "Duplicate add of function at $location" }
+        val func = IRExternFunctionDeclaration(location, name, type)
+        globals[name] = func
+        return func
+    }
+
     fun generateUniqueLocal(type: Type): IRLocalName {
         nextNameIndex++
         val name = Name("$nextNameIndex")
         return IRLocalName(type, name)
+    }
+
+    fun prettyPrint(): String {
+        return globals.values.joinToString("\n") { it.prettyPrint() }
     }
 }
 
@@ -91,6 +102,8 @@ data class IRByteString(
 }
 
 sealed class IRGlobalDeclaration {
+    abstract fun prettyPrint(): String
+
     abstract val location: SourceLocation
     abstract val name: IRValueName
 }
@@ -106,13 +119,23 @@ data class IRBasicBlock(val name: IRLabelName) {
     }
 }
 
+data class IRExternFunctionDeclaration internal constructor(
+    override val location: SourceLocation,
+    override val name: IRGlobalName,
+    val type: Type
+) : IRGlobalDeclaration() {
+    override fun prettyPrint(): String {
+        return "extern def ${name.prettyPrint()}: ${type.prettyPrint()}"
+    }
+}
+
 data class IRFunctionDeclaration internal constructor(
     override val location: SourceLocation,
     override val name: IRGlobalName,
     val type: Type,
     private val basicBlocks: MutableList<IRBasicBlock> = mutableListOf()
 ) : IRGlobalDeclaration() {
-    fun prettyPrint(): String {
+    override fun prettyPrint(): String {
         val blocks = basicBlocks.joinToString("\n") {
             "${it.name.prettyPrint()}:\n" + it.instructions
                 .joinToString("\n") { "  ${it.prettyPrint()}" }
@@ -146,4 +169,14 @@ data class IRCall(
     val typeArgs: List<Type>,
     val args: List<IRExpression>
 ) : IRInstruction(), IRExpression
+
+data class IRParam(
+    override val type: Type,
+    val functionName: IRGlobalName,
+    val index: Int
+) : IRExpression {
+    override fun prettyPrint(): String {
+        return "%$index"
+    }
+}
 

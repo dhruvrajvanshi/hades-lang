@@ -4,6 +4,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.location.SourcePath
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
@@ -38,8 +39,16 @@ class IRGen(val ctx: Context) {
         is Declaration.ImportAs -> {
         }
         is Declaration.FunctionDef -> lowerGlobalFunctionDef(declaration)
-        is Declaration.ExternFunctionDef -> TODO()
+        is Declaration.ExternFunctionDef -> lowerExternFunctionDef(declaration)
         is Declaration.Struct -> TODO()
+    }
+
+    private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
+        val ty = ctx.checker.typeOfBinder(declaration.binder)
+        module.addExternFunction(
+            declaration.location,
+            nameOfGlobalIdent(ty, declaration.externName), ty
+        )
     }
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef) {
@@ -125,12 +134,33 @@ class IRGen(val ctx: Context) {
 
     private fun lowerVar(variable: Expression.Var): IRExpression =
         when (val binding = ctx.resolver.getBinding(variable.name)) {
-            is ValueBinding.GlobalFunction -> TODO()
-            is ValueBinding.ExternFunction -> TODO()
-            is ValueBinding.FunctionParam -> TODO()
+            is ValueBinding.GlobalFunction -> {
+                TODO()
+            }
+            is ValueBinding.ExternFunction -> {
+                TODO()
+            }
+            is ValueBinding.FunctionParam -> {
+                val index = binding.declaration.params.indexOfFirst {
+                    it.binder.identifier.name == variable.name.name
+                }
+                val ty = ctx.checker.typeOfBinding(binding)
+                assert(index > -1)
+                IRParam(ty, nameOfGlobalBinder(binding.declaration.name), index)
+            }
             is ValueBinding.ImportAs -> TODO()
-            is ValueBinding.ValBinding -> TODO()
-            is ValueBinding.Struct -> TODO()
+            is ValueBinding.ValBinding ->
+                TODO()
+//        builder.buildLoad(
+//            localVariables[binding.statement.binder.location] ?: TODO("Unbound"),
+//            generateUniqueName()
+//        )
+            is ValueBinding.Struct ->
+                TODO()
+//        llvmModule.getFunction(mangleQualifiedName(binding.qualifiedName))
+//            ?: throw AssertionError(
+//                "Function ${binding.qualifiedName} hasn't been added to llvm module"
+//            )
         }
 
     private fun lowerCall(expression: Expression.Call): IRExpression {
@@ -154,6 +184,11 @@ class IRGen(val ctx: Context) {
         val sourceFile = ctx.getSourceFileOf(name)
         val ty = ctx.checker.typeOfBinder(name)
         return IRGlobalName(ty, sourceFile.moduleName.append(name.identifier.name))
+    }
+
+
+    private fun nameOfGlobalIdent(ty: Type, ident: Identifier): IRGlobalName {
+        return IRGlobalName(ty, QualifiedName(listOf(ident.name)))
     }
 
 
