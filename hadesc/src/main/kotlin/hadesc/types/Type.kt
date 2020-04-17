@@ -19,7 +19,11 @@ sealed class Type {
         val to: Type
     ) : Type()
 
-    data class Struct(val name: QualifiedName, val memberTypes: Map<Name, Type>) : Type()
+    data class Struct(val name: QualifiedName, val memberTypes: Map<Name, Type>) : Type() {
+        private val indices = memberTypes.keys.map { it.text }.toList()
+        fun indexOf(key: String) = indices.indexOf(key)
+
+    }
 
     // this isn't a real runtime type
     // any property accesses on this should
@@ -49,7 +53,7 @@ sealed class Type {
         is GenericFunction ->
             "[${typeParams.joinToString(", ") { it.prettyPrint() }}]" +
                     "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
-        is Struct -> TODO()
+        is Struct -> "%${name.names.joinToString(".") { it.text }}"
         is ModuleAlias -> TODO()
         is ParamRef -> TODO()
         is Deferred -> TODO()

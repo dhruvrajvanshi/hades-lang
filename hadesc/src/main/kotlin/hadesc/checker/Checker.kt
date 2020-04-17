@@ -242,5 +242,11 @@ class Checker(val ctx: Context) {
     }
 
     fun typeOfBinder(name: Binder): Type = typeOfBinding(ctx.resolver.getBinding(name))
+    fun isTypeEqual(t1: Type, t2: Type): Boolean = when {
+        t1 is Type.Void && t2 is Type.Void -> true
+        t1 is Type.Bool && t2 is Type.Bool -> true
+        t1 == t2 -> true
+        else -> false
+    }
 
 }

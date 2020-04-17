@@ -70,7 +70,7 @@ sealed class ScopeNode {
     val location
         get(): SourceLocation = when (this) {
             is FunctionDef -> SourceLocation.between(
-                declaration.params.firstOrNull() ?: declaration.body,
+                declaration.params.firstOrNull() ?: declaration.returnType,
                 declaration.body
             )
             is SourceFile -> sourceFile.location
@@ -107,7 +107,8 @@ class Resolver(val ctx: Context) {
 
     fun getBinding(binder: Binder): ValueBinding {
         val scope = findEnclosingScope(binder)
-        return requireNotNull(findBindingInScope(binder.identifier, scope))
+        val binding = findBindingInScope(binder.identifier, scope)
+        return requireNotNull(binding)
     }
 
     fun getTypeBinding(ident: Identifier): TypeBinding {

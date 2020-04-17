@@ -2,181 +2,87 @@ package hadesc.ir
 
 import hadesc.Name
 import hadesc.location.SourceLocation
-import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import java.nio.charset.StandardCharsets
 
-sealed class IRValueName : IRExpression {
-    override fun prettyPrint(): String = when (this) {
-        is IRGlobalName -> "@${qualifiedName.names.joinToString(".") { it.text }}"
-        is IRLocalName -> "%${name.text}"
-    }
+sealed class IRBinding {
+    data class FunctionDef(val def: IRFunctionDef) : IRBinding()
+    data class ExternFunctionDef(val def: IRExternFunctionDef) : IRBinding()
+    data class ValStatement(val statement: IRValStatement) : IRBinding()
+    data class StructDef(val def: IRStructDef) : IRBinding()
+    data class ParamRef(val def: IRFunctionDef, val index: Int) : IRBinding()
 }
 
-data class IRGlobalName(
+data class IRModule(
+    val definitions: List<IRDefinition>
+)
+
+sealed class IRDefinition
+data class IRFunctionDef(
+    val binder: IRBinder,
+    val typeParams: List<IRTypeBinder>,
+    val params: List<IRParam>,
+    val body: IRBlock
+) : IRDefinition()
+
+data class IRStructDef(
+    val globalName: Name,
+    val typeParams: List<IRTypeBinder>,
+    val fields: Map<Name, Type>
+) : IRDefinition()
+
+data class IRExternFunctionDef(
+    val binder: IRBinder,
+    val paramTypes: List<Type>,
+    val externName: Name
+) : IRDefinition()
+
+data class IRBinder(val name: Name, val type: Type)
+inline class IRParam(val binder: IRBinder)
+
+data class IRTypeBinder(val name: Name)
+
+data class IRBlock(val statements: List<IRStatement>)
+
+sealed class IRStatement
+data class IRValStatement(val binder: IRBinder, val initializer: IRExpression) : IRStatement()
+data class IRReturnStatement(val value: IRExpression) : IRStatement()
+
+sealed class IRExpression : IRStatement() {
+    abstract val type: Type
+    abstract val location: SourceLocation
+}
+
+data class IRCallExpression(
     override val type: Type,
-    val qualifiedName: QualifiedName
-) : IRValueName(), IRExpression
+    override val location: SourceLocation,
+    val callee: IRExpression,
+    val typeArgs: List<Type>?,
+    val args: List<IRExpression>
+) : IRExpression()
 
-data class IRLocalName(
+data class IRBool(
     override val type: Type,
-    val name: Name
-) : IRValueName(), IRExpression
-
-data class IRLabelName(
-    val name: Name
-) {
-    fun prettyPrint(): String = ".${name.text}"
-}
-
-typealias IRType = Type
-
-class IRBuilder(val module: IRModule) {
-    lateinit var basicBlock: IRBasicBlock
-    var offsetInBlock = 0
-    fun positionAtStart(basicBlock: IRBasicBlock) {
-        this.basicBlock = basicBlock
-        offsetInBlock = 0
-    }
-
-    fun buildCall(
-        type: Type,
-        callee: IRExpression,
-        typeArgs: List<Type>,
-        args: List<IRExpression>
-    ): IRExpression {
-        val name = module.generateUniqueLocal(type)
-
-        addInstruction(IRCall(type, name, callee, typeArgs, args))
-
-        return name
-    }
-
-    private fun addInstruction(instruction: IRInstruction) {
-        basicBlock.addAtOffset(instruction, offsetInBlock)
-    }
-}
-
-class IRModule {
-    private val globals = mutableMapOf<IRValueName, IRGlobalDeclaration>()
-    private var nextNameIndex = 0
-    fun addFunction(location: SourceLocation, name: IRGlobalName, type: Type): IRFunctionDeclaration {
-        require(globals[name] == null) { "Duplicate add of function at $location" }
-        val func = IRFunctionDeclaration(location, name, type)
-        globals[name] = func
-        return func
-    }
-
-    fun addExternFunction(location: SourceLocation, name: IRGlobalName, type: Type): IRGlobalDeclaration {
-        require(globals[name] == null) { "Duplicate add of function at $location" }
-        val func = IRExternFunctionDeclaration(location, name, type)
-        globals[name] = func
-        return func
-    }
-
-    fun generateUniqueLocal(type: Type): IRLocalName {
-        nextNameIndex++
-        val name = Name("$nextNameIndex")
-        return IRLocalName(type, name)
-    }
-
-    fun prettyPrint(): String {
-        return globals.values.joinToString("\n") { it.prettyPrint() }
-    }
-}
-
-interface IRExpression {
-    fun prettyPrint(): String
-
-    val type: Type
-}
+    override val location: SourceLocation,
+    val value: Boolean
+) : IRExpression()
 
 data class IRByteString(
     override val type: Type,
-    val location: SourceLocation,
-    val bytes: ByteArray
-) : IRExpression {
-    override fun prettyPrint(): String {
-        return "b\"${bytes.toString(StandardCharsets.UTF_8)}\""
-    }
-}
-
-sealed class IRGlobalDeclaration {
-    abstract fun prettyPrint(): String
-
-    abstract val location: SourceLocation
-    abstract val name: IRValueName
-}
-
-data class IRBasicBlock(val name: IRLabelName) {
-    internal val instructions: MutableList<IRInstruction> = mutableListOf()
-
-    fun addAtOffset(instruction: IRInstruction, offsetInBlock: Int) {
-        require(instructions.size == offsetInBlock) {
-            "Can't insert to middle of basic block yet"
-        }
-        instructions.add(instruction)
-    }
-}
-
-data class IRExternFunctionDeclaration internal constructor(
     override val location: SourceLocation,
-    override val name: IRGlobalName,
-    val type: Type
-) : IRGlobalDeclaration() {
-    override fun prettyPrint(): String {
-        return "extern def ${name.prettyPrint()}: ${type.prettyPrint()}"
-    }
-}
+    val value: ByteArray
+) : IRExpression()
 
-data class IRFunctionDeclaration internal constructor(
+data class IRVariable(
+    override val type: Type,
     override val location: SourceLocation,
-    override val name: IRGlobalName,
-    val type: Type,
-    private val basicBlocks: MutableList<IRBasicBlock> = mutableListOf()
-) : IRGlobalDeclaration() {
-    override fun prettyPrint(): String {
-        val blocks = basicBlocks.joinToString("\n") {
-            "${it.name.prettyPrint()}:\n" + it.instructions
-                .joinToString("\n") { "  ${it.prettyPrint()}" }
-        }
-        return "def ${name.prettyPrint()}: ${type.prettyPrint()} = {\n${blocks}\n}"
-    }
+    val binding: IRBinding
+) : IRExpression()
 
-    private fun addBasicBlock(name: IRLabelName): IRBasicBlock {
-        val bb = IRBasicBlock(name)
-        basicBlocks.add(bb)
-        return bb
-    }
-
-    fun addBasicBlock(str: String): IRBasicBlock {
-        return addBasicBlock(IRLabelName(Name(str)))
-    }
-}
-
-sealed class IRInstruction {
-    fun prettyPrint(): String = when (this) {
-        is IRCall -> callee.prettyPrint() +
-                "[${typeArgs.joinToString(",") { it.prettyPrint() }}]" +
-                "(${args.joinToString(",") { it.prettyPrint() }})"
-    }
-}
-
-data class IRCall(
+data class IRGetStructField(
     override val type: Type,
-    val name: IRValueName,
-    val callee: IRExpression,
-    val typeArgs: List<Type>,
-    val args: List<IRExpression>
-) : IRInstruction(), IRExpression
+    override val location: SourceLocation,
+    val lhs: IRExpression,
+    val rhs: Name
+) : IRExpression()
 
-data class IRParam(
-    override val type: Type,
-    val functionName: IRGlobalName,
-    val index: Int
-) : IRExpression {
-    override fun prettyPrint(): String {
-        return "%$index"
-    }
-}
 

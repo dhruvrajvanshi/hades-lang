@@ -8,7 +8,7 @@ import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
-import hadesc.ir.IRGen
+import hadesc.ir.Desugar
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
@@ -28,9 +28,9 @@ class Context(
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() {
-        val irModule = IRGen(this).generate()
+        val irModule = Desugar(this).generate()
         log.debug(irModule.prettyPrint())
-        LLVMGen(this).use {
+        LLVMGen(this, irModule).use {
             it.generate()
         }
     }
