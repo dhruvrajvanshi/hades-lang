@@ -18,7 +18,7 @@ class IRModuleVisitor {
     }
 
     fun visitFunctionDef(definition: IRFunctionDef) {
-        for (statement in definition.body.statements) {
+        for (statement in definition.body) {
             visitStatement(statement)
         }
     }
@@ -30,14 +30,16 @@ class IRModuleVisitor {
         is IRReturnStatement -> {
             visitExpression(statement.value)
         }
-        IRReturnVoidStatement -> {
+        is IRReturnVoidStatement -> {
         }
-        is IRExpression -> visitExpression(statement)
+        is IRExpressionStatement -> {
+            visitExpression(statement.expression)
+        }
     }
 
-    fun visitExpression(expression: IRExpression): Unit = when (expression) {
-        is IRCallExpression -> {
-            expression.args.forEach { visitExpression(it) }
+    fun visitExpression(value: IRValue): Unit = when (value) {
+        is IRCall -> {
+            value.args.forEach { visitExpression(it) }
         }
         is IRBool -> {
         }
@@ -46,7 +48,7 @@ class IRModuleVisitor {
         is IRVariable -> {
         }
         is IRGetStructField -> {
-            visitExpression(expression.lhs)
+            visitExpression(value.lhs)
         }
     }
 }

@@ -66,8 +66,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun lowerBlock(body: IRBlock) {
-        for (statement in body.statements) {
+    private fun lowerBlock(block: IRBlock) {
+        for (statement in block) {
             lowerStatement(statement)
         }
     }
@@ -75,12 +75,16 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerStatement(statement: IRStatement) = when (statement) {
         is IRValStatement -> lowerValStatement(statement)
         is IRReturnStatement -> lowerReturnStatement(statement)
-        IRReturnVoidStatement -> {
+        is IRReturnVoidStatement -> {
             builder.buildRetVoid()
             Unit
         }
-        is IRExpression -> {
+        is IRValue -> {
             lowerExpression(statement)
+            Unit
+        }
+        is IRExpressionStatement -> {
+            lowerExpression(statement.expression)
             Unit
         }
     }
@@ -105,12 +109,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         builder.buildRet(lowerExpression(statement.value))
     }
 
-    private fun lowerExpression(expression: IRExpression) = when (expression) {
-        is IRCallExpression -> lowerCallExpression(expression)
-        is IRBool -> lowerBoolExpression(expression)
-        is IRByteString -> lowerByteString(expression)
-        is IRVariable -> lowerVariable(expression)
-        is IRGetStructField -> lowerGetStructField(expression)
+    private fun lowerExpression(value: IRValue) = when (value) {
+        is IRCall -> lowerCallExpression(value)
+        is IRBool -> lowerBoolExpression(value)
+        is IRByteString -> lowerByteString(value)
+        is IRVariable -> lowerVariable(value)
+        is IRGetStructField -> lowerGetStructField(value)
     }
 
     private fun lowerGetStructField(expression: IRGetStructField): llvm.Value {
@@ -152,7 +156,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return globalRef.constPointerCast(bytePtrTy)
     }
 
-    private fun lowerCallExpression(expression: IRCallExpression): llvm.Value {
+    private fun lowerCallExpression(expression: IRCall): llvm.Value {
         val callee = lowerExpression(expression.callee)
         require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }

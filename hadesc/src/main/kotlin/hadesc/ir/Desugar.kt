@@ -93,7 +93,7 @@ class Desugar(val ctx: Context) {
                 binder = binder,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = def.params.map { lowerParam(it) },
-                body = IRBlock(mutableListOf())
+                body = IRBlock()
             )
             definitions.add(function)
             function
@@ -110,10 +110,23 @@ class Desugar(val ctx: Context) {
         function.body = lowerBlock(def.body)
         val ty = function.type
         require(ty is Type.Function)
-        if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
-            function.body.statements.add(IRReturnVoidStatement)
+        withinBlock(function.body) {
+            if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
+                builder.buildRetVoid()
+            }
         }
         return function
+    }
+
+    private fun withinBlock(block: IRBlock, function: () -> Unit) {
+        val oldBlock = builder.blockOrNull
+        builder.positionAtBlock(block)
+
+        function()
+
+        if (oldBlock != null) {
+            builder.positionAtBlock(oldBlock)
+        }
     }
 
     private fun lowerParam(param: Param): IRParam {
@@ -121,21 +134,25 @@ class Desugar(val ctx: Context) {
     }
 
     private fun lowerBlock(body: Block): IRBlock {
-        val statements = mutableListOf<IRStatement>()
-        for (member in body.members) {
-            statements.add(lowerBlockMember(member))
+        val block = IRBlock()
+        withinBlock(block) {
+            val statements = mutableListOf<IRStatement>()
+            for (member in body.members) {
+                statements.add(lowerBlockMember(member))
+            }
         }
-        return IRBlock(statements)
+        return block
     }
 
     private fun lowerBlockMember(member: Block.Member): IRStatement = when (member) {
         is Block.Member.Expression -> {
-            lowerExpression(member.expression)
+            val expr = lowerExpression(member.expression)
+            builder.buildExprStatement(expr)
         }
         is Block.Member.Statement -> lowerStatement(member.statement)
     }
 
-    private fun lowerExpression(expression: Expression): IRExpression = when (expression) {
+    private fun lowerExpression(expression: Expression): IRValue = when (expression) {
         is Expression.Error -> requireUnreachable()
         is Expression.Var -> lowerVar(expression)
         is Expression.Call -> lowerCall(expression)
@@ -144,25 +161,26 @@ class Desugar(val ctx: Context) {
         is Expression.BoolLiteral -> lowerBoolLiteral(expression)
     }
 
-    private fun lowerBoolLiteral(expression: Expression.BoolLiteral): IRExpression {
-        return IRBool(typeOfExpression(expression), expression.location, expression.value)
+    private fun lowerBoolLiteral(expression: Expression.BoolLiteral): IRValue {
+        val ty = typeOfExpression(expression)
+        return builder.buildConstBool(ty, expression.location, expression.value)
     }
 
-    private fun lowerByteString(expression: Expression.ByteString): IRExpression {
-        return IRByteString(
+    private fun lowerByteString(expression: Expression.ByteString): IRValue {
+        return builder.buildByteString(
             ctx.checker.typeOfExpression(expression),
             expression.location,
             expression.bytes
         )
     }
 
-    private fun lowerProperty(expression: Expression.Property): IRExpression =
+    private fun lowerProperty(expression: Expression.Property): IRValue =
         when (val binding = ctx.resolver.resolveModuleProperty(expression)) {
             null -> lowerRuntimePropertyAccess(expression)
             else -> lowerBindingRef(typeOfExpression(expression), expression, binding)
         }
 
-    private fun lowerRuntimePropertyAccess(expression: Expression.Property): IRExpression {
+    private fun lowerRuntimePropertyAccess(expression: Expression.Property): IRValue {
         val lhs = lowerExpression(expression.lhs)
         val lhsType = lhs.type
         require(lhsType is Type.Struct)
@@ -170,7 +188,7 @@ class Desugar(val ctx: Context) {
         requireNotNull(rhsType)
         val index = lhsType.indexOf(expression.property.name.text)
         require(index > -1)
-        return IRGetStructField(
+        return builder.buildGetStructField(
             rhsType,
             expression.location,
             lhs,
@@ -179,11 +197,11 @@ class Desugar(val ctx: Context) {
         )
     }
 
-    private fun lowerVar(variable: Expression.Var): IRExpression {
+    private fun lowerVar(variable: Expression.Var): IRValue {
         return lowerBindingRef(ctx.checker.typeOfExpression(variable), variable, ctx.resolver.resolve(variable.name))
     }
 
-    private fun lowerBindingRef(ty: Type, node: HasLocation, binding: ValueBinding?): IRExpression {
+    private fun lowerBindingRef(ty: Type, node: HasLocation, binding: ValueBinding?): IRValue {
         val irBinding: IRBinding = when (binding) {
             null -> requireUnreachable()
             is ValueBinding.GlobalFunction -> {
@@ -208,15 +226,15 @@ class Desugar(val ctx: Context) {
                 IRBinding.StructDef(structDecl)
             }
         }
-        return IRVariable(ty, node.location, irBinding)
+        return builder.buildVariable(ty, node.location, irBinding)
 
     }
 
-    private fun lowerCall(expression: Expression.Call): IRExpression {
+    private fun lowerCall(expression: Expression.Call): IRValue {
         val callee = lowerExpression(expression.callee)
         val args = expression.args.map { lowerExpression(it.expression) }
         val type = typeOfExpression(expression)
-        return IRCallExpression(
+        return builder.buildCall(
             type,
             expression.location,
             callee,
@@ -236,11 +254,11 @@ class Desugar(val ctx: Context) {
     }
 
     private fun lowerReturnStatement(statement: Statement.Return): IRStatement {
-        return IRReturnStatement(lowerExpression(statement.value))
+        return builder.buildReturn(lowerExpression(statement.value))
     }
 
     private fun lowerValStatement(statement: Statement.Val): IRValStatement {
-        return IRValStatement(lowerLocalBinder(statement.binder), lowerExpression(statement.rhs))
+        return builder.buildValStatement(lowerLocalBinder(statement.binder), lowerExpression(statement.rhs))
     }
 
     private fun lowerGlobalBinder(name: Binder): IRBinder {

@@ -95,20 +95,167 @@ inline class IRParam(val binder: IRBinder) {
 
 data class IRTypeBinder(val name: Name)
 
-data class IRBlock(val statements: MutableList<IRStatement>) {
-    fun prettyPrint(): String = "{\n${statements.joinToString("\n") { "  " + it.prettyPrint() }}\n}"
+class IRBlock {
+    private var startNode: IRStatementNode? = null
+    internal var endNode: IRStatementNode? = null
+    fun prettyPrint(): String = "{\n${statementSequence().joinToString("\n") { "  " + it.prettyPrint() }}\n}"
+
+    fun add(statement: IRStatement) {
+        if (startNode == null) {
+            require(endNode == null)
+            val node = IRStatementNode(null, statement, null)
+            startNode = node
+            endNode = node
+        } else {
+            val previous = endNode
+            require(previous != null)
+            val node = IRStatementNode(endNode, statement, null)
+            previous.next = node
+            node.previous = previous
+            endNode = node
+        }
+    }
+
+    operator fun iterator(): Iterator<IRStatement> = statementSequence().iterator()
+
+    private fun statementSequence() =
+        sequence<IRStatement> {
+            var node = startNode
+            while (node != null) {
+                yield(node.statement)
+                node = node.next
+            }
+        }
 }
 
+data class IRStatementNode(
+    var previous: IRStatementNode?,
+    val statement: IRStatement,
+    var next: IRStatementNode?
+)
+
 class IRBuilder {
-    var block: IRBlock? = null
+    private var _block: IRBlock? = null
+    val block: IRBlock
+        get() = requireNotNull(_block)
+
+    val blockOrNull get() = _block
+
+    private val previousNode get() = block.endNode
+
+    fun buildRetVoid(): IRReturnVoidStatement {
+        return addStatement(IRReturnVoidStatement(previousNode, block))
+    }
+
+    fun buildConstBool(ty: Type, location: SourceLocation, value: Boolean): IRValue {
+        return IRBool(block, previousNode, ty, location, value)
+    }
+
+
+    private fun <S : IRStatement> addStatement(statement: S): S {
+        block.add(statement)
+        return statement
+    }
+
+    fun buildByteString(ty: Type, location: SourceLocation, bytes: ByteArray): IRValue {
+        return IRByteString(block, previousNode, ty, location, bytes)
+    }
+
+    fun buildGetStructField(
+        ty: Type,
+        location: SourceLocation,
+        lhs: IRValue,
+        name: Name,
+        index: Int
+    ): IRValue {
+        return IRGetStructField(block, previousNode, ty, location, lhs = lhs, rhs = name, index = index)
+    }
+
+    fun buildVariable(ty: Type, location: SourceLocation, irBinding: IRBinding): IRValue {
+        return IRVariable(block, previousNode, ty, location, irBinding)
+    }
+
+    fun buildCall(
+        type: Type,
+        location: SourceLocation,
+        callee: IRValue,
+        typeArgs: List<Type>?,
+        args: List<IRValue>
+    ): IRValue {
+        return IRCall(
+            block,
+            previousNode,
+            type = type,
+            location = location,
+            callee = callee,
+            typeArgs = typeArgs,
+            args = args
+        )
+    }
+
+    fun buildReturn(value: IRValue): IRStatement {
+        return addStatement(IRReturnStatement(block, previousNode, value))
+    }
+
+    fun buildValStatement(binder: IRBinder, expr: IRValue): IRValStatement {
+        return addStatement(IRValStatement(block, previousNode, binder, expr))
+    }
+
+    fun buildExprStatement(expr: IRValue): IRStatement {
+        return addStatement(IRExpressionStatement(block, previousNode, expr))
+    }
+
+    fun positionAtBlock(block: IRBlock) {
+        _block = block
+    }
 }
 
 sealed class IRStatement {
+    abstract val block: IRBlock
+    abstract val previousNode: IRStatementNode?
+
     @OptIn(ExperimentalStdlibApi::class)
     fun prettyPrint(): String = when (this) {
         is IRValStatement -> "val ${binder.prettyPrint()} = ${initializer.prettyPrint()}"
         is IRReturnStatement -> "return ${value.prettyPrint()}"
-        is IRCallExpression -> {
+        is IRReturnVoidStatement -> "return void"
+        is IRExpressionStatement -> expression.prettyPrint()
+    }
+}
+
+data class IRValStatement(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
+    val binder: IRBinder,
+    val initializer: IRValue
+) : IRStatement()
+
+data class IRExpressionStatement(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
+    val expression: IRValue
+) : IRStatement()
+
+data class IRReturnStatement(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
+    val value: IRValue
+) : IRStatement()
+
+data class IRReturnVoidStatement(
+    override val previousNode: IRStatementNode?,
+    override val block: IRBlock
+) : IRStatement()
+
+sealed class IRValue {
+    abstract val block: IRBlock
+    abstract val previousNode: IRStatementNode?
+    abstract val type: Type
+    abstract val location: SourceLocation
+
+    @OptIn(ExperimentalStdlibApi::class)
+    fun prettyPrint(): String = when (this) {
+        is IRCall -> {
             val typeArgs = if (typeArgs == null) {
                 ""
             } else {
@@ -121,44 +268,42 @@ sealed class IRStatement {
         is IRByteString -> "b\"${value.decodeToString()}\""
         is IRVariable -> name.text
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
-        IRReturnVoidStatement -> "return void"
     }
 }
 
-data class IRValStatement(val binder: IRBinder, val initializer: IRExpression) : IRStatement()
-data class IRReturnStatement(val value: IRExpression) : IRStatement()
-object IRReturnVoidStatement : IRStatement()
-
-sealed class IRExpression : IRStatement() {
-    abstract val type: Type
-    abstract val location: SourceLocation
-}
-
-data class IRCallExpression(
+data class IRCall(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
-    val callee: IRExpression,
+    val callee: IRValue,
     val typeArgs: List<Type>?,
-    val args: List<IRExpression>
-) : IRExpression()
+    val args: List<IRValue>
+) : IRValue()
 
 data class IRBool(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
     val value: Boolean
-) : IRExpression()
+) : IRValue()
 
 data class IRByteString(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
     val value: ByteArray
-) : IRExpression()
+) : IRValue()
 
 data class IRVariable(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
     val binding: IRBinding
-) : IRExpression() {
+) : IRValue() {
 
     val name: Name
         get() = when (binding) {
@@ -171,11 +316,13 @@ data class IRVariable(
 }
 
 data class IRGetStructField(
+    override val block: IRBlock,
+    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
-    val lhs: IRExpression,
+    val lhs: IRValue,
     val rhs: Name,
     val index: Int
-) : IRExpression()
+) : IRValue()
 
 
