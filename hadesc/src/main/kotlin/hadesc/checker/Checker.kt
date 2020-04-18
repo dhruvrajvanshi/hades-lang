@@ -1,5 +1,6 @@
 package hadesc.checker
 
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -7,6 +8,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
+import java.util.*
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -15,6 +17,7 @@ class Checker(val ctx: Context) {
     private val binderTypes = NodeMap<Binder, Type>()
     private val expressionTypes = NodeMap<Expression, Type>()
     private val annotationTypes = NodeMap<TypeAnnotation, Type>()
+    private val returnTypeStack = Stack<Type>()
 
     fun typeOfExpression(expression: Expression): Type = expressionTypes.computeIfAbsent(expression) {
         val decl = ctx.resolver.getDeclarationContaining(expression)
@@ -75,14 +78,25 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
-        declareFunctionDef(declaration)
-        checkBlock(declaration.body)
+        val functionType = declareFunctionDef(declaration)
+        withReturnType(functionType.to) {
+            checkBlock(declaration.body)
+        }
         require(declaration.typeParams == null)
     }
 
-    private fun declareFunctionDef(declaration: Declaration.FunctionDef) {
-        if (binderTypes[declaration.name] != null) {
-            return
+    private fun withReturnType(returnType: Type, fn: () -> Unit) {
+        returnTypeStack.push(returnType)
+        fn()
+        require(returnTypeStack.isNotEmpty())
+        returnTypeStack.pop()
+    }
+
+    private fun declareFunctionDef(declaration: Declaration.FunctionDef): Type.Function {
+        val cached = binderTypes[declaration.name]
+        if (cached != null) {
+            require(cached is Type.Function)
+            return cached
         }
         val paramTypes = mutableListOf<Type>()
         for (param in declaration.params) {
@@ -101,6 +115,7 @@ class Checker(val ctx: Context) {
             typeParams = null
         )
         bindValue(declaration.name, type)
+        return type
     }
 
     private fun checkBlock(block: Block) {
@@ -119,8 +134,31 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun checkStatement(statement: Statement): Unit {
-        TODO()
+    private fun checkStatement(statement: Statement): Unit = when (statement) {
+        is Statement.Return -> {
+            if (returnTypeStack.isEmpty()) {
+                requireUnreachable()
+            } else {
+                val returnType = returnTypeStack.peek()
+                checkExpression(returnType, statement.value)
+            }
+        }
+        is Statement.Val -> checkValStatement(statement)
+        is Statement.Error -> {
+        }
+    }
+
+    private fun checkValStatement(statement: Statement.Val) {
+        val typeAnnotation = statement.typeAnnotation
+        val type = if (typeAnnotation != null) {
+            val expected = inferAnnotation(typeAnnotation)
+            checkExpression(expected, statement.rhs)
+            expected
+        } else {
+            inferExpression(statement.rhs)
+        }
+
+        bindValue(statement.binder, type)
     }
 
     private fun inferExpression(expression: Expression): Type {
@@ -226,10 +264,11 @@ class Checker(val ctx: Context) {
         }
         is ValueBinding.FunctionParam -> {
             declareFunctionDef(binding.declaration)
-            requireNotNull(binderTypes[binding.declaration.name])
+            requireNotNull(binderTypes[binding.param.binder])
         }
         is ValueBinding.ValBinding -> {
-            TODO()
+            checkValStatement(binding.statement)
+            requireNotNull(binderTypes[binding.statement.binder])
         }
         is ValueBinding.Struct -> TODO()
     }

@@ -31,7 +31,7 @@ data class Diagnostic(
         data class TypeNotAssignable(val type: Type, val to: Type) : Diagnostic.Kind(Severity.ERROR)
         data class NoSuchProperty(val type: Type, val property: Name) : Diagnostic.Kind(Severity.ERROR)
 
-        override fun toString(): String = when (this) {
+        fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
             TypeAnnotationExpected -> "Type expected"
             ExpressionExpected -> "Expression expected"
@@ -55,7 +55,7 @@ class DiagnosticReporter {
         if (kind.severity == Diagnostic.Severity.ERROR) {
             hasErrors = true
         }
-        printErrLn("${kind.severity}: ${location}: $kind")
+        printErrLn("${kind.severity}: ${location.file.path}:(${location.start.line}:${location.start.column}): ${kind.prettyPrint()}")
         printLocationLine(location)
         for (i in 0..location.start.column + location.start.line.toString().length) {
             System.err.print(' ')
