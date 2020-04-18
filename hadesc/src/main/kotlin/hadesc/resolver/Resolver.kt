@@ -164,7 +164,16 @@ class Resolver(val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.Struct -> TODO()
+                is Declaration.Struct -> {
+                    if (declaration.binder.identifier.name == ident.name) {
+                        ValueBinding.Struct(
+                            sourceFileOf(declaration).moduleName.append(ident.name),
+                            declaration
+                        )
+                    } else {
+                        null
+                    }
+                }
             }
             if (binding != null) {
                 return binding
@@ -290,5 +299,17 @@ class Resolver(val ctx: Context) {
 
         }
         return null
+    }
+
+    fun getQualifiedName(binder: Binder): QualifiedName = when (val binding = resolve(binder.identifier)) {
+        is ValueBinding.GlobalFunction -> TODO()
+        is ValueBinding.ExternFunction -> TODO()
+        is ValueBinding.Struct -> {
+            val sourceFile = sourceFileOf(binder)
+            sourceFile.moduleName.append(binder.identifier.name)
+        }
+        is ValueBinding.FunctionParam -> requireUnreachable()
+        is ValueBinding.ValBinding -> requireUnreachable()
+        null -> requireUnreachable()
     }
 }

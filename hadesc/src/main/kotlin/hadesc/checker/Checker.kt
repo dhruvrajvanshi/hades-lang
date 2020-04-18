@@ -1,5 +1,6 @@
 package hadesc.checker
 
+import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
@@ -57,11 +58,15 @@ class Checker(val ctx: Context) {
     }
 
     fun typeOfStructConstructor(declaration: Declaration.Struct): Type {
-        TODO()
+        return typeOfBinder(declaration.binder)
     }
 
-    fun typeOfStructInstance(declaration: Declaration.Struct): Type {
-        TODO()
+    fun typeOfStructInstance(declaration: Declaration.Struct): Type.Struct {
+        val constructorType = typeOfStructConstructor(declaration)
+        require(constructorType is Type.Function)
+        val instanceType = constructorType.to
+        require(instanceType is Type.Struct)
+        return instanceType
     }
 
     fun getTypeArgs(call: Expression.Call): List<Type>? {
@@ -183,7 +188,15 @@ class Checker(val ctx: Context) {
                 Type.Error -> Type.Error
                 is Type.ParamRef -> TODO()
                 is Type.Deferred -> TODO()
-                is Type.Struct -> TODO()
+                is Type.Struct -> {
+                    val memberType = lhsType.memberTypes[expression.property.name]
+                    if (memberType != null) {
+                        memberType
+                    } else {
+                        error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                        Type.Error
+                    }
+                }
                 is Type.RawPtr -> TODO()
                 is Type.Function -> TODO()
                 Type.Byte,
@@ -270,7 +283,10 @@ class Checker(val ctx: Context) {
             checkValStatement(binding.statement)
             requireNotNull(binderTypes[binding.statement.binder])
         }
-        is ValueBinding.Struct -> TODO()
+        is ValueBinding.Struct -> {
+            declareStruct(binding.declaration)
+            requireNotNull(binderTypes[binding.declaration.binder])
+        }
     }
 
     private fun error(node: HasLocation, kind: Diagnostic.Kind) {
@@ -300,7 +316,32 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkStructDef(declaration: Declaration.Struct) {
-        TODO()
+        declareStruct(declaration)
+    }
+
+    private fun declareStruct(declaration: Declaration.Struct) {
+        if (binderTypes[declaration.binder] != null) {
+            return
+        }
+        val fieldTypes = mutableMapOf<Name, Type>()
+        for (member in declaration.members) {
+            val exhaustive = when (member) {
+                Declaration.Struct.Member.Error -> {
+                }
+                is Declaration.Struct.Member.Field -> {
+                    val ty = inferAnnotation(member.typeAnnotation)
+                    require(fieldTypes[member.binder.identifier.name] == null) { TODO("Duplicate struct field") }
+                    fieldTypes[member.binder.identifier.name] = ty
+                    Unit
+                }
+            }
+        }
+        val name = ctx.resolver.getQualifiedName(declaration.binder)
+        val instanceType = Type.Struct(name, fieldTypes)
+        val constructorParamTypes = fieldTypes.values.toList()
+        require(declaration.typeParams == null) { TODO() }
+        val constructorType = Type.Function(from = constructorParamTypes, to = instanceType, typeParams = null)
+        bindValue(declaration.binder, constructorType)
     }
 }
 

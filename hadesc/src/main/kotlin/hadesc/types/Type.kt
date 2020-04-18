@@ -47,7 +47,7 @@ sealed class Type {
             } else ""
             "$typeParams(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
-        is Struct -> "%${name.names.joinToString(".") { it.text }}"
+        is Struct -> name.names.joinToString(".") { it.text }
         is ParamRef -> this.binder.identifier.name.text
         is Deferred -> TODO()
     }
