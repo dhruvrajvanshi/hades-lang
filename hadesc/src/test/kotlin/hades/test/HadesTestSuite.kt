@@ -15,12 +15,18 @@ class HadesTestSuite {
     @Test
     fun `should run test suite`() {
         val directory = File("suite")
-        val outputDirectory = Path.of("suite_build")
-        File(outputDirectory.toUri()).mkdirs()
+        val outputDirectory = Path.of("suite_build").toFile()
+        if (outputDirectory.exists()) {
+            outputDirectory.deleteRecursively()
+        }
+        outputDirectory.mkdirs()
         val successFiles = mutableListOf<File>()
         val failureFiles = mutableListOf<Pair<File, Throwable>>()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
+//                if (!file.name.contains("local")) {
+//                    continue
+//                }
                 logger().debug("Running suite file {}", file)
                 val expectedStdoutFile = Paths.get(
                     directory.toPath().toString(),

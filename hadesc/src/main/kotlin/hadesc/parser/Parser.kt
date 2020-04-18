@@ -158,13 +158,15 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val start = expect(tt.DEF)
         val name = parseBinder()
         val typeParams = parseOptionalTypeParams()
-        val params = parseParams()
+        val scopeStartToken = expect(tt.LPAREN)
+        val params = parseParams(scopeStartToken)
         expect(tt.COLON)
         val annotation = parseTypeAnnotation()
         val block = parseBlock()
         return Declaration.FunctionDef(
             location = makeLocation(start, block),
             name = name,
+            scopeStartToken = scopeStartToken,
             typeParams = typeParams,
             params = params,
             returnType = annotation,
@@ -345,8 +347,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return Expression.Var(identifier)
     }
 
-    private fun parseParams(): List<Param> = buildList {
-        expect(tt.LPAREN)
+    private fun parseParams(lparen: Token? = null): List<Param> = buildList {
+        lparen ?: expect(tt.LPAREN)
         var first = true
         while (!(at(tt.RPAREN) || at(tt.EOF))) {
             if (!first) {

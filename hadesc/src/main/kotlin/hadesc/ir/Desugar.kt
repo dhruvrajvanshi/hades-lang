@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
@@ -77,16 +78,32 @@ class Desugar(val ctx: Context) {
         return def
     }
 
+    private val declaredFunctionDefs = mutableMapOf<SourceLocation, IRFunctionDef>()
+
+    private fun getFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
+        return declaredFunctionDefs.computeIfAbsent(def.location) {
+            val binder = lowerGlobalBinder(def.name)
+            val function = IRFunctionDef(
+                binder = binder,
+                typeParams = listOf(),
+                params = def.params.map { lowerParam(it) },
+                body = IRBlock(mutableListOf())
+            )
+            definitions.add(function)
+            function
+        }
+
+    }
+
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
-        val binder = lowerGlobalBinder(def.name)
         require(def.typeParams.isEmpty())
-        val function = IRFunctionDef(
-            binder = binder,
-            typeParams = listOf(),
-            params = def.params.map { lowerParam(it) },
-            body = lowerBlock(def.body)
-        )
-        definitions.add(function)
+        val function = getFunctionDef(def)
+        function.body = lowerBlock(def.body)
+        val ty = function.type
+        require(ty is Type.Function)
+        if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
+            function.body.statements.add(IRReturnVoidStatement)
+        }
         return function
     }
 
@@ -147,7 +164,7 @@ class Desugar(val ctx: Context) {
                             IRVariable(
                                 ty,
                                 expression.property.location,
-                                IRBinding.FunctionDef(lowerGlobalFunctionDef(propertyBinding.declaration))
+                                IRBinding.FunctionDef(getFunctionDef(propertyBinding.declaration))
                             )
                         }
                         is ValueBinding.ExternFunction -> {
@@ -191,24 +208,29 @@ class Desugar(val ctx: Context) {
     private fun lowerVar(variable: Expression.Var): IRExpression {
         val irBinding: IRBinding = when (val binding = ctx.resolver.getBinding(variable.name)) {
             is ValueBinding.GlobalFunction -> {
-                IRBinding.FunctionDef(lowerGlobalFunctionDef(binding.declaration))
+                val def = getFunctionDef(binding.declaration)
+                IRBinding.FunctionDef(def)
             }
             is ValueBinding.ExternFunction -> {
-                IRBinding.ExternFunctionDef(lowerExternFunctionDef(binding.declaration))
+                val def = lowerExternFunctionDef(binding.declaration)
+                IRBinding.ExternFunctionDef(def)
             }
             is ValueBinding.FunctionParam -> {
                 val index = binding.declaration.params.indexOfFirst {
                     it.binder.identifier.name == variable.name.name
                 }
                 assert(index > -1)
-                IRBinding.ParamRef(lowerGlobalFunctionDef(binding.declaration), index)
+                IRBinding.ParamRef(getFunctionDef(binding.declaration), index)
             }
             is ValueBinding.ImportAs -> requireUnreachable()
             is ValueBinding.ValBinding -> {
-                IRBinding.ValStatement(lowerValStatement(binding.statement))
+                val statement = lowerValStatement(binding.statement)
+                IRBinding.ValStatement(statement)
             }
-            is ValueBinding.Struct ->
-                IRBinding.StructDef(lowerStructDeclaration(binding.declaration))
+            is ValueBinding.Struct -> {
+                val structDecl = lowerStructDeclaration(binding.declaration)
+                IRBinding.StructDef(structDecl)
+            }
         }
         val ty = ctx.checker.typeOfExpression(variable)
         return IRVariable(ty, variable.location, irBinding)

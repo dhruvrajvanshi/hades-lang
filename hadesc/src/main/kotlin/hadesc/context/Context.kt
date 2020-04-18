@@ -88,6 +88,8 @@ class Context(
     }
 
     fun getSourceFileOf(node: HasLocation): SourceFile {
-        return requireNotNull(collectedFiles[node.location.file])
+        return requireNotNull(collectedFiles[node.location.file]) {
+            "No source file found for ${node.location.file}"
+        }
     }
 }

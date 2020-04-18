@@ -14,15 +14,27 @@ sealed class IRBinding {
 
 data class IRModule(
     val definitions: List<IRDefinition>
-)
+) {
+    fun prettyPrint(): String = definitions.joinToString("\n") { it.prettyPrint() }
+}
 
-sealed class IRDefinition
+sealed class IRDefinition {
+    fun prettyPrint(): String = when (this) {
+        is IRFunctionDef -> "def ${binder.prettyPrint()} = (${params.joinToString(", ") { it.prettyPrint() }}) => ${body.prettyPrint()}"
+        is IRStructDef -> "struct ${this.globalName.text} {" +
+                "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
+        is IRExternFunctionDef -> "extern def ${binder.prettyPrint()} = ${externName.text}"
+    }
+}
+
 data class IRFunctionDef(
     val binder: IRBinder,
     val typeParams: List<IRTypeBinder>,
     val params: List<IRParam>,
-    val body: IRBlock
-) : IRDefinition()
+    var body: IRBlock
+) : IRDefinition() {
+    val type get() = binder.type
+}
 
 data class IRStructDef(
     val globalName: Name,
@@ -34,18 +46,49 @@ data class IRExternFunctionDef(
     val binder: IRBinder,
     val paramTypes: List<Type>,
     val externName: Name
-) : IRDefinition()
+) : IRDefinition() {
+    val type get() = binder.type
+}
 
-data class IRBinder(val name: Name, val type: Type)
-inline class IRParam(val binder: IRBinder)
+data class IRBinder(val name: Name, val type: Type) {
+    fun prettyPrint(): String = "${name.text} : ${type.prettyPrint()}"
+}
+
+inline class IRParam(val binder: IRBinder) {
+    fun prettyPrint(): String = "${binder.name.text} : ${binder.type.prettyPrint()}"
+}
 
 data class IRTypeBinder(val name: Name)
 
-data class IRBlock(val statements: List<IRStatement>)
+data class IRBlock(val statements: MutableList<IRStatement>) {
+    fun prettyPrint(): String = "{\n${statements.joinToString("\n") { "  " + it.prettyPrint() }}\n}"
+}
 
-sealed class IRStatement
+sealed class IRStatement {
+    @OptIn(ExperimentalStdlibApi::class)
+    fun prettyPrint(): String = when (this) {
+        is IRValStatement -> "val ${binder.prettyPrint()} = ${initializer.prettyPrint()}"
+        is IRReturnStatement -> "return ${value.prettyPrint()}"
+        is IRCallExpression -> {
+            val typeArgs = if (typeArgs == null) {
+                ""
+            } else {
+                "[${typeArgs.joinToString(", ") { it.prettyPrint() }}]"
+            }
+            val args = "(${this.args.joinToString(", ") { it.prettyPrint() }})"
+            "${callee.prettyPrint()}${typeArgs}${args}"
+        }
+        is IRBool -> value.toString()
+        is IRByteString -> "b\"${value.decodeToString()}\""
+        is IRVariable -> name.text
+        is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
+        IRReturnVoidStatement -> "return void"
+    }
+}
+
 data class IRValStatement(val binder: IRBinder, val initializer: IRExpression) : IRStatement()
 data class IRReturnStatement(val value: IRExpression) : IRStatement()
+object IRReturnVoidStatement : IRStatement()
 
 sealed class IRExpression : IRStatement() {
     abstract val type: Type
@@ -76,7 +119,17 @@ data class IRVariable(
     override val type: Type,
     override val location: SourceLocation,
     val binding: IRBinding
-) : IRExpression()
+) : IRExpression() {
+
+    val name: Name
+        get() = when (binding) {
+            is IRBinding.FunctionDef -> binding.def.binder.name
+            is IRBinding.ExternFunctionDef -> binding.def.externName
+            is IRBinding.ValStatement -> binding.statement.binder.name
+            is IRBinding.StructDef -> binding.def.globalName
+            is IRBinding.ParamRef -> binding.def.params[binding.index].binder.name
+        }
+}
 
 data class IRGetStructField(
     override val type: Type,

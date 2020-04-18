@@ -15,6 +15,7 @@ sealed class Declaration : HasLocation {
 
     data class FunctionDef(
         override val location: SourceLocation,
+        val scopeStartToken: Token,
         val name: Binder,
         val typeParams: List<TypeParam>,
         val params: List<Param>,

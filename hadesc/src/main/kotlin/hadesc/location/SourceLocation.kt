@@ -27,13 +27,7 @@ data class Position(
     }
 }
 
-data class SourcePath(val path: Path) {
-    override fun toString(): String = path.toString()
-    override fun hashCode(): Int = path.toAbsolutePath().hashCode()
-    override fun equals(other: Any?): Boolean {
-        return other is Path && other.toAbsolutePath() == path
-    }
-}
+inline class SourcePath(val path: Path)
 
 data class SourceLocation(
     val file: SourcePath,

@@ -70,7 +70,7 @@ sealed class ScopeNode {
     val location
         get(): SourceLocation = when (this) {
             is FunctionDef -> SourceLocation.between(
-                declaration.params.firstOrNull() ?: declaration.returnType,
+                declaration.scopeStartToken,
                 declaration.body
             )
             is SourceFile -> sourceFile.location
