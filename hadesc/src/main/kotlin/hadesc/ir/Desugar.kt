@@ -11,12 +11,14 @@ import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
 class Desugar(val ctx: Context) {
+    private val module = IRModule()
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
+    private val builder = IRBuilder()
 
     fun generate(): IRModule {
         ctx.forEachSourceFile { lowerSourceFile(it) }
-        return IRModule(definitions)
+        return module
     }
 
     private fun lowerSourceFile(sourceFile: SourceFile) {
@@ -53,7 +55,7 @@ class Desugar(val ctx: Context) {
     }
 
     private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef): IRExternFunctionDef {
-        val def = IRExternFunctionDef(
+        val def = module.addExternFunctionDef(
             binder = lowerGlobalBinder(declaration.binder),
             externName = declaration.externName.name,
             paramTypes = declaration.paramTypes.map { ctx.checker.annotationToType(it) }
@@ -69,7 +71,8 @@ class Desugar(val ctx: Context) {
                 is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
             }
         }.toMap()
-        val def = IRStructDef(
+        require(declaration.typeParams == null)
+        val def = module.addStructDef(
             ctx.checker.typeOfStructConstructor(declaration),
             ctx.checker.typeOfStructInstance(declaration),
             lowerBinderName(declaration.binder),
@@ -86,7 +89,7 @@ class Desugar(val ctx: Context) {
     private fun getFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
         return declaredFunctionDefs.computeIfAbsent(def.location) {
             val binder = lowerGlobalBinder(def.name)
-            val function = IRFunctionDef(
+            val function = module.addGlobalFunctionDef(
                 binder = binder,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = def.params.map { lowerParam(it) },

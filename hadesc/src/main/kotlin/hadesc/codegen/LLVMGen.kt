@@ -24,7 +24,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         irModule.definitions.forEach {
             lowerDefinition(it)
         }
-        log.debug(LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
@@ -150,7 +149,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             stringLiteralName()
         )
         globalRef.initializer = constStringRef
-        return globalRef
+        return globalRef.constPointerCast(bytePtrTy)
     }
 
     private fun lowerCallExpression(expression: IRCallExpression): llvm.Value {
@@ -297,6 +296,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         assert(exitCode == 0) {
             log.error(process.inputStream.readAllBytes().toString(StandardCharsets.UTF_8))
             log.error(process.errorStream.readAllBytes().toString(StandardCharsets.UTF_8))
+            log.error("Module: ", LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
             "gcc exited with code $exitCode"
         }
     }

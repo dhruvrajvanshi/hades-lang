@@ -12,13 +12,43 @@ sealed class IRBinding {
     data class ParamRef(val def: IRFunctionDef, val index: Int) : IRBinding()
 }
 
-data class IRModule(
-    val definitions: List<IRDefinition>
-) {
+class IRModule {
+    val definitions = mutableListOf<IRDefinition>()
     fun prettyPrint(): String = definitions.joinToString("\n") { it.prettyPrint() }
+
+    fun addExternFunctionDef(binder: IRBinder, externName: Name, paramTypes: List<Type>): IRExternFunctionDef {
+        val value = IRExternFunctionDef(this, binder, externName = externName, paramTypes = paramTypes)
+        definitions.add(value)
+        return value
+    }
+
+    fun addGlobalFunctionDef(
+        binder: IRBinder,
+        typeParams: List<IRTypeBinder>?,
+        params: List<IRParam>,
+        body: IRBlock
+    ): IRFunctionDef {
+        val value = IRFunctionDef(this, binder, typeParams, params, body)
+        definitions.add(value)
+        return value
+    }
+
+    fun addStructDef(
+        ty: Type,
+        instanceType: Type.Struct,
+        name: Name,
+        typeParams: List<IRTypeBinder>?,
+        fields: Map<Name, Type>
+    ): IRStructDef {
+        val value = IRStructDef(this, ty, instanceType, name, typeParams, fields)
+        definitions.add(value)
+        return value
+
+    }
 }
 
 sealed class IRDefinition {
+    abstract val module: IRModule
     fun prettyPrint(): String = when (this) {
         is IRFunctionDef -> "def ${binder.prettyPrint()} = (${params.joinToString(", ") { it.prettyPrint() }}) ${body.prettyPrint()}"
         is IRStructDef -> "struct ${this.globalName.text} {" +
@@ -28,6 +58,7 @@ sealed class IRDefinition {
 }
 
 data class IRFunctionDef(
+    override val module: IRModule,
     val binder: IRBinder,
     val typeParams: List<IRTypeBinder>?,
     val params: List<IRParam>,
@@ -37,14 +68,16 @@ data class IRFunctionDef(
 }
 
 data class IRStructDef(
+    override val module: IRModule,
     val constructorType: Type,
     val instanceType: Type,
     val globalName: Name,
-    val typeParams: List<IRTypeBinder>,
+    val typeParams: List<IRTypeBinder>?,
     val fields: Map<Name, Type>
 ) : IRDefinition()
 
 data class IRExternFunctionDef(
+    override val module: IRModule,
     val binder: IRBinder,
     val paramTypes: List<Type>,
     val externName: Name
@@ -64,6 +97,10 @@ data class IRTypeBinder(val name: Name)
 
 data class IRBlock(val statements: MutableList<IRStatement>) {
     fun prettyPrint(): String = "{\n${statements.joinToString("\n") { "  " + it.prettyPrint() }}\n}"
+}
+
+class IRBuilder {
+    var block: IRBlock? = null
 }
 
 sealed class IRStatement {

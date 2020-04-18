@@ -9,7 +9,7 @@ import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.ir.Desugar
-import hadesc.ir.passes.LowerGenerics
+import hadesc.ir.passes.SpecializeGenerics
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
@@ -40,7 +40,7 @@ class Context(
         }
         val irModule = Desugar(this).generate()
 
-        LowerGenerics(this, irModule).run()
+        SpecializeGenerics(this, irModule).run()
 
         LLVMGen(this, irModule).use {
             it.generate()

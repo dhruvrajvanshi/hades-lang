@@ -20,6 +20,7 @@ class Checker(val ctx: Context) {
     private val expressionTypes = MutableNodeMap<Expression, Type>()
     private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
     private val returnTypeStack = Stack<Type>()
+    private val typeArguments = MutableNodeMap<Expression.Call, List<Type>>()
 
     private val genericInstantiations = mutableMapOf<Long, Type>()
     private var _nextGenericInstance = 0L
@@ -233,7 +234,7 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun makeGenericInstance(binder: Binder): Type {
+    private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
         _nextGenericInstance++
         return Type.GenericInstance(binder, _nextGenericInstance)
     }
@@ -241,7 +242,7 @@ class Checker(val ctx: Context) {
     private fun inferCall(expression: Expression.Call): Type {
         val calleeType = inferExpression(expression.callee)
         if (calleeType is Type.Function) {
-            val substitution = mutableMapOf<SourceLocation, Type>()
+            val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
             calleeType.typeParams?.forEach {
                 substitution[it.binder.location] = makeGenericInstance(it.binder)
             }
@@ -264,6 +265,22 @@ class Checker(val ctx: Context) {
             for (arg in expression.args) {
                 applyInstantiations(arg.expression)
             }
+            val typeArgs = mutableListOf<Type>()
+            calleeType.typeParams?.forEach {
+                val generic = requireNotNull(substitution[it.binder.location])
+                val instance = genericInstantiations[generic.id]
+                typeArgs.add(
+                    if (instance == null) {
+                        error(expression.callee, Diagnostic.Kind.UninferrableTypeParam(it.binder))
+                        Type.Error
+                    } else {
+                        instance
+                    }
+                )
+            }
+            if (calleeType.typeParams != null) {
+                typeArguments[expression] = typeArgs
+            }
             return applyInstantiations(expression.location, to)
         } else {
             for (arg in expression.args) {
@@ -276,7 +293,7 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun instantiate(substitution: MutableMap<SourceLocation, Type>, type: Type): Type = when (type) {
+    private fun instantiate(substitution: Map<SourceLocation, Type>, type: Type): Type = when (type) {
         is Type.GenericInstance,
         Type.Error,
         Type.Byte,
@@ -315,13 +332,7 @@ class Checker(val ctx: Context) {
                 name = type.name,
                 memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) })
         is Type.GenericInstance -> {
-            val instance = genericInstantiations[type.id]
-            if (instance == null) {
-                error(location, Diagnostic.Kind.UninferrableTypeParam(type.name))
-                Type.Error
-            } else {
-                instance
-            }
+            genericInstantiations[type.id] ?: type
         }
     }
 

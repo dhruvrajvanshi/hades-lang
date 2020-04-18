@@ -19,4 +19,9 @@ def main(): Void {
     c.puts(id(b"id"));
     c.puts(first(b"first", true));
     c.puts(second(false, b"second"));
+    c.puts(second(true, StringPair(b"third", b"fourth")).first);
+}
+struct StringPair {
+    val first: *Byte;
+    val second: *Byte;
 }
