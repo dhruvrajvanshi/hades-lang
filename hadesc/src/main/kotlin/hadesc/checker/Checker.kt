@@ -288,7 +288,11 @@ class Checker(val ctx: Context) {
             from = type.from.map { instantiate(substitution, it) },
             to = instantiate(substitution, type.to)
         )
-        is Type.Struct -> TODO()
+        is Type.Struct -> {
+            Type.Struct(
+                name = type.name,
+                memberTypes = type.memberTypes.mapValues { instantiate(substitution, it.value) })
+        }
         is Type.ParamRef -> {
             substitution[type.name.location] ?: type
         }
@@ -306,7 +310,10 @@ class Checker(val ctx: Context) {
             from = type.from.map { applyInstantiations(location, it) },
             to = applyInstantiations(location, type.to)
         )
-        is Type.Struct -> TODO()
+        is Type.Struct ->
+            Type.Struct(
+                name = type.name,
+                memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) })
         is Type.GenericInstance -> {
             val instance = genericInstantiations[type.id]
             if (instance == null) {
@@ -343,6 +350,8 @@ class Checker(val ctx: Context) {
         }
         source is Type.RawPtr && destination is Type.RawPtr ->
             checkAssignability(location, source.to, destination.to)
+        source is Type.Struct && destination is Type.Struct && source.name == destination.name -> {
+        }
         destination is Type.GenericInstance -> {
             val destinationInstance = genericInstantiations[destination.id]
             if (destinationInstance != null) {
