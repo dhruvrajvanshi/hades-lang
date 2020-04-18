@@ -16,10 +16,13 @@ import kotlin.math.min
 @OptIn(ExperimentalStdlibApi::class)
 class Checker(val ctx: Context) {
 
-    private val binderTypes = NodeMap<Binder, Type>()
-    private val expressionTypes = NodeMap<Expression, Type>()
-    private val annotationTypes = NodeMap<TypeAnnotation, Type>()
+    private val binderTypes = MutableNodeMap<Binder, Type>()
+    private val expressionTypes = MutableNodeMap<Expression, Type>()
+    private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
     private val returnTypeStack = Stack<Type>()
+
+    private val genericInstantiations = mutableMapOf<Long, Type>()
+    private var _nextGenericInstance = 0L
 
     fun typeOfExpression(expression: Expression): Type = expressionTypes.computeIfAbsent(expression) {
         val decl = ctx.resolver.getDeclarationContaining(expression)
@@ -35,6 +38,7 @@ class Checker(val ctx: Context) {
             is TypeBinding.Struct -> {
                 typeOfStructInstance(binding.declaration)
             }
+            is TypeBinding.TypeParam -> Type.ParamRef(binding.binder)
         }
     }
 
@@ -93,10 +97,11 @@ class Checker(val ctx: Context) {
         return null
     }
 
-    private fun checkDeclaration(declaration: Declaration) = when (declaration) {
+    fun checkDeclaration(declaration: Declaration) = when (declaration) {
         is Declaration.Error -> {
         }
-        is Declaration.ImportAs -> TODO()
+        is Declaration.ImportAs -> {
+        }
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.Struct -> checkStructDef(declaration)
@@ -107,7 +112,6 @@ class Checker(val ctx: Context) {
         withReturnType(functionType.to) {
             checkBlock(declaration.body)
         }
-        require(declaration.typeParams == null)
     }
 
     private fun withReturnType(returnType: Type, fn: () -> Unit) {
@@ -137,7 +141,7 @@ class Checker(val ctx: Context) {
         val type = Type.Function(
             from = paramTypes,
             to = returnType,
-            typeParams = null
+            typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
         )
         bindValue(declaration.name, type)
         return type
@@ -206,8 +210,6 @@ class Checker(val ctx: Context) {
         } else {
             when (val lhsType = inferExpression(expression.lhs)) {
                 Type.Error -> Type.Error
-                is Type.ParamRef -> TODO()
-                is Type.Deferred -> TODO()
                 is Type.Struct -> {
                     val memberType = lhsType.memberTypes[expression.property.name]
                     if (memberType != null) {
@@ -218,7 +220,9 @@ class Checker(val ctx: Context) {
                     }
                 }
                 is Type.RawPtr -> TODO()
-                is Type.Function -> TODO()
+                is Type.Function,
+                is Type.ParamRef,
+                is Type.GenericInstance,
                 Type.Byte,
                 Type.Void,
                 Type.Bool -> {
@@ -229,14 +233,22 @@ class Checker(val ctx: Context) {
         }
     }
 
+    private fun makeGenericInstance(binder: Binder): Type {
+        _nextGenericInstance++
+        return Type.GenericInstance(binder, _nextGenericInstance)
+    }
+
     private fun inferCall(expression: Expression.Call): Type {
         val calleeType = inferExpression(expression.callee)
         if (calleeType is Type.Function) {
-            require(calleeType.typeParams == null)
-
+            val substitution = mutableMapOf<SourceLocation, Type>()
+            calleeType.typeParams?.forEach {
+                substitution[it.binder.location] = makeGenericInstance(it.binder)
+            }
             val len = min(calleeType.from.size, expression.args.size)
+            val to = instantiate(substitution, calleeType.to)
             for (index in 0 until len) {
-                val expected = calleeType.from[index]
+                val expected = instantiate(substitution, calleeType.from[index])
                 val found = expression.args[index].expression
                 checkExpression(expected, found)
             }
@@ -249,7 +261,10 @@ class Checker(val ctx: Context) {
                     inferExpression(expression.args[index].expression)
                 }
             }
-            return calleeType.to
+            for (arg in expression.args) {
+                applyInstantiations(arg.expression)
+            }
+            return applyInstantiations(expression.location, to)
         } else {
             for (arg in expression.args) {
                 inferExpression(arg.expression)
@@ -261,18 +276,84 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun checkExpression(expected: Type, expression: Expression) = when (expression) {
-        else -> {
-            val exprType = inferExpression(expression)
-            if (!(exprType isAssignableTo expected)) {
-                error(expression, Diagnostic.Kind.TypeNotAssignable(exprType, to = expected))
-            }
-            Unit
+    private fun instantiate(substitution: MutableMap<SourceLocation, Type>, type: Type): Type = when (type) {
+        is Type.GenericInstance,
+        Type.Error,
+        Type.Byte,
+        Type.Void,
+        Type.Bool -> type
+        is Type.RawPtr -> Type.RawPtr(instantiate(substitution, type.to))
+        is Type.Function -> Type.Function(
+            typeParams = type.typeParams,
+            from = type.from.map { instantiate(substitution, it) },
+            to = instantiate(substitution, type.to)
+        )
+        is Type.Struct -> TODO()
+        is Type.ParamRef -> {
+            substitution[type.name.location] ?: type
         }
     }
 
-    private infix fun Type.isAssignableTo(to: Type): Boolean = when {
-        else -> this == to
+    private fun applyInstantiations(location: SourceLocation, type: Type): Type = when (type) {
+        Type.Error,
+        Type.Byte,
+        Type.Void,
+        is Type.ParamRef,
+        Type.Bool -> type
+        is Type.RawPtr -> Type.RawPtr(type.to)
+        is Type.Function -> Type.Function(
+            typeParams = type.typeParams,
+            from = type.from.map { applyInstantiations(location, it) },
+            to = applyInstantiations(location, type.to)
+        )
+        is Type.Struct -> TODO()
+        is Type.GenericInstance -> {
+            val instance = genericInstantiations[type.id]
+            if (instance == null) {
+                error(location, Diagnostic.Kind.UninferrableTypeParam(type.name))
+                Type.Error
+            } else {
+                instance
+            }
+        }
+    }
+
+    private fun applyInstantiations(expression: Expression) {
+        val ty = requireNotNull(expressionTypes[expression])
+        val instance = applyInstantiations(expression.location, ty)
+        expressionTypes[expression] = instance
+    }
+
+    private fun checkExpression(expected: Type, expression: Expression) = when (expression) {
+        else -> {
+            val exprType = inferExpression(expression)
+            checkAssignability(expression.location, destination = expected, source = exprType)
+        }
+    }
+
+    private fun checkAssignability(location: SourceLocation, source: Type, destination: Type): Unit = when {
+        source is Type.Error || destination is Type.Error -> {
+        }
+        source is Type.Bool && destination is Type.Bool -> {
+        }
+        source is Type.Byte && destination is Type.Byte -> {
+        }
+        source is Type.ParamRef && destination is Type.ParamRef
+                && source.name.location == destination.name.location -> {
+        }
+        source is Type.RawPtr && destination is Type.RawPtr ->
+            checkAssignability(location, source.to, destination.to)
+        destination is Type.GenericInstance -> {
+            val destinationInstance = genericInstantiations[destination.id]
+            if (destinationInstance != null) {
+                checkAssignability(location, source, destinationInstance)
+            } else {
+                genericInstantiations[destination.id] = source
+            }
+        }
+        else -> {
+            error(location, Diagnostic.Kind.TypeNotAssignable(source, destination))
+        }
     }
 
     private fun inferVar(expression: Expression.Var): Type {
@@ -310,7 +391,11 @@ class Checker(val ctx: Context) {
     }
 
     private fun error(node: HasLocation, kind: Diagnostic.Kind) {
-        ctx.diagnosticReporter.report(node.location, kind)
+        error(node.location, kind)
+    }
+
+    private fun error(location: SourceLocation, kind: Diagnostic.Kind) {
+        ctx.diagnosticReporter.report(location, kind)
     }
 
     private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
@@ -376,7 +461,7 @@ private class NodeSet<T : HasLocation> {
     }
 }
 
-private class NodeMap<T : HasLocation, V> {
+private class MutableNodeMap<T : HasLocation, V> {
     private val map = mutableMapOf<SourceLocation, V>()
 
     fun computeIfAbsent(key: T, compute: () -> V): V {
@@ -397,3 +482,4 @@ private class NodeMap<T : HasLocation, V> {
         map[key.location] = value
     }
 }
+

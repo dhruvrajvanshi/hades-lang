@@ -1,7 +1,10 @@
 import libc as c;
 
 def id[T](value: T): T {
-    return value;
+    val copy: T = value;
+    val x: Bool = id(true);
+    val y: *Byte = id(b"");
+    return copy;
 }
 
 def first[A, B](first: A, second: B): A {

@@ -2,7 +2,6 @@ package hadesc.types
 
 import hadesc.Name
 import hadesc.ast.Binder
-import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
 sealed class Type {
@@ -25,15 +24,10 @@ sealed class Type {
 
     }
 
-    data class ParamRef(
-        val binder: Binder,
-        val typeParamIndex: Int
-    ) : Type()
+    data class ParamRef(val name: Binder) : Type()
 
-    data class Deferred(
-        val paramRef: ParamRef,
-        val callLocation: SourceLocation
-    ) : Type()
+    data class GenericInstance(val name: Binder, val id: Long) : Type()
+
 
     fun prettyPrint(): String = when (this) {
         Error -> "<ErrorType>"
@@ -48,7 +42,7 @@ sealed class Type {
             "$typeParams(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
         is Struct -> name.names.joinToString(".") { it.text }
-        is ParamRef -> this.binder.identifier.name.text
-        is Deferred -> TODO()
+        is ParamRef -> this.name.identifier.name.text
+        is GenericInstance -> name.identifier.name.text
     }
 }

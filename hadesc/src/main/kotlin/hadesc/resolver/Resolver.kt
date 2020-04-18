@@ -42,6 +42,8 @@ sealed class TypeBinding {
     data class Struct(
         val declaration: Declaration.Struct
     ) : TypeBinding()
+
+    data class TypeParam(val binder: Binder) : TypeBinding()
 }
 
 sealed class ScopeNode {
@@ -121,7 +123,9 @@ class Resolver(val ctx: Context) {
     }
 
     private fun findTypeInScope(ident: Identifier, scopeNode: ScopeNode): TypeBinding? = when (scopeNode) {
-        is ScopeNode.FunctionDef -> null
+        is ScopeNode.FunctionDef -> {
+            findTypeInFunctionDef(ident, scopeNode.declaration)
+        }
         is ScopeNode.SourceFile -> {
             findTypeInSourceFile(ident, scopeNode.sourceFile)
         }
@@ -134,6 +138,19 @@ class Resolver(val ctx: Context) {
                 null
             }
         }
+    }
+
+    private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
+        val typeParams = declaration.typeParams
+        if (typeParams == null) {
+            return null
+        }
+        typeParams.forEach {
+            if (it.binder.identifier.name == ident.name) {
+                return TypeBinding.TypeParam(it.binder)
+            }
+        }
+        return null
     }
 
     private fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding.Struct? {

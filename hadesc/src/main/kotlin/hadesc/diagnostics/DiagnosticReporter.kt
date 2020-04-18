@@ -1,6 +1,7 @@
 package hadesc.diagnostics
 
 import hadesc.Name
+import hadesc.ast.Binder
 import hadesc.ast.Token
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -28,9 +29,11 @@ data class Diagnostic(
         data class TypeNotCallable(val type: Type) : Kind(Severity.ERROR)
         data class MissingArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
         data class TooManyArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
-        data class TypeNotAssignable(val type: Type, val to: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class TypeNotAssignable(val source: Type, val destination: Type) : Diagnostic.Kind(Severity.ERROR)
         data class NoSuchProperty(val type: Type, val property: Name) : Diagnostic.Kind(Severity.ERROR)
         data class UnboundType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
+
+        data class UninferrableTypeParam(val binder: Binder) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -42,9 +45,10 @@ data class Diagnostic(
             is TypeNotCallable -> "Type $type is not callable"
             is MissingArgs -> "Missing args; $required required"
             is TooManyArgs -> "Too many args; $required required"
-            is TypeNotAssignable -> "Type ${type.prettyPrint()} is not assignable to ${to.prettyPrint()}"
+            is TypeNotAssignable -> "Type ${source.prettyPrint()} is not assignable to ${destination.prettyPrint()}"
             is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named $property"
             is UnboundType -> "Unbound type variable ${name.text}"
+            is UninferrableTypeParam -> "Uninferrable type parameter ${binder.identifier.name.text}; Explicit type annotation required. (Defined at ${binder.identifier.location})"
         }
 
     }

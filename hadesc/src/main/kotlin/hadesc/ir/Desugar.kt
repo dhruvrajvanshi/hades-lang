@@ -157,7 +157,6 @@ class Desugar(val ctx: Context) {
         when (val binding = ctx.resolver.resolveModuleProperty(expression)) {
             null -> lowerRuntimePropertyAccess(expression)
             else -> lowerBindingRef(typeOfExpression(expression), expression, binding)
-
         }
 
     private fun lowerRuntimePropertyAccess(expression: Expression.Property): IRExpression {

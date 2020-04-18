@@ -29,8 +29,16 @@ class Context(
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() {
+        forEachSourceFile {
+            for (declaration in it.declarations) {
+                checker.checkDeclaration(declaration)
+            }
+        }
+
+        if (this.diagnosticReporter.hasErrors) {
+            return
+        }
         val irModule = Desugar(this).generate()
-        log.debug(irModule.prettyPrint())
 
         LowerGenerics(this, irModule).run()
 

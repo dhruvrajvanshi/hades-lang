@@ -1,10 +1,13 @@
 package hadesc.codegen
 
 import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
 import hadesc.logging.logger
 import hadesc.types.Type
+import llvm.FunctionType
+import llvm.StructType
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.global.LLVM
@@ -180,7 +183,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun getDeclaration(def: IRFunctionDef): llvm.FunctionValue {
         val irName = def.binder.name
-        require(def.typeParams == null)
         val type = lowerFunctionType(def.type)
         val name = if (irName.text == "main") {
             "hades_main"
@@ -234,26 +236,27 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
 
     private fun lowerType(type: Type): llvm.Type = when (type) {
-        Type.Error -> TODO()
+        Type.Error -> requireUnreachable()
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.Bool -> boolTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
             require(type.typeParams == null) { "Can't lower unspecialized generic function type" }
-            llvm.FunctionType(
+            FunctionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
                 variadic = false
             )
         }
-        is Type.Struct -> llvm.StructType(
+        is Type.Struct -> StructType(
             type.memberTypes.values.map { lowerType(it) },
             packed = false,
             ctx = llvmCtx
         )
-        is Type.ParamRef, is Type.Deferred ->
+        is Type.ParamRef ->
             TODO("Can't lower unspecialized type param")
+        is Type.GenericInstance -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0
