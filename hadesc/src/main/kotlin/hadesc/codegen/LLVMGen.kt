@@ -40,9 +40,27 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerDefinition(definition: IRDefinition): Unit =
         when (definition) {
             is IRFunctionDef -> lowerFunctionDef(definition)
-            is IRStructDef -> TODO()
+            is IRStructDef -> lowerStructDef(definition)
             is IRExternFunctionDef -> lowerExternFunctionDef(definition)
         }
+
+    private fun lowerStructDef(definition: IRStructDef) {
+        val fn = getStructConstructor(definition)
+        withinBlock(fn.appendBasicBlock("entry")) {
+            val instanceType = lowerType(definition.instanceType)
+            val thisPtr = buildAlloca(instanceType, "this")
+            var index = -1
+            for (field in definition.fields) {
+                index++
+                val fieldPtr = buildStructGEP(thisPtr, index, "field_$index")
+                val value = fn.getParam(index)
+                buildStore(toPointer = fieldPtr, value = value)
+            }
+            val instance = buildLoad(thisPtr, "instance")
+            buildRet(instance)
+        }
+
+    }
 
     private fun lowerExternFunctionDef(definition: IRExternFunctionDef) {
         getDeclaration(definition)
@@ -100,7 +118,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRBool -> lowerBoolExpression(expression)
         is IRByteString -> lowerByteString(expression)
         is IRVariable -> lowerVariable(expression)
-        is IRGetStructField -> TODO()
+        is IRGetStructField -> lowerGetStructField(expression)
+    }
+
+    private fun lowerGetStructField(expression: IRGetStructField): Value {
+        return builder.buildExtractValue(
+            lowerExpression(expression.lhs),
+            expression.index,
+            lowerName(ctx.makeUniqueName())
+        )
     }
 
     private fun lowerBoolExpression(expression: IRBool): Value {
@@ -116,7 +142,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRBinding.FunctionDef -> getDeclaration(expression.binding.def)
             is IRBinding.ExternFunctionDef -> getDeclaration(expression.binding.def)
             is IRBinding.ValStatement -> getLocalVariable(expression.binding.statement)
-            is IRBinding.StructDef -> TODO()
+            is IRBinding.StructDef -> getStructConstructor(expression.binding.def)
             is IRBinding.ParamRef -> {
                 val fn = getDeclaration(expression.binding.def)
                 fn.getParam(expression.binding.index)
@@ -172,6 +198,22 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         return llvmModule.getFunction(name) ?: llvmModule.addFunction(name, type)
     }
+
+    private fun getStructConstructor(def: IRStructDef): FunctionValue {
+        val name = lowerName(def.globalName)
+        val existing = llvmModule.getFunction(name)
+        return if (existing != null) {
+            existing
+        } else {
+            val constructorType = def.constructorType
+            require(constructorType is Type.Function)
+            val loweredType = lowerFunctionType(constructorType)
+            llvmModule.addFunction(name, loweredType)
+        }
+
+
+    }
+
 
     private fun lowerFunctionType(type: Type): llvm.FunctionType {
         val lowered = lowerType(type)
@@ -247,6 +289,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             ctx.options.runtime.toString(),
             objectFilePath
         )
+        val outputFile = ctx.options.output.toFile()
+        if (outputFile.exists()) {
+            outputFile.delete()
+        }
         log.info(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
         log.debug(builder.command().joinToString(","))

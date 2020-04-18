@@ -37,6 +37,8 @@ data class IRFunctionDef(
 }
 
 data class IRStructDef(
+    val constructorType: Type,
+    val instanceType: Type,
     val globalName: Name,
     val typeParams: List<IRTypeBinder>,
     val fields: Map<Name, Type>
@@ -135,7 +137,8 @@ data class IRGetStructField(
     override val type: Type,
     override val location: SourceLocation,
     val lhs: IRExpression,
-    val rhs: Name
+    val rhs: Name,
+    val index: Int
 ) : IRExpression()
 
 

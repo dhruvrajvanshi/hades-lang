@@ -69,6 +69,8 @@ class Desugar(val ctx: Context) {
             }
         }.toMap()
         val def = IRStructDef(
+            ctx.checker.typeOfStructConstructor(declaration),
+            ctx.checker.typeOfStructInstance(declaration),
             lowerBinderName(declaration.binder),
             // TODO: Handle generic structs
             typeParams = listOf(),
@@ -197,11 +199,14 @@ class Desugar(val ctx: Context) {
         require(lhsType is Type.Struct)
         val rhsType = lhsType.memberTypes[expression.property.name]
         requireNotNull(rhsType)
+        val index = lhsType.indexOf(expression.property.name.text)
+        require(index > -1)
         return IRGetStructField(
             rhsType,
             expression.location,
             lhs,
-            expression.property.name
+            expression.property.name,
+            index
         )
     }
 

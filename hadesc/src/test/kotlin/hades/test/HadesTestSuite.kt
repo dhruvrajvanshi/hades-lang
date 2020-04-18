@@ -24,7 +24,7 @@ class HadesTestSuite {
         val failureFiles = mutableListOf<Pair<File, Throwable>>()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
-//                if (!file.name.contains("local")) {
+//                if (!file.name.contains("basic_struct")) {
 //                    continue
 //                }
                 logger().debug("Running suite file {}", file)

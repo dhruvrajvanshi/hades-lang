@@ -92,4 +92,10 @@ class Context(
             "No source file found for ${node.location.file}"
         }
     }
+
+    private var _nameIndex = 0
+    fun makeUniqueName(): Name {
+        _nameIndex++
+        return makeName("\$$_nameIndex")
+    }
 }
