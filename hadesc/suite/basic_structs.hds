@@ -6,7 +6,7 @@ struct StringPair {
 }
 
 def main(): Void {
-    val pair = StringPair(b"first", b"second");
+    val pair: StringPair = StringPair(b"first", b"second");
     libc.puts(pair.first);
     libc.puts(pair.second);
     val third = StringPair(b"third", b"nothing").first;

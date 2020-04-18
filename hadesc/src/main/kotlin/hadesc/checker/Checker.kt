@@ -7,6 +7,7 @@ import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 import java.util.*
@@ -24,6 +25,17 @@ class Checker(val ctx: Context) {
         val decl = ctx.resolver.getDeclarationContaining(expression)
         checkDeclaration(decl)
         requireNotNull(expressionTypes[expression])
+    }
+
+
+    private fun resolveTypeVariable(name: Identifier): Type? {
+        val binding = ctx.resolver.resolveTypeVariable(name)
+        return when (binding) {
+            null -> return null
+            is TypeBinding.Struct -> {
+                typeOfStructInstance(binding.declaration)
+            }
+        }
     }
 
     fun annotationToType(annotation: TypeAnnotation): Type = annotationTypes.computeIfAbsent(annotation) {
@@ -45,7 +57,15 @@ class Checker(val ctx: Context) {
                 "Void" -> Type.Void
                 "Bool" -> Type.Bool
                 "Byte" -> Type.Byte
-                else -> TODO()
+                else -> {
+                    val typeBinding = ctx.checker.resolveTypeVariable(annotation.name)
+                    if (typeBinding != null) {
+                        typeBinding
+                    } else {
+                        error(annotation, Diagnostic.Kind.UnboundType(annotation.name.name))
+                        Type.Error
+                    }
+                }
             }
             is TypeAnnotation.Ptr -> Type.RawPtr(inferAnnotation(annotation.to))
         }

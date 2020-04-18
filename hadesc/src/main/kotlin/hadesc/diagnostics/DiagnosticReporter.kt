@@ -30,6 +30,7 @@ data class Diagnostic(
         data class TooManyArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
         data class TypeNotAssignable(val type: Type, val to: Type) : Diagnostic.Kind(Severity.ERROR)
         data class NoSuchProperty(val type: Type, val property: Name) : Diagnostic.Kind(Severity.ERROR)
+        data class UnboundType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -43,6 +44,7 @@ data class Diagnostic(
             is TooManyArgs -> "Too many args; $required required"
             is TypeNotAssignable -> "Type ${type.prettyPrint()} is not assignable to ${to.prettyPrint()}"
             is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named $property"
+            is UnboundType -> "Unbound type variable ${name.text}"
         }
 
     }

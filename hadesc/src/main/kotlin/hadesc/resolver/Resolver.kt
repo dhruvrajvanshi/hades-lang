@@ -39,10 +39,8 @@ sealed class ValueBinding {
 }
 
 sealed class TypeBinding {
-    data class FunctionDefTypeParam(
-        val def: Declaration.FunctionDef,
-        val binder: Binder,
-        val paramIndex: Int
+    data class Struct(
+        val declaration: Declaration.Struct
     ) : TypeBinding()
 }
 
@@ -97,9 +95,54 @@ class Resolver(val ctx: Context) {
         return findInScopeStack(ident, scopeStack)
     }
 
+    fun resolveTypeVariable(ident: Identifier): TypeBinding? {
+        val scopeStack = getScopeStack(ident)
+        return findTypeInScopeStack(ident, scopeStack)
+    }
+
     private fun findInScopeStack(ident: Identifier, scopeStack: ScopeStack): ValueBinding? {
         for (scopeNode in scopeStack) {
             val binding = shallowFindInScope(ident, scopeNode)
+            if (binding != null) {
+                return binding
+            }
+        }
+        return null
+    }
+
+    private fun findTypeInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding? {
+        for (scopeNode in scopeStack) {
+            val binding = findTypeInScope(ident, scopeNode)
+            if (binding != null) {
+                return binding
+            }
+        }
+        return null
+    }
+
+    private fun findTypeInScope(ident: Identifier, scopeNode: ScopeNode): TypeBinding? = when (scopeNode) {
+        is ScopeNode.FunctionDef -> null
+        is ScopeNode.SourceFile -> {
+            findTypeInSourceFile(ident, scopeNode.sourceFile)
+        }
+        is ScopeNode.Block -> null
+        is ScopeNode.Struct -> {
+            require(scopeNode.declaration.typeParams == null)
+            if (ident.name == scopeNode.declaration.binder.identifier.name) {
+                TypeBinding.Struct(scopeNode.declaration)
+            } else {
+                null
+            }
+        }
+    }
+
+    private fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding.Struct? {
+        for (declaration in sourceFile.declarations) {
+            val binding = if (declaration is Declaration.Struct && declaration.binder.identifier.name == ident.name) {
+                TypeBinding.Struct(declaration)
+            } else {
+                null
+            }
             if (binding != null) {
                 return binding
             }
