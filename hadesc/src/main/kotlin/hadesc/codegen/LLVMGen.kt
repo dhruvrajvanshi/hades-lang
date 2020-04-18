@@ -190,6 +190,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun getDeclaration(def: IRFunctionDef): FunctionValue {
         val irName = def.binder.name
+        require(def.typeParams == null)
         val type = lowerFunctionType(def.type)
         val name = if (irName.text == "main") {
             "hades_main"
@@ -246,20 +247,22 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Error -> TODO()
         Type.Byte -> byteTy
         Type.Void -> voidTy
-        is Type.ModuleAlias -> TODO("Bug: Module alias can't be lowered")
         is Type.Bool -> boolTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
-        is Type.Function -> FunctionType(
-            returns = lowerType(type.to),
-            types = type.from.map { lowerType(it) },
-            variadic = false
-        )
+        is Type.Function -> {
+            require(type.typeParams == null) { "Can't lower unspecialized generic function type" }
+            FunctionType(
+                returns = lowerType(type.to),
+                types = type.from.map { lowerType(it) },
+                variadic = false
+            )
+        }
         is Type.Struct -> StructType(
             type.memberTypes.values.map { lowerType(it) },
             packed = false,
             ctx = llvmCtx
         )
-        is Type.ParamRef, is Type.GenericFunction, is Type.Deferred ->
+        is Type.ParamRef, is Type.Deferred ->
             TODO("Can't lower unspecialized type param")
     }
 

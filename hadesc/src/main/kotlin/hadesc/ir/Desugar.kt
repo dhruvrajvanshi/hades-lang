@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.ValueBinding
@@ -87,7 +88,7 @@ class Desugar(val ctx: Context) {
             val binder = lowerGlobalBinder(def.name)
             val function = IRFunctionDef(
                 binder = binder,
-                typeParams = listOf(),
+                typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = def.params.map { lowerParam(it) },
                 body = IRBlock(mutableListOf())
             )
@@ -97,8 +98,11 @@ class Desugar(val ctx: Context) {
 
     }
 
+    private fun lowerTypeParam(typeParam: TypeParam): IRTypeBinder {
+        return IRTypeBinder(typeParam.binder.identifier.name)
+    }
+
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
-        require(def.typeParams.isEmpty())
         val function = getFunctionDef(def)
         function.body = lowerBlock(def.body)
         val ty = function.type
@@ -149,49 +153,12 @@ class Desugar(val ctx: Context) {
         )
     }
 
-    private fun lowerProperty(expression: Expression.Property): IRExpression = when (expression.lhs) {
-        is Expression.Var -> {
-            when (val binding = ctx.resolver.getBinding(expression.lhs.name)) {
-                is ValueBinding.ImportAs -> {
-                    val sourceFile = ctx.resolveSourceFile(binding.declaration.modulePath)
-                    val propertyBinding = requireNotNull(
-                        ctx.resolver.findInSourceFile(
-                            expression.property, sourceFile
-                        )
-                    )
-                    val ty = ctx.checker.typeOfBinding(propertyBinding)
-                    when (propertyBinding) {
-                        is ValueBinding.ImportAs -> TODO()
-                        is ValueBinding.GlobalFunction -> {
-                            IRVariable(
-                                ty,
-                                expression.property.location,
-                                IRBinding.FunctionDef(getFunctionDef(propertyBinding.declaration))
-                            )
-                        }
-                        is ValueBinding.ExternFunction -> {
-                            IRVariable(
-                                ty,
-                                expression.property.location,
-                                IRBinding.ExternFunctionDef(lowerExternFunctionDef(propertyBinding.declaration))
-                            )
-                        }
-                        is ValueBinding.FunctionParam -> requireUnreachable() // a property access can't refer to a param
-                        is ValueBinding.ValBinding -> requireUnreachable()
-                        is ValueBinding.Struct -> IRVariable(
-                            ty,
-                            expression.property.location,
-                            IRBinding.StructDef(lowerStructDeclaration(propertyBinding.declaration))
-                        )
-                    }
-                }
-                else -> lowerRuntimePropertyAccess(expression)
-            }
+    private fun lowerProperty(expression: Expression.Property): IRExpression =
+        when (val binding = ctx.resolver.resolveModuleProperty(expression)) {
+            null -> lowerRuntimePropertyAccess(expression)
+            else -> lowerBindingRef(typeOfExpression(expression), expression, binding)
+
         }
-        else -> {
-            lowerRuntimePropertyAccess(expression)
-        }
-    }
 
     private fun lowerRuntimePropertyAccess(expression: Expression.Property): IRExpression {
         val lhs = lowerExpression(expression.lhs)
@@ -211,7 +178,12 @@ class Desugar(val ctx: Context) {
     }
 
     private fun lowerVar(variable: Expression.Var): IRExpression {
-        val irBinding: IRBinding = when (val binding = ctx.resolver.getBinding(variable.name)) {
+        return lowerBindingRef(ctx.checker.typeOfExpression(variable), variable, ctx.resolver.resolve(variable.name))
+    }
+
+    private fun lowerBindingRef(ty: Type, node: HasLocation, binding: ValueBinding?): IRExpression {
+        val irBinding: IRBinding = when (binding) {
+            null -> requireUnreachable()
             is ValueBinding.GlobalFunction -> {
                 val def = getFunctionDef(binding.declaration)
                 IRBinding.FunctionDef(def)
@@ -221,13 +193,10 @@ class Desugar(val ctx: Context) {
                 IRBinding.ExternFunctionDef(def)
             }
             is ValueBinding.FunctionParam -> {
-                val index = binding.declaration.params.indexOfFirst {
-                    it.binder.identifier.name == variable.name.name
-                }
+                val index = binding.index
                 assert(index > -1)
                 IRBinding.ParamRef(getFunctionDef(binding.declaration), index)
             }
-            is ValueBinding.ImportAs -> requireUnreachable()
             is ValueBinding.ValBinding -> {
                 val statement = lowerValStatement(binding.statement)
                 IRBinding.ValStatement(statement)
@@ -237,20 +206,19 @@ class Desugar(val ctx: Context) {
                 IRBinding.StructDef(structDecl)
             }
         }
-        val ty = ctx.checker.typeOfExpression(variable)
-        return IRVariable(ty, variable.location, irBinding)
+        return IRVariable(ty, node.location, irBinding)
+
     }
 
     private fun lowerCall(expression: Expression.Call): IRExpression {
         val callee = lowerExpression(expression.callee)
         val args = expression.args.map { lowerExpression(it.expression) }
         val type = typeOfExpression(expression)
-        // TODO: Handle generic calls
         return IRCallExpression(
             type,
             expression.location,
             callee,
-            typeArgs = null,
+            typeArgs = ctx.checker.getTypeArgs(expression),
             args = args
         )
     }

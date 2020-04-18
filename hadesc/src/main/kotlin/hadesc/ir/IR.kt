@@ -20,7 +20,7 @@ data class IRModule(
 
 sealed class IRDefinition {
     fun prettyPrint(): String = when (this) {
-        is IRFunctionDef -> "def ${binder.prettyPrint()} = (${params.joinToString(", ") { it.prettyPrint() }}) => ${body.prettyPrint()}"
+        is IRFunctionDef -> "def ${binder.prettyPrint()} = (${params.joinToString(", ") { it.prettyPrint() }}) ${body.prettyPrint()}"
         is IRStructDef -> "struct ${this.globalName.text} {" +
                 "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
         is IRExternFunctionDef -> "extern def ${binder.prettyPrint()} = ${externName.text}"
@@ -29,7 +29,7 @@ sealed class IRDefinition {
 
 data class IRFunctionDef(
     val binder: IRBinder,
-    val typeParams: List<IRTypeBinder>,
+    val typeParams: List<IRTypeBinder>?,
     val params: List<IRParam>,
     var body: IRBlock
 ) : IRDefinition() {

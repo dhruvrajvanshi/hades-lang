@@ -132,7 +132,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun parseDeclarationImportAs(): Declaration {
-        val start = expect(tt.IMPORT)
+        expect(tt.IMPORT)
         val modulePath = parseQualifiedPath()
         expect(tt.AS)
         val asName = parseBinder()
@@ -174,9 +174,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         )
     }
 
-    private fun parseOptionalTypeParams(): List<TypeParam> = buildList {
-
-        if (currentToken.kind == tt.LSQB) {
+    private fun parseOptionalTypeParams(): List<TypeParam>? = if (currentToken.kind == tt.LSQB) {
+        buildList {
             advance()
             var isFirst = true
             while (!isEOF() && !at(tt.RSQB)) {
@@ -191,6 +190,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
             expect(tt.RSQB)
         }
+    } else {
+        null
     }
 
     private fun parseBlock(): Block {
@@ -456,6 +457,5 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun isEOF() =
         currentToken.kind == tt.EOF
-
 }
 

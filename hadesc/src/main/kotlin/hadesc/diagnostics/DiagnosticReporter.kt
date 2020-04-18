@@ -1,8 +1,10 @@
 package hadesc.diagnostics
 
+import hadesc.Name
 import hadesc.ast.Token
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.types.Type
 
 data class Diagnostic(
     val sourceLocation: SourceLocation, val kind: Kind
@@ -22,6 +24,12 @@ data class Diagnostic(
         object TypeAnnotationExpected : Kind(Severity.ERROR)
         object StatementExpected : Kind(Severity.ERROR)
         object ExpressionExpected : Kind(Severity.ERROR)
+        object UnboundVariable : Kind(Severity.ERROR)
+        data class TypeNotCallable(val type: Type) : Kind(Severity.ERROR)
+        data class MissingArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
+        data class TooManyArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
+        data class TypeNotAssignable(val type: Type, val to: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class NoSuchProperty(val type: Type, val property: Name) : Diagnostic.Kind(Severity.ERROR)
 
         override fun toString(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -29,6 +37,12 @@ data class Diagnostic(
             ExpressionExpected -> "Expression expected"
             StatementExpected -> "Statement expected"
             is UnexpectedToken -> "Unexpected token ${found.text}; Expected $expected"
+            UnboundVariable -> "Unbound variable"
+            is TypeNotCallable -> "Type $type is not callable"
+            is MissingArgs -> "Missing args; $required required"
+            is TooManyArgs -> "Too many args; $required required"
+            is TypeNotAssignable -> "Type ${type.prettyPrint()} is not assignable to ${to.prettyPrint()}"
+            is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named $property"
         }
 
     }

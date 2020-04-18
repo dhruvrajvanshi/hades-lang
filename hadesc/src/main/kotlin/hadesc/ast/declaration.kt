@@ -17,7 +17,7 @@ sealed class Declaration : HasLocation {
         override val location: SourceLocation,
         val scopeStartToken: Token,
         val name: Binder,
-        val typeParams: List<TypeParam>,
+        val typeParams: List<TypeParam>?,
         val params: List<Param>,
         val returnType: TypeAnnotation,
         val body: Block
@@ -34,7 +34,8 @@ sealed class Declaration : HasLocation {
     data class Struct(
         override val location: SourceLocation,
         val binder: Binder,
-        val members: List<Member>
+        val members: List<Member>,
+        val typeParams: List<TypeParam>? = null
     ) : Declaration() {
 
         sealed class Member {

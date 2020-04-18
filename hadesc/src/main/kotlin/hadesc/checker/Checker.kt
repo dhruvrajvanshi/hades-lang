@@ -1,252 +1,299 @@
 package hadesc.checker
 
-import hadesc.Name
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.diagnostics.Diagnostic
+import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
-import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
+import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
 class Checker(val ctx: Context) {
-    private val deferredTypeInstantiations = mutableMapOf<Type.Deferred, Type>()
 
-    fun annotationToType(annotation: TypeAnnotation?): Type {
-        if (annotation == null) {
-            return Type.Error
-        }
-        return when (annotation) {
+    private val binderTypes = NodeMap<Binder, Type>()
+    private val expressionTypes = NodeMap<Expression, Type>()
+    private val annotationTypes = NodeMap<TypeAnnotation, Type>()
+
+    fun typeOfExpression(expression: Expression): Type = expressionTypes.computeIfAbsent(expression) {
+        val decl = ctx.resolver.getDeclarationContaining(expression)
+        checkDeclaration(decl)
+        requireNotNull(expressionTypes[expression])
+    }
+
+    fun annotationToType(annotation: TypeAnnotation): Type = annotationTypes.computeIfAbsent(annotation) {
+        val declaration = ctx.resolver.getDeclarationContaining(annotation)
+        checkDeclaration(declaration)
+        requireNotNull(annotationTypes[annotation])
+    }
+
+    fun typeOfBinder(binder: Binder): Type = binderTypes.computeIfAbsent(binder) {
+        val decl = ctx.resolver.getDeclarationContaining(binder)
+        checkDeclaration(decl)
+        requireNotNull(binderTypes[binder])
+    }
+
+    private fun inferAnnotation(annotation: TypeAnnotation): Type {
+        val type = when (annotation) {
             is TypeAnnotation.Error -> Type.Error
-            is TypeAnnotation.Var -> when (identToString(annotation.name)) {
-                // TODO: Should be able to override built in types?
-                // is it a good idea?
-                "Byte" -> Type.Byte
+            is TypeAnnotation.Var -> when (annotation.name.name.text) {
                 "Void" -> Type.Void
                 "Bool" -> Type.Bool
-                else -> when (val typeBinding = ctx.resolver.getTypeBinding(annotation.name)) {
-                    is TypeBinding.FunctionDefTypeParam -> Type.ParamRef(
-                        typeBinding.binder,
-                        typeBinding.paramIndex
-                    )
-                }
+                "Byte" -> Type.Byte
+                else -> TODO()
             }
-            is TypeAnnotation.Ptr -> Type.RawPtr(annotationToType(annotation.to))
+            is TypeAnnotation.Ptr -> Type.RawPtr(inferAnnotation(annotation.to))
         }
+        annotationTypes[annotation] = type
+        return type
     }
 
-    fun typeError() = Type.Error
-
-    fun typeOfExpression(expression: Expression): Type = when (expression) {
-        is Expression.Error -> typeError()
-        is Expression.Var -> typeOfBinding(ctx.resolver.getBinding(expression.name))
-        is Expression.Call -> {
-            when (val funcType = typeOfExpression(expression.callee)) {
-                is Type.Function -> funcType.to
-                else -> typeError()
-            }
-        }
-        is Expression.Property -> {
-            val lhsType = typeOfExpression(expression.lhs)
-            typeOfProperty(lhsType, expression.property)
-        }
-        is Expression.ByteString -> Type.RawPtr(Type.Byte)
-        is Expression.BoolLiteral -> Type.Bool
+    fun isTypeEqual(t1: Type, t2: Type): Boolean {
+        return t1 == t2
     }
 
-    fun typeOfProperty(type: Type, propertyName: Identifier): Type = when (type) {
-        is Type.Struct -> {
-            type.memberTypes[propertyName.name] ?: TODO("${propertyName.location}: No such property")
-        }
-        is Type.ModuleAlias -> {
-            typeOfBinding(ctx.resolver.resolveModuleMember(type.qualifiedName, propertyName))
-        }
-        else -> {
-            TODO("${propertyName.location}: No such property on type $type")
-        }
+    fun typeOfStructConstructor(declaration: Declaration.Struct): Type {
+        TODO()
     }
 
-    fun typeOfBinding(binding: ValueBinding): Type = when (binding) {
-        is ValueBinding.GlobalFunction -> {
-            if (binding.declaration.typeParams.isNotEmpty()) {
-                Type.GenericFunction(
-                    typeParams = binding.declaration.typeParams,
-                    from = binding.declaration.params.map {
-                        annotationToType(it.annotation ?: TODO("Type annotation required"))
-                    },
-                    to = annotationToType(binding.declaration.returnType)
-                )
-            } else {
-                Type.Function(
-                    from = binding.declaration.params.map {
-                        annotationToType(it.annotation ?: TODO("Type annotation required"))
-                    },
-                    to = annotationToType(binding.declaration.returnType)
-                )
-            }
-        }
-        is ValueBinding.ExternFunction -> Type.Function(
-            from = binding.declaration.paramTypes.map { annotationToType(it) },
-            to = annotationToType(binding.declaration.returnType)
-        )
-        is ValueBinding.FunctionParam -> annotationToType(binding.param.annotation ?: TODO("Annotation required"))
-        is ValueBinding.ImportAs -> {
-            Type.ModuleAlias(binding.aliasedModule)
-        }
-        is ValueBinding.ValBinding -> typeOfExpression(binding.statement.rhs)
-        is ValueBinding.Struct -> typeOfStructConstructor(binding.declaration)
+    fun typeOfStructInstance(declaration: Declaration.Struct): Type {
+        TODO()
     }
 
-    private fun identToString(identifier: Identifier): String {
-        return identifier.name.text
+    fun getTypeArgs(call: Expression.Call): List<Type>? {
+        return null
     }
 
-    fun typeOfStructInstance(structDecl: Declaration.Struct): Type {
-        val name = ctx.resolver.getBinding(structDecl.binder.identifier).qualifiedName
-        val memberTypes = mutableMapOf<Name, Type>()
-        for (member in structDecl.members) {
-            val exhaustive = when (member) {
-                Declaration.Struct.Member.Error -> {
-                }
-                is Declaration.Struct.Member.Field -> {
-                    val type = annotationToType(member.typeAnnotation)
-                    memberTypes[member.binder.identifier.name] = type
-                    Unit
-                }
-            }
-        }
-        return Type.Struct(
-            name,
-            memberTypes
-        )
-    }
-
-    fun typeOfStructConstructor(decl: Declaration.Struct): Type {
-
-        val memberTypeList = buildList {
-            decl.members.forEach {
-                if (it is Declaration.Struct.Member.Field) {
-                    add(annotationToType(it.typeAnnotation))
-                }
-            }
-        }
-        return Type.Function(from = memberTypeList, to = typeOfStructInstance(decl))
-    }
-
-    fun checkDeclaration(declaration: Declaration) = when (declaration) {
+    private fun checkDeclaration(declaration: Declaration) = when (declaration) {
         is Declaration.Error -> {
         }
-        is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
+        is Declaration.ImportAs -> TODO()
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
-        is Declaration.Struct -> checkStructDeclaration(declaration)
+        is Declaration.Struct -> checkStructDef(declaration)
     }
 
-    private fun checkStructDeclaration(decl: Declaration.Struct) {
-        // TODO
+    private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
+        declareFunctionDef(declaration)
+        checkBlock(declaration.body)
+        require(declaration.typeParams == null)
     }
 
-    private fun checkExternFunctionDef(decl: Declaration.ExternFunctionDef) {
-        // TODO
+    private fun declareFunctionDef(declaration: Declaration.FunctionDef) {
+        if (binderTypes[declaration.name] != null) {
+            return
+        }
+        val paramTypes = mutableListOf<Type>()
+        for (param in declaration.params) {
+            val type = if (param.annotation != null) {
+                inferAnnotation(param.annotation)
+            } else {
+                Type.Error
+            }
+            bindValue(param.binder, type)
+            paramTypes.add(type)
+        }
+        val returnType = inferAnnotation(declaration.returnType)
+        val type = Type.Function(
+            from = paramTypes,
+            to = returnType,
+            typeParams = null
+        )
+        bindValue(declaration.name, type)
     }
 
-    private fun checkFunctionDef(def: Declaration.FunctionDef) {
-        for (param in def.params) {
-            if (param.annotation != null) {
-                annotationToType(param.annotation)
+    private fun checkBlock(block: Block) {
+        for (member in block.members) {
+            checkBlockMember(member)
+        }
+    }
+
+    private fun checkBlockMember(member: Block.Member): Unit = when (member) {
+        is Block.Member.Expression -> {
+            inferExpression(member.expression)
+            Unit
+        }
+        is Block.Member.Statement -> {
+            checkStatement(member.statement)
+        }
+    }
+
+    private fun checkStatement(statement: Statement): Unit {
+        TODO()
+    }
+
+    private fun inferExpression(expression: Expression): Type {
+        val ty = when (expression) {
+            is Expression.Error -> Type.Error
+            is Expression.Var -> inferVar(expression)
+            is Expression.Call -> inferCall(expression)
+            is Expression.Property -> inferProperty(expression)
+            is Expression.ByteString -> Type.RawPtr(Type.Byte)
+            is Expression.BoolLiteral -> Type.Bool
+        }
+        expressionTypes[expression] = ty
+        return ty
+    }
+
+    private fun inferProperty(expression: Expression.Property): Type {
+        val globalBinding = ctx.resolver.resolveModuleProperty(expression)
+        return if (globalBinding != null) {
+            inferBinding(globalBinding)
+        } else {
+            when (val lhsType = inferExpression(expression.lhs)) {
+                Type.Error -> Type.Error
+                is Type.ParamRef -> TODO()
+                is Type.Deferred -> TODO()
+                is Type.Struct -> TODO()
+                is Type.RawPtr -> TODO()
+                is Type.Function -> TODO()
+                Type.Byte,
+                Type.Void,
+                Type.Bool -> {
+                    error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                    Type.Error
+                }
             }
         }
-        // TODO
     }
 
-    private fun checkImportAsDeclaration(decl: Declaration.ImportAs) {
-        // TODO
-    }
+    private fun inferCall(expression: Expression.Call): Type {
+        val calleeType = inferExpression(expression.callee)
+        if (calleeType is Type.Function) {
+            require(calleeType.typeParams == null)
 
-    fun isGenericCallSite(call: Expression.Call): Boolean {
-        val ty = typeOfExpression(call.callee)
-        return ty is Type.GenericFunction
-    }
-
-    fun getGenericSpecializedFunctionType(
-        function: Declaration.FunctionDef,
-        callLocation: SourceLocation,
-        args: List<Arg>
-    ): Type.Function {
-        val subst = mutableMapOf<Type.ParamRef, Type>()
-        val paramTypeInstantiations = function.params.map {
-            instantiateType(annotationToType(it.annotation), callLocation)
-        }
-        val instantiatedReturnType = instantiateType(annotationToType(function.returnType), callLocation)
-
-        assert(paramTypeInstantiations.size == args.size) { "${callLocation}: Wrong number of args" }
-        for ((arg, paramType) in args.zip(paramTypeInstantiations)) {
-            equateTypes(typeOfExpression(arg.expression), paramType)
-        }
-
-        return Type.Function(
-            from = paramTypeInstantiations.map { substituteSpecializations(it) },
-            to = substituteSpecializations(instantiatedReturnType)
-        )
-    }
-
-    private fun substituteSpecializations(instantiatedType: Type): Type = when (instantiatedType) {
-        Type.Error,
-        Type.Byte,
-        Type.Void,
-        Type.Bool,
-        is Type.RawPtr -> Type.RawPtr(substituteSpecializations((instantiatedType as Type.RawPtr).to))
-        is Type.Function -> Type.Function(
-            from = instantiatedType.from.map { substituteSpecializations(it) },
-            to = substituteSpecializations(instantiatedType.to)
-        )
-        is Type.GenericFunction -> TODO()
-        is Type.Struct -> TODO()
-        is Type.ModuleAlias -> TODO()
-        is Type.ParamRef -> TODO("Cannot generate fully specialized type")
-        is Type.Deferred -> deferredTypeInstantiations[instantiatedType] ?: TODO("Couldn't infer generic instantiation")
-    }
-
-    private fun equateTypes(t1: Type, t2: Type) {
-        when {
-            t2 is Type.Deferred && t1 is Type.Deferred ->
-                TODO("Cannot infer generic type")
-            t2 is Type.Deferred -> {
-                deferredTypeInstantiations[t2] = t1
+            val len = min(calleeType.from.size, expression.args.size)
+            for (index in 0 until len) {
+                val expected = calleeType.from[index]
+                val found = expression.args[index].expression
+                checkExpression(expected, found)
             }
-            else -> {
+
+            if (calleeType.from.size > expression.args.size) {
+                error(expression, Diagnostic.Kind.MissingArgs(required = calleeType.from.size))
+            } else if (calleeType.from.size < expression.args.size) {
+                error(expression, Diagnostic.Kind.TooManyArgs(required = calleeType.from.size))
+                for (index in len + 1 until expression.args.size) {
+                    inferExpression(expression.args[index].expression)
+                }
             }
+            return calleeType.to
+        } else {
+            for (arg in expression.args) {
+                inferExpression(arg.expression)
+            }
+            if (calleeType != Type.Error) {
+                error(expression, Diagnostic.Kind.TypeNotCallable(calleeType))
+            }
+            return Type.Error
         }
     }
 
-    private fun instantiateType(type: Type, callLocation: SourceLocation): Type = when (type) {
-        Type.Error,
-        Type.Byte,
-        Type.Void,
-        Type.Bool -> type
-        is Type.RawPtr -> Type.RawPtr(instantiateType(type.to, callLocation))
-        is Type.Function -> Type.Function(
-            from = type.from.map { instantiateType(it, callLocation) },
-            to = instantiateType(type.to, callLocation)
+    private fun checkExpression(expected: Type, expression: Expression) = when (expression) {
+        else -> {
+            val exprType = inferExpression(expression)
+            if (!(exprType isAssignableTo expected)) {
+                error(expression, Diagnostic.Kind.TypeNotAssignable(exprType, to = expected))
+            }
+            Unit
+        }
+    }
+
+    private infix fun Type.isAssignableTo(to: Type): Boolean = when {
+        else -> this == to
+    }
+
+    private fun inferVar(expression: Expression.Var): Type {
+        val binding = ctx.resolver.resolve(expression.name)
+        if (binding == null) {
+            error(expression, Diagnostic.Kind.UnboundVariable)
+        }
+        return when (binding) {
+            null -> Type.Error
+            else -> inferBinding(binding)
+        }
+    }
+
+    private fun inferBinding(binding: ValueBinding) = when (binding) {
+        is ValueBinding.GlobalFunction -> {
+            declareFunctionDef(binding.declaration)
+            requireNotNull(binderTypes[binding.declaration.name])
+        }
+        is ValueBinding.ExternFunction -> {
+            declareExternFunctionDef(binding.declaration)
+            requireNotNull(binderTypes[binding.declaration.binder])
+        }
+        is ValueBinding.FunctionParam -> {
+            declareFunctionDef(binding.declaration)
+            requireNotNull(binderTypes[binding.declaration.name])
+        }
+        is ValueBinding.ValBinding -> {
+            TODO()
+        }
+        is ValueBinding.Struct -> TODO()
+    }
+
+    private fun error(node: HasLocation, kind: Diagnostic.Kind) {
+        ctx.diagnosticReporter.report(node.location, kind)
+    }
+
+    private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
+        declareExternFunctionDef(declaration)
+    }
+
+    private fun declareExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
+        if (binderTypes[declaration.binder] != null) {
+            return
+        }
+        val paramTypes = declaration.paramTypes.map { inferAnnotation(it) }
+        val returnType = inferAnnotation(declaration.returnType)
+        val type = Type.Function(
+            from = paramTypes,
+            to = returnType,
+            typeParams = null // extern functions can't be generic
         )
-        is Type.GenericFunction ->
-            TODO("Higher order genrerics; Need to avoid substituting param refs bound by this function")
-        is Type.Struct -> TODO()
-        is Type.ModuleAlias -> TODO()
-        is Type.ParamRef -> newDeferredType(type, callLocation)
-        is Type.Deferred -> type
+        bindValue(declaration.binder, type)
     }
 
-    private fun newDeferredType(paramRef: Type.ParamRef, callLocation: SourceLocation): Type {
-        return Type.Deferred(paramRef, callLocation)
+    private fun bindValue(binder: Binder, type: Type) {
+        binderTypes[binder] = type
     }
 
-    fun typeOfBinder(name: Binder): Type = typeOfBinding(ctx.resolver.getBinding(name))
-    fun isTypeEqual(t1: Type, t2: Type): Boolean = when {
-        t1 is Type.Void && t2 is Type.Void -> true
-        t1 is Type.Bool && t2 is Type.Bool -> true
-        t1 == t2 -> true
-        else -> false
+    private fun checkStructDef(declaration: Declaration.Struct) {
+        TODO()
+    }
+}
+
+private class NodeSet<T : HasLocation> {
+    val set = mutableSetOf<SourceLocation>()
+    fun contains(value: T): Boolean {
+        return set.contains(value.location)
     }
 
+    fun add(value: T) {
+        set.add(value.location)
+    }
+}
+
+private class NodeMap<T : HasLocation, V> {
+    private val map = mutableMapOf<SourceLocation, V>()
+
+    fun computeIfAbsent(key: T, compute: () -> V): V {
+        val existing = map[key.location]
+        if (existing != null) {
+            return existing
+        }
+        val value = compute()
+        map[key.location] = value
+        return value
+    }
+
+    operator fun get(key: T): V? {
+        return map[key.location]
+    }
+
+    operator fun set(key: T, value: V) {
+        map[key.location] = value
+    }
 }

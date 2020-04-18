@@ -1,5 +1,7 @@
 package hadesc.resolver
 
+import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.location.HasLocation
@@ -8,41 +10,30 @@ import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 
 sealed class ValueBinding {
-    abstract val qualifiedName: QualifiedName
-
     data class GlobalFunction(
-        override val qualifiedName: QualifiedName,
+        val qualifiedName: QualifiedName,
         val declaration: Declaration.FunctionDef
     ) : ValueBinding()
 
     data class ExternFunction(
-        override val qualifiedName: QualifiedName,
+        val qualifiedName: QualifiedName,
         val declaration: Declaration.ExternFunctionDef
     ) : ValueBinding()
 
     data class FunctionParam(
-        override val qualifiedName: QualifiedName,
+        val name: Name,
+        val index: Int,
         val param: Param,
         val declaration: Declaration.FunctionDef
-    ) : ValueBinding() {
-        init {
-            require(qualifiedName.size == 1)
-        }
-    }
-
-    data class ImportAs(
-        override val qualifiedName: QualifiedName,
-        val aliasedModule: QualifiedName,
-        val declaration: Declaration.ImportAs
     ) : ValueBinding()
 
     data class ValBinding(
-        override val qualifiedName: QualifiedName,
+        val name: Name,
         val statement: Statement.Val
     ) : ValueBinding()
 
     data class Struct(
-        override val qualifiedName: QualifiedName,
+        val qualifiedName: QualifiedName,
         val declaration: Declaration.Struct
     ) : ValueBinding()
 }
@@ -56,6 +47,7 @@ sealed class TypeBinding {
 }
 
 sealed class ScopeNode {
+    // Update function getEnclosingDeclaration when adding a new declaration scope
     data class FunctionDef(
         val declaration: Declaration.FunctionDef
     ) : ScopeNode()
@@ -69,16 +61,16 @@ sealed class ScopeNode {
 
     val location
         get(): SourceLocation = when (this) {
-            is FunctionDef -> SourceLocation.between(
-                declaration.scopeStartToken,
-                declaration.body
-            )
+            is FunctionDef -> declaration.location
             is SourceFile -> sourceFile.location
             is Block -> block.location
             is Struct -> declaration.location
         }
 }
 
+/**
+ * A stack of scope, starting from narrow to wide
+ */
 data class ScopeStack(val scopes: List<ScopeNode>) : Iterable<ScopeNode> {
     val sourceFile: SourceFile
 
@@ -98,162 +90,81 @@ data class ScopeStack(val scopes: List<ScopeNode>) : Iterable<ScopeNode> {
 
 class Resolver(val ctx: Context) {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeNode>>()
-    private val valueBindings = mutableMapOf<QualifiedName, ValueBinding>()
+    private val sourceFiles = mutableMapOf<SourcePath, SourceFile>()
 
-    fun getBinding(ident: Identifier): ValueBinding {
+    fun resolve(ident: Identifier): ValueBinding? {
         val scopeStack = getScopeStack(ident)
         return findInScopeStack(ident, scopeStack)
     }
 
-    fun getBinding(binder: Binder): ValueBinding {
-        val scope = findEnclosingScope(binder)
-        val binding = findBindingInScope(binder.identifier, scope)
-        return requireNotNull(binding)
-    }
-
-    fun getTypeBinding(ident: Identifier): TypeBinding {
-        val scopeStack = getScopeStack(ident)
-        return findTypeBindingInScopeStack(ident, scopeStack)
-    }
-
-    private fun findTypeBindingInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding {
-        for (scope in scopeStack) {
-            val binding = when (scope) {
-                is ScopeNode.FunctionDef -> findTypeBindingInFunctionDef(ident, scope.declaration)
-                is ScopeNode.SourceFile -> null
-                is ScopeNode.Block -> null
-                is ScopeNode.Struct -> TODO()
-            }
-
+    private fun findInScopeStack(ident: Identifier, scopeStack: ScopeStack): ValueBinding? {
+        for (scopeNode in scopeStack) {
+            val binding = shallowFindInScope(ident, scopeNode)
             if (binding != null) {
                 return binding
-            }
-        }
-        TODO("${ident.location}: Unbound type variable: $ident")
-    }
-
-    private fun findTypeBindingInFunctionDef(
-        ident: Identifier,
-        def: Declaration.FunctionDef
-    ): TypeBinding? {
-        var index = -1
-        for (typeParam in def.typeParams) {
-            index++
-            if (typeParam.binder.identifier.name == ident.name) {
-                return TypeBinding.FunctionDefTypeParam(def, typeParam.binder, index)
             }
         }
         return null
     }
 
-    private fun findEnclosingScope(node: HasLocation): ScopeNode {
-        val location = node.location
-        return requireNotNull(sourceFileScopes.getOrDefault(location.file, emptyList<ScopeNode>())
-            .sortedByDescending { it.location }
-            .find { it.location contains node }) {
-            "${node.location} not inside any scope"
-        }
-
+    private fun shallowFindInScope(ident: Identifier, scope: ScopeNode): ValueBinding? = when (scope) {
+        is ScopeNode.FunctionDef -> shallowFindInFunction(ident, scope)
+        is ScopeNode.SourceFile -> shallowFindInSourceFile(ident, scope.sourceFile)
+        is ScopeNode.Block -> shallowFindInBlock(ident, scope)
+        is ScopeNode.Struct -> shallowFindInStruct(ident, scope)
     }
 
-    private fun getScopeStack(ident: Identifier): ScopeStack {
-        val scopes = sourceFileScopes
-            .getOrDefault(ident.location.file, emptyList<ScopeNode>())
-            .filter { it.location contains ident }
-            .sortedByDescending { it.location }
-
-        return ScopeStack(scopes)
+    private fun shallowFindInStruct(ident: Identifier, scope: ScopeNode.Struct): ValueBinding? {
+        return null
     }
 
-
-    private fun findInScopeStack(ident: Identifier, scopeStack: ScopeStack): ValueBinding {
-        val binding = findInScopeStackHelper(ident, scopeStack)
-        valueBindings[binding.qualifiedName] = binding
-        return binding
-    }
-
-    private fun findBindingInScope(ident: Identifier, scope: ScopeNode): ValueBinding? = when (scope) {
-        is ScopeNode.FunctionDef -> findInFunctionDef(
-            ident,
-            scope.declaration
-        )
-        is ScopeNode.SourceFile -> findInSourceFile(ident, scope.sourceFile)
-        is ScopeNode.Block -> findInBlock(ident, scope.block)
-        is ScopeNode.Struct -> TODO()
-    }
-
-    private fun findInScopeStackHelper(
-        ident: Identifier,
-        scopes: ScopeStack
-    ): ValueBinding {
-        for (scope in scopes) {
-            val binding = findBindingInScope(ident, scope)
+    private fun shallowFindInBlock(ident: Identifier, scope: ScopeNode.Block): ValueBinding? {
+        for (member in scope.block.members) {
+            val binding = when (member) {
+                is Block.Member.Expression -> null
+                is Block.Member.Statement -> when (member.statement) {
+                    is Statement.Return -> null
+                    is Statement.Val -> if (ident.name == member.statement.binder.identifier.name) {
+                        ValueBinding.ValBinding(ident.name, member.statement)
+                    } else {
+                        null
+                    }
+                    is Statement.Error -> null
+                }
+            }
             if (binding != null) {
                 return binding
             }
         }
-        TODO("${ident.location}: Unbound variable ${ident.name.text} at")
+        return null
     }
 
-    fun findInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
-        val sourceFileModuleName = sourceFile.moduleName
+    private fun shallowFindInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
         for (declaration in sourceFile.declarations) {
             val binding = when (declaration) {
                 is Declaration.Error -> null
-                is Declaration.ImportAs -> {
-                    if (declaration.asName.identifier.name == ident.name) {
-                        ValueBinding.ImportAs(
-                            QualifiedName(
-                                listOf(
-                                    declaration.asName.identifier.name
-                                )
-                            ),
-                            pathToQualifiedName(declaration.modulePath),
-                            declaration
-                        )
-                    } else {
-                        null
-                    }
-                }
+                is Declaration.ImportAs -> null
                 is Declaration.FunctionDef -> {
                     if (declaration.name.identifier.name == ident.name) {
-                        val qualifiedName = sourceFileModuleName.append(declaration.name.identifier.name)
-                        val binding = ValueBinding.GlobalFunction(
-                            qualifiedName,
+                        ValueBinding.GlobalFunction(
+                            sourceFileOf(declaration).moduleName.append(ident.name),
                             declaration
                         )
-                        valueBindings[qualifiedName] = binding
-                        binding
                     } else {
                         null
                     }
                 }
                 is Declaration.ExternFunctionDef -> {
                     if (declaration.binder.identifier.name == ident.name) {
-                        val qualifiedName = sourceFileModuleName.append(declaration.binder.identifier.name)
-                        val binding = ValueBinding.ExternFunction(
-                            QualifiedName(listOf(declaration.externName.name)),
+                        ValueBinding.ExternFunction(
+                            sourceFileOf(declaration).moduleName.append(ident.name),
                             declaration
                         )
-                        valueBindings[qualifiedName] = binding
-                        binding
                     } else {
                         null
                     }
                 }
-                is Declaration.Struct -> {
-                    if (declaration.binder.identifier.name == ident.name) {
-                        val qualifiedName = sourceFileModuleName.append(declaration.binder.identifier.name)
-                        val binding = ValueBinding.Struct(
-                            qualifiedName,
-                            declaration
-                        )
-                        valueBindings[qualifiedName] = binding
-                        binding
-                    } else {
-                        null
-                    }
-                }
+                is Declaration.Struct -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -261,65 +172,44 @@ class Resolver(val ctx: Context) {
         }
         return null
     }
+
+    private fun shallowFindInFunction(ident: Identifier, scope: ScopeNode.FunctionDef): ValueBinding? {
+        var index = -1
+        for (param in scope.declaration.params) {
+            index++
+            if (param.binder.identifier.name == ident.name) {
+                return ValueBinding.FunctionParam(ident.name, index, param, scope.declaration)
+            }
+        }
+        if (ident.name == scope.declaration.name.identifier.name) {
+            val sourceFile = sourceFileOf(scope.declaration)
+            return ValueBinding.GlobalFunction(
+                sourceFile.moduleName.append(scope.declaration.name.identifier.name),
+                scope.declaration
+            )
+        } else {
+            return null
+        }
+    }
+
+    private fun sourceFileOf(node: HasLocation): SourceFile {
+        return requireNotNull(sourceFiles[node.location.file])
+    }
+
+    private fun getScopeStack(node: HasLocation): ScopeStack {
+        val scopes = sourceFileScopes
+            .getOrDefault(node.location.file, emptyList<ScopeNode>())
+            .sortedByDescending { it.location }
+            .filter { it.location contains node }
+
+        return ScopeStack(scopes)
+    }
+
 
     private fun pathToQualifiedName(path: QualifiedPath): QualifiedName = ctx.qualifiedPathToName(path)
 
-    private fun findInFunctionDef(
-        ident: Identifier,
-        declaration: Declaration.FunctionDef
-    ): ValueBinding? {
-        for (param in declaration.params) {
-            if (param.binder.identifier.name == ident.name) {
-                val name = param.binder.identifier.name
-                return ValueBinding.FunctionParam(
-                    QualifiedName(listOf(name)),
-                    param,
-                    declaration
-                )
-            }
-        }
-        if (declaration.name.identifier.name == ident.name) {
-            return ValueBinding.GlobalFunction(
-                sourceFileModuleName(declaration).append(declaration.name.identifier.name),
-                declaration
-            )
-        }
-        return null
-    }
-
     private fun sourceFileModuleName(node: HasLocation): QualifiedName {
         return ctx.getSourceFileOf(node).moduleName
-    }
-
-    private fun findInBlock(ident: Identifier, block: Block): ValueBinding? {
-        for (member in block.members) {
-            val binding: ValueBinding? = when (member) {
-                is Block.Member.Expression -> null
-                is Block.Member.Statement -> findInStatement(ident, member.statement)
-            }
-
-            if (binding != null) {
-                return binding
-            }
-        }
-        return null
-    }
-
-    private fun findInStatement(ident: Identifier, statement: Statement): ValueBinding? = when (statement) {
-        is Statement.Val -> {
-            if (ident.name == statement.binder.identifier.name) {
-                // TODO: If rhs is a reference to a global, then we should
-                // recursively resolve that here and give the root binding
-                // instead of this alias
-                ValueBinding.ValBinding(
-                    QualifiedName(listOf(ident.name)),
-                    statement
-                )
-            } else {
-                null
-            }
-        }
-        else -> null
     }
 
     fun onParseDeclaration(declaration: Declaration) {
@@ -337,6 +227,7 @@ class Resolver(val ctx: Context) {
     }
 
     fun onParseSourceFile(sourceFile: SourceFile) {
+        sourceFiles[sourceFile.location.file] = sourceFile
         addScopeNode(sourceFile.location.file, ScopeNode.SourceFile(sourceFile))
     }
 
@@ -350,11 +241,54 @@ class Resolver(val ctx: Context) {
             .add(scopeNode)
     }
 
-    fun resolveQualifiedName(qualifiedName: QualifiedName): ValueBinding? {
-        return valueBindings[qualifiedName]
+    fun getDeclarationContaining(node: HasLocation): Declaration {
+        val sourceFile = requireNotNull(sourceFiles[node.location.file])
+        for (declaration in sourceFile.declarations) {
+            if (declaration.location contains node) {
+                return declaration
+            }
+        }
+        requireUnreachable()
     }
 
-    fun resolveModuleMember(qualifiedName: QualifiedName, propertyName: Identifier): ValueBinding {
-        return findInSourceFile(propertyName, ctx.resolveSourceFile(qualifiedName)) ?: TODO()
+    fun resolveModuleProperty(expression: Expression.Property): ValueBinding? {
+        val scopeStack = getScopeStack(expression.lhs)
+        // TODO: Handle chained property calls
+        if (expression.lhs !is Expression.Var) {
+            return null
+        }
+        for (scope in scopeStack.scopes) {
+            val binding: ValueBinding? = when (scope) {
+                is ScopeNode.FunctionDef -> null
+                is ScopeNode.Block -> null // Blocks can't have imports yet
+                is ScopeNode.Struct -> null
+                is ScopeNode.SourceFile -> {
+                    var binding: ValueBinding? = null
+                    for (declaration in scope.sourceFile.declarations) {
+                        binding = when (declaration) {
+                            is Declaration.Error -> null
+                            is Declaration.ImportAs -> if (declaration.asName.identifier.name == expression.lhs.name.name) {
+                                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                                shallowFindInSourceFile(expression.property, sourceFile)
+                            } else {
+                                null
+                            }
+                            is Declaration.FunctionDef -> null
+                            is Declaration.ExternFunctionDef -> null
+                            is Declaration.Struct -> null
+                        }
+                        if (binding != null) {
+                            break
+                        }
+                    }
+                    binding
+                }
+            }
+            if (binding != null) {
+                return binding
+            }
+
+        }
+        return null
     }
 }
