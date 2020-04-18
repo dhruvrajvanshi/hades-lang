@@ -1,10 +1,24 @@
 package llvm
 
-typealias Context = dev.supergrecko.kllvm.core.typedefs.Context
-typealias Module = dev.supergrecko.kllvm.core.typedefs.Module
-typealias Type = dev.supergrecko.kllvm.core.typedefs.Type
-typealias FunctionType = dev.supergrecko.kllvm.core.types.FunctionType
-typealias VoidType = dev.supergrecko.kllvm.core.types.VoidType
-typealias BasicBlock = dev.supergrecko.kllvm.core.typedefs.BasicBlock
-typealias Builder = dev.supergrecko.kllvm.core.typedefs.Builder
-typealias Value = dev.supergrecko.kllvm.core.typedefs.Value
+import dev.supergrecko.kllvm.ir.Context
+import dev.supergrecko.kllvm.ir.Type
+import dev.supergrecko.kllvm.ir.types.FunctionType
+import dev.supergrecko.kllvm.ir.types.StructType
+import dev.supergrecko.kllvm.ir.values.FunctionValue
+import dev.supergrecko.kllvm.ir.values.constants.ConstantArray
+import dev.supergrecko.kllvm.ir.values.constants.ConstantInt
+
+typealias Context = Context
+typealias Module = dev.supergrecko.kllvm.ir.Module
+typealias Type = Type
+typealias FunctionType = FunctionType
+typealias VoidType = dev.supergrecko.kllvm.ir.types.VoidType
+typealias BasicBlock = dev.supergrecko.kllvm.ir.BasicBlock
+typealias Builder = dev.supergrecko.kllvm.ir.Builder
+typealias Value = dev.supergrecko.kllvm.ir.Value
+typealias IntType = dev.supergrecko.kllvm.ir.types.IntType
+typealias PointerType = dev.supergrecko.kllvm.ir.types.PointerType
+typealias FunctionValue = FunctionValue
+typealias ConstantArray = ConstantArray
+typealias StructType = StructType
+typealias ConstantInt = ConstantInt

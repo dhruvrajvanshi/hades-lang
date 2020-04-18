@@ -1,20 +1,10 @@
 package hadesc.codegen
 
-import dev.supergrecko.kllvm.core.types.IntType
-import dev.supergrecko.kllvm.core.types.PointerType
-import dev.supergrecko.kllvm.core.types.StructType
-import dev.supergrecko.kllvm.core.values.ArrayValue
-import dev.supergrecko.kllvm.core.values.FunctionValue
-import dev.supergrecko.kllvm.core.values.IntValue
 import hadesc.Name
 import hadesc.context.Context
 import hadesc.ir.*
 import hadesc.logging.logger
 import hadesc.types.Type
-import llvm.BasicBlock
-import llvm.FunctionType
-import llvm.Value
-import llvm.VoidType
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.global.LLVM
@@ -121,7 +111,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRGetStructField -> lowerGetStructField(expression)
     }
 
-    private fun lowerGetStructField(expression: IRGetStructField): Value {
+    private fun lowerGetStructField(expression: IRGetStructField): llvm.Value {
         return builder.buildExtractValue(
             lowerExpression(expression.lhs),
             expression.index,
@@ -129,7 +119,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
     }
 
-    private fun lowerBoolExpression(expression: IRBool): Value {
+    private fun lowerBoolExpression(expression: IRBool): llvm.Value {
         return if (expression.value) {
             trueValue
         } else {
@@ -151,7 +141,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerByteString(expression: IRByteString): llvm.Value {
         val text = expression.value.decodeToString()
-        val constStringRef = ArrayValue(text, nullTerminate = false, context = llvmCtx)
+        val constStringRef = llvm.ConstantArray(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             constStringRef.getType(),
             stringLiteralName()
@@ -167,7 +157,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return builder.buildCall(callee, args)
     }
 
-    private fun withinBlock(basicBlock: BasicBlock, fn: llvm.Builder.() -> Unit) {
+    private fun withinBlock(basicBlock: llvm.BasicBlock, fn: llvm.Builder.() -> Unit) {
         val pos = builder.getInsertBlock()
         builder.positionAtEnd(basicBlock)
         builder.fn()
@@ -177,7 +167,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
 
-    private fun getDeclaration(externFunctionDef: IRExternFunctionDef): FunctionValue {
+    private fun getDeclaration(externFunctionDef: IRExternFunctionDef): llvm.FunctionValue {
         val irName = externFunctionDef.externName
         val type = lowerFunctionType(externFunctionDef.type)
         val name = if (irName.text == "main") {
@@ -185,10 +175,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         } else {
             lowerName(irName)
         }
-        return llvmModule.getFunction(name) ?: llvmModule.addFunction(name, type)
+        return llvmModule.getFunction(name)?.asFunctionValue() ?: llvmModule.addFunction(name, type)
     }
 
-    private fun getDeclaration(def: IRFunctionDef): FunctionValue {
+    private fun getDeclaration(def: IRFunctionDef): llvm.FunctionValue {
         val irName = def.binder.name
         require(def.typeParams == null)
         val type = lowerFunctionType(def.type)
@@ -197,12 +187,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         } else {
             lowerName(irName)
         }
-        return llvmModule.getFunction(name) ?: llvmModule.addFunction(name, type)
+        return (llvmModule.getFunction(name) ?: llvmModule.addFunction(name, type)).asFunctionValue()
     }
 
-    private fun getStructConstructor(def: IRStructDef): FunctionValue {
+    private fun getStructConstructor(def: IRStructDef): llvm.FunctionValue {
         val name = lowerName(def.globalName)
-        val existing = llvmModule.getFunction(name)
+        val existing = llvmModule.getFunction(name)?.asFunctionValue()
         return if (existing != null) {
             existing
         } else {
@@ -234,8 +224,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         println(buffer.decodeToString().slice(0 until len))
     }
 
-    private fun FunctionValue.verify() {
-        val validate = LLVM.LLVMVerifyFunction(getUnderlyingReference(), LLVM.LLVMPrintMessageAction)
+    private fun llvm.FunctionValue.verify() {
+        val validate = LLVM.LLVMVerifyFunction(ref, LLVM.LLVMPrintMessageAction)
         if (validate > 0) {
             log.debug("Bad function: ${this.dumpToString()}")
             TODO()
@@ -251,13 +241,13 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
             require(type.typeParams == null) { "Can't lower unspecialized generic function type" }
-            FunctionType(
+            llvm.FunctionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
                 variadic = false
             )
         }
-        is Type.Struct -> StructType(
+        is Type.Struct -> llvm.StructType(
             type.memberTypes.values.map { lowerType(it) },
             packed = false,
             ctx = llvmCtx
@@ -272,15 +262,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return "\$string_literal_$nextLiteralIndex"
     }
 
-    private val byteTy = IntType(8, llvmCtx)
-    private val bytePtrTy = PointerType(byteTy)
-    private val voidTy = VoidType(llvmCtx)
-    private val boolTy = IntType(1, llvmCtx)
-    private val trueValue = IntValue(boolTy, 1, false)
-    private val falseValue = IntValue(boolTy, 0, false)
+    private val byteTy = llvm.IntType(8, llvmCtx)
+    private val bytePtrTy = llvm.PointerType(byteTy)
+    private val voidTy = llvm.VoidType(llvmCtx)
+    private val boolTy = llvm.IntType(1, llvmCtx)
+    private val trueValue = llvm.ConstantInt(boolTy, 1, false)
+    private val falseValue = llvm.ConstantInt(boolTy, 0, false)
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
-        return PointerType(to)
+        return llvm.PointerType(to)
     }
 
     private fun linkWithRuntime() {
