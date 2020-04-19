@@ -2,6 +2,7 @@ package hadesc.types
 
 import hadesc.Name
 import hadesc.ast.Binder
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
 sealed class Type {
@@ -44,5 +45,27 @@ sealed class Type {
         is Struct -> name.names.joinToString(".") { it.text }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> name.identifier.name.text
+    }
+
+    fun applySubstitution(substitution: Map<SourceLocation, Type>): Type = when (this) {
+        is GenericInstance,
+        Error,
+        Byte,
+        Void,
+        Bool -> this
+        is RawPtr -> RawPtr(this.to.applySubstitution(substitution))
+        is Function -> Function(
+            typeParams = this.typeParams,
+            from = this.from.map { it.applySubstitution(substitution) },
+            to = this.to.applySubstitution(substitution)
+        )
+        is Struct -> {
+            Struct(
+                name = this.name,
+                memberTypes = this.memberTypes.mapValues { it.value.applySubstitution(substitution) })
+        }
+        is ParamRef -> {
+            substitution[this.name.location] ?: this
+        }
     }
 }

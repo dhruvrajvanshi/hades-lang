@@ -12,7 +12,6 @@ import hadesc.ir.Desugar
 import hadesc.ir.passes.SpecializeGenerics
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
-import hadesc.logging.logger
 import hadesc.parser.Parser
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
@@ -21,7 +20,6 @@ import java.nio.file.Path
 class Context(
     val options: BuildOptions
 ) {
-    val log = logger()
     val checker: Checker = Checker(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
@@ -40,9 +38,9 @@ class Context(
         }
         val irModule = Desugar(this).generate()
 
-        SpecializeGenerics(this, irModule).run()
+        val newModule = SpecializeGenerics(this, irModule).run()
 
-        LLVMGen(this, irModule).use {
+        LLVMGen(this, newModule).use {
             it.generate()
         }
     }

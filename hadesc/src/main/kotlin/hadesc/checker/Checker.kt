@@ -95,7 +95,7 @@ class Checker(val ctx: Context) {
     }
 
     fun getTypeArgs(call: Expression.Call): List<Type>? {
-        return null
+        return typeArguments[call]
     }
 
     fun checkDeclaration(declaration: Declaration) = when (declaration) {
@@ -247,9 +247,9 @@ class Checker(val ctx: Context) {
                 substitution[it.binder.location] = makeGenericInstance(it.binder)
             }
             val len = min(calleeType.from.size, expression.args.size)
-            val to = instantiate(substitution, calleeType.to)
+            val to = calleeType.to.applySubstitution(substitution)
             for (index in 0 until len) {
-                val expected = instantiate(substitution, calleeType.from[index])
+                val expected = calleeType.from[index].applySubstitution(substitution)
                 val found = expression.args[index].expression
                 checkExpression(expected, found)
             }
@@ -293,27 +293,6 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun instantiate(substitution: Map<SourceLocation, Type>, type: Type): Type = when (type) {
-        is Type.GenericInstance,
-        Type.Error,
-        Type.Byte,
-        Type.Void,
-        Type.Bool -> type
-        is Type.RawPtr -> Type.RawPtr(instantiate(substitution, type.to))
-        is Type.Function -> Type.Function(
-            typeParams = type.typeParams,
-            from = type.from.map { instantiate(substitution, it) },
-            to = instantiate(substitution, type.to)
-        )
-        is Type.Struct -> {
-            Type.Struct(
-                name = type.name,
-                memberTypes = type.memberTypes.mapValues { instantiate(substitution, it.value) })
-        }
-        is Type.ParamRef -> {
-            substitution[type.name.location] ?: type
-        }
-    }
 
     private fun applyInstantiations(location: SourceLocation, type: Type): Type = when (type) {
         Type.Error,

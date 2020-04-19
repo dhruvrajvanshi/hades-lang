@@ -83,8 +83,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             lowerExpression(statement)
             Unit
         }
-        is IRExpressionStatement -> {
-            lowerExpression(statement.expression)
+        is IREmptyStatement -> {
+        }
+        is IRCall -> {
+            lowerCallExpression(statement)
             Unit
         }
     }
@@ -110,7 +112,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerExpression(value: IRValue) = when (value) {
-        is IRCall -> lowerCallExpression(value)
         is IRBool -> lowerBoolExpression(value)
         is IRByteString -> lowerByteString(value)
         is IRVariable -> lowerVariable(value)
@@ -143,6 +144,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 val fn = getDeclaration(expression.binding.def)
                 fn.getParam(expression.binding.index)
             }
+            is IRBinding.CallStatement -> {
+                requireNotNull(callRefs[expression.binding.call.name])
+            }
         }
 
     private fun lowerByteString(expression: IRByteString): llvm.Value {
@@ -156,11 +160,16 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return globalRef.constPointerCast(bytePtrTy)
     }
 
+    private val callRefs = mutableMapOf<Name, llvm.Value>()
     private fun lowerCallExpression(expression: IRCall): llvm.Value {
         val callee = lowerExpression(expression.callee)
         require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
-        return builder.buildCall(callee, args)
+        val ref = builder.buildCall(callee, args, expression.name.text)
+
+        callRefs[expression.name] = ref
+
+        return ref
     }
 
     private fun withinBlock(basicBlock: llvm.BasicBlock, fn: llvm.Builder.() -> Unit) {
@@ -245,7 +254,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Bool -> boolTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
-            require(type.typeParams == null) { "Can't lower unspecialized generic function type" }
+            require(type.typeParams == null) {
+                "Can't lower unspecialized generic function type"
+            }
             FunctionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },

@@ -1,9 +1,15 @@
 import libc as c;
 
+def main(): Void {
+    c.puts(id(b"id"));
+    c.puts(first(b"first", true));
+    c.puts(second(false, b"second"));
+    c.puts(second(true, StringPair(b"third", b"fourth")).first);
+    fourth(true);
+}
+
 def id[T](value: T): T {
     val copy: T = value;
-    val x: Bool = id(true);
-    val y: *Byte = id(b"");
     return copy;
 }
 
@@ -15,16 +21,9 @@ def second[A, B](first: A, second: B): B {
     return second;
 }
 
-def main(): Void {
-    c.puts(id(b"id"));
-    c.puts(first(b"first", true));
-    c.puts(second(false, b"second"));
-    c.puts(second(true, StringPair(b"third", b"fourth")).first);
-    fourth(true);
-}
-
 def fourth[T](value: T): T {
     c.puts(fourth(b"fourth"));
+    val copy = id(value);
     return value;
 }
 

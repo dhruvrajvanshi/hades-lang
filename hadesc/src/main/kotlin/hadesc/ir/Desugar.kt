@@ -7,6 +7,7 @@ import hadesc.context.Context
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.logging.logger
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
@@ -15,9 +16,11 @@ class Desugar(val ctx: Context) {
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
     private val builder = IRBuilder()
+    private val log = logger()
 
     fun generate(): IRModule {
         ctx.forEachSourceFile { lowerSourceFile(it) }
+        log.debug(module.prettyPrint())
         return module
     }
 
@@ -54,15 +57,17 @@ class Desugar(val ctx: Context) {
         }
     }
 
-    private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef): IRExternFunctionDef {
-        val def = module.addExternFunctionDef(
-            binder = lowerGlobalBinder(declaration.binder),
-            externName = declaration.externName.name,
-            paramTypes = declaration.paramTypes.map { ctx.checker.annotationToType(it) }
-        )
-        definitions.add(def)
-        return def
-    }
+    private val declaredExternDefs = mutableMapOf<SourceLocation, IRExternFunctionDef>()
+    private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef): IRExternFunctionDef =
+        declaredExternDefs.computeIfAbsent(declaration.location) {
+            val def = module.addExternFunctionDef(
+                binder = lowerGlobalBinder(declaration.binder),
+                externName = declaration.externName.name,
+                paramTypes = declaration.paramTypes.map { ctx.checker.annotationToType(it) }
+            )
+            definitions.add(def)
+            def
+        }
 
     private fun lowerStructDeclaration(declaration: Declaration.Struct): IRStructDef {
         val fields = declaration.members.map {
@@ -102,7 +107,7 @@ class Desugar(val ctx: Context) {
     }
 
     private fun lowerTypeParam(typeParam: TypeParam): IRTypeBinder {
-        return IRTypeBinder(typeParam.binder.identifier.name)
+        return IRTypeBinder(typeParam.binder.identifier.name, typeParam.location)
     }
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
@@ -119,14 +124,12 @@ class Desugar(val ctx: Context) {
     }
 
     private fun withinBlock(block: IRBlock, function: () -> Unit) {
-        val oldBlock = builder.blockOrNull
-        builder.positionAtBlock(block)
+        val oldPosition = builder.position
+        builder.positionAtEnd(block)
 
         function()
 
-        if (oldBlock != null) {
-            builder.positionAtBlock(oldBlock)
-        }
+        builder.position = oldPosition
     }
 
     private fun lowerParam(param: Param): IRParam {
@@ -136,20 +139,22 @@ class Desugar(val ctx: Context) {
     private fun lowerBlock(body: Block): IRBlock {
         val block = IRBlock()
         withinBlock(block) {
-            val statements = mutableListOf<IRStatement>()
             for (member in body.members) {
-                statements.add(lowerBlockMember(member))
+                lowerBlockMember(member)
             }
         }
         return block
     }
 
-    private fun lowerBlockMember(member: Block.Member): IRStatement = when (member) {
+    private fun lowerBlockMember(member: Block.Member) = when (member) {
         is Block.Member.Expression -> {
-            val expr = lowerExpression(member.expression)
-            builder.buildExprStatement(expr)
+            lowerExpression(member.expression)
+            Unit
         }
-        is Block.Member.Statement -> lowerStatement(member.statement)
+        is Block.Member.Statement -> {
+            lowerStatement(member.statement)
+            Unit
+        }
     }
 
     private fun lowerExpression(expression: Expression): IRValue = when (expression) {
@@ -239,7 +244,8 @@ class Desugar(val ctx: Context) {
             expression.location,
             callee,
             typeArgs = ctx.checker.getTypeArgs(expression),
-            args = args
+            args = args,
+            name = ctx.makeUniqueName()
         )
     }
 

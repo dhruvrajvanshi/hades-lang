@@ -24,9 +24,9 @@ class HadesTestSuite {
         val failureFiles = mutableListOf<Pair<File, Throwable>>()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
-//                if (!file.name.contains("generic")) {
-//                    continue
-//                }
+                if (file.name.contains("generic")) {
+                    continue
+                }
                 logger().debug("Running suite file {}", file)
                 val expectedStdoutFile = Paths.get(
                     directory.toPath().toString(),
