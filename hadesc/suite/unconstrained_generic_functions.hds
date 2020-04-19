@@ -22,8 +22,9 @@ def second[A, B](first: A, second: B): B {
 }
 
 def fourth[T](value: T): T {
-    c.puts(fourth(b"fourth"));
+    c.puts(id(b"fourth"));
     val copy = id(value);
+    c.puts(id(StringPair(b"fifth", b"sixth")).first);
     return value;
 }
 

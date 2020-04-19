@@ -7,10 +7,9 @@ import hadesc.types.Type
 sealed class IRBinding {
     class FunctionDef(val def: IRFunctionDef) : IRBinding()
     class ExternFunctionDef(val def: IRExternFunctionDef) : IRBinding()
-    class ValStatement(val statement: IRValStatement) : IRBinding()
+    class Local(val name: Name) : IRBinding()
     class StructDef(val def: IRStructDef) : IRBinding()
     class ParamRef(val def: IRFunctionDef, val index: Int) : IRBinding()
-    class CallStatement(val call: IRCall) : IRBinding()
 }
 
 class IRModule {
@@ -92,11 +91,11 @@ class IRExternFunctionDef(
     val type get() = binder.type
 }
 
-class IRBinder(val name: Name, val type: Type) {
+data class IRBinder(val name: Name, val type: Type) {
     fun prettyPrint(): String = "${name.text} : ${type.prettyPrint()}"
 }
 
-inline class IRParam(val binder: IRBinder) {
+data class IRParam(val binder: IRBinder, val location: SourceLocation) {
     fun prettyPrint(): String = "${binder.name.text} : ${binder.type.prettyPrint()}"
 }
 
@@ -138,7 +137,7 @@ class IRBuilder {
     }
 
 
-    private fun <S : IRStatement> addStatement(statement: S): S {
+    fun <S : IRStatement> addStatement(statement: S): S {
         val newNode = IRStatementNode(previous = position, statement = statement, next = position?.next)
         position?.next?.previous = newNode
         position?.next = newNode
@@ -181,7 +180,7 @@ class IRBuilder {
             args = args,
             name = name
         )
-        val ref = IRVariable(previousNode, type, location, binding = IRBinding.CallStatement(call))
+        val ref = IRVariable(previousNode, type, location, binding = IRBinding.Local(name))
         addStatement(call)
         return ref
     }
@@ -194,12 +193,20 @@ class IRBuilder {
         return addStatement(IRValStatement(previousNode, binder, expr))
     }
 
-    fun positionAtEnd(block: IRBlock) {
+    private fun positionAtEnd(block: IRBlock) {
         var node: IRStatementNode? = block.startNode
         while (node != null) {
             position = node
             node = node.next
         }
+    }
+
+
+    fun withinBlock(block: IRBlock, function: () -> Unit) {
+        val oldPosition = position
+        positionAtEnd(block)
+        function()
+        position = oldPosition
     }
 }
 
@@ -223,6 +230,11 @@ sealed class IRStatement {
             val args = "(${this.args.joinToString(", ") { it.prettyPrint() }})"
             "${name.text} = ${callee.prettyPrint()}${typeArgs}${args}"
         }
+    }
+
+    fun removeFromParent() {
+        require(previousNode?.next?.statement as Any === this)
+        previousNode?.next = previousNode?.next?.next
     }
 }
 
@@ -298,10 +310,9 @@ class IRVariable(
         get() = when (binding) {
             is IRBinding.FunctionDef -> binding.def.binder.name
             is IRBinding.ExternFunctionDef -> binding.def.externName
-            is IRBinding.ValStatement -> binding.statement.binder.name
+            is IRBinding.Local -> binding.name
             is IRBinding.StructDef -> binding.def.globalName
             is IRBinding.ParamRef -> binding.def.params[binding.index].binder.name
-            is IRBinding.CallStatement -> binding.call.name
         }
 }
 

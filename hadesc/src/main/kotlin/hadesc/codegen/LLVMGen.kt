@@ -102,8 +102,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         localVariables[statement.binder.name] = value
     }
 
-    private fun getLocalVariable(statement: IRValStatement): llvm.Value {
-        return requireNotNull(localVariables[statement.binder.name])
+    private fun getLocalVariable(name: Name): llvm.Value {
+        return requireNotNull(localVariables[name])
     }
 
 
@@ -138,14 +138,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         when (expression.binding) {
             is IRBinding.FunctionDef -> getDeclaration(expression.binding.def)
             is IRBinding.ExternFunctionDef -> getDeclaration(expression.binding.def)
-            is IRBinding.ValStatement -> getLocalVariable(expression.binding.statement)
+            is IRBinding.Local -> getLocalVariable(expression.binding.name)
             is IRBinding.StructDef -> getStructConstructor(expression.binding.def)
             is IRBinding.ParamRef -> {
                 val fn = getDeclaration(expression.binding.def)
                 fn.getParam(expression.binding.index)
-            }
-            is IRBinding.CallStatement -> {
-                requireNotNull(callRefs[expression.binding.call.name])
             }
         }
 
@@ -160,14 +157,13 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return globalRef.constPointerCast(bytePtrTy)
     }
 
-    private val callRefs = mutableMapOf<Name, llvm.Value>()
     private fun lowerCallExpression(expression: IRCall): llvm.Value {
         val callee = lowerExpression(expression.callee)
         require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
         val ref = builder.buildCall(callee, args, expression.name.text)
 
-        callRefs[expression.name] = ref
+        localVariables[expression.name] = ref
 
         return ref
     }

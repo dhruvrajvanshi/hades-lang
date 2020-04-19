@@ -69,7 +69,12 @@ class Desugar(val ctx: Context) {
             def
         }
 
+    private val addedStructDefs = mutableMapOf<SourceLocation, IRStructDef>()
     private fun lowerStructDeclaration(declaration: Declaration.Struct): IRStructDef {
+        val existing = addedStructDefs[declaration.location]
+        if (existing != null) {
+            return existing
+        }
         val fields = declaration.members.map {
             when (it) {
                 Declaration.Struct.Member.Error -> requireUnreachable()
@@ -82,10 +87,11 @@ class Desugar(val ctx: Context) {
             ctx.checker.typeOfStructInstance(declaration),
             lowerBinderName(declaration.binder),
             // TODO: Handle generic structs
-            typeParams = listOf(),
+            typeParams = null,
             fields = fields
         )
         definitions.add(def)
+        addedStructDefs[declaration.location] = def
         return def
     }
 
@@ -115,7 +121,7 @@ class Desugar(val ctx: Context) {
         function.body = lowerBlock(def.body)
         val ty = function.type
         require(ty is Type.Function)
-        withinBlock(function.body) {
+        builder.withinBlock(function.body) {
             if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
                 builder.buildRetVoid()
             }
@@ -123,22 +129,13 @@ class Desugar(val ctx: Context) {
         return function
     }
 
-    private fun withinBlock(block: IRBlock, function: () -> Unit) {
-        val oldPosition = builder.position
-        builder.positionAtEnd(block)
-
-        function()
-
-        builder.position = oldPosition
-    }
-
     private fun lowerParam(param: Param): IRParam {
-        return IRParam(lowerParamBinder(param.binder))
+        return IRParam(lowerParamBinder(param.binder), param.location)
     }
 
     private fun lowerBlock(body: Block): IRBlock {
         val block = IRBlock()
-        withinBlock(block) {
+        builder.withinBlock(block) {
             for (member in body.members) {
                 lowerBlockMember(member)
             }
@@ -223,8 +220,8 @@ class Desugar(val ctx: Context) {
                 IRBinding.ParamRef(getFunctionDef(binding.declaration), index)
             }
             is ValueBinding.ValBinding -> {
-                val statement = lowerValStatement(binding.statement)
-                IRBinding.ValStatement(statement)
+                val statement = getValBinding(binding.statement)
+                IRBinding.Local(statement.binder.name)
             }
             is ValueBinding.Struct -> {
                 val structDecl = lowerStructDeclaration(binding.declaration)
@@ -263,8 +260,15 @@ class Desugar(val ctx: Context) {
         return builder.buildReturn(lowerExpression(statement.value))
     }
 
+    private val loweredValStatements = mutableMapOf<SourceLocation, IRValStatement>()
     private fun lowerValStatement(statement: Statement.Val): IRValStatement {
-        return builder.buildValStatement(lowerLocalBinder(statement.binder), lowerExpression(statement.rhs))
+        val ir = builder.buildValStatement(lowerLocalBinder(statement.binder), lowerExpression(statement.rhs))
+        loweredValStatements[statement.location] = ir
+        return ir
+    }
+
+    private fun getValBinding(statement: Statement.Val): IRValStatement {
+        return requireNotNull(loweredValStatements[statement.location])
     }
 
     private fun lowerGlobalBinder(name: Binder): IRBinder {
