@@ -1,0 +1,5 @@
+
+struct StringPair {
+    val first: *Byte;
+    val second: *Byte;
+}

@@ -161,7 +161,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val callee = lowerExpression(expression.callee)
         require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
-        val ref = builder.buildCall(callee, args, expression.name.text)
+        val ref = builder.buildCall(callee, args, if (expression.type == Type.Void) null else expression.name.text)
 
         localVariables[expression.name] = ref
 
