@@ -35,7 +35,7 @@ class IRModule {
 
     fun addStructDef(
         ty: Type,
-        instanceType: Type.Struct,
+        instanceType: Type,
         name: Name,
         typeParams: List<IRTypeBinder>?,
         fields: Map<Name, Type>

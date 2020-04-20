@@ -131,11 +131,19 @@ class Resolver(val ctx: Context) {
         }
         is ScopeNode.Block -> null
         is ScopeNode.Struct -> {
-            require(scopeNode.declaration.typeParams == null)
-            if (ident.name == scopeNode.declaration.binder.identifier.name) {
-                TypeBinding.Struct(scopeNode.declaration)
-            } else {
-                null
+            val param = scopeNode.declaration.typeParams?.findLast {
+                it.binder.identifier.name == ident.name
+            }
+            when {
+                param != null -> {
+                    TypeBinding.TypeParam(param.binder)
+                }
+                ident.name == scopeNode.declaration.binder.identifier.name -> {
+                    TypeBinding.Struct(scopeNode.declaration)
+                }
+                else -> {
+                    null
+                }
             }
         }
     }
@@ -289,7 +297,11 @@ class Resolver(val ctx: Context) {
                     ScopeNode.FunctionDef(declaration)
                 )
             }
-            is Declaration.ExternFunctionDef -> {
+            is Declaration.Struct -> {
+                addScopeNode(
+                    declaration.location.file,
+                    ScopeNode.Struct(declaration)
+                )
             }
 
         }

@@ -19,11 +19,16 @@ sealed class Type {
 
     data class Function(val from: List<Type>, val typeParams: List<Param>?, val to: Type) : Type()
 
-    data class Struct(val name: QualifiedName, val memberTypes: Map<Name, Type>) : Type() {
+    data class Struct(
+        val constructor: Constructor,
+        val memberTypes: Map<Name, Type>
+    ) : Type() {
         private val indices = memberTypes.keys.map { it.text }.toList()
         fun indexOf(key: String) = indices.indexOf(key)
 
     }
+
+    data class Constructor(val binder: Binder, val name: QualifiedName, val params: List<Param>?) : Type()
 
     data class ParamRef(val name: Binder) : Type()
 
@@ -44,10 +49,11 @@ sealed class Type {
             } else ""
             "$typeParams(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
-        is Struct -> name.names.joinToString(".") { it.text }
+        is Struct -> constructor.name.names.joinToString(".") { it.text }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> name.identifier.name.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
+        is Constructor -> name.mangle()
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>): Type = when (this) {
@@ -64,8 +70,9 @@ sealed class Type {
         )
         is Struct -> {
             Struct(
-                name = this.name,
-                memberTypes = this.memberTypes.mapValues { it.value.applySubstitution(substitution) })
+                constructor = this.constructor,
+                memberTypes = this.memberTypes.mapValues { it.value.applySubstitution(substitution) }
+            )
         }
         is ParamRef -> {
             substitution[this.name.location] ?: this
@@ -73,5 +80,7 @@ sealed class Type {
         is Application -> {
             Application(callee.applySubstitution(substitution), args.map { it.applySubstitution(substitution) })
         }
+        is Constructor -> this
     }
 }
+

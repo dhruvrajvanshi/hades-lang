@@ -34,6 +34,7 @@ data class Diagnostic(
         data class UnboundType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
         data class UninferrableTypeParam(val binder: Binder) : Diagnostic.Kind(Severity.ERROR)
+        data class IncompleteType(val requiredArgs: Int) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -49,6 +50,7 @@ data class Diagnostic(
             is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named $property"
             is UnboundType -> "Unbound type variable ${name.text}"
             is UninferrableTypeParam -> "Uninferrable type parameter ${binder.identifier.name.text}; Explicit type annotation required. (Defined at ${binder.identifier.location})"
+            is IncompleteType -> "Incomplete type; Required ${requiredArgs} arg(s)"
         }
 
     }

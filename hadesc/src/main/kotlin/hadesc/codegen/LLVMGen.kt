@@ -268,6 +268,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             TODO("Can't lower unspecialized type param")
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> TODO()
+        is Type.Constructor -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0

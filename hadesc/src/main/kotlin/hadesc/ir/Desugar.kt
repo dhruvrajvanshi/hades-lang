@@ -81,13 +81,11 @@ class Desugar(val ctx: Context) {
                 is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
             }
         }.toMap()
-        require(declaration.typeParams == null)
         val def = module.addStructDef(
             ctx.checker.typeOfStructConstructor(declaration),
             ctx.checker.typeOfStructInstance(declaration),
             lowerBinderName(declaration.binder),
-            // TODO: Handle generic structs
-            typeParams = null,
+            typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
             fields = fields
         )
         definitions.add(def)

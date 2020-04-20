@@ -37,7 +37,14 @@ class Checker(val ctx: Context) {
         return when (binding) {
             null -> return null
             is TypeBinding.Struct -> {
-                typeOfStructInstance(binding.declaration)
+                val instanceType = typeOfStructInstance(binding.declaration)
+                if (binding.declaration.typeParams == null) {
+                    instanceType
+                } else {
+                    require(instanceType is Type.Application)
+                    require(instanceType.callee is Type.Constructor)
+                    instanceType.callee
+                }
             }
             is TypeBinding.TypeParam -> Type.ParamRef(binding.binder)
         }
@@ -55,7 +62,7 @@ class Checker(val ctx: Context) {
         requireNotNull(binderTypes[binder])
     }
 
-    private fun inferAnnotation(annotation: TypeAnnotation): Type {
+    private fun inferAnnotation(annotation: TypeAnnotation, allowIncomplete: Boolean = false): Type {
         val type = when (annotation) {
             is TypeAnnotation.Error -> Type.Error
             is TypeAnnotation.Var -> when (annotation.name.name.text) {
@@ -63,7 +70,7 @@ class Checker(val ctx: Context) {
                 "Bool" -> Type.Bool
                 "Byte" -> Type.Byte
                 else -> {
-                    val typeBinding = ctx.checker.resolveTypeVariable(annotation.name)
+                    val typeBinding = resolveTypeVariable(annotation.name)
                     if (typeBinding != null) {
                         typeBinding
                     } else {
@@ -73,10 +80,25 @@ class Checker(val ctx: Context) {
                 }
             }
             is TypeAnnotation.Ptr -> Type.RawPtr(inferAnnotation(annotation.to))
-            is TypeAnnotation.Application -> TODO()
+            is TypeAnnotation.Application -> {
+                val callee = inferAnnotation(annotation.callee, allowIncomplete = true)
+                val args = annotation.args.map { inferAnnotation(it) }
+                checkTypeApplication(annotation, callee, args)
+                Type.Application(
+                    callee,
+                    args
+                )
+            }
         }
         annotationTypes[annotation] = type
+        if (!allowIncomplete && type is Type.Constructor && type.params != null) {
+            error(annotation, Diagnostic.Kind.IncompleteType(type.params.size))
+        }
         return type
+    }
+
+    private fun checkTypeApplication(annotation: TypeAnnotation.Application, callee: Type, args: List<Type>) {
+        // TODO: Check if args are compatible with callee type
     }
 
     fun isTypeEqual(t1: Type, t2: Type): Boolean {
@@ -87,12 +109,16 @@ class Checker(val ctx: Context) {
         return typeOfBinder(declaration.binder)
     }
 
-    fun typeOfStructInstance(declaration: Declaration.Struct): Type.Struct {
+    fun typeOfStructInstance(declaration: Declaration.Struct): Type {
         val constructorType = typeOfStructConstructor(declaration)
         require(constructorType is Type.Function)
         val instanceType = constructorType.to
-        require(instanceType is Type.Struct)
         return instanceType
+    }
+
+    fun typeOfStructMembers(declaration: Declaration.Struct): Map<Name, Type> {
+        declareStruct(declaration)
+        return requireNotNull(structFieldTypes[declaration])
     }
 
     fun getTypeArgs(call: Expression.Call): List<Type>? {
@@ -179,7 +205,11 @@ class Checker(val ctx: Context) {
         }
     }
 
+    val checkedValStatements = mutableSetOf<SourceLocation>()
     private fun checkValStatement(statement: Statement.Val) {
+        if (checkedValStatements.contains(statement.location)) {
+            return
+        }
         val typeAnnotation = statement.typeAnnotation
         val type = if (typeAnnotation != null) {
             val expected = inferAnnotation(typeAnnotation)
@@ -190,6 +220,8 @@ class Checker(val ctx: Context) {
         }
 
         bindValue(statement.binder, type)
+
+        checkedValStatements.add(statement.location)
     }
 
     private fun inferExpression(expression: Expression): Type {
@@ -231,10 +263,51 @@ class Checker(val ctx: Context) {
                     error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
                     Type.Error
                 }
-                is Type.Application -> TODO()
+                is Type.Application -> {
+                    inferTypeApplicationProperty(lhsType, expression.property)
+                }
+                is Type.Constructor -> TODO()
             }
         }
     }
+
+    private fun inferTypeApplicationProperty(lhsType: Type.Application, property: Identifier): Type =
+        when (lhsType.callee) {
+            is Type.Constructor -> {
+                val binder = lhsType.callee.binder
+                when (val binding = ctx.resolver.resolveTypeVariable(binder.identifier)) {
+                    is TypeBinding.Struct -> {
+                        if (binding.declaration.typeParams == null) {
+                            error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
+                            Type.Error
+                        } else {
+                            val members = typeOfStructMembers(binding.declaration)
+                            val fieldType = members[property.name]
+                            if (fieldType == null) {
+                                error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
+                                Type.Error
+                            } else {
+                                val substitution = binding.declaration.typeParams.mapIndexed { index, it ->
+                                    it.binder.location to lhsType.args.elementAtOrElse(index) { Type.Error }
+                                }.toMap()
+
+                                fieldType.applySubstitution(substitution)
+                            }
+                        }
+                    }
+                    else -> {
+                        error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
+                        Type.Error
+                    }
+                }
+
+            }
+            else -> {
+                error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
+                Type.Error
+            }
+        }
+
 
     private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
         _nextGenericInstance++
@@ -310,8 +383,9 @@ class Checker(val ctx: Context) {
         )
         is Type.Struct ->
             Type.Struct(
-                name = type.name,
-                memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) })
+                constructor = type.constructor,
+                memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) }
+            )
         is Type.GenericInstance -> {
             genericInstantiations[type.id] ?: type
         }
@@ -321,6 +395,7 @@ class Checker(val ctx: Context) {
                 type.args.map { applyInstantiations(location, it) }
             )
         }
+        is Type.Constructor -> type
     }
 
     private fun applyInstantiations(expression: Expression) {
@@ -348,7 +423,21 @@ class Checker(val ctx: Context) {
         }
         source is Type.RawPtr && destination is Type.RawPtr ->
             checkAssignability(location, source.to, destination.to)
-        source is Type.Struct && destination is Type.Struct && source.name == destination.name -> {
+        source is Type.Struct && destination is Type.Struct && source.constructor == destination.constructor -> {
+        }
+        source is Type.Constructor && destination is Type.Constructor && source.name == destination.name -> {
+        }
+
+        source is Type.Application && destination is Type.Application -> {
+            checkAssignability(location, source.callee, destination.callee)
+            val report = { error(location, Diagnostic.Kind.TypeNotAssignable(source, destination)) }
+            if (source.args.size != destination.args.size) {
+                report()
+            } else {
+                source.args.zip(destination.args).forEach {
+                    checkAssignability(location, it.first, it.second)
+                }
+            }
         }
         destination is Type.GenericInstance -> {
             val destinationInstance = genericInstantiations[destination.id]
@@ -431,6 +520,7 @@ class Checker(val ctx: Context) {
         declareStruct(declaration)
     }
 
+    private val structFieldTypes = MutableNodeMap<Declaration.Struct, Map<Name, Type>>()
     private fun declareStruct(declaration: Declaration.Struct) {
         if (binderTypes[declaration.binder] != null) {
             return
@@ -449,10 +539,19 @@ class Checker(val ctx: Context) {
             }
         }
         val name = ctx.resolver.getQualifiedName(declaration.binder)
-        val instanceType = Type.Struct(name, fieldTypes)
+        val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
+        val constructor = Type.Constructor(declaration.binder, name, typeParams)
+        structFieldTypes[declaration] = fieldTypes
+        val instanceType = if (typeParams != null) {
+            Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
+        } else {
+            Type.Struct(constructor, fieldTypes)
+        }
         val constructorParamTypes = fieldTypes.values.toList()
-        require(declaration.typeParams == null) { TODO() }
-        val constructorType = Type.Function(from = constructorParamTypes, to = instanceType, typeParams = null)
+        val constructorType = Type.Function(
+            from = constructorParamTypes,
+            to = instanceType,
+            typeParams = declaration.typeParams?.map { Type.Param(it.binder) })
         bindValue(declaration.binder, constructorType)
     }
 }
