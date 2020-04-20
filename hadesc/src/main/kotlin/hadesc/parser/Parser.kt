@@ -58,6 +58,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     private fun parseStructDeclaration(): Declaration {
         val start = expect(tt.STRUCT)
         val binder = parseBinder()
+        val typeParams = parseOptionalTypeParams()
 
         expect(tt.LBRACE)
         val members = buildList {
@@ -70,6 +71,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return Declaration.Struct(
             makeLocation(start, stop),
             binder,
+            typeParams,
             members
         )
     }
@@ -98,19 +100,11 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val start = expect(tt.EXTERN)
         expect(tt.DEF)
         val name = parseBinder()
-        val params = buildList {
-            expect(tt.LPAREN)
-            var isFirst = true
-            while (!(at(tt.RPAREN) || at(tt.EOF))) {
-                if (!isFirst) {
-                    expect(tt.COMMA)
-                } else {
-                    isFirst = false
-                }
-                add(parseTypeAnnotation())
-            }
-            expect(tt.RPAREN)
+        expect(tt.LPAREN)
+        val params = parseSeperatedList(seperator = tt.COMMA, terminator = tt.RPAREN) {
+            parseTypeAnnotation()
         }
+        expect(tt.RPAREN)
         expect(tt.COLON)
         val returnType = parseTypeAnnotation()
         expect(tt.EQ)
@@ -175,21 +169,12 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun parseOptionalTypeParams(): List<TypeParam>? = if (currentToken.kind == tt.LSQB) {
-        buildList {
-            advance()
-            var isFirst = true
-            while (!isEOF() && !at(tt.RSQB)) {
-                if (!isFirst) {
-                    expect(tt.COMMA)
-                } else {
-                    isFirst = false
-                }
-                val binder = parseBinder()
-                add(TypeParam(binder = binder))
-            }
-
-            expect(tt.RSQB)
+        advance()
+        val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.RSQB) {
+            TypeParam(parseBinder())
         }
+        expect(tt.RSQB)
+        list
     } else {
         null
     }
@@ -306,16 +291,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return when (currentToken.kind) {
             tt.LPAREN -> {
                 advance()
-                val args = buildList {
-                    var first = true
-                    while (!(at(tt.RPAREN) || at(tt.EOF))) {
-                        if (!first) {
-                            expect(tt.COMMA)
-                        } else {
-                            first = false
-                        }
-                        add(parseArg())
-                    }
+                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
+                    parseArg()
                 }
                 val stop = expect(tt.RPAREN)
                 parseExpressionTail(
@@ -383,7 +360,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun parseTypeAnnotation(): TypeAnnotation {
-        return when (currentToken.kind) {
+        val head = when (currentToken.kind) {
             tt.ID -> {
                 val id = parseIdentifier()
                 TypeAnnotation.Var(id)
@@ -402,6 +379,40 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 TypeAnnotation.Error(location)
 
             }
+        }
+        return parseTypeAnnotationTail(head)
+    }
+
+    private fun parseTypeAnnotationTail(head: TypeAnnotation): TypeAnnotation {
+        return when (currentToken.kind) {
+            tt.LSQB -> {
+                advance()
+                val args = parseSeperatedList(seperator = tt.COMMA, terminator = tt.RSQB) {
+                    parseTypeAnnotation()
+                }
+                val end = expect(tt.RSQB)
+                TypeAnnotation.Application(
+                    makeLocation(head, end),
+                    head,
+                    args
+                )
+            }
+            else -> head
+        }
+    }
+
+    private fun <T> parseSeperatedList(
+        seperator: Token.Kind,
+        terminator: Token.Kind,
+        parseItem: () -> T
+    ): List<T> = buildList {
+        var isFirst = true
+        while (currentToken.kind != terminator && currentToken.kind != tt.EOF) {
+            if (!isFirst) {
+                expect(seperator)
+            }
+            isFirst = false
+            add(parseItem())
         }
     }
 

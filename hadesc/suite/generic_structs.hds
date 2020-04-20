@@ -1,0 +1,13 @@
+import libc as c;
+
+def main(): Void {
+    val pair: Pair[*Byte] = Pair(b"first", b"second");
+    c.puts(pair.first);
+    c.puts(pair.second);
+}
+
+struct Pair[T] {
+    val first: T;
+    val second: T;
+}
+

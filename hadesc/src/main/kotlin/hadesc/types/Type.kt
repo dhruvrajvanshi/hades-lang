@@ -29,6 +29,8 @@ sealed class Type {
 
     data class GenericInstance(val name: Binder, val id: Long) : Type()
 
+    data class Application(val callee: Type, val args: List<Type>) : Type()
+
 
     fun prettyPrint(): String = when (this) {
         Error -> "<ErrorType>"
@@ -45,6 +47,7 @@ sealed class Type {
         is Struct -> name.names.joinToString(".") { it.text }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> name.identifier.name.text
+        is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>): Type = when (this) {
@@ -66,6 +69,9 @@ sealed class Type {
         }
         is ParamRef -> {
             substitution[this.name.location] ?: this
+        }
+        is Application -> {
+            Application(callee.applySubstitution(substitution), args.map { it.applySubstitution(substitution) })
         }
     }
 }

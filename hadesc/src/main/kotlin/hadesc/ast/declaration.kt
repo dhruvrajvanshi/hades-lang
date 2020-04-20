@@ -34,8 +34,8 @@ sealed class Declaration : HasLocation {
     data class Struct(
         override val location: SourceLocation,
         val binder: Binder,
-        val members: List<Member>,
-        val typeParams: List<TypeParam>? = null
+        val typeParams: List<TypeParam>? = null,
+        val members: List<Member>
     ) : Declaration() {
 
         sealed class Member {

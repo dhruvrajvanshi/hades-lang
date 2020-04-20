@@ -73,6 +73,7 @@ class Checker(val ctx: Context) {
                 }
             }
             is TypeAnnotation.Ptr -> Type.RawPtr(inferAnnotation(annotation.to))
+            is TypeAnnotation.Application -> TODO()
         }
         annotationTypes[annotation] = type
         return type
@@ -230,6 +231,7 @@ class Checker(val ctx: Context) {
                     error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
                     Type.Error
                 }
+                is Type.Application -> TODO()
             }
         }
     }
@@ -312,6 +314,12 @@ class Checker(val ctx: Context) {
                 memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) })
         is Type.GenericInstance -> {
             genericInstantiations[type.id] ?: type
+        }
+        is Type.Application -> {
+            Type.Application(
+                applyInstantiations(location, type.callee),
+                type.args.map { applyInstantiations(location, it) }
+            )
         }
     }
 
