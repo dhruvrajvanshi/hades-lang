@@ -274,7 +274,7 @@ class Checker(val ctx: Context) {
     private fun inferTypeApplicationProperty(lhsType: Type.Application, property: Identifier): Type =
         when (lhsType.callee) {
             is Type.Constructor -> {
-                val binder = lhsType.callee.binder
+                val binder = requireNotNull(lhsType.callee.binder)
                 when (val binding = ctx.resolver.resolveTypeVariable(binder.identifier)) {
                     is TypeBinding.Struct -> {
                         if (binding.declaration.typeParams == null) {

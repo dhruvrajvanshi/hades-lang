@@ -1,6 +1,5 @@
 package hadesc.codegen
 
-import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
@@ -21,7 +20,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val builder = llvm.Builder(llvmCtx)
 
     fun generate() {
-        irModule.definitions.forEach {
+        for (it in irModule) {
             lowerDefinition(it)
         }
         verifyModule()
@@ -62,6 +61,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val fn = getDeclaration(definition)
         val basicBlock = fn.appendBasicBlock("entry")
         withinBlock(basicBlock) {
+            definition.params.forEachIndexed { index, param ->
+                localVariables[param.name] = fn.getParam(index)
+            }
             lowerBlock(definition.body)
         }
     }
@@ -83,26 +85,29 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             lowerExpression(statement)
             Unit
         }
-        is IREmptyStatement -> {
-        }
         is IRCall -> {
-            lowerCallExpression(statement)
+            try {
+                lowerCallExpression(statement)
+            } catch (e: Exception) {
+                log.error("Error:\n${statement.prettyPrint()}; ${statement.location}", e)
+                throw e
+            }
             Unit
         }
     }
 
-    private val localVariables = mutableMapOf<Name, llvm.Value>()
+    private val localVariables = mutableMapOf<IRLocalName, llvm.Value>()
     private fun lowerValStatement(statement: IRValStatement) {
         val rhs = lowerExpression(statement.initializer)
-        val type = lowerType(statement.binder.type)
-        val name = lowerName(statement.binder.name)
+        val type = lowerType(statement.type)
+        val name = lowerName(statement.name)
         val ref = builder.buildAlloca(type, "$name\$_ptr")
         builder.buildStore(rhs, toPointer = ref)
         val value = builder.buildLoad(ref, name)
-        localVariables[statement.binder.name] = value
+        localVariables[statement.name] = value
     }
 
-    private fun getLocalVariable(name: Name): llvm.Value {
+    private fun getLocalVariable(name: IRLocalName): llvm.Value {
         return requireNotNull(localVariables[name])
     }
 
@@ -122,7 +127,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return builder.buildExtractValue(
             lowerExpression(expression.lhs),
             expression.index,
-            lowerName(ctx.makeUniqueName())
+            ctx.makeUniqueName().text
         )
     }
 
@@ -134,17 +139,21 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun lowerVariable(expression: IRVariable): llvm.Value =
-        when (expression.binding) {
-            is IRBinding.FunctionDef -> getDeclaration(expression.binding.def)
-            is IRBinding.ExternFunctionDef -> getDeclaration(expression.binding.def)
-            is IRBinding.Local -> getLocalVariable(expression.binding.name)
-            is IRBinding.StructDef -> getStructConstructor(expression.binding.def)
-            is IRBinding.ParamRef -> {
-                val fn = getDeclaration(expression.binding.def)
-                fn.getParam(expression.binding.index)
+    private fun lowerVariable(expression: IRVariable): llvm.Value {
+        return when (expression.name) {
+            is IRLocalName -> requireNotNull(localVariables[expression.name]) {
+                "Unbound variable: ${expression.name}"
             }
+            is IRGlobalName -> lowerGlobalVariable(expression.name)
         }
+    }
+
+
+    private fun lowerGlobalVariable(name: IRGlobalName) = when (val binding = irModule.resolveGlobal(name)) {
+        is IRBinding.FunctionDef -> getDeclaration(binding.def)
+        is IRBinding.ExternFunctionDef -> getDeclaration(binding.def)
+        is IRBinding.StructDef -> getStructConstructor(binding.def)
+    }
 
     private fun lowerByteString(expression: IRByteString): llvm.Value {
         val text = expression.value.decodeToString()
@@ -161,7 +170,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val callee = lowerExpression(expression.callee)
         require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
-        val ref = builder.buildCall(callee, args, if (expression.type == Type.Void) null else expression.name.text)
+        val ref = builder.buildCall(callee, args, if (expression.type == Type.Void) null else expression.name.mangle())
 
         localVariables[expression.name] = ref
 
@@ -184,15 +193,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val name = if (irName.text == "main") {
             "hades_main"
         } else {
-            lowerName(irName)
+            irName.text
         }
         return llvmModule.getFunction(name)?.asFunctionValue() ?: llvmModule.addFunction(name, type)
     }
 
     private fun getDeclaration(def: IRFunctionDef): llvm.FunctionValue {
-        val irName = def.binder.name
+        val irName = def.name
         val type = lowerFunctionType(def.type)
-        val name = if (irName.text == "main") {
+        val name = if (irName.mangle() == "main") {
             "hades_main"
         } else {
             lowerName(irName)
@@ -222,10 +231,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return lowered
     }
 
-    private fun lowerName(name: Name): String {
-        return name.text
+    private fun lowerName(name: IRName): String {
+        return name.mangle()
     }
-
 
     private fun verifyModule() {
         // TODO: Handle this in a better way
@@ -267,7 +275,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.ParamRef ->
             TODO("Can't lower unspecialized type param")
         is Type.GenericInstance -> requireUnreachable()
-        is Type.Application -> TODO()
+        is Type.Application -> requireUnreachable()
         is Type.Constructor -> requireUnreachable()
     }
 

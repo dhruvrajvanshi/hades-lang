@@ -2,46 +2,84 @@ package hadesc.ir
 
 import hadesc.Name
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
+sealed class IRName {
+    fun prettyPrint() = when (this) {
+        is IRLocalName -> "%${name.text}"
+        is IRGlobalName -> "@${name.mangle()}"
+    }
+
+    fun mangle() = when (this) {
+        is IRLocalName -> name.text
+        is IRGlobalName -> name.mangle()
+    }
+
+}
+
+data class IRLocalName(val name: Name) : IRName()
+data class IRGlobalName(val name: QualifiedName) : IRName()
+
+
 sealed class IRBinding {
-    class FunctionDef(val def: IRFunctionDef) : IRBinding()
-    class ExternFunctionDef(val def: IRExternFunctionDef) : IRBinding()
-    class Local(val name: Name) : IRBinding()
-    class StructDef(val def: IRStructDef) : IRBinding()
-    class ParamRef(val def: IRFunctionDef, val index: Int) : IRBinding()
+    abstract val type: Type
+
+    class FunctionDef(val def: IRFunctionDef) : IRBinding() {
+        override val type: Type
+            get() = def.type
+
+    }
+
+    class ExternFunctionDef(val def: IRExternFunctionDef) : IRBinding() {
+        override val type: Type
+            get() = def.type
+    }
+
+    class StructDef(val def: IRStructDef) : IRBinding() {
+        override val type: Type
+            get() = def.constructorType
+
+    }
 }
 
 class IRModule {
-    val definitions = mutableListOf<IRDefinition>()
+    private val definitions = mutableListOf<IRDefinition>()
+    private val globals = mutableMapOf<QualifiedName, IRBinding>()
     fun prettyPrint(): String = definitions.joinToString("\n") { it.prettyPrint() }
 
-    fun addExternFunctionDef(binder: IRBinder, externName: Name, paramTypes: List<Type>): IRExternFunctionDef {
-        val value = IRExternFunctionDef(this, binder, externName = externName, paramTypes = paramTypes)
-        definitions.add(value)
+    fun addExternFunctionDef(
+        name: IRGlobalName,
+        type: Type.Function,
+        externName: Name,
+        paramTypes: List<Type>
+    ): IRExternFunctionDef {
+        val value = IRExternFunctionDef(this, name, type, externName = externName, paramTypes = paramTypes)
+        add(value)
         return value
     }
 
     fun addGlobalFunctionDef(
-        binder: IRBinder,
-        typeParams: List<IRTypeBinder>?,
+        name: IRGlobalName,
+        type: Type.Function,
+        typeParams: List<IRTypeParam>?,
         params: List<IRParam>,
         body: IRBlock
     ): IRFunctionDef {
-        val value = IRFunctionDef(this, binder, typeParams, params, body)
-        definitions.add(value)
+        val value = IRFunctionDef(this, name, type, typeParams, params, body)
+        add(value)
         return value
     }
 
     fun addStructDef(
-        ty: Type,
+        constructorType: Type.Function,
         instanceType: Type,
-        name: Name,
-        typeParams: List<IRTypeBinder>?,
+        name: IRGlobalName,
+        typeParams: List<IRTypeParam>?,
         fields: Map<Name, Type>
     ): IRStructDef {
-        val value = IRStructDef(this, ty, instanceType, name, typeParams, fields)
-        definitions.add(value)
+        val value = IRStructDef(this, constructorType, instanceType, name, typeParams, fields)
+        add(value)
         return value
 
     }
@@ -50,117 +88,117 @@ class IRModule {
 
     fun add(def: IRDefinition) {
         definitions.add(def)
+        val exhaustive = when (def) {
+            is IRFunctionDef -> globals[def.name.name] = IRBinding.FunctionDef(def)
+            is IRStructDef -> globals[def.globalName.name] = IRBinding.StructDef(def)
+            is IRExternFunctionDef -> globals[def.name.name] = IRBinding.ExternFunctionDef(def)
+        }
+    }
+
+    fun resolveGlobal(name: IRGlobalName): IRBinding {
+        return resolveGlobal(name.name)
+    }
+
+    fun resolveGlobal(name: QualifiedName): IRBinding {
+        return requireNotNull(globals[name]) {
+            "Global ${name.mangle()} not present in module"
+        }
     }
 }
 
 sealed class IRDefinition {
     abstract val module: IRModule
     fun prettyPrint(): String = when (this) {
-        is IRFunctionDef -> "def ${binder.prettyPrint()} = (${params.joinToString(", ") { it.prettyPrint() }}) ${body.prettyPrint()}"
-        is IRStructDef -> "struct ${this.globalName.text} {" +
+        is IRFunctionDef -> "def ${name.prettyPrint()}: ${type.prettyPrint()} = (${params.joinToString(",") { it.prettyPrint() }}) ${body.prettyPrint()}"
+        is IRStructDef -> "struct ${this.globalName.prettyPrint()} {" +
                 "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
-        is IRExternFunctionDef -> "extern def ${binder.prettyPrint()} = ${externName.text}"
+        is IRExternFunctionDef -> "extern def ${name.prettyPrint()} = ${externName.text}"
     }
 }
 
 class IRFunctionDef(
     override val module: IRModule,
-    val binder: IRBinder,
-    val typeParams: List<IRTypeBinder>?,
+    val name: IRGlobalName,
+    val type: Type.Function,
+    val typeParams: List<IRTypeParam>?,
     val params: List<IRParam>,
     var body: IRBlock
-) : IRDefinition() {
-    val type get() = binder.type
+) : IRDefinition()
+
+data class IRParam(
+    val name: IRLocalName,
+    val type: Type,
+    val location: SourceLocation,
+    val functionName: IRGlobalName,
+    val index: Int
+) {
+    fun prettyPrint(): String {
+        return "${name.prettyPrint()}: ${type.prettyPrint()}"
+    }
 }
 
 class IRStructDef(
     override val module: IRModule,
     val constructorType: Type,
     val instanceType: Type,
-    val globalName: Name,
-    val typeParams: List<IRTypeBinder>?,
+    val globalName: IRGlobalName,
+    val typeParams: List<IRTypeParam>?,
     val fields: Map<Name, Type>
 ) : IRDefinition()
 
 class IRExternFunctionDef(
     override val module: IRModule,
-    val binder: IRBinder,
+    val name: IRGlobalName,
+    val type: Type.Function,
     val paramTypes: List<Type>,
     val externName: Name
-) : IRDefinition() {
-    val type get() = binder.type
-}
+) : IRDefinition()
 
-data class IRBinder(val name: Name, val type: Type) {
-    fun prettyPrint(): String = "${name.text} : ${type.prettyPrint()}"
-}
+class IRTypeParam(val name: IRLocalName, val binderLocation: SourceLocation)
 
-data class IRParam(val binder: IRBinder, val location: SourceLocation) {
-    fun prettyPrint(): String = "${binder.name.text} : ${binder.type.prettyPrint()}"
-}
-
-class IRTypeBinder(val name: Name, val binderLocation: SourceLocation)
-
-class IRBlock {
-    var startNode: IRStatementNode = IRStatementNode(null, IREmptyStatement(null), null)
+class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
+    var statements = mutableListOf<IRStatement>()
     fun prettyPrint(): String = "{\n${statementSequence().joinToString("\n") { "  " + it.prettyPrint() }}\n}"
 
     operator fun iterator(): Iterator<IRStatement> = statementSequence().iterator()
 
-    private fun statementSequence() =
-        sequence<IRStatement> {
-            var node: IRStatementNode? = startNode
-            while (node != null) {
-                yield(node.statement)
-                node = node.next
-            }
-        }
+    private fun statementSequence() = statements.toList().asSequence()
 }
 
-class IRStatementNode(
-    var previous: IRStatementNode?,
-    val statement: IRStatement,
-    var next: IRStatementNode?
-)
 
 class IRBuilder {
-    var position: IRStatementNode? = null
-
-    private val previousNode get() = requireNotNull(position)
+    var position: IRBlock? = null
 
     fun buildRetVoid(): IRReturnVoidStatement {
-        return addStatement(IRReturnVoidStatement(previousNode))
+        return addStatement(IRReturnVoidStatement())
     }
 
     fun buildConstBool(ty: Type, location: SourceLocation, value: Boolean): IRValue {
-        return IRBool(previousNode, ty, location, value)
+        return IRBool(ty, location, value)
     }
 
 
     fun <S : IRStatement> addStatement(statement: S): S {
-        val newNode = IRStatementNode(previous = position, statement = statement, next = position?.next)
-        position?.next?.previous = newNode
-        position?.next = newNode
-        position = newNode
+        requireNotNull(position).statements.add(statement)
         return statement
     }
 
     fun buildByteString(ty: Type, location: SourceLocation, bytes: ByteArray): IRValue {
-        return IRByteString(previousNode, ty, location, bytes)
+        return IRByteString(ty, location, bytes)
     }
 
     fun buildGetStructField(
         ty: Type,
         location: SourceLocation,
         lhs: IRValue,
-        name: Name,
+        field: Name,
         index: Int
     ): IRValue {
-        return IRGetStructField(previousNode, ty, location, lhs = lhs, rhs = name, index = index)
+        return IRGetStructField(ty, location, lhs = lhs, rhs = field, index = index)
     }
 
-    fun buildVariable(ty: Type, location: SourceLocation, irBinding: IRBinding): IRValue {
-        return IRVariable(previousNode, ty, location, irBinding)
+    fun buildVariable(ty: Type, location: SourceLocation, name: IRName): IRValue {
+        return IRVariable(ty, location, name)
     }
 
     fun buildCall(
@@ -169,10 +207,9 @@ class IRBuilder {
         callee: IRValue,
         typeArgs: List<Type>?,
         args: List<IRValue>,
-        name: Name
+        name: IRLocalName
     ): IRValue {
         val call = IRCall(
-            previousNode,
             type = type,
             location = location,
             callee = callee,
@@ -180,25 +217,21 @@ class IRBuilder {
             args = args,
             name = name
         )
-        val ref = IRVariable(previousNode, type, location, binding = IRBinding.Local(name))
+        val ref = IRVariable(type, location, name)
         addStatement(call)
         return ref
     }
 
     fun buildReturn(value: IRValue): IRStatement {
-        return addStatement(IRReturnStatement(previousNode, value))
+        return addStatement(IRReturnStatement(value))
     }
 
-    fun buildValStatement(binder: IRBinder, expr: IRValue): IRValStatement {
-        return addStatement(IRValStatement(previousNode, binder, expr))
+    fun buildValStatement(name: IRLocalName, expr: IRValue): IRValStatement {
+        return addStatement(IRValStatement(name, expr.type, expr))
     }
 
     private fun positionAtEnd(block: IRBlock) {
-        var node: IRStatementNode? = block.startNode
-        while (node != null) {
-            position = node
-            node = node.next
-        }
+        this.position = block
     }
 
 
@@ -211,16 +244,13 @@ class IRBuilder {
 }
 
 sealed class IRStatement {
-    abstract val previousNode: IRStatementNode?
-
     override fun toString(): String = prettyPrint()
 
     @OptIn(ExperimentalStdlibApi::class)
     fun prettyPrint(): String = when (this) {
-        is IRValStatement -> "val ${binder.prettyPrint()} = ${initializer.prettyPrint()}"
+        is IRValStatement -> "${name.prettyPrint()} : ${type.prettyPrint()} = ${initializer.prettyPrint()}"
         is IRReturnStatement -> "return ${value.prettyPrint()}"
         is IRReturnVoidStatement -> "return void"
-        is IREmptyStatement -> ""
         is IRCall -> {
             val typeArgs = if (typeArgs == null) {
                 ""
@@ -228,37 +258,25 @@ sealed class IRStatement {
                 "[${typeArgs.joinToString(", ") { it.prettyPrint() }}]"
             }
             val args = "(${this.args.joinToString(", ") { it.prettyPrint() }})"
-            "${name.text} = ${callee.prettyPrint()}${typeArgs}${args}"
+            "${name.prettyPrint()}: ${type.prettyPrint()} = call ${type.prettyPrint()} ${callee.prettyPrint()}${typeArgs}${args}"
         }
-    }
-
-    fun removeFromParent() {
-        require(previousNode?.next?.statement as Any === this)
-        previousNode?.next = previousNode?.next?.next
     }
 }
 
 class IRValStatement(
-    override val previousNode: IRStatementNode?,
-    val binder: IRBinder,
+    val name: IRLocalName,
+    val type: Type,
     val initializer: IRValue
 ) : IRStatement()
 
 class IRReturnStatement(
-    override val previousNode: IRStatementNode?,
     val value: IRValue
 ) : IRStatement()
 
-class IRReturnVoidStatement(
-    override val previousNode: IRStatementNode?
-) : IRStatement()
+class IRReturnVoidStatement : IRStatement()
 
-class IREmptyStatement(
-    override val previousNode: IRStatementNode?
-) : IRStatement()
 
 sealed class IRValue {
-    abstract val previousNode: IRStatementNode?
     abstract val type: Type
     abstract val location: SourceLocation
 
@@ -270,54 +288,39 @@ sealed class IRValue {
     fun prettyPrint(): String = when (this) {
         is IRBool -> value.toString()
         is IRByteString -> "b\"${value.decodeToString()}\""
-        is IRVariable -> name.text
+        is IRVariable -> name.prettyPrint()
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
     }
 }
 
-class IRCall(
-    override val previousNode: IRStatementNode?,
+data class IRCall(
     val type: Type,
     val location: SourceLocation,
     val callee: IRValue,
     val typeArgs: List<Type>?,
     val args: List<IRValue>,
-    val name: Name
+    val name: IRLocalName
 ) : IRStatement()
 
 class IRBool(
-    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
     val value: Boolean
 ) : IRValue()
 
 class IRByteString(
-    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
     val value: ByteArray
 ) : IRValue()
 
-class IRVariable(
-    override val previousNode: IRStatementNode?,
+data class IRVariable(
     override val type: Type,
     override val location: SourceLocation,
-    val binding: IRBinding
-) : IRValue() {
-
-    val name: Name
-        get() = when (binding) {
-            is IRBinding.FunctionDef -> binding.def.binder.name
-            is IRBinding.ExternFunctionDef -> binding.def.externName
-            is IRBinding.Local -> binding.name
-            is IRBinding.StructDef -> binding.def.globalName
-            is IRBinding.ParamRef -> binding.def.params[binding.index].binder.name
-        }
-}
+    val name: IRName
+) : IRValue()
 
 class IRGetStructField(
-    override val previousNode: IRStatementNode?,
     override val type: Type,
     override val location: SourceLocation,
     val lhs: IRValue,

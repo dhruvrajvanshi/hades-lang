@@ -8,6 +8,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
+import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
@@ -60,8 +61,11 @@ class Desugar(val ctx: Context) {
     private val declaredExternDefs = mutableMapOf<SourceLocation, IRExternFunctionDef>()
     private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef): IRExternFunctionDef =
         declaredExternDefs.computeIfAbsent(declaration.location) {
+            val (name, type) = lowerGlobalBinder(declaration.binder)
+            require(type is Type.Function)
             val def = module.addExternFunctionDef(
-                binder = lowerGlobalBinder(declaration.binder),
+                name,
+                type,
                 externName = declaration.externName.name,
                 paramTypes = declaration.paramTypes.map { ctx.checker.annotationToType(it) }
             )
@@ -81,10 +85,11 @@ class Desugar(val ctx: Context) {
                 is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
             }
         }.toMap()
+        val (name, type) = lowerGlobalBinder(declaration.binder)
         val def = module.addStructDef(
-            ctx.checker.typeOfStructConstructor(declaration),
+            type as Type.Function,
             ctx.checker.typeOfStructInstance(declaration),
-            lowerBinderName(declaration.binder),
+            name,
             typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
             fields = fields
         )
@@ -97,11 +102,13 @@ class Desugar(val ctx: Context) {
 
     private fun getFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
         return declaredFunctionDefs.computeIfAbsent(def.location) {
-            val binder = lowerGlobalBinder(def.name)
+            val (name, type) = lowerGlobalBinder(def.name)
+            require(type is Type.Function)
             val function = module.addGlobalFunctionDef(
-                binder = binder,
+                name,
+                type,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
-                params = def.params.map { lowerParam(it) },
+                params = def.params.mapIndexed { index, it -> lowerParam(it, name, index) },
                 body = IRBlock()
             )
             definitions.add(function)
@@ -110,8 +117,8 @@ class Desugar(val ctx: Context) {
 
     }
 
-    private fun lowerTypeParam(typeParam: TypeParam): IRTypeBinder {
-        return IRTypeBinder(typeParam.binder.identifier.name, typeParam.location)
+    private fun lowerTypeParam(typeParam: TypeParam): IRTypeParam {
+        return IRTypeParam(IRLocalName(typeParam.binder.identifier.name), typeParam.location)
     }
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
@@ -127,8 +134,9 @@ class Desugar(val ctx: Context) {
         return function
     }
 
-    private fun lowerParam(param: Param): IRParam {
-        return IRParam(lowerParamBinder(param.binder), param.location)
+    private fun lowerParam(param: Param, functionName: IRGlobalName, index: Int): IRParam {
+        val (name, type) = lowerParamBinder(param.binder)
+        return IRParam(name, type, param.location, functionName, index)
     }
 
     private fun lowerBlock(body: Block): IRBlock {
@@ -152,13 +160,21 @@ class Desugar(val ctx: Context) {
         }
     }
 
-    private fun lowerExpression(expression: Expression): IRValue = when (expression) {
-        is Expression.Error -> requireUnreachable()
-        is Expression.Var -> lowerVar(expression)
-        is Expression.Call -> lowerCall(expression)
-        is Expression.Property -> lowerProperty(expression)
-        is Expression.ByteString -> lowerByteString(expression)
-        is Expression.BoolLiteral -> lowerBoolLiteral(expression)
+    private fun lowerExpression(expression: Expression): IRValue {
+        val lowered = when (expression) {
+            is Expression.Error -> requireUnreachable()
+            is Expression.Var -> lowerVar(expression)
+            is Expression.Call -> lowerCall(expression)
+            is Expression.Property -> lowerProperty(expression)
+            is Expression.ByteString -> lowerByteString(expression)
+            is Expression.BoolLiteral -> lowerBoolLiteral(expression)
+        }
+        assert(lowered.type == typeOfExpression(expression)) {
+            "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +
+                    "lowered type: ${lowered.type.prettyPrint()}\n" +
+                    "original type: ${typeOfExpression(expression).prettyPrint()}"
+        }
+        return lowered
     }
 
     private fun lowerBoolLiteral(expression: Expression.BoolLiteral): IRValue {
@@ -183,11 +199,28 @@ class Desugar(val ctx: Context) {
     private fun lowerRuntimePropertyAccess(expression: Expression.Property): IRValue {
         val lhs = lowerExpression(expression.lhs)
         val lhsType = lhs.type
-        require(lhsType is Type.Struct)
-        val rhsType = lhsType.memberTypes[expression.property.name]
-        requireNotNull(rhsType)
-        val index = lhsType.indexOf(expression.property.name.text)
+        require(lhsType is Type.Struct || lhsType is Type.Application) {
+            TODO()
+        }
+
+        val members: Map<Name, Type> = if (lhsType is Type.Struct) {
+            lhsType.memberTypes
+        } else if (lhsType is Type.Application) {
+            require(lhsType.callee is Type.Constructor)
+            val identifier = requireNotNull(lhsType.callee.binder?.identifier)
+            val binding = ctx.resolver.resolveTypeVariable(identifier)
+            requireNotNull(binding)
+            require(binding is TypeBinding.Struct)
+            ctx.checker.typeOfStructMembers(binding.declaration)
+
+        } else {
+            requireUnreachable()
+        }
+
+        val index = members.keys.indexOf(expression.property.name)
         require(index > -1)
+        requireNotNull(members[expression.property.name])
+        val rhsType = typeOfExpression(expression)
         return builder.buildGetStructField(
             rhsType,
             expression.location,
@@ -202,31 +235,31 @@ class Desugar(val ctx: Context) {
     }
 
     private fun lowerBindingRef(ty: Type, node: HasLocation, binding: ValueBinding?): IRValue {
-        val irBinding: IRBinding = when (binding) {
+        val name: IRName = when (binding) {
             null -> requireUnreachable()
             is ValueBinding.GlobalFunction -> {
                 val def = getFunctionDef(binding.declaration)
-                IRBinding.FunctionDef(def)
+                def.name
             }
             is ValueBinding.ExternFunction -> {
                 val def = lowerExternFunctionDef(binding.declaration)
-                IRBinding.ExternFunctionDef(def)
+                def.name
             }
             is ValueBinding.FunctionParam -> {
                 val index = binding.index
                 assert(index > -1)
-                IRBinding.ParamRef(getFunctionDef(binding.declaration), index)
+                getFunctionDef(binding.declaration).params[index].name
             }
             is ValueBinding.ValBinding -> {
                 val statement = getValBinding(binding.statement)
-                IRBinding.Local(statement.binder.name)
+                statement.name
             }
             is ValueBinding.Struct -> {
                 val structDecl = lowerStructDeclaration(binding.declaration)
-                IRBinding.StructDef(structDecl)
+                structDecl.globalName
             }
         }
-        return builder.buildVariable(ty, node.location, irBinding)
+        return builder.buildVariable(ty, node.location, name)
 
     }
 
@@ -240,7 +273,7 @@ class Desugar(val ctx: Context) {
             callee,
             typeArgs = ctx.checker.getTypeArgs(expression),
             args = args,
-            name = ctx.makeUniqueName()
+            name = IRLocalName(ctx.makeUniqueName())
         )
     }
 
@@ -260,7 +293,8 @@ class Desugar(val ctx: Context) {
 
     private val loweredValStatements = mutableMapOf<SourceLocation, IRValStatement>()
     private fun lowerValStatement(statement: Statement.Val): IRValStatement {
-        val ir = builder.buildValStatement(lowerLocalBinder(statement.binder), lowerExpression(statement.rhs))
+        val (name, type) = lowerLocalBinder(statement.binder)
+        val ir = builder.buildValStatement(name, lowerExpression(statement.rhs))
         loweredValStatements[statement.location] = ir
         return ir
     }
@@ -269,24 +303,18 @@ class Desugar(val ctx: Context) {
         return requireNotNull(loweredValStatements[statement.location])
     }
 
-    private fun lowerGlobalBinder(name: Binder): IRBinder {
+    private fun lowerGlobalBinder(name: Binder): Pair<IRGlobalName, Type> {
         val sourceFile = ctx.getSourceFileOf(name)
         val ty = ctx.checker.typeOfBinder(name)
-        return IRBinder(ctx.makeName(sourceFile.moduleName.append(name.identifier.name).mangle()), ty)
+        return IRGlobalName(sourceFile.moduleName.append(name.identifier.name)) to ty
     }
 
-    private fun lowerLocalBinder(name: Binder): IRBinder {
-        val sourceFile = ctx.getSourceFileOf(name)
+    private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type> {
         val ty = ctx.checker.typeOfBinder(name)
-        return IRBinder(ctx.makeName(sourceFile.moduleName.append(name.identifier.name).mangle()), ty)
+        return IRLocalName(name.identifier.name) to ty
     }
 
-    private fun lowerBinderName(name: Binder): Name {
-        val sourceFile = ctx.getSourceFileOf(name)
-        return ctx.makeName(sourceFile.moduleName.append(name.identifier.name).mangle())
-    }
-
-    private fun lowerParamBinder(name: Binder): IRBinder {
+    private fun lowerParamBinder(name: Binder): Pair<IRLocalName, Type> {
         return lowerLocalBinder(name)
     }
 }

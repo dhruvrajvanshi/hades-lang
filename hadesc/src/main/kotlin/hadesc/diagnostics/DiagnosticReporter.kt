@@ -47,7 +47,7 @@ data class Diagnostic(
             is MissingArgs -> "Missing args; $required required"
             is TooManyArgs -> "Too many args; $required required"
             is TypeNotAssignable -> "Type ${source.prettyPrint()} is not assignable to ${destination.prettyPrint()}"
-            is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named $property"
+            is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named ${property.text}"
             is UnboundType -> "Unbound type variable ${name.text}"
             is UninferrableTypeParam -> "Uninferrable type parameter ${binder.identifier.name.text}; Explicit type annotation required. (Defined at ${binder.identifier.location})"
             is IncompleteType -> "Incomplete type; Required ${requiredArgs} arg(s)"
