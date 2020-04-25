@@ -78,10 +78,23 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseStructMember(): Declaration.Struct.Member = when (currentToken.kind) {
         tt.VAL -> parseValStructMember()
+        tt.STATIC, tt.DEF -> parseStructMethod()
         else -> {
             recoverFromError()
             Declaration.Struct.Member.Error
         }
+    }
+
+    private fun parseStructMethod(): Declaration.Struct.Member.Method {
+        val flags = if (at(tt.STATIC)) {
+            advance()
+            DeclarationFlags.STATIC and DeclarationFlags.METHOD
+        } else {
+            DeclarationFlags.METHOD
+        }
+        val def = parseFunctionDef(flags)
+
+        return Declaration.Struct.Member.Method(def)
     }
 
     private fun parseValStructMember(): Declaration.Struct.Member {
@@ -149,6 +162,10 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun parseDeclarationFunctionDef(): Declaration {
+        return parseFunctionDef(DeclarationFlags.EMPTY)
+    }
+
+    private fun parseFunctionDef(flags: DeclarationFlags): Declaration.FunctionDef {
         val start = expect(tt.DEF)
         val name = parseBinder()
         val typeParams = parseOptionalTypeParams()
@@ -158,6 +175,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val annotation = parseTypeAnnotation()
         val block = parseBlock()
         return Declaration.FunctionDef(
+            flags = flags,
             location = makeLocation(start, block),
             name = name,
             scopeStartToken = scopeStartToken,
@@ -250,6 +268,9 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             }
             tt.FALSE -> {
                 Expression.BoolLiteral(advance().location, false)
+            }
+            tt.THIS -> {
+                Expression.This(advance().location)
             }
             else -> {
                 val location = advance().location

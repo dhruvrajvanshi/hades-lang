@@ -3,6 +3,23 @@ package hadesc.ast
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
+inline class DeclarationFlags constructor(val flags: Int) {
+    companion object {
+        val EMPTY = DeclarationFlags(0)
+        val METHOD = DeclarationFlags(1 shl 0)
+        val STATIC = DeclarationFlags(1 shl 1)
+        val PUBLIC = DeclarationFlags(1 shl 2)
+    }
+
+    infix fun and(other: DeclarationFlags): DeclarationFlags {
+        return DeclarationFlags(flags or other.flags)
+    }
+
+    operator fun contains(expected: DeclarationFlags): Boolean {
+        return (flags and expected.flags) > 0
+    }
+}
+
 sealed class Declaration : HasLocation {
     data class Error(override val location: SourceLocation) : Declaration()
     data class ImportAs(
@@ -14,6 +31,7 @@ sealed class Declaration : HasLocation {
     }
 
     data class FunctionDef(
+        val flags: DeclarationFlags,
         override val location: SourceLocation,
         val scopeStartToken: Token,
         val name: Binder,
@@ -43,6 +61,10 @@ sealed class Declaration : HasLocation {
             data class Field(
                 val binder: Binder,
                 val typeAnnotation: TypeAnnotation
+            ) : Member()
+
+            data class Method(
+                val function: FunctionDef
             ) : Member()
         }
     }

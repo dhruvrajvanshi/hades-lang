@@ -83,6 +83,7 @@ class Desugar(val ctx: Context) {
             when (it) {
                 Declaration.Struct.Member.Error -> requireUnreachable()
                 is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
+                is Declaration.Struct.Member.Method -> TODO()
             }
         }.toMap()
         val (name, type) = lowerGlobalBinder(declaration.binder)
@@ -168,6 +169,7 @@ class Desugar(val ctx: Context) {
             is Expression.Property -> lowerProperty(expression)
             is Expression.ByteString -> lowerByteString(expression)
             is Expression.BoolLiteral -> lowerBoolLiteral(expression)
+            is Expression.This -> TODO()
         }
         assert(lowered.type == typeOfExpression(expression)) {
             "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +
@@ -204,7 +206,7 @@ class Desugar(val ctx: Context) {
         }
 
         val members: Map<Name, Type> = if (lhsType is Type.Struct) {
-            lhsType.memberTypes
+            lhsType.fieldTypes
         } else if (lhsType is Type.Application) {
             require(lhsType.callee is Type.Constructor)
             val identifier = requireNotNull(lhsType.callee.binder?.identifier)
@@ -257,6 +259,9 @@ class Desugar(val ctx: Context) {
             is ValueBinding.Struct -> {
                 val structDecl = lowerStructDeclaration(binding.declaration)
                 structDecl.globalName
+            }
+            is ValueBinding.StructField -> {
+                TODO()
             }
         }
         return builder.buildVariable(ty, node.location, name)

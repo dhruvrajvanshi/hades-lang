@@ -268,7 +268,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             )
         }
         is Type.Struct -> StructType(
-            type.memberTypes.values.map { lowerType(it) },
+            type.fieldTypes.values.map { lowerType(it) },
             packed = false,
             ctx = llvmCtx
         )
@@ -353,6 +353,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             LLVM.LLVMObjectFile,
             BytePointer("Message")
         )
+        LLVM.LLVMAddConstantPropagationPass(pass)
         LLVM.LLVMRunPassManager(pass, llvmModule.getUnderlyingReference())
 
         LLVM.LLVMDisposePassManager(pass)

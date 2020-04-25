@@ -21,9 +21,9 @@ sealed class Type {
 
     data class Struct(
         val constructor: Constructor,
-        val memberTypes: Map<Name, Type>
+        val fieldTypes: Map<Name, Type>
     ) : Type() {
-        private val indices = memberTypes.keys.map { it.text }.toList()
+        private val indices = fieldTypes.keys.map { it.text }.toList()
         fun indexOf(key: String) = indices.indexOf(key)
 
     }
@@ -71,7 +71,7 @@ sealed class Type {
         is Struct -> {
             Struct(
                 constructor = this.constructor,
-                memberTypes = this.memberTypes.mapValues { it.value.applySubstitution(substitution) }
+                fieldTypes = this.fieldTypes.mapValues { it.value.applySubstitution(substitution) }
             )
         }
         is ParamRef -> {

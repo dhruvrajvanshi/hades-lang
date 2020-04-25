@@ -5,8 +5,10 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.resolver.ThisBinding
 import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
@@ -52,13 +54,13 @@ class Checker(val ctx: Context) {
 
     fun annotationToType(annotation: TypeAnnotation): Type = annotationTypes.computeIfAbsent(annotation) {
         val declaration = ctx.resolver.getDeclarationContaining(annotation)
-        checkDeclaration(declaration)
+        bindDeclaration(declaration)
         requireNotNull(annotationTypes[annotation])
     }
 
     fun typeOfBinder(binder: Binder): Type = binderTypes.computeIfAbsent(binder) {
         val decl = ctx.resolver.getDeclarationContaining(binder)
-        checkDeclaration(decl)
+        bindDeclaration(decl)
         requireNotNull(binderTypes[binder])
     }
 
@@ -118,7 +120,7 @@ class Checker(val ctx: Context) {
 
     fun typeOfStructMembers(declaration: Declaration.Struct): Map<Name, Type> {
         declareStruct(declaration)
-        return requireNotNull(structFieldTypes[declaration])
+        return requireNotNull(structInstanceMemberTypes[declaration])
     }
 
     fun getTypeArgs(call: Expression.Call): List<Type>? {
@@ -133,6 +135,25 @@ class Checker(val ctx: Context) {
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.Struct -> checkStructDef(declaration)
+    }
+
+    fun bindDeclaration(declaration: Declaration) = when (declaration) {
+        is Declaration.Error -> {
+        }
+        is Declaration.ImportAs -> {
+        }
+        is Declaration.FunctionDef -> {
+            declareFunctionDef(declaration)
+            Unit
+        }
+        is Declaration.ExternFunctionDef -> {
+            declareExternFunctionDef(declaration)
+            Unit
+        }
+        is Declaration.Struct -> {
+            declareStruct(declaration)
+            Unit
+        }
     }
 
     private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
@@ -232,6 +253,17 @@ class Checker(val ctx: Context) {
             is Expression.Property -> inferProperty(expression)
             is Expression.ByteString -> Type.RawPtr(Type.Byte)
             is Expression.BoolLiteral -> Type.Bool
+            is Expression.This -> {
+                val thisBinding = ctx.resolver.resolveThis(expression)
+                if (thisBinding == null) {
+                    error(expression, Diagnostic.Kind.UnboundVariable)
+                    Type.Error
+                } else {
+                    when (thisBinding) {
+                        is ThisBinding.Struct -> this.typeOfStructInstance(thisBinding.declaration)
+                    }
+                }
+            }
         }
         expressionTypes[expression] = ty
         return ty
@@ -245,7 +277,7 @@ class Checker(val ctx: Context) {
             when (val lhsType = inferExpression(expression.lhs)) {
                 Type.Error -> Type.Error
                 is Type.Struct -> {
-                    val memberType = lhsType.memberTypes[expression.property.name]
+                    val memberType = lhsType.fieldTypes[expression.property.name]
                     if (memberType != null) {
                         memberType
                     } else {
@@ -253,7 +285,10 @@ class Checker(val ctx: Context) {
                         Type.Error
                     }
                 }
-                is Type.RawPtr -> TODO()
+                is Type.RawPtr -> {
+                    error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                    Type.Error
+                }
                 is Type.Function,
                 is Type.ParamRef,
                 is Type.GenericInstance,
@@ -384,7 +419,7 @@ class Checker(val ctx: Context) {
         is Type.Struct ->
             Type.Struct(
                 constructor = type.constructor,
-                memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) }
+                fieldTypes = type.fieldTypes.mapValues { applyInstantiations(location, it.value) }
             )
         is Type.GenericInstance -> {
             genericInstantiations[type.id] ?: type
@@ -484,6 +519,10 @@ class Checker(val ctx: Context) {
             declareStruct(binding.declaration)
             requireNotNull(binderTypes[binding.declaration.binder])
         }
+        is ValueBinding.StructField -> {
+            declareStruct(binding.structDef)
+            requireNotNull(binderTypes[binding.field.binder])
+        }
     }
 
     private fun error(node: HasLocation, kind: Diagnostic.Kind) {
@@ -518,30 +557,55 @@ class Checker(val ctx: Context) {
 
     private fun checkStructDef(declaration: Declaration.Struct) {
         declareStruct(declaration)
+
+        for (member in declaration.members) {
+            exhaustive(
+                when (member) {
+                    Declaration.Struct.Member.Error -> {
+                    }
+                    is Declaration.Struct.Member.Field -> {
+                    }
+                    is Declaration.Struct.Member.Method -> {
+                        checkFunctionDef(member.function)
+                    }
+                }
+            )
+        }
     }
 
-    private val structFieldTypes = MutableNodeMap<Declaration.Struct, Map<Name, Type>>()
+    private val structInstanceMemberTypes = MutableNodeMap<Declaration.Struct, Map<Name, Type>>()
     private fun declareStruct(declaration: Declaration.Struct) {
         if (binderTypes[declaration.binder] != null) {
             return
         }
+        val instanceMemberTypes = mutableMapOf<Name, Type>()
         val fieldTypes = mutableMapOf<Name, Type>()
+        // TODO: Handle recursive field types
+        // For example, a type struct Recursive {}
+        // might contain a member of type Recursive?.
+        // This makes the checker go into a loop because we try to resolve
+        // type Type name `Recursive` when we're checking the type of `Recursive`
+
         for (member in declaration.members) {
             val exhaustive = when (member) {
                 Declaration.Struct.Member.Error -> {
                 }
                 is Declaration.Struct.Member.Field -> {
                     val ty = inferAnnotation(member.typeAnnotation)
-                    require(fieldTypes[member.binder.identifier.name] == null) { TODO("Duplicate struct field") }
+                    require(instanceMemberTypes[member.binder.identifier.name] == null) { TODO("Duplicate struct field") }
+                    instanceMemberTypes[member.binder.identifier.name] = ty
                     fieldTypes[member.binder.identifier.name] = ty
+                    bindValue(member.binder, ty)
                     Unit
+                }
+                is Declaration.Struct.Member.Method -> {
                 }
             }
         }
         val name = ctx.resolver.getQualifiedName(declaration.binder)
         val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
         val constructor = Type.Constructor(declaration.binder, name, typeParams)
-        structFieldTypes[declaration] = fieldTypes
+        structInstanceMemberTypes[declaration] = instanceMemberTypes
         val instanceType = if (typeParams != null) {
             Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
         } else {
@@ -553,6 +617,16 @@ class Checker(val ctx: Context) {
             to = instanceType,
             typeParams = declaration.typeParams?.map { Type.Param(it.binder) })
         bindValue(declaration.binder, constructorType)
+        for (member in declaration.members) {
+            if (member is Declaration.Struct.Member.Method) {
+                val ty = declareFunctionDef(member.function)
+                if (!member.function.flags.contains(DeclarationFlags.STATIC)) {
+                    require(instanceMemberTypes[member.function.name.identifier.name] == null) { TODO("Duplicate struct field") }
+                    instanceMemberTypes[member.function.name.identifier.name] = ty
+                }
+                Unit
+            }
+        }
     }
 }
 

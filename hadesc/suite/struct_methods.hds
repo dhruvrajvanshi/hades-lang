@@ -1,0 +1,31 @@
+import libc as c;
+
+def main(): Void {
+    c.puts(Box(b"first").get_value());
+    c.puts(Box(b"second").get_value_explicit_this());
+    val box: Box[*Byte] = Box.new(b"third");
+    val value = box.get_value();
+    c.puts(value);
+    c.puts(Box(b"fourth").get_value_method_call());
+}
+
+
+struct Box[T] {
+    val value: T;
+
+    def get_value(): T {
+        return value;
+    }
+
+    def get_value_explicit_this(): T {
+        return this.value;
+    }
+
+    def get_value_method_call(): T {
+        return get_value();
+    }
+
+    static def new[U](value: U): Box[U] {
+        return Box(value);
+    }
+}

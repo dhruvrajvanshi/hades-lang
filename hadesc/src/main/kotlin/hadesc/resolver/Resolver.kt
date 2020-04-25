@@ -4,10 +4,15 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+
+sealed class ThisBinding {
+    data class Struct(val declaration: Declaration.Struct) : ThisBinding()
+}
 
 sealed class ValueBinding {
     data class GlobalFunction(
@@ -35,6 +40,11 @@ sealed class ValueBinding {
     data class Struct(
         val qualifiedName: QualifiedName,
         val declaration: Declaration.Struct
+    ) : ValueBinding()
+
+    data class StructField(
+        val structDef: Declaration.Struct,
+        val field: Declaration.Struct.Member.Field
     ) : ValueBinding()
 }
 
@@ -97,6 +107,34 @@ class Resolver(val ctx: Context) {
         return findInScopeStack(ident, scopeStack)
     }
 
+    fun resolveThis(node: HasLocation): ThisBinding? {
+        val scopeStack = getScopeStack(node)
+        for (scope in scopeStack) {
+            exhaustive(
+                when (scope) {
+                    is ScopeNode.FunctionDef -> {
+                        // this is not bound in static declarations
+                        // so we need to exit early so as to not
+                        // get the enclosing struct/enum def
+                        if (scope.declaration.flags.contains(DeclarationFlags.STATIC)) {
+                            return null
+                        } else {
+                            null
+                        }
+                    }
+                    is ScopeNode.SourceFile -> {
+                    }
+                    is ScopeNode.Block -> {
+                    }
+                    is ScopeNode.Struct -> {
+                        return ThisBinding.Struct(scope.declaration)
+                    }
+                }
+            )
+        }
+        return null
+    }
+
     fun resolveTypeVariable(ident: Identifier): TypeBinding? {
         val scopeStack = getScopeStack(ident)
         return findTypeInScopeStack(ident, scopeStack)
@@ -113,8 +151,18 @@ class Resolver(val ctx: Context) {
     }
 
     private fun findTypeInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding? {
+        var isIdentInStaticMethod = false
         for (scopeNode in scopeStack) {
-            val binding = findTypeInScope(ident, scopeNode)
+            val isCurrentScopeNodeAStaticMethod = when (scopeNode) {
+                is ScopeNode.FunctionDef -> {
+                    DeclarationFlags.STATIC in scopeNode.declaration.flags
+                }
+                else -> false
+            }
+            if (isCurrentScopeNodeAStaticMethod) {
+                isIdentInStaticMethod = true
+            }
+            val binding = findTypeInScope(ident, scopeNode, isIdentInStaticMethod)
             if (binding != null) {
                 return binding
             }
@@ -122,21 +170,26 @@ class Resolver(val ctx: Context) {
         return null
     }
 
-    private fun findTypeInScope(ident: Identifier, scopeNode: ScopeNode): TypeBinding? = when (scopeNode) {
-        is ScopeNode.FunctionDef -> {
-            findTypeInFunctionDef(ident, scopeNode.declaration)
-        }
-        is ScopeNode.SourceFile -> {
-            findTypeInSourceFile(ident, scopeNode.sourceFile)
-        }
-        is ScopeNode.Block -> null
-        is ScopeNode.Struct -> {
-            val param = scopeNode.declaration.typeParams?.findLast {
-                it.binder.identifier.name == ident.name
+    private fun findTypeInScope(ident: Identifier, scopeNode: ScopeNode, isIdentInStaticMethod: Boolean): TypeBinding? =
+        when (scopeNode) {
+            is ScopeNode.FunctionDef -> {
+                findTypeInFunctionDef(ident, scopeNode.declaration)
+            }
+            is ScopeNode.SourceFile -> {
+                findTypeInSourceFile(ident, scopeNode.sourceFile)
+            }
+            is ScopeNode.Block -> null
+            is ScopeNode.Struct -> {
+                val param = scopeNode.declaration.typeParams?.findLast {
+                    it.binder.identifier.name == ident.name
             }
             when {
                 param != null -> {
-                    TypeBinding.TypeParam(param.binder)
+                    if (!isIdentInStaticMethod) {
+                        TypeBinding.TypeParam(param.binder)
+                    } else {
+                        null
+                    }
                 }
                 ident.name == scopeNode.declaration.binder.identifier.name -> {
                     TypeBinding.Struct(scopeNode.declaration)
@@ -183,6 +236,33 @@ class Resolver(val ctx: Context) {
     }
 
     private fun shallowFindInStruct(ident: Identifier, scope: ScopeNode.Struct): ValueBinding? {
+        for (member in scope.declaration.members) {
+            val binding: ValueBinding? = when (member) {
+                Declaration.Struct.Member.Error -> null
+                is Declaration.Struct.Member.Field -> {
+                    if (ident.name == member.binder.identifier.name) {
+                        ValueBinding.StructField(scope.declaration, member)
+                    } else {
+                        null
+                    }
+                }
+                is Declaration.Struct.Member.Method -> {
+                    if (ident.name == member.function.name.identifier.name) {
+                        ValueBinding.GlobalFunction(
+                            sourceFileOf(member.function).moduleName
+                                .append(scope.declaration.binder.identifier.name)
+                                .append(member.function.name.identifier.name),
+                            member.function
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+            if (binding != null) {
+                return binding
+            }
+        }
         return null
     }
 
@@ -302,6 +382,14 @@ class Resolver(val ctx: Context) {
                     declaration.location.file,
                     ScopeNode.Struct(declaration)
                 )
+                for (member in declaration.members) {
+                    if (member is Declaration.Struct.Member.Method) {
+                        addScopeNode(
+                            member.function.location.file,
+                            ScopeNode.FunctionDef(member.function)
+                        )
+                    }
+                }
             }
 
         }
@@ -338,6 +426,20 @@ class Resolver(val ctx: Context) {
         if (expression.lhs !is Expression.Var) {
             return null
         }
+        val staticProperty = when (val lhsBinding = resolve(expression.lhs.name)) {
+            is ValueBinding.GlobalFunction -> null
+            is ValueBinding.ExternFunction -> null
+            is ValueBinding.FunctionParam -> null
+            is ValueBinding.ValBinding -> null
+            is ValueBinding.Struct -> {
+                findStaticMethod(lhsBinding.declaration, expression.property)
+            }
+            null -> null
+            is ValueBinding.StructField -> null
+        }
+        if (staticProperty != null) {
+            return staticProperty
+        }
         for (scope in scopeStack.scopes) {
             val binding: ValueBinding? = when (scope) {
                 is ScopeNode.FunctionDef -> null
@@ -373,6 +475,28 @@ class Resolver(val ctx: Context) {
         return null
     }
 
+    private fun findStaticMethod(declaration: Declaration.Struct, property: Identifier): ValueBinding? {
+        for (member in declaration.members) {
+            val binding = when (member) {
+                Declaration.Struct.Member.Error -> null
+                is Declaration.Struct.Member.Field -> null
+                is Declaration.Struct.Member.Method -> {
+                    if (member.function.flags.contains(DeclarationFlags.STATIC)
+                        && member.function.name.identifier.name == property.name
+                    ) {
+                        ValueBinding.GlobalFunction(getQualifiedName(declaration.binder), member.function)
+                    } else {
+                        null
+                    }
+                }
+            }
+            if (binding != null) {
+                return binding
+            }
+        }
+        return null
+    }
+
     fun getQualifiedName(binder: Binder): QualifiedName = when (val binding = resolve(binder.identifier)) {
         is ValueBinding.GlobalFunction -> TODO()
         is ValueBinding.ExternFunction -> TODO()
@@ -383,5 +507,6 @@ class Resolver(val ctx: Context) {
         is ValueBinding.FunctionParam -> requireUnreachable()
         is ValueBinding.ValBinding -> requireUnreachable()
         null -> requireUnreachable()
+        is ValueBinding.StructField -> requireUnreachable()
     }
 }

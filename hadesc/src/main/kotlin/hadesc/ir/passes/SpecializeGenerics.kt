@@ -297,6 +297,7 @@ class SpecializeGenerics(val ctx: Context, val oldModule: IRModule) {
     }
 
     private fun lowerLocalVariable(variable: IRVariable, name: IRLocalName, typeArgs: List<Type>?): IRValue {
+        require(typeArgs == null)
         return builder.buildVariable(
             ty = lowerType(variable.type, typeArgs),
             location = variable.location,
