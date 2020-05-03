@@ -84,13 +84,15 @@ class SpecializeGenerics(val ctx: Context, val oldModule: IRModule) {
         for (statement in block) {
             exhaustive(
                 when (statement) {
-                    is IRValStatement -> visitValStatement(statement)
                     is IRReturnStatement -> visitReturnStatement(statement)
                     is IRReturnVoidStatement -> {
                         builder.buildRetVoid()
                         Unit
                     }
                     is IRCall -> visitCallStatement(statement)
+                    is IRAlloca -> visitAlloca(statement)
+                    is IRStore -> visitStore(statement)
+                    is IRLoad -> visitLoad(statement)
                 }
             )
         }
@@ -316,10 +318,25 @@ class SpecializeGenerics(val ctx: Context, val oldModule: IRModule) {
         builder.buildReturn(lowerValue(statement.value))
     }
 
-    private fun visitValStatement(statement: IRValStatement) {
-        builder.buildValStatement(
+    private fun visitAlloca(statement: IRAlloca) {
+        builder.buildAlloca(
             name = lowerLocalName(statement.name),
-            expr = lowerValue(statement.initializer)
+            type = lowerType(statement.type)
+        )
+    }
+
+    private fun visitStore(statement: IRStore) {
+        builder.buildStore(
+            ptr = lowerValue(statement.ptr),
+            value = lowerValue(statement.value)
+        )
+    }
+
+    private fun visitLoad(statement: IRLoad) {
+        builder.buildLoad(
+            name = lowerLocalName(statement.name),
+            type = lowerType(statement.type),
+            ptr = lowerValue(statement.ptr)
         )
     }
 

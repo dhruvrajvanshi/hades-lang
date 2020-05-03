@@ -125,7 +125,6 @@ class Desugar(val ctx: Context) {
         val function = getFunctionDef(def)
         function.body = lowerBlock(def.body)
         val ty = function.type
-        require(ty is Type.Function)
         builder.withinBlock(function.body) {
             if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
                 builder.buildRetVoid()
@@ -251,8 +250,14 @@ class Desugar(val ctx: Context) {
                 getFunctionDef(binding.declaration).params[index].name
             }
             is ValueBinding.ValBinding -> {
-                val statement = getValBinding(binding.statement)
-                statement.name
+                val ptr = getValBinding(binding.statement)
+                val derefName = IRLocalName(ctx.makeUniqueName())
+                builder.buildLoad(
+                    derefName,
+                    ty,
+                    builder.buildVariable(ty = Type.RawPtr(ty), location = node.location, name = ptr)
+                )
+                derefName
             }
             is ValueBinding.Struct -> {
                 val structDecl = lowerStructDeclaration(binding.declaration)
@@ -291,16 +296,19 @@ class Desugar(val ctx: Context) {
         return builder.buildReturn(lowerExpression(statement.value))
     }
 
-    private val loweredValStatements = mutableMapOf<SourceLocation, IRValStatement>()
-    private fun lowerValStatement(statement: Statement.Val): IRValStatement {
+    private val valPointers = mutableMapOf<SourceLocation, IRLocalName>()
+    private fun lowerValStatement(statement: Statement.Val): IRStatement {
         val (name, type) = lowerLocalBinder(statement.binder)
-        val ir = builder.buildValStatement(name, lowerExpression(statement.rhs))
-        loweredValStatements[statement.location] = ir
-        return ir
+        builder.buildAlloca(type.to, name)
+        val ptr = builder.buildVariable(type, statement.location, name)
+        val rhs = lowerExpression(statement.rhs)
+        val store = builder.buildStore(ptr, rhs)
+        valPointers[statement.location] = name
+        return store
     }
 
-    private fun getValBinding(statement: Statement.Val): IRValStatement {
-        return requireNotNull(loweredValStatements[statement.location])
+    private fun getValBinding(statement: Statement.Val): IRLocalName {
+        return requireNotNull(valPointers[statement.location])
     }
 
     private fun lowerGlobalBinder(name: Binder): Pair<IRGlobalName, Type> {
@@ -309,13 +317,14 @@ class Desugar(val ctx: Context) {
         return IRGlobalName(sourceFile.moduleName.append(name.identifier.name)) to ty
     }
 
-    private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type> {
-        val ty = ctx.checker.typeOfBinder(name)
+    private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.RawPtr> {
+        val ty = Type.RawPtr(ctx.checker.typeOfBinder(name))
         return IRLocalName(name.identifier.name) to ty
     }
 
     private fun lowerParamBinder(name: Binder): Pair<IRLocalName, Type> {
-        return lowerLocalBinder(name)
+        val ty = ctx.checker.typeOfBinder(name)
+        return IRLocalName(name.identifier.name) to ty
     }
 }
 

@@ -106,6 +106,6 @@ class Context(
     private var _nameIndex = 0
     fun makeUniqueName(): Name {
         _nameIndex++
-        return makeName("\$$_nameIndex")
+        return makeName("$_nameIndex")
     }
 }

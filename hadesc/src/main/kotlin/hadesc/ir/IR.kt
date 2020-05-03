@@ -226,8 +226,16 @@ class IRBuilder {
         return addStatement(IRReturnStatement(value))
     }
 
-    fun buildValStatement(name: IRLocalName, expr: IRValue): IRValStatement {
-        return addStatement(IRValStatement(name, expr.type, expr))
+    fun buildAlloca(type: Type, name: IRLocalName): IRStatement {
+        return addStatement(IRAlloca(type, name))
+    }
+
+    fun buildLoad(name: IRLocalName, type: Type, ptr: IRValue): IRStatement {
+        return addStatement(IRLoad(name, type, ptr))
+    }
+
+    fun buildStore(ptr: IRValue, value: IRValue): IRStatement {
+        return addStatement(IRStore(ptr, value))
     }
 
     private fun positionAtEnd(block: IRBlock) {
@@ -248,7 +256,6 @@ sealed class IRStatement {
 
     @OptIn(ExperimentalStdlibApi::class)
     fun prettyPrint(): String = when (this) {
-        is IRValStatement -> "${name.prettyPrint()} : ${type.prettyPrint()} = ${initializer.prettyPrint()}"
         is IRReturnStatement -> "return ${value.prettyPrint()}"
         is IRReturnVoidStatement -> "return void"
         is IRCall -> {
@@ -260,17 +267,30 @@ sealed class IRStatement {
             val args = "(${this.args.joinToString(", ") { it.prettyPrint() }})"
             "${name.prettyPrint()}: ${type.prettyPrint()} = call ${type.prettyPrint()} ${callee.prettyPrint()}${typeArgs}${args}"
         }
+        is IRAlloca -> "${name.prettyPrint()}: ${Type.RawPtr(type).prettyPrint()} = alloca ${type.prettyPrint()}"
+        is IRStore -> "store ${ptr.prettyPrint()} ${value.prettyPrint()}"
+        is IRLoad -> "${name.prettyPrint()}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
     }
 }
 
-class IRValStatement(
-    val name: IRLocalName,
-    val type: Type,
-    val initializer: IRValue
-) : IRStatement()
-
 class IRReturnStatement(
     val value: IRValue
+) : IRStatement()
+
+class IRAlloca(
+    val type: Type,
+    val name: IRLocalName
+) : IRStatement()
+
+class IRStore(
+    val ptr: IRValue,
+    val value: IRValue
+) : IRStatement()
+
+class IRLoad(
+    val name: IRLocalName,
+    val type: Type,
+    val ptr: IRValue
 ) : IRStatement()
 
 class IRReturnVoidStatement : IRStatement()
@@ -288,7 +308,7 @@ sealed class IRValue {
     fun prettyPrint(): String = when (this) {
         is IRBool -> value.toString()
         is IRByteString -> "b\"${value.decodeToString()}\""
-        is IRVariable -> name.prettyPrint()
+        is IRVariable -> "${type.prettyPrint()} ${name.prettyPrint()}"
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
     }
 }

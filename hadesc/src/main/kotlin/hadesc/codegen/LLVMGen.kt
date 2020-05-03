@@ -75,7 +75,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerStatement(statement: IRStatement) = when (statement) {
-        is IRValStatement -> lowerValStatement(statement)
         is IRReturnStatement -> lowerReturnStatement(statement)
         is IRReturnVoidStatement -> {
             builder.buildRetVoid()
@@ -86,25 +85,35 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             Unit
         }
         is IRCall -> {
-            try {
-                lowerCallExpression(statement)
-            } catch (e: Exception) {
-                log.error("Error:\n${statement.prettyPrint()}; ${statement.location}", e)
-                throw e
-            }
+            lowerCallExpression(statement)
             Unit
         }
+        is IRAlloca -> lowerAlloca(statement)
+        is IRStore -> lowerStore(statement)
+        is IRLoad -> lowerLoad(statement)
     }
 
     private val localVariables = mutableMapOf<IRLocalName, llvm.Value>()
-    private fun lowerValStatement(statement: IRValStatement) {
-        val rhs = lowerExpression(statement.initializer)
-        val type = lowerType(statement.type)
+
+    private fun lowerAlloca(statement: IRAlloca) {
         val name = lowerName(statement.name)
-        val ref = builder.buildAlloca(type, "$name\$_ptr")
-        builder.buildStore(rhs, toPointer = ref)
-        val value = builder.buildLoad(ref, name)
-        localVariables[statement.name] = value
+        val ref = builder.buildAlloca(lowerType(statement.type), name)
+        localVariables[statement.name] = ref
+    }
+
+    private fun lowerStore(statement: IRStore) {
+        builder.buildStore(
+            value = lowerExpression(statement.value),
+            toPointer = lowerExpression(statement.ptr)
+        )
+    }
+
+    private fun lowerLoad(statement: IRLoad) {
+        val ref = builder.buildLoad(
+            ptr = lowerExpression(statement.ptr),
+            name = lowerName(statement.name)
+        )
+        localVariables[statement.name] = ref
     }
 
     private fun getLocalVariable(name: IRLocalName): llvm.Value {
@@ -142,7 +151,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerVariable(expression: IRVariable): llvm.Value {
         return when (expression.name) {
             is IRLocalName -> requireNotNull(localVariables[expression.name]) {
-                "Unbound variable: ${expression.name}"
+                "Unbound variable: ${expression.name.prettyPrint()}"
             }
             is IRGlobalName -> lowerGlobalVariable(expression.name)
         }
@@ -238,8 +247,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun verifyModule() {
         // TODO: Handle this in a better way
         val buffer = ByteArray(100)
-        val len = LLVM.LLVMVerifyModule(llvmModule.getUnderlyingReference(), 100, buffer)
-        println(buffer.decodeToString().slice(0 until len))
+        val error = LLVM.LLVMVerifyModule(llvmModule.getUnderlyingReference(), LLVM.LLVMPrintMessageAction, buffer)
+        require(error == 0) {
+            log.error("Invalid llvm module\n")
+            llvmModule.dump()
+            "Invalid LLVM module"
+        }
     }
 
     private fun llvm.FunctionValue.verify() {
