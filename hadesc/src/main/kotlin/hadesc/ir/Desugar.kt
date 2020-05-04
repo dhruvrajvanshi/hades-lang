@@ -102,6 +102,7 @@ class Desugar(val ctx: Context) {
 
     private fun getFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
         return declaredFunctionDefs.computeIfAbsent(def.location) {
+            require(def.thisParam == null) { TODO() }
             val (name, type) = lowerGlobalBinder(def.name)
             require(type is Type.Function)
             val function = module.addGlobalFunctionDef(

@@ -12,6 +12,7 @@ import kotlin.test.fail
 
 class HadesTestSuite {
     val log = logger()
+
     @Test
     fun `should run test suite`() {
         val directory = File("suite")
@@ -24,6 +25,9 @@ class HadesTestSuite {
         val failureFiles = mutableListOf<Pair<File, Throwable>>()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
+                if ("extensions" !in file.name) {
+                    continue
+                }
                 logger().debug("Running suite file {}", file)
                 val expectedStdoutFile = Paths.get(
                     directory.toPath().toString(),

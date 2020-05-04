@@ -213,7 +213,7 @@ class Resolver(val ctx: Context) {
                 is Declaration.Error -> null
                 is Declaration.ImportAs -> null
                 is Declaration.FunctionDef -> {
-                    if (declaration.name.identifier.name == ident.name) {
+                    if (declaration.thisParam == null && declaration.name.identifier.name == ident.name) {
                         ValueBinding.GlobalFunction(
                             sourceFileOf(declaration).moduleName.append(ident.name),
                             declaration
@@ -258,7 +258,7 @@ class Resolver(val ctx: Context) {
                 return ValueBinding.FunctionParam(ident.name, index, param, scope.declaration)
             }
         }
-        if (ident.name == scope.declaration.name.identifier.name) {
+        if (scope.declaration.typeParams == null && ident.name == scope.declaration.name.identifier.name) {
             val sourceFile = sourceFileOf(scope.declaration)
             return ValueBinding.GlobalFunction(
                 sourceFile.moduleName.append(scope.declaration.name.identifier.name),
@@ -384,4 +384,38 @@ class Resolver(val ctx: Context) {
         is ValueBinding.ValBinding -> requireUnreachable()
         null -> requireUnreachable()
     }
+
+    fun resolveThisParam(node: HasLocation): ThisParam? {
+        val scopeStack = getScopeStack(node)
+        for (scope in scopeStack) {
+            if (scope is ScopeNode.FunctionDef) {
+                if (scope.declaration.thisParam != null) {
+                    return scope.declaration.thisParam
+                }
+            }
+        }
+        return null
+    }
+
+    fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence<Declaration.FunctionDef> {
+        for (scope in getScopeStack(node)) {
+            if (scope is ScopeNode.FunctionDef && isPossibleExtensionDef(scope.declaration, name)) {
+                yield(scope.declaration)
+            }
+            if (scope is ScopeNode.SourceFile) {
+                for (definition in scope.sourceFile.declarations) {
+                    if (definition is Declaration.FunctionDef) {
+                        if (isPossibleExtensionDef(definition, name)) {
+                            yield(definition)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun isPossibleExtensionDef(def: Declaration.FunctionDef, property: Identifier): Boolean {
+    return def.thisParam != null &&
+            def.name.identifier.name == property.name
 }

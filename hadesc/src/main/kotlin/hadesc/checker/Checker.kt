@@ -232,10 +232,19 @@ class Checker(val ctx: Context) {
             is Expression.Property -> inferProperty(expression)
             is Expression.ByteString -> Type.RawPtr(Type.Byte)
             is Expression.BoolLiteral -> Type.Bool
-            is Expression.This -> TODO()
+            is Expression.This -> inferThis(expression)
         }
         expressionTypes[expression] = ty
         return ty
+    }
+
+    private fun inferThis(expression: Expression.This): Type {
+        val thisParam = ctx.resolver.resolveThisParam(expression)
+        if (thisParam == null) {
+            error(expression, Diagnostic.Kind.UnboundThis)
+            return Type.Error
+        }
+        return inferAnnotation(thisParam.annotation)
     }
 
     private fun inferProperty(expression: Expression.Property): Type {
@@ -243,16 +252,11 @@ class Checker(val ctx: Context) {
         return if (globalBinding != null) {
             inferBinding(globalBinding)
         } else {
-            when (val lhsType = inferExpression(expression.lhs)) {
+            val lhsType = inferExpression(expression.lhs)
+            val ownPropertyType = when (lhsType) {
                 Type.Error -> Type.Error
                 is Type.Struct -> {
-                    val memberType = lhsType.memberTypes[expression.property.name]
-                    if (memberType != null) {
-                        memberType
-                    } else {
-                        error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
-                        Type.Error
-                    }
+                    lhsType.memberTypes[expression.property.name]
                 }
                 is Type.RawPtr -> TODO()
                 is Type.Function,
@@ -261,32 +265,40 @@ class Checker(val ctx: Context) {
                 Type.Byte,
                 Type.Void,
                 Type.Bool -> {
-                    error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
-                    Type.Error
+                    null
                 }
                 is Type.Application -> {
                     inferTypeApplicationProperty(lhsType, expression.property)
                 }
                 is Type.Constructor -> TODO()
             }
+            if (ownPropertyType != null) {
+                ownPropertyType
+            } else {
+                val extensionPropertyType = inferExtensionProperty(lhsType, expression.property)
+                if (extensionPropertyType != null) {
+                    extensionPropertyType
+                } else {
+                    error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                    Type.Error
+                }
+            }
         }
     }
 
-    private fun inferTypeApplicationProperty(lhsType: Type.Application, property: Identifier): Type =
+    private fun inferTypeApplicationProperty(lhsType: Type.Application, property: Identifier): Type? =
         when (lhsType.callee) {
             is Type.Constructor -> {
                 val binder = requireNotNull(lhsType.callee.binder)
                 when (val binding = ctx.resolver.resolveTypeVariable(binder.identifier)) {
                     is TypeBinding.Struct -> {
                         if (binding.declaration.typeParams == null) {
-                            error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
-                            Type.Error
+                            null
                         } else {
                             val members = typeOfStructMembers(binding.declaration)
                             val fieldType = members[property.name]
                             if (fieldType == null) {
-                                error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
-                                Type.Error
+                                inferExtensionProperty(lhsType, property)
                             } else {
                                 val substitution = binding.declaration.typeParams.mapIndexed { index, it ->
                                     it.binder.location to lhsType.args.elementAtOrElse(index) { Type.Error }
@@ -297,17 +309,49 @@ class Checker(val ctx: Context) {
                         }
                     }
                     else -> {
-                        error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
-                        Type.Error
+                        null
                     }
                 }
 
             }
             else -> {
-                error(property, Diagnostic.Kind.NoSuchProperty(lhsType, property.name))
-                Type.Error
+                null
             }
         }
+
+
+    /**
+     * TODO: For generic extension methods, we only unify using the this type provided because
+     *       we don't have access to arguments yet. We should unify the types of
+     *       the passed method args as well. Not doing it right now because it requires
+     *       some restructuring.
+     */
+    private fun inferExtensionProperty(lhsType: Type, property: Identifier): Type? {
+        val extensionDefs = ctx.resolver.extensionDefsInScope(property, property).toList()
+        for (def in extensionDefs) {
+            require(def.thisParam != null)
+            val thisParamType = inferAnnotation(def.thisParam.annotation)
+            if (isTypeEqual(thisParamType, lhsType)) {
+                return typeOfBinder(def.name)
+            }
+            if (def.typeParams != null) {
+
+                val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
+                def.typeParams.forEach {
+                    substitution[it.binder.location] = makeGenericInstance(it.binder)
+                }
+                val functionType = (typeOfBinder(def.name).applySubstitution(substitution) as Type.Function)
+                    .copy(typeParams = null)
+
+                val thisParamTypeInstance = thisParamType.applySubstitution(substitution)
+
+                if (isAssignableTo(source = lhsType, destination = thisParamTypeInstance)) {
+                    return applyInstantiations(functionType)
+                }
+            }
+        }
+        return null
+    }
 
 
     private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
@@ -357,7 +401,7 @@ class Checker(val ctx: Context) {
             if (calleeType.typeParams != null) {
                 typeArguments[expression] = typeArgs
             }
-            return applyInstantiations(expression.location, to)
+            return applyInstantiations(to)
         } else {
             for (arg in expression.args) {
                 inferExpression(arg.expression)
@@ -370,7 +414,7 @@ class Checker(val ctx: Context) {
     }
 
 
-    private fun applyInstantiations(location: SourceLocation, type: Type): Type = when (type) {
+    private fun applyInstantiations(type: Type): Type = when (type) {
         Type.Error,
         Type.Byte,
         Type.Void,
@@ -379,21 +423,21 @@ class Checker(val ctx: Context) {
         is Type.RawPtr -> Type.RawPtr(type.to)
         is Type.Function -> Type.Function(
             typeParams = type.typeParams,
-            from = type.from.map { applyInstantiations(location, it) },
-            to = applyInstantiations(location, type.to)
+            from = type.from.map { applyInstantiations(it) },
+            to = applyInstantiations(type.to)
         )
         is Type.Struct ->
             Type.Struct(
                 constructor = type.constructor,
-                memberTypes = type.memberTypes.mapValues { applyInstantiations(location, it.value) }
+                memberTypes = type.memberTypes.mapValues { applyInstantiations(it.value) }
             )
         is Type.GenericInstance -> {
             genericInstantiations[type.id] ?: type
         }
         is Type.Application -> {
             Type.Application(
-                applyInstantiations(location, type.callee),
-                type.args.map { applyInstantiations(location, it) }
+                applyInstantiations(type.callee),
+                type.args.map { applyInstantiations(it) }
             )
         }
         is Type.Constructor -> type
@@ -401,55 +445,72 @@ class Checker(val ctx: Context) {
 
     private fun applyInstantiations(expression: Expression) {
         val ty = requireNotNull(expressionTypes[expression])
-        val instance = applyInstantiations(expression.location, ty)
+        val instance = applyInstantiations(ty)
         expressionTypes[expression] = instance
     }
 
-    private fun checkExpression(expected: Type, expression: Expression) = when (expression) {
+    private fun checkExpression(expected: Type, expression: Expression): Unit = when (expression) {
         else -> {
             val exprType = inferExpression(expression)
             checkAssignability(expression.location, destination = expected, source = exprType)
         }
     }
 
-    private fun checkAssignability(location: SourceLocation, source: Type, destination: Type): Unit = when {
+    private fun checkAssignability(location: SourceLocation, source: Type, destination: Type) {
+        if (!isAssignableTo(source = source, destination = destination)) {
+            error(location, Diagnostic.Kind.TypeNotAssignable(source = source, destination = destination))
+        }
+    }
+
+    private fun isAssignableTo(source: Type, destination: Type): Boolean = when {
         source is Type.Error || destination is Type.Error -> {
+            true
         }
         source is Type.Bool && destination is Type.Bool -> {
+            true
         }
         source is Type.Byte && destination is Type.Byte -> {
+            true
         }
         source is Type.ParamRef && destination is Type.ParamRef
                 && source.name.location == destination.name.location -> {
+            true
         }
         source is Type.RawPtr && destination is Type.RawPtr ->
-            checkAssignability(location, source.to, destination.to)
+            isAssignableTo(source.to, destination.to)
         source is Type.Struct && destination is Type.Struct && source.constructor == destination.constructor -> {
+            true
         }
         source is Type.Constructor && destination is Type.Constructor && source.name == destination.name -> {
+            true
         }
 
         source is Type.Application && destination is Type.Application -> {
-            checkAssignability(location, source.callee, destination.callee)
-            val report = { error(location, Diagnostic.Kind.TypeNotAssignable(source, destination)) }
-            if (source.args.size != destination.args.size) {
-                report()
+            val calleeAssignable = isAssignableTo(source.callee, destination.callee)
+            if (!calleeAssignable) {
+                false
             } else {
-                source.args.zip(destination.args).forEach {
-                    checkAssignability(location, it.first, it.second)
+                if (source.args.size != destination.args.size) {
+                    false
+                } else {
+                    source.args.zip(destination.args).all { (sourceParam, destinationParam) ->
+                        val assignable = isAssignableTo(destination = destinationParam, source = sourceParam)
+                        assignable
+                    }
                 }
             }
         }
         destination is Type.GenericInstance -> {
             val destinationInstance = genericInstantiations[destination.id]
             if (destinationInstance != null) {
-                checkAssignability(location, source, destinationInstance)
+                isAssignableTo(source = source, destination = destinationInstance)
             } else {
                 genericInstantiations[destination.id] = source
+                true
             }
         }
         else -> {
-            error(location, Diagnostic.Kind.TypeNotAssignable(source, destination))
+            false
         }
     }
 
