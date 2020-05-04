@@ -13,11 +13,13 @@ internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT)
 private val structMemberRecoveryTokens = setOf(tt.EOF, tt.VAL, tt.DEF)
-private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN, tt.VAL)
+private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN, tt.VAL, tt.RBRACE)
 private val byteStringEscapes = mapOf(
     'n' to '\n',
     '0' to '\u0000'
 )
+
+object SyntaxError : Error()
 
 @OptIn(ExperimentalStdlibApi::class)
 class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePath) {
@@ -34,9 +36,13 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return sourceFile
     }
 
-    private fun parseDeclarations(): List<Declaration> = buildList {
+    private fun parseDeclarations(): List<Declaration> = buildList<Declaration> {
         while (currentToken.kind != tt.EOF) {
-            add(parseDeclaration())
+            try {
+                add(parseDeclaration())
+            } catch (e: SyntaxError) {
+                recoverFromError(stopBefore = declarationRecoveryTokens)
+            }
         }
     }.toList()
 
@@ -47,8 +53,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.STRUCT -> parseStructDeclaration()
             tt.EXTERN -> parseExternFunctionDef()
             else -> {
-                val location = recoverFromError(Diagnostic.Kind.DeclarationExpected)
-                Declaration.Error(location)
+                syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
@@ -79,8 +84,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     private fun parseStructMember(): Declaration.Struct.Member = when (currentToken.kind) {
         tt.VAL -> parseValStructMember()
         else -> {
-            recoverFromError()
-            Declaration.Struct.Member.Error
+            syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
         }
     }
 
@@ -153,7 +157,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val name = parseBinder()
         val typeParams = parseOptionalTypeParams()
         val scopeStartToken = expect(tt.LPAREN)
-        val params = parseParams(scopeStartToken)
+        val (thisParam, params) = parseParams(scopeStartToken)
         expect(tt.COLON)
         val annotation = parseTypeAnnotation()
         val block = parseBlock()
@@ -162,6 +166,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             name = name,
             scopeStartToken = scopeStartToken,
             typeParams = typeParams,
+            thisParam = thisParam,
             params = params,
             returnType = annotation,
             body = block
@@ -190,7 +195,11 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseBlockMembers(): List<Block.Member> = buildList {
         while (!(at(tt.RBRACE) || at(tt.EOF))) {
-            add(parseBlockMember())
+            try {
+                add(parseBlockMember())
+            } catch (e: SyntaxError) {
+                recoverFromError(statementRecoveryTokens)
+            }
         }
     }
 
@@ -210,8 +219,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.RETURN -> parseReturnStatement()
             tt.VAL -> parseValStatement()
             else -> {
-                val location = recoverFromError(Diagnostic.Kind.StatementExpected, statementRecoveryTokens)
-                Statement.Error(location)
+                syntaxError(currentToken.location, Diagnostic.Kind.StatementExpected)
             }
         }
     }
@@ -251,10 +259,12 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.FALSE -> {
                 Expression.BoolLiteral(advance().location, false)
             }
+            tt.THIS -> {
+                Expression.This(advance().location)
+            }
             else -> {
                 val location = advance().location
-                ctx.diagnosticReporter.report(location, Diagnostic.Kind.ExpressionExpected)
-                Expression.Error(location)
+                syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         return parseExpressionTail(head)
@@ -325,18 +335,29 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return Expression.Var(identifier)
     }
 
-    private fun parseParams(lparen: Token? = null): List<Param> = buildList {
-        lparen ?: expect(tt.LPAREN)
-        var first = true
-        while (!(at(tt.RPAREN) || at(tt.EOF))) {
-            if (!first) {
-                expect(tt.COMMA)
-            } else {
-                first = false
+    private fun parseParams(lparen: Token? = null): Pair<ThisParam?, List<Param>> {
+        var thisParam: ThisParam? = null
+        val params = buildList {
+            lparen ?: expect(tt.LPAREN)
+            var first = true
+            while (!(at(tt.RPAREN) || at(tt.EOF))) {
+                if (!first) {
+                    expect(tt.COMMA)
+                } else {
+                    first = false
+                    if (at(tt.THIS)) {
+                        val start = advance()
+                        expect(tt.COLON)
+                        val annotation = parseTypeAnnotation()
+                        thisParam = ThisParam(makeLocation(start, annotation), annotation)
+                        continue
+                    }
+                }
+                add(parseParam())
             }
-            add(parseParam())
+            expect(tt.RPAREN)
         }
-        expect(tt.RPAREN)
+        return thisParam to params
     }
 
     private fun parseParam(): Param {
@@ -375,12 +396,15 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             }
             else -> {
                 val location = advance().location
-                ctx.diagnosticReporter.report(location, Diagnostic.Kind.TypeAnnotationExpected)
-                TypeAnnotation.Error(location)
-
+                syntaxError(location, Diagnostic.Kind.TypeAnnotationExpected)
             }
         }
         return parseTypeAnnotationTail(head)
+    }
+
+    private fun <T> syntaxError(location: SourceLocation, kind: Diagnostic.Kind): T {
+        ctx.diagnosticReporter.report(location, kind)
+        throw SyntaxError
     }
 
     private fun parseTypeAnnotationTail(head: TypeAnnotation): TypeAnnotation {
@@ -420,44 +444,27 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return if (currentToken.kind == kind) {
             advance()
         } else {
-            val result = advance()
-            ctx.diagnosticReporter.report(result.location, Diagnostic.Kind.UnexpectedToken(kind, result))
-            result
+            syntaxError(currentToken.location, Diagnostic.Kind.UnexpectedToken(kind, currentToken))
         }
     }
 
     private fun at(kind: tt): Boolean = currentToken.kind == kind
 
     private fun recoverFromError(
-        diagnostic: Diagnostic.Kind? = null,
-        recoverySet: Set<tt> = declarationRecoveryTokens
-    ): SourceLocation {
-        val startToken = currentToken
-        var lastToken = advance()
+        stopBefore: Set<tt> = declarationRecoveryTokens
+    ) {
         while (true) {
             if (isEOF()) {
                 break
             } else if (currentToken.kind == Token.Kind.SEMICOLON) {
                 advance()
                 break
-            } else if (recoverySet.contains(currentToken.kind)) {
+            } else if (stopBefore.contains(currentToken.kind)) {
                 break
             } else {
-                lastToken = currentToken
                 advance()
             }
         }
-
-        val location = SourceLocation(
-            file = startToken.location.file,
-            start = startToken.location.start,
-            stop = lastToken.location.stop
-        )
-        if (diagnostic != null) {
-            ctx.diagnosticReporter.report(location, diagnostic)
-        }
-        return location
-
     }
 
     private fun advance(): Token {

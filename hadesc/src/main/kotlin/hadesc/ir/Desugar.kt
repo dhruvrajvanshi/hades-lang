@@ -167,6 +167,7 @@ class Desugar(val ctx: Context) {
             is Expression.Property -> lowerProperty(expression)
             is Expression.ByteString -> lowerByteString(expression)
             is Expression.BoolLiteral -> lowerBoolLiteral(expression)
+            is Expression.This -> TODO()
         }
         assert(lowered.type == typeOfExpression(expression)) {
             "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +

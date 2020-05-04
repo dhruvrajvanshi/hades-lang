@@ -18,6 +18,7 @@ data class Token(
         STRUCT,
         TRUE,
         FALSE,
+        THIS,
 
         ID,
 

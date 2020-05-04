@@ -232,6 +232,7 @@ class Checker(val ctx: Context) {
             is Expression.Property -> inferProperty(expression)
             is Expression.ByteString -> Type.RawPtr(Type.Byte)
             is Expression.BoolLiteral -> Type.Bool
+            is Expression.This -> TODO()
         }
         expressionTypes[expression] = ty
         return ty

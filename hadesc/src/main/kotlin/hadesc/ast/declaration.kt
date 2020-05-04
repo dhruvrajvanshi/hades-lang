@@ -18,6 +18,7 @@ sealed class Declaration : HasLocation {
         val scopeStartToken: Token,
         val name: Binder,
         val typeParams: List<TypeParam>?,
+        val thisParam: ThisParam?,
         val params: List<Param>,
         val returnType: TypeAnnotation,
         val body: Block

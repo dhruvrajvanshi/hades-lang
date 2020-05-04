@@ -11,6 +11,11 @@ data class Param(
         get() = SourceLocation.between(binder, annotation ?: binder)
 }
 
+data class ThisParam(
+    override val location: SourceLocation,
+    val annotation: TypeAnnotation
+) : HasLocation
+
 data class TypeParam(
     val binder: Binder
 ) : HasLocation {
