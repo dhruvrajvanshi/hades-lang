@@ -37,7 +37,8 @@ val SINGLE_CHAR_TOKENS = mapOf(
 )
 
 class Lexer(private val file: SourcePath) {
-    private val text: String = File(file.path.toUri()).readText()
+    // TODO: Handle this during lexing instead of string replace
+    private val text: String = File(file.path.toUri()).readText().replace("\r", "")
     private val state = State()
 
     data class State(
@@ -124,10 +125,7 @@ class Lexer(private val file: SourcePath) {
         state.lastColumn = state.currentColumn
 
         state.currentOffset++
-        if (currentChar == '\r') {
-            state.currentOffset++
-            assert(currentChar == '\n') { "\\r must be followed by \\n" }
-        }
+
         if (lastChar == '\n') {
             if (currentChar != EOF_CHAR) {
                 state.currentLine++
