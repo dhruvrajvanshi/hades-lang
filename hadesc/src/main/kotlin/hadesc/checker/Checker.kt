@@ -5,6 +5,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.TypeBinding
@@ -14,7 +15,9 @@ import java.util.*
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
-class Checker(val ctx: Context) {
+class Checker(
+    private val ctx: Context
+) {
 
     private val binderTypes = MutableNodeMap<Binder, Type>()
     private val expressionTypes = MutableNodeMap<Expression, Type>()
@@ -33,8 +36,7 @@ class Checker(val ctx: Context) {
 
 
     private fun resolveTypeVariable(name: Identifier): Type? {
-        val binding = ctx.resolver.resolveTypeVariable(name)
-        return when (binding) {
+        return when (val binding = ctx.resolver.resolveTypeVariable(name)) {
             null -> return null
             is TypeBinding.Struct -> {
                 val instanceType = typeOfStructInstance(binding.declaration)
@@ -105,15 +107,14 @@ class Checker(val ctx: Context) {
         return t1 == t2
     }
 
-    fun typeOfStructConstructor(declaration: Declaration.Struct): Type {
+    private fun typeOfStructConstructor(declaration: Declaration.Struct): Type {
         return typeOfBinder(declaration.binder)
     }
 
     fun typeOfStructInstance(declaration: Declaration.Struct): Type {
         val constructorType = typeOfStructConstructor(declaration)
         require(constructorType is Type.Function)
-        val instanceType = constructorType.to
-        return instanceType
+        return constructorType.to
     }
 
     fun typeOfStructMembers(declaration: Declaration.Struct): Map<Name, Type> {
@@ -205,7 +206,7 @@ class Checker(val ctx: Context) {
         }
     }
 
-    val checkedValStatements = mutableSetOf<SourceLocation>()
+    private val checkedValStatements = mutableSetOf<SourceLocation>()
     private fun checkValStatement(statement: Statement.Val) {
         if (checkedValStatements.contains(statement.location)) {
             return
@@ -449,11 +450,9 @@ class Checker(val ctx: Context) {
         expressionTypes[expression] = instance
     }
 
-    private fun checkExpression(expected: Type, expression: Expression): Unit = when (expression) {
-        else -> {
-            val exprType = inferExpression(expression)
-            checkAssignability(expression.location, destination = expected, source = exprType)
-        }
+    private fun checkExpression(expected: Type, expression: Expression) {
+        val exprType = inferExpression(expression)
+        checkAssignability(expression.location, destination = expected, source = exprType)
     }
 
     private fun checkAssignability(location: SourceLocation, source: Type, destination: Type) {
@@ -589,7 +588,7 @@ class Checker(val ctx: Context) {
         }
         val fieldTypes = mutableMapOf<Name, Type>()
         for (member in declaration.members) {
-            val exhaustive = when (member) {
+            exhaustive(when (member) {
                 Declaration.Struct.Member.Error -> {
                 }
                 is Declaration.Struct.Member.Field -> {
@@ -598,7 +597,7 @@ class Checker(val ctx: Context) {
                     fieldTypes[member.binder.identifier.name] = ty
                     Unit
                 }
-            }
+            })
         }
         val name = ctx.resolver.getQualifiedName(declaration.binder)
         val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
@@ -615,17 +614,6 @@ class Checker(val ctx: Context) {
             to = instanceType,
             typeParams = declaration.typeParams?.map { Type.Param(it.binder) })
         bindValue(declaration.binder, constructorType)
-    }
-}
-
-private class NodeSet<T : HasLocation> {
-    val set = mutableSetOf<SourceLocation>()
-    fun contains(value: T): Boolean {
-        return set.contains(value.location)
-    }
-
-    fun add(value: T) {
-        set.add(value.location)
     }
 }
 
