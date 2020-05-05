@@ -5,42 +5,36 @@ import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.ir.*
 import hadesc.location.SourceLocation
-import hadesc.logging.logger
 import hadesc.types.Type
 import java.util.concurrent.LinkedBlockingQueue
 
-class SpecializeGenerics(val ctx: Context, val oldModule: IRModule) {
+class SpecializeGenerics(
+    private val ctx: Context,
+    private val oldModule: IRModule
+) {
     private val module = IRModule()
-    val builder = IRBuilder()
-
-    private val log = logger()
+    private val builder = IRBuilder()
 
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Map<SourceLocation, Type>? = null
 
     fun run(): IRModule {
-        try {
-            for (definition in oldModule) {
-                exhaustive(
-                    when (definition) {
-                        is IRFunctionDef -> visitFunctionDef(definition)
-                        is IRStructDef -> {
-                            visitStructDef(definition)
-                        }
-                        is IRExternFunctionDef -> {
-                            visitExternFunctionDef(definition)
-                        }
+        for (definition in oldModule) {
+            exhaustive(
+                when (definition) {
+                    is IRFunctionDef -> visitFunctionDef(definition)
+                    is IRStructDef -> {
+                        visitStructDef(definition)
                     }
-                )
-            }
-            while (specializationQueue.isNotEmpty()) {
-                visitSpecializationRequest(specializationQueue.take())
-                require(currentSpecialization == null)
-            }
-            log.debug("after specialization:\n${module.prettyPrint()}")
-        } catch (e: Error) {
-            log.debug("module:\n${module.prettyPrint()}")
-            throw e
+                    is IRExternFunctionDef -> {
+                        visitExternFunctionDef(definition)
+                    }
+                }
+            )
+        }
+        while (specializationQueue.isNotEmpty()) {
+            visitSpecializationRequest(specializationQueue.take())
+            require(currentSpecialization == null)
         }
         return module
     }
@@ -133,8 +127,7 @@ class SpecializeGenerics(val ctx: Context, val oldModule: IRModule) {
     }
 
     private fun lowerGlobalVariable(variable: IRVariable, name: IRGlobalName, typeArgs: List<Type>?): IRValue {
-        val binding = requireNotNull(oldModule.resolveGlobal(name))
-        return when (binding) {
+        return when (val binding = requireNotNull(oldModule.resolveGlobal(name))) {
             is IRBinding.FunctionDef -> {
                 lowerFunctionDefBinding(binding, variable, typeArgs)
             }

@@ -12,16 +12,14 @@ import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
-class Desugar(val ctx: Context) {
+class Desugar(private val ctx: Context) {
     private val module = IRModule()
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
     private val builder = IRBuilder()
-    private val log = logger()
 
     fun generate(): IRModule {
         ctx.forEachSourceFile { lowerSourceFile(it) }
-        log.debug(module.prettyPrint())
         return module
     }
 

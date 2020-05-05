@@ -2,6 +2,7 @@ package hades.test
 
 import hadesc.Compiler
 import hadesc.logging.logger
+import org.apache.commons.lang3.SystemUtils
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.nio.file.Path
@@ -11,7 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.fail
 
 class HadesTestSuite {
-    val log = logger()
+    private val log = logger()
 
     @Test
     fun `should run test suite`() {
@@ -25,18 +26,23 @@ class HadesTestSuite {
         val failureFiles = mutableListOf<Pair<File, Throwable>>()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
-                if ("extensions" !in file.name) {
+                if ("extensions" in file.name) {
                     continue
                 }
                 logger().debug("Running suite file {}", file)
                 val expectedStdoutFile = Paths.get(
                     directory.toPath().toString(),
                     file.nameWithoutExtension + ".stdout"
-                )
-                    .toFile()
+                ).toFile()
                 assert(expectedStdoutFile.exists())
 
-                val outputPath = Paths.get(outputDirectory.toString(), file.nameWithoutExtension)
+                val outputPath = Paths.get(
+                    outputDirectory.toString(),
+                    if (SystemUtils.IS_OS_WINDOWS)
+                        file.nameWithoutExtension + ".exe"
+                    else
+                        file.nameWithoutExtension
+                )
                 try {
                     Compiler(
                         arrayOf(
@@ -58,8 +64,10 @@ class HadesTestSuite {
                         .start()
                     process.waitFor(1, TimeUnit.SECONDS)
                     assert(process.exitValue() == 0)
+                    val expectedLines = expectedStdoutFile.readLines()
+                    val actualLines = actualStdoutFile.readLines()
                     assertEquals(
-                        expectedStdoutFile.readText(), actualStdoutFile.readText(),
+                        expectedLines, actualLines,
                         "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
                     )
                     successFiles.add(file)
