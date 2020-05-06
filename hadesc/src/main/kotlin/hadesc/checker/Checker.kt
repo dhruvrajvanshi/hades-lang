@@ -34,6 +34,18 @@ class Checker(
         requireNotNull(expressionTypes[expression])
     }
 
+    private fun resolveQualifiedTypeVariable(path: QualifiedPath): Type? {
+        val struct = ctx.resolver.resolveQualifiedStructDef(path)
+        require(struct != null)
+        val instanceType = typeOfStructInstance(struct)
+        return if (struct.typeParams == null) {
+            instanceType
+        } else {
+            require(instanceType is Type.Application)
+            require(instanceType.callee is Type.Constructor)
+            instanceType.callee
+        }
+    }
 
     private fun resolveTypeVariable(name: Identifier): Type? {
         return when (val binding = ctx.resolver.resolveTypeVariable(name)) {
@@ -90,6 +102,15 @@ class Checker(
                     callee,
                     args
                 )
+            }
+            is TypeAnnotation.Qualified -> {
+                val typeBinding = resolveQualifiedTypeVariable(annotation.qualifiedPath)
+                if (typeBinding != null) {
+                    typeBinding
+                } else {
+                    error(annotation, Diagnostic.Kind.UnboundType(annotation.qualifiedPath.identifiers.first().name))
+                    Type.Error
+                }
             }
         }
         annotationTypes[annotation] = type

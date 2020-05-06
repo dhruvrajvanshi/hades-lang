@@ -384,7 +384,14 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val head = when (currentToken.kind) {
             tt.ID -> {
                 val id = parseIdentifier()
-                TypeAnnotation.Var(id)
+                if (at(tt.DOT)) {
+                    advance()
+                    val second = parseIdentifier()
+                    val path = QualifiedPath(listOf(id, second))
+                    TypeAnnotation.Qualified(makeLocation(id, second), path)
+                } else {
+                    TypeAnnotation.Var(id)
+                }
             }
             tt.STAR -> {
                 val start = advance()

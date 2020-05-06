@@ -413,6 +413,18 @@ class Resolver(val ctx: Context) {
             }
         }
     }
+
+    fun resolveQualifiedStructDef(path: QualifiedPath): Declaration.Struct? {
+        require(path.identifiers.size == 2)
+        val sourceFile = sourceFileOf(path)
+        for (decl in sourceFile.declarations) {
+            if (decl is Declaration.ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
+                val importedSourceFile = ctx.resolveSourceFile(decl.modulePath)
+                return findTypeInSourceFile(path.identifiers.last(), importedSourceFile)?.declaration
+            }
+        }
+        return null
+    }
 }
 
 private fun isPossibleExtensionDef(def: Declaration.FunctionDef, property: Identifier): Boolean {
