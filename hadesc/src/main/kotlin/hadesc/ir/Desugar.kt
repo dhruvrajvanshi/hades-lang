@@ -7,7 +7,6 @@ import hadesc.context.Context
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.logging.logger
 import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
@@ -167,6 +166,12 @@ class Desugar(private val ctx: Context) {
             is Expression.ByteString -> lowerByteString(expression)
             is Expression.BoolLiteral -> lowerBoolLiteral(expression)
             is Expression.This -> TODO()
+            is Expression.NullPtr -> IRNullPtr(typeOfExpression(expression), expression.location)
+            is Expression.IntLiteral -> IRCIntConstant(
+                typeOfExpression(expression),
+                expression.location,
+                expression.value
+            )
         }
         assert(lowered.type == typeOfExpression(expression)) {
             "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +

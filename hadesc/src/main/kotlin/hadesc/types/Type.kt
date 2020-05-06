@@ -10,6 +10,7 @@ sealed class Type {
     object Byte : Type()
     object Void : Type()
     object Bool : Type()
+    object CInt : Type()
     data class RawPtr(val to: Type) : Type()
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
@@ -42,6 +43,7 @@ sealed class Type {
         Byte -> "Byte"
         Void -> "Void"
         Bool -> "Bool"
+        CInt -> "CInt"
         is RawPtr -> "*${to.prettyPrint()}"
         is Function -> {
             val typeParams = if (this.typeParams != null) {
@@ -61,6 +63,7 @@ sealed class Type {
         Error,
         Byte,
         Void,
+        CInt,
         Bool -> this
         is RawPtr -> RawPtr(this.to.applySubstitution(substitution))
         is Function -> Function(

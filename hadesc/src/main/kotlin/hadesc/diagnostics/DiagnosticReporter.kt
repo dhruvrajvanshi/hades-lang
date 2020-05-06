@@ -27,6 +27,7 @@ data class Diagnostic(
         object ExpressionExpected : Kind(Severity.ERROR)
         object UnboundVariable : Kind(Severity.ERROR)
         object UnboundThis : Diagnostic.Kind(Severity.ERROR)
+        object AmbiguousExpression : Diagnostic.Kind(Severity.ERROR)
 
         data class TypeNotCallable(val type: Type) : Kind(Severity.ERROR)
         data class MissingArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
@@ -54,6 +55,7 @@ data class Diagnostic(
             is UninferrableTypeParam -> "Uninferrable type parameter ${binder.identifier.name.text}; Explicit type annotation required. (Defined at ${binder.identifier.location})"
             is IncompleteType -> "Incomplete type; Required ${requiredArgs} arg(s)"
             UnboundThis -> "'this' is not bound. Try adding a receiver parameter to the enclosing function"
+            AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
         }
 
     }

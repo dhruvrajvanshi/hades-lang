@@ -19,8 +19,10 @@ data class Token(
         TRUE,
         FALSE,
         THIS,
+        NULLPTR,
 
         ID,
+        INT_LITERAL,
 
         BYTE_STRING,
 

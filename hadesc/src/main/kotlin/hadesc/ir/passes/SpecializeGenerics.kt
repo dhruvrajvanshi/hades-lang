@@ -108,6 +108,8 @@ class SpecializeGenerics(
         is IRByteString -> value
         is IRVariable -> lowerVariable(value, typeArgs)
         is IRGetStructField -> lowerGetStructField(value, typeArgs)
+        is IRCIntConstant -> value
+        is IRNullPtr -> IRNullPtr(type = lowerType(value.type), location = value.location)
     }
 
     private fun lowerGetStructField(value: IRGetStructField, typeArgs: List<Type>? = null): IRValue {
@@ -343,6 +345,7 @@ class SpecializeGenerics(
             Type.Error,
             Type.Byte,
             Type.Void,
+            Type.CInt,
             Type.Bool -> {
                 type
             }

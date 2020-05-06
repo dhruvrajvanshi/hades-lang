@@ -83,6 +83,7 @@ class Checker(
                 "Void" -> Type.Void
                 "Bool" -> Type.Bool
                 "Byte" -> Type.Byte
+                "CInt" -> Type.CInt
                 else -> {
                     val typeBinding = resolveTypeVariable(annotation.name)
                     if (typeBinding != null) {
@@ -255,6 +256,11 @@ class Checker(
             is Expression.ByteString -> Type.RawPtr(Type.Byte)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.This -> inferThis(expression)
+            is Expression.NullPtr -> {
+                error(expression, kind = Diagnostic.Kind.AmbiguousExpression)
+                Type.RawPtr(Type.Error)
+            }
+            is Expression.IntLiteral -> Type.CInt
         }
         expressionTypes[expression] = ty
         return ty
@@ -286,6 +292,7 @@ class Checker(
                 is Type.GenericInstance,
                 Type.Byte,
                 Type.Void,
+                Type.CInt,
                 Type.Bool -> {
                     null
                 }
@@ -440,6 +447,7 @@ class Checker(
         Type.Error,
         Type.Byte,
         Type.Void,
+        Type.CInt,
         is Type.ParamRef,
         Type.Bool -> type
         is Type.RawPtr -> Type.RawPtr(type.to)
@@ -471,9 +479,14 @@ class Checker(
         expressionTypes[expression] = instance
     }
 
-    private fun checkExpression(expected: Type, expression: Expression) {
-        val exprType = inferExpression(expression)
-        checkAssignability(expression.location, destination = expected, source = exprType)
+    private fun checkExpression(expected: Type, expression: Expression) = when {
+        expression is Expression.NullPtr && expected is Type.RawPtr -> {
+            expressionTypes[expression] = expected
+        }
+        else -> {
+            val exprType = inferExpression(expression)
+            checkAssignability(expression.location, destination = expected, source = exprType)
+        }
     }
 
     private fun checkAssignability(location: SourceLocation, source: Type, destination: Type) {
@@ -486,6 +499,7 @@ class Checker(
         source is Type.Error || destination is Type.Error -> {
             true
         }
+        source is Type.CInt && destination is Type.CInt -> true
         source is Type.Bool && destination is Type.Bool -> {
             true
         }

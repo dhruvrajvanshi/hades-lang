@@ -1,0 +1,15 @@
+import glfw as glfw;
+
+extern def main_loop(*glfw.Window): Void = main_loop;
+
+def main(): Void {
+    glfw.init();
+
+    val window = glfw.create_window(640, 480, b"Hello World", nullptr, nullptr);
+
+    glfw.make_context_current(window);
+
+    main_loop(window);
+
+    glfw.terminate();
+}

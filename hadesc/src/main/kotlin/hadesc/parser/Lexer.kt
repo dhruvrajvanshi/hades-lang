@@ -1,6 +1,7 @@
 package hadesc.parser
 
 import hadesc.ast.Token
+import hadesc.ast.TokenKind
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -18,7 +19,8 @@ val KEYWORDS = mapOf(
     "struct" to tt.STRUCT,
     "true" to tt.TRUE,
     "false" to tt.FALSE,
-    "this" to tt.THIS
+    "this" to tt.THIS,
+    "nullptr" to tt.NULLPTR
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
@@ -68,11 +70,22 @@ class Lexer(private val file: SourcePath) {
                 advance()
                 makeToken(SINGLE_CHAR_TOKENS.getValue(c))
             }
+            c.isDigit() -> {
+                intLiteral()
+            }
             else -> {
                 advance()
                 makeToken(Token.Kind.ERROR)
             }
         }
+    }
+
+    private fun intLiteral(): Token {
+        advance()
+        while (currentChar.isDigit()) {
+            advance()
+        }
+        return makeToken(TokenKind.INT_LITERAL)
     }
 
     private fun identifierOrKeyword(): Token {

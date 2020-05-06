@@ -5,7 +5,9 @@ import hadesc.context.Context
 import hadesc.ir.*
 import hadesc.logging.logger
 import hadesc.types.Type
+import llvm.ConstantInt
 import llvm.FunctionType
+import llvm.PointerType
 import llvm.StructType
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
@@ -125,11 +127,21 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         builder.buildRet(lowerExpression(statement.value))
     }
 
-    private fun lowerExpression(value: IRValue) = when (value) {
+    private fun lowerExpression(value: IRValue): llvm.Value = when (value) {
         is IRBool -> lowerBoolExpression(value)
         is IRByteString -> lowerByteString(value)
         is IRVariable -> lowerVariable(value)
         is IRGetStructField -> lowerGetStructField(value)
+        is IRCIntConstant -> lowerCIntValue(value)
+        is IRNullPtr -> lowerNullPtr(value)
+    }
+
+    private fun lowerCIntValue(value: IRCIntConstant): llvm.Value {
+        return ConstantInt(value = value.value.toLong(), type = cIntTy, signExtend = false)
+    }
+
+    private fun lowerNullPtr(value: IRNullPtr): llvm.Value {
+        return (lowerType(value.type) as PointerType).getConstantNullPointer()
     }
 
     private fun lowerGetStructField(expression: IRGetStructField): llvm.Value {
@@ -269,6 +281,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.Bool -> boolTy
+        Type.CInt -> cIntTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
             require(type.typeParams == null) {
@@ -302,6 +315,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val bytePtrTy = llvm.PointerType(byteTy)
     private val voidTy = llvm.VoidType(llvmCtx)
     private val boolTy = llvm.IntType(1, llvmCtx)
+    private val cIntTy = llvm.IntType(32, llvmCtx)
     private val trueValue = llvm.ConstantInt(boolTy, 1, false)
     private val falseValue = llvm.ConstantInt(boolTy, 0, false)
 
@@ -311,13 +325,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun linkWithRuntime() {
         log.info("Linking using gcc")
-        val commandParts = listOf(
+        val commandParts = mutableListOf(
             "gcc",
             "-no-pie",
             "-o", ctx.options.output.toString(),
-            ctx.options.runtime.toString(),
-            objectFilePath
+            ctx.options.runtime.toString()
         )
+        commandParts.add(objectFilePath)
+        commandParts.addAll(ctx.options.cFlags)
+
         val outputFile = ctx.options.output.toFile()
         if (outputFile.exists()) {
             outputFile.delete()

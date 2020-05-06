@@ -297,6 +297,7 @@ class IRReturnVoidStatement : IRStatement()
 
 
 sealed class IRValue {
+
     abstract val type: Type
     abstract val location: SourceLocation
 
@@ -310,6 +311,8 @@ sealed class IRValue {
         is IRByteString -> "b\"${value.decodeToString()}\""
         is IRVariable -> "${type.prettyPrint()} ${name.prettyPrint()}"
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
+        is IRCIntConstant -> value.toString()
+        is IRNullPtr -> "nullptr"
     }
 }
 
@@ -348,4 +351,14 @@ class IRGetStructField(
     val index: Int
 ) : IRValue()
 
+class IRCIntConstant(
+    override val type: Type,
+    override val location: SourceLocation,
+    val value: Int
+) : IRValue()
+
+class IRNullPtr(
+    override val type: Type,
+    override val location: SourceLocation
+) : IRValue()
 

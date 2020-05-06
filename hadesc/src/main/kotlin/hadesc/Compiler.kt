@@ -14,6 +14,11 @@ sealed class Options {
             val runtime = Path.of(args.getString("--runtime"))
             val main = Path.of(args.getString("--main"))
             val directories = args.getList("--directories").map { Path.of(it) }
+            val cFlags = if (args.contains("--cflags")) {
+                args.getList("--cflags")
+            } else {
+                emptyList()
+            }
             directories.forEach {
                 assert(it.toFile().exists())
             }
@@ -21,7 +26,8 @@ sealed class Options {
                 directories = directories,
                 output = output,
                 main = main,
-                runtime = runtime
+                runtime = runtime,
+                cFlags = cFlags
             )
         }
 
@@ -48,7 +54,8 @@ data class BuildOptions(
     val directories: List<Path>,
     val output: Path,
     val main: Path,
-    val runtime: Path
+    val runtime: Path,
+    val cFlags: List<String>
 ) : Options()
 
 class Compiler(

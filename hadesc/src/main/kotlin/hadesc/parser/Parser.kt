@@ -30,7 +30,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val declarations = parseDeclarations()
         val start = Position(1, 1)
         val stop = declarations.lastOrNull()?.location?.stop ?: start
-        val location = SourceLocation(file, start, stop)
+        val location = SourceLocation(file, start, currentToken.location.stop)
         val sourceFile = SourceFile(location, moduleName, declarations)
         ctx.resolver.onParseSourceFile(sourceFile)
         return sourceFile
@@ -253,6 +253,13 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val head = when (currentToken.kind) {
             tt.ID -> parseExpressionVar()
             tt.BYTE_STRING -> parseExpressionByteString()
+            tt.NULLPTR -> {
+                Expression.NullPtr(advance().location)
+            }
+            tt.INT_LITERAL -> {
+                val token = advance()
+                Expression.IntLiteral(token.location, token.text.toInt())
+            }
             tt.TRUE -> {
                 Expression.BoolLiteral(advance().location, true)
             }

@@ -37,6 +37,15 @@ sealed class Expression : HasLocation {
     data class This(
         override val location: SourceLocation
     ) : Expression()
+
+    data class NullPtr(
+        override val location: SourceLocation
+    ) : Expression()
+
+    data class IntLiteral(
+        override val location: SourceLocation,
+        val value: Int
+    ) : Expression()
 }
 
 data class Arg(

@@ -49,8 +49,11 @@ class Context(
 
     private fun makeSourcePath(path: Path) = SourcePath(path)
 
+    private val parsedSourceFiles = mutableMapOf<Path, SourceFile>()
     fun sourceFile(moduleName: QualifiedName, path: SourcePath) =
-        Parser(this, moduleName, path).parseSourceFile()
+        parsedSourceFiles.computeIfAbsent(path.path.toAbsolutePath()) {
+            Parser(this, moduleName, path).parseSourceFile()
+        }
 
     fun makeName(text: String): Name = Name(text)
 
