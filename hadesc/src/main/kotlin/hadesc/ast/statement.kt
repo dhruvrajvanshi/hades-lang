@@ -22,5 +22,12 @@ sealed class Statement : HasLocation {
         val body: Block
     ) : Statement()
 
+    data class If(
+        override val location: SourceLocation,
+        val condition: Expression,
+        val ifTrue: Block,
+        val ifFalse: Block?
+    ) : Statement()
+
     data class Error(override val location: SourceLocation) : Statement()
 }

@@ -224,9 +224,17 @@ class Checker(
             }
         }
         is Statement.Val -> checkValStatement(statement)
-        is Statement.Error -> {
-        }
         is Statement.While -> checkWhileStatement(statement)
+        is Statement.If -> checkIfStatement(statement)
+        is Statement.Error -> { }
+    }
+
+    private fun checkIfStatement(statement: Statement.If) {
+        checkExpression(Type.Bool, statement.condition)
+        checkBlock(statement.ifTrue)
+        if (statement.ifFalse != null) {
+            checkBlock(statement.ifFalse)
+        }
     }
 
     private fun checkWhileStatement(statement: Statement.While) {

@@ -22,7 +22,9 @@ val KEYWORDS = mapOf(
     "this" to tt.THIS,
     "nullptr" to tt.NULLPTR,
     "while" to tt.WHILE,
-    "not" to tt.NOT
+    "not" to tt.NOT,
+    "if" to tt.IF,
+    "else" to tt.ELSE
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

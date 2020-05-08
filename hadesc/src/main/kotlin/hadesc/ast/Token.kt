@@ -22,6 +22,8 @@ data class Token(
         NULLPTR,
         WHILE,
         NOT,
+        IF,
+        ELSE,
 
         ID,
         INT_LITERAL,

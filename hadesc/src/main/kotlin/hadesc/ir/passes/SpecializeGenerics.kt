@@ -95,10 +95,17 @@ class SpecializeGenerics(
                     is IRLoad -> visitLoad(statement)
                     is IRNot -> visitNot(statement)
                     is IRBr -> visitBranch(statement)
+                    is IRJump -> visitJump(statement)
                 }
             )
         }
         return newBlock
+    }
+
+    private fun visitJump(statement: IRJump) {
+        builder.buildJump(
+            statement.location,
+            statement.label)
     }
 
     private fun visitNot(statement: IRNot) {

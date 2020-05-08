@@ -301,7 +301,50 @@ class Desugar(private val ctx: Context) {
         is Statement.Return -> lowerReturnStatement(statement)
         is Statement.Val -> lowerValStatement(statement)
         is Statement.While -> lowerWhileStatement(statement)
+        is Statement.If -> lowerIfStatement(statement)
         is Statement.Error -> TODO()
+    }
+
+    /**
+     * if <condition>
+     *      <ifTrue>
+     *
+     * br <condition> ifTrue: %1, ifFasle: %2
+     * %1:
+     *  <ifTrue>
+     *  jmp %3
+     * %2:
+     *  <ifFalse>
+     *  jmp %3
+     * %3: // position at end
+     * ...
+     *
+     */
+    private fun lowerIfStatement(statement: Statement.If) {
+        val ifTrue = buildBlock()
+        val ifFalse = buildBlock()
+        val end = buildBlock()
+
+        builder.buildBranch(
+            statement.condition.location,
+            lowerExpression(statement.condition),
+            ifTrue = ifTrue.name,
+            ifFalse = ifFalse.name)
+
+        lowerBlock(statement.ifTrue, ifTrue)
+        val endLocation = statement.ifFalse?.location ?: statement.ifTrue.location
+        builder.buildJump(endLocation, end.name)
+
+        builder.position = ifFalse
+        if (statement.ifFalse != null) {
+            lowerBlock(statement.ifFalse, ifFalse)
+            builder.position = ifFalse
+            builder.buildJump(endLocation, end.name)
+        } else {
+            builder.position = ifFalse
+            builder.buildJump(endLocation, end.name)
+        }
+        builder.position = end
     }
 
     /**

@@ -107,6 +107,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRLoad -> lowerLoad(statement)
         is IRNot -> lowerNot(statement)
         is IRBr -> lowerBr(statement)
+        is IRJump -> lowerJump(statement)
+    }
+
+    private fun lowerJump(statement: IRJump) {
+        LLVM.LLVMBuildBr(builder.ref, getBlock(statement.label).ref)
     }
 
     private fun lowerBr(statement: IRBr) {
@@ -283,7 +288,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val buffer = ByteArray(100)
         val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMPrintMessageAction, buffer)
         require(error == 0) {
-            log.error("Invalid llvm module\n")
+            log.error("Invalid llvm module: ${llvmModule.sourceFileName}\n")
             llvmModule.dump()
             "Invalid LLVM module"
         }

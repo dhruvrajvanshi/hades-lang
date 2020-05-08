@@ -131,7 +131,7 @@ class IRFunctionDef(
 
     override fun prettyPrint(): String {
         return "def ${name.prettyPrint()}: ${type.prettyPrint()} = (${params.joinToString(",") { it.prettyPrint() }}) {" +
-                "${entryBlock.prettyPrint()}\n${blocks.joinToString { it.prettyPrint() }}}"
+                "${entryBlock.prettyPrint()}\n${blocks.joinToString(""){ it.prettyPrint() }}}"
     }
 }
 
@@ -275,6 +275,10 @@ class IRBuilder {
     fun buildBranch(location: SourceLocation, condition: IRValue, ifTrue: IRLocalName, ifFalse: IRLocalName): IRStatement {
         return addStatement(IRBr(location, condition, ifTrue, ifFalse))
     }
+
+    fun buildJump(location: SourceLocation, name: IRLocalName): IRStatement {
+        return addStatement(IRJump(location, name))
+    }
 }
 
 sealed class IRStatement {
@@ -298,6 +302,7 @@ sealed class IRStatement {
         is IRLoad -> "${name.prettyPrint()}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
         is IRNot -> "${name.prettyPrint()}: ${type.prettyPrint()} = not ${arg.prettyPrint()}"
         is IRBr -> "br ${condition.prettyPrint()} then:${ifTrue.prettyPrint()} else:${ifFalse.prettyPrint()}"
+        is IRJump -> "jmp ${label.prettyPrint()}"
     }
 }
 
@@ -365,6 +370,11 @@ data class IRBr(
     val condition: IRValue,
     val ifTrue: IRLocalName,
     val ifFalse: IRLocalName
+) : IRStatement()
+
+data class IRJump(
+    val location: SourceLocation,
+    val label: IRLocalName
 ) : IRStatement()
 
 class IRBool(

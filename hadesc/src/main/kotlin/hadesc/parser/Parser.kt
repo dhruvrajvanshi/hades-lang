@@ -12,7 +12,7 @@ import hadesc.qualifiedname.QualifiedName
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT)
-private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE)
+private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE, tt.IF)
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
     'n' to '\n',
@@ -223,17 +223,34 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.RETURN -> parseReturnStatement()
             tt.VAL -> parseValStatement()
             tt.WHILE -> parseWhileStatement()
+            tt.IF -> parseIfStatement()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.StatementExpected)
             }
         }
     }
 
+    private fun parseIfStatement(): Statement {
+        val start = expect(tt.IF)
+        val condition = parseExpression()
+        val ifTrue = parseBlock()
+        val ifFalse = if (at(tt.ELSE)) {
+            advance()
+            parseBlock()
+        } else {
+            null
+        }
+        return Statement.If(
+            location = makeLocation(start, ifFalse ?: ifTrue),
+            condition = condition,
+            ifTrue = ifTrue,
+            ifFalse = ifFalse
+        )
+    }
+
     private fun parseWhileStatement(): Statement {
         val start = expect(tt.WHILE)
-        expect(tt.LPAREN)
         val condition = parseExpression()
-        expect(tt.RPAREN)
         val block = parseBlock()
         return Statement.While(
             makeLocation(start, block),
@@ -269,6 +286,12 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseExpression(): Expression {
         val head = when (currentToken.kind) {
+            tt.LPAREN -> {
+                advance()
+                val result = parseExpression()
+                expect(tt.RPAREN)
+                result
+            }
             tt.ID -> parseExpressionVar()
             tt.BYTE_STRING -> parseExpressionByteString()
             tt.NULLPTR -> {

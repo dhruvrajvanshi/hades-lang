@@ -1,0 +1,26 @@
+import glfw as glfw;
+import libc as c;
+
+def main() {
+    if (not (glfw.init() == 0)) {
+        panic(b"PANIC: Could not initialize GLFW");
+    }
+    val window = glfw.create_window(initial_window_width, initial_window_height, b"IDE", nullptr, nullptr);
+    panic_if_null(window);
+
+    glfw.destroy_window(window); // finally
+    glfw.terminate(); // finally
+}
+
+def panic_if_null[T](ptr: *T, message: *Byte): T {
+    if (ptr == null) {
+        panic(message);
+    }
+    return ptr;
+}
+
+def panic(message: Byte*) {
+    c.puts(message);
+    c.exit(1);
+}
+

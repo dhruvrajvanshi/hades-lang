@@ -2,7 +2,7 @@
 struct Window {}
 struct Monitor {}
 
-extern def init(): Void = glfwInit;
+extern def init(): CInt = glfwInit;
 extern def terminate(): Void = glfwTerminate;
 extern def create_window(CInt, CInt, *Byte, *Monitor, *Window): *Window = glfwCreateWindow;
 extern def make_context_current(*Window): Void = glfwMakeContextCurrent;
