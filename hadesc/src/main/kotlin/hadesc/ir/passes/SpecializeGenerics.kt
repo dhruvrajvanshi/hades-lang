@@ -12,6 +12,7 @@ class SpecializeGenerics(
     private val ctx: Context,
     private val oldModule: IRModule
 ) {
+    private var currentFunction: IRFunctionDef? = null
     private val module = IRModule()
     private val builder = IRBuilder()
 
@@ -59,29 +60,28 @@ class SpecializeGenerics(
         if (definition.typeParams != null) {
             return
         }
-        val block = IRBlock()
+        val block = IRBlock(definition.entryBlock.name)
 
-        module.addGlobalFunctionDef(
+        val fn = module.addGlobalFunctionDef(
             lowerGlobalName(definition.name),
             lowerType(definition.type) as Type.Function,
             typeParams = null,
             params = definition.params.map { lowerParam(it) },
             entryBlock = block
         )
-
-        builder.withinBlock(block) {
-            visitBlock(definition.entryBlock)
-        }
-        for (otherBlocks in definition.blocks) {
-            val newBlock = IRBlock()
-            builder.withinBlock(newBlock) {
-                visitBlock(newBlock)
-            }
+        currentFunction = fn
+        lowerBlock(oldBlock = definition.entryBlock, newBlock = block)
+        for (block in definition.blocks) {
+            val newBlock = IRBlock(block.name)
+            fn.appendBlock(newBlock)
+            lowerBlock(newBlock = newBlock, oldBlock = block)
         }
     }
 
-    private fun visitBlock(block: IRBlock) {
-        for (statement in block) {
+
+    private fun lowerBlock(oldBlock: IRBlock, newBlock: IRBlock): IRBlock {
+        builder.position = newBlock
+        for (statement in oldBlock) {
             exhaustive(
                 when (statement) {
                     is IRReturnStatement -> visitReturnStatement(statement)
@@ -98,6 +98,7 @@ class SpecializeGenerics(
                 }
             )
         }
+        return newBlock
     }
 
     private fun visitNot(statement: IRNot) {
@@ -105,7 +106,12 @@ class SpecializeGenerics(
     }
 
     private fun visitBranch(statement: IRBr) {
-        builder.buildBranch(statement.location, lowerValue(statement.condition), statement.ifTrue, statement.ifFalse)
+        builder.buildBranch(
+            statement.location,
+            lowerValue(statement.condition),
+            statement.ifTrue,
+            statement.ifFalse)
+
     }
 
     private fun visitCallStatement(statement: IRCall) {
@@ -266,15 +272,19 @@ class SpecializeGenerics(
         val params = fnType.from.zip(def.params).map { (type, param) ->
             IRParam(param.name, type = type, index = param.index, location = param.location, functionName = name)
         }
-        module.addGlobalFunctionDef(
+        val fn = module.addGlobalFunctionDef(
             name, fnType,
             typeParams = null,
             params = params,
             entryBlock = body
         )
         currentSpecialization = makeSubstitution(requireNotNull(def.typeParams), typeArgs)
-        builder.withinBlock(body) {
-            visitBlock(def.entryBlock)
+        currentFunction = fn
+        lowerBlock(oldBlock = def.entryBlock, newBlock = body)
+        for (block in def.blocks) {
+            val newBlock = IRBlock(block.name)
+            fn.appendBlock(newBlock)
+            lowerBlock(oldBlock = block, newBlock = newBlock)
         }
         currentSpecialization = null
     }

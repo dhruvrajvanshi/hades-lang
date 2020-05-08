@@ -5,10 +5,7 @@ import hadesc.context.Context
 import hadesc.ir.*
 import hadesc.logging.logger
 import hadesc.types.Type
-import llvm.ConstantInt
-import llvm.FunctionType
-import llvm.PointerType
-import llvm.StructType
+import llvm.*
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.global.LLVM
@@ -16,12 +13,14 @@ import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalStdlibApi::class)
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
+    private var currentFunction: FunctionValue? = null
     private val log = logger()
     private val llvmCtx = llvm.Context()
     private val llvmModule = llvm.Module(ctx.options.main.toString(), llvmCtx)
     private val builder = llvm.Builder(llvmCtx)
 
     fun generate() {
+        logger().info(irModule.prettyPrint())
         for (it in irModule) {
             lowerDefinition(it)
         }
@@ -46,7 +45,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             for (field in definition.fields) {
                 index++
                 val fieldPtr = buildStructGEP(thisPtr, index, "field_$index")
-                val value = fn.getParam(index)
+                val value = fn.getParameter(index)
                 buildStore(toPointer = fieldPtr, value = value)
             }
             val instance = buildLoad(thisPtr, "instance")
@@ -61,19 +60,32 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
         val fn = getDeclaration(definition)
-        val basicBlock = fn.appendBasicBlock("entry")
-        withinBlock(basicBlock) {
-            definition.params.forEachIndexed { index, param ->
-                localVariables[param.name] = fn.getParam(index)
-            }
-            lowerBlock(definition.entryBlock)
+        currentFunction = fn
+        definition.params.forEachIndexed { index, param ->
+            localVariables[param.name] = fn.getParameter(index)
+        }
+        lowerBlock(definition.entryBlock)
+        for (block in definition.blocks) {
+            lowerBlock(block)
         }
     }
 
-    private fun lowerBlock(block: IRBlock) {
+    private val blocks = mutableMapOf<Pair<String, IRLocalName>, BasicBlock>()
+    private fun getBlock(blockName: IRLocalName): BasicBlock {
+        val fnName = requireNotNull(currentFunction?.valueName)
+        return blocks.computeIfAbsent(fnName to blockName) {
+            requireNotNull(currentFunction).appendBasicBlock(it.second.mangle())
+        }
+    }
+
+    private val loweredBlocks = mutableMapOf<IRBlock, BasicBlock>()
+    private fun lowerBlock(block: IRBlock): BasicBlock = loweredBlocks.computeIfAbsent(block) {
+        val basicBlock = getBlock(block.name)
+        builder.positionAtEnd(basicBlock)
         for (statement in block) {
             lowerStatement(statement)
         }
+        basicBlock
     }
 
     private fun lowerStatement(statement: IRStatement) = when (statement) {
@@ -93,8 +105,20 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRAlloca -> lowerAlloca(statement)
         is IRStore -> lowerStore(statement)
         is IRLoad -> lowerLoad(statement)
-        is IRNot -> TODO()
-        is IRBr -> TODO()
+        is IRNot -> lowerNot(statement)
+        is IRBr -> lowerBr(statement)
+    }
+
+    private fun lowerBr(statement: IRBr) {
+        builder.buildCondBr(lowerExpression(
+            statement.condition),
+            getBlock(statement.ifTrue),
+            getBlock(statement.ifFalse))
+    }
+
+    private fun lowerNot(statement: IRNot) {
+        val name = lowerName(statement.name)
+        localVariables[statement.name] = builder.buildNot(lowerExpression(statement.arg), name)
     }
 
     private val localVariables = mutableMapOf<IRLocalName, llvm.Value>()
@@ -182,11 +206,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val text = expression.value.decodeToString()
         val constStringRef = llvm.ConstantArray(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
-            constStringRef.getType(),
-            stringLiteralName()
+            stringLiteralName(),
+            constStringRef.getType()
         )
         globalRef.initializer = constStringRef
-        return globalRef.constPointerCast(bytePtrTy)
+        return llvm.Value(LLVM.LLVMConstPointerCast(globalRef.ref, bytePtrTy.ref))
     }
 
     private fun lowerCallExpression(expression: IRCall): llvm.Value {
@@ -201,12 +225,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun withinBlock(basicBlock: llvm.BasicBlock, fn: llvm.Builder.() -> Unit) {
-        val pos = builder.getInsertBlock()
         builder.positionAtEnd(basicBlock)
         builder.fn()
-        if (pos != null) {
-            builder.positionAtEnd(pos)
-        }
     }
 
 
@@ -261,7 +281,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun verifyModule() {
         // TODO: Handle this in a better way
         val buffer = ByteArray(100)
-        val error = LLVM.LLVMVerifyModule(llvmModule.getUnderlyingReference(), LLVM.LLVMPrintMessageAction, buffer)
+        val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMPrintMessageAction, buffer)
         require(error == 0) {
             log.error("Invalid llvm module\n")
             llvmModule.dump()
@@ -330,9 +350,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val commandParts = mutableListOf(
             "gcc",
             "-no-pie",
-            "-o", ctx.options.output.toString(),
-            ctx.options.runtime.toString()
+            "-o", ctx.options.output.toString()
         )
+        commandParts.add(ctx.options.runtime.toString())
         commandParts.add(objectFilePath)
         commandParts.addAll(ctx.options.cFlags)
 
@@ -348,7 +368,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         assert(exitCode == 0) {
             log.error(process.inputStream.readAllBytes().toString(StandardCharsets.UTF_8))
             log.error(process.errorStream.readAllBytes().toString(StandardCharsets.UTF_8))
-            log.error("Module: ", LLVM.LLVMPrintModuleToString(llvmModule.getUnderlyingReference()).string)
+            log.error("Module: ", LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
             "gcc exited with code $exitCode"
         }
     }
@@ -379,12 +399,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val pass = LLVM.LLVMCreatePassManager()
         LLVM.LLVMTargetMachineEmitToFile(
             targetMachine,
-            llvmModule.getUnderlyingReference(),
+            llvmModule.ref,
             BytePointer(objectFilePath),
             LLVM.LLVMObjectFile,
             BytePointer("Message")
         )
-        LLVM.LLVMRunPassManager(pass, llvmModule.getUnderlyingReference())
+        LLVM.LLVMRunPassManager(pass, llvmModule.ref)
 
         LLVM.LLVMDisposePassManager(pass)
         LLVM.LLVMDisposeTargetMachine(targetMachine)

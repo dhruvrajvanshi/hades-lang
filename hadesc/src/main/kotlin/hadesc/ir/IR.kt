@@ -190,7 +190,16 @@ class IRBuilder {
 
 
     fun <S : IRStatement> addStatement(statement: S): S {
-        requireNotNull(position).statements.add(statement)
+        val statements = requireNotNull(position).statements
+        if (statements.isNotEmpty()) {
+            require(statements.last() !is IRReturnStatement) {
+                "Tried to add statement after terminator"
+            }
+            require(statements.last() !is IRBr) {
+                "Tried to add statement after terminator"
+            }
+        }
+        statements.add(statement)
         return statement
     }
 
@@ -263,7 +272,7 @@ class IRBuilder {
         return addStatement(IRNot(type, location, name, value))
     }
 
-    fun buildBranch(location: SourceLocation, condition: IRValue, ifTrue: IRBlock, ifFalse: IRBlock): IRStatement {
+    fun buildBranch(location: SourceLocation, condition: IRValue, ifTrue: IRLocalName, ifFalse: IRLocalName): IRStatement {
         return addStatement(IRBr(location, condition, ifTrue, ifFalse))
     }
 }
@@ -288,7 +297,7 @@ sealed class IRStatement {
         is IRStore -> "store ${ptr.prettyPrint()} ${value.prettyPrint()}"
         is IRLoad -> "${name.prettyPrint()}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
         is IRNot -> "${name.prettyPrint()}: ${type.prettyPrint()} = not ${arg.prettyPrint()}"
-        is IRBr -> "br ${condition.prettyPrint()} then:${ifTrue.name.prettyPrint()} else:${ifFalse.name.prettyPrint()}"
+        is IRBr -> "br ${condition.prettyPrint()} then:${ifTrue.prettyPrint()} else:${ifFalse.prettyPrint()}"
     }
 }
 
@@ -354,8 +363,8 @@ data class IRNot(
 data class IRBr(
     val location: SourceLocation,
     val condition: IRValue,
-    val ifTrue: IRBlock,
-    val ifFalse: IRBlock
+    val ifTrue: IRLocalName,
+    val ifFalse: IRLocalName
 ) : IRStatement()
 
 class IRBool(

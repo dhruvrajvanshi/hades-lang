@@ -320,13 +320,11 @@ class Desugar(private val ctx: Context) {
         val whileBody = buildBlock()
         val whileExit = buildBlock()
 
-        val condition = lowerExpression(statement.condition)
-
-        builder.buildBranch(statement.condition.location, condition, whileBody, whileExit)
+        builder.buildBranch(statement.condition.location, lowerExpression(statement.condition), whileBody.name, whileExit.name)
 
         lowerBlock(statement.body, whileBody)
 
-        builder.buildBranch(statement.condition.location, condition, whileBody, whileExit)
+        builder.buildBranch(statement.condition.location, lowerExpression(statement.condition), whileBody.name, whileExit.name)
 
         builder.position = whileExit
     }
