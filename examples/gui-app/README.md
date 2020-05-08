@@ -13,14 +13,11 @@ with the object file
 Install `libglfw3` using the OS package manager (I haven't tested on
 windows but should probably work using cygwin)
 
-```
-./gradlew :hadesc:run --args="--main ../examples/gui-app/glfw_app.hds --directories std ../bindings --runtime runtime.c --output ../app --cflags ../examples/gui-app/glfw_app.c -lGL -lglfw"
-```
-
 From project root
 ```
-./gradlew :hadesc:run --args="--main ../examples/glfw_app.hds --directories std ../bindings --runtime runtime.c --output ../app --cflags ../examples/glfw_app.c -lGL -lglfw"
+./gradlew :hadesc:run --args="--main ../examples/gui-app/glfw_app.hds --directories std ../bindings --runtime runtime.c --output ../app --cflags  -lGL -lglfw -g"
 ```
+
 This will create an `app` executable in the root directory.
 
 ```
