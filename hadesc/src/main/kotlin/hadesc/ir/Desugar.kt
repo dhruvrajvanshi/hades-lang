@@ -172,6 +172,7 @@ class Desugar(private val ctx: Context) {
                 expression.location,
                 expression.value
             )
+            is Expression.Not -> TODO()
         }
         assert(lowered.type == typeOfExpression(expression)) {
             "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +
@@ -294,7 +295,12 @@ class Desugar(private val ctx: Context) {
     private fun lowerStatement(statement: Statement): IRStatement = when (statement) {
         is Statement.Return -> lowerReturnStatement(statement)
         is Statement.Val -> lowerValStatement(statement)
+        is Statement.While -> lowerWhileStatement(statement)
         is Statement.Error -> TODO()
+    }
+
+    private fun lowerWhileStatement(statement: Statement.While): IRStatement {
+        TODO()
     }
 
     private fun lowerReturnStatement(statement: Statement.Return): IRStatement {

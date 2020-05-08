@@ -226,6 +226,12 @@ class Checker(
         is Statement.Val -> checkValStatement(statement)
         is Statement.Error -> {
         }
+        is Statement.While -> checkWhileStatement(statement)
+    }
+
+    private fun checkWhileStatement(statement: Statement.While) {
+        checkExpression(Type.Bool, statement.condition)
+        checkBlock(statement.body)
     }
 
     private val checkedValStatements = mutableSetOf<SourceLocation>()
@@ -261,6 +267,10 @@ class Checker(
                 Type.RawPtr(Type.Error)
             }
             is Expression.IntLiteral -> Type.CInt
+            is Expression.Not -> {
+                checkExpression(Type.Bool, expression.expression)
+                Type.Bool
+            }
         }
         expressionTypes[expression] = ty
         return ty

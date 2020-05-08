@@ -16,5 +16,11 @@ sealed class Statement : HasLocation {
         val rhs: Expression
     ) : Statement()
 
+    data class While(
+        override val location: SourceLocation,
+        val condition: Expression,
+        val body: Block
+    ) : Statement()
+
     data class Error(override val location: SourceLocation) : Statement()
 }

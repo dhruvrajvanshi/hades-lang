@@ -20,7 +20,9 @@ val KEYWORDS = mapOf(
     "true" to tt.TRUE,
     "false" to tt.FALSE,
     "this" to tt.THIS,
-    "nullptr" to tt.NULLPTR
+    "nullptr" to tt.NULLPTR,
+    "while" to tt.WHILE,
+    "not" to tt.NOT
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
@@ -59,6 +61,15 @@ class Lexer(private val file: SourcePath) {
 
     fun nextToken(): Token {
         skipWhitespace()
+        if (currentChar == '/' && state.currentOffset < text.length && text[state.currentOffset + 1] == '/') {
+            advance()
+            advance()
+            while (currentChar != '\n' && currentChar != EOF_CHAR) {
+                advance()
+            }
+            advance()
+            skipWhitespace()
+        }
         startToken()
         val c = currentChar
         return when {

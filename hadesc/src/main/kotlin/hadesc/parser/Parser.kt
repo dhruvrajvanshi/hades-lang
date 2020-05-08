@@ -12,8 +12,8 @@ import hadesc.qualifiedname.QualifiedName
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT)
-private val structMemberRecoveryTokens = setOf(tt.EOF, tt.VAL, tt.DEF)
-private val statementRecoveryTokens = setOf(tt.EOF, tt.RETURN, tt.VAL, tt.RBRACE)
+private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE)
+private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
     'n' to '\n',
     '0' to '\u0000'
@@ -204,8 +204,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun parseBlockMember(): Block.Member {
-        return when (currentToken.kind) {
-            tt.RETURN, tt.VAL -> Block.Member.Statement(parseStatement())
+        return when {
+            isStatementPredicted() -> Block.Member.Statement(parseStatement())
             else -> {
                 val expr = parseExpression()
                 expect(tt.SEMICOLON)
@@ -214,14 +214,32 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         }
     }
 
+    private fun isStatementPredicted(): Boolean {
+        return currentToken.kind in statementPredictors
+    }
+
     private fun parseStatement(): Statement {
         return when (currentToken.kind) {
             tt.RETURN -> parseReturnStatement()
             tt.VAL -> parseValStatement()
+            tt.WHILE -> parseWhileStatement()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.StatementExpected)
             }
         }
+    }
+
+    private fun parseWhileStatement(): Statement {
+        val start = expect(tt.WHILE)
+        expect(tt.LPAREN)
+        val condition = parseExpression()
+        expect(tt.RPAREN)
+        val block = parseBlock()
+        return Statement.While(
+            makeLocation(start, block),
+            condition,
+            block
+        )
     }
 
     private fun parseReturnStatement(): Statement {
@@ -265,6 +283,11 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             }
             tt.FALSE -> {
                 Expression.BoolLiteral(advance().location, false)
+            }
+            tt.NOT -> {
+                val start = advance()
+                val expression = parseExpression()
+                Expression.Not(makeLocation(start, expression), expression)
             }
             tt.THIS -> {
                 Expression.This(advance().location)

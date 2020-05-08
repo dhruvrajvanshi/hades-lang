@@ -46,6 +46,11 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val value: Int
     ) : Expression()
+
+    data class Not(
+        override val location: SourceLocation,
+        val expression: Expression
+    ) : Expression()
 }
 
 data class Arg(

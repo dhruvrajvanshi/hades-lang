@@ -20,6 +20,8 @@ data class Token(
         FALSE,
         THIS,
         NULLPTR,
+        WHILE,
+        NOT,
 
         ID,
         INT_LITERAL,

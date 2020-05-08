@@ -6,5 +6,6 @@ extern def init(): Void = glfwInit;
 extern def terminate(): Void = glfwTerminate;
 extern def create_window(CInt, CInt, *Byte, *Monitor, *Window): *Window = glfwCreateWindow;
 extern def make_context_current(*Window): Void = glfwMakeContextCurrent;
-
-
+extern def window_should_close(*Window): Bool = glfwWindowShouldClose;
+extern def swap_buffers(*Window): Void = glfwSwapBuffers;
+extern def wait_events(): Void = glfwWaitEvents;

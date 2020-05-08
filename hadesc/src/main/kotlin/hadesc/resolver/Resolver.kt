@@ -198,6 +198,7 @@ class Resolver(val ctx: Context) {
                         null
                     }
                     is Statement.Error -> null
+                    is Statement.While -> null
                 }
             }
             if (binding != null) {

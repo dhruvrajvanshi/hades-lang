@@ -1,6 +1,12 @@
 import glfw as glfw;
 
-extern def main_loop(*glfw.Window): Void = main_loop;
+def main_loop(window: *glfw.Window): Void {
+    // glClear(GL_COLOR_BUFFER_BIT);
+
+    glfw.swap_buffers(window);
+
+    glfw.wait_events();
+}
 
 def main(): Void {
     glfw.init();
@@ -9,7 +15,9 @@ def main(): Void {
 
     glfw.make_context_current(window);
 
-    main_loop(window);
+    while(not glfw.window_should_close(window)) {
+        main_loop(window);
+    }
 
     glfw.terminate();
 }
