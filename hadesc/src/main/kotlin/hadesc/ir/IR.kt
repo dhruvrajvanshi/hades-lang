@@ -64,9 +64,9 @@ class IRModule {
         type: Type.Function,
         typeParams: List<IRTypeParam>?,
         params: List<IRParam>,
-        body: IRBlock
+        entryBlock: IRBlock
     ): IRFunctionDef {
-        val value = IRFunctionDef(this, name, type, typeParams, params, body)
+        val value = IRFunctionDef(this, name, type, typeParams, params, entryBlock, blocks = mutableListOf())
         add(value)
         return value
     }
@@ -108,8 +108,8 @@ class IRModule {
 
 sealed class IRDefinition {
     abstract val module: IRModule
-    fun prettyPrint(): String = when (this) {
-        is IRFunctionDef -> "def ${name.prettyPrint()}: ${type.prettyPrint()} = (${params.joinToString(",") { it.prettyPrint() }}) ${body.prettyPrint()}"
+    open fun prettyPrint(): String = when (this) {
+        is IRFunctionDef -> this.prettyPrint()
         is IRStructDef -> "struct ${this.globalName.prettyPrint()} {" +
                 "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
         is IRExternFunctionDef -> "extern def ${name.prettyPrint()} = ${externName.text}"
@@ -122,8 +122,18 @@ class IRFunctionDef(
     val type: Type.Function,
     val typeParams: List<IRTypeParam>?,
     val params: List<IRParam>,
-    var body: IRBlock
-) : IRDefinition()
+    var entryBlock: IRBlock,
+    var blocks: MutableList<IRBlock>
+) : IRDefinition() {
+    fun appendBlock(block: IRBlock) {
+        blocks.add(block)
+    }
+
+    override fun prettyPrint(): String {
+        return "def ${name.prettyPrint()}: ${type.prettyPrint()} = (${params.joinToString(",") { it.prettyPrint() }}) {" +
+                "${entryBlock.prettyPrint()}\n${blocks.joinToString { it.prettyPrint() }}}"
+    }
+}
 
 data class IRParam(
     val name: IRLocalName,
@@ -158,7 +168,8 @@ class IRTypeParam(val name: IRLocalName, val binderLocation: SourceLocation)
 
 class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
     var statements = mutableListOf<IRStatement>()
-    fun prettyPrint(): String = "{\n${statementSequence().joinToString("\n") { "  " + it.prettyPrint() }}\n}"
+    fun prettyPrint(): String =
+        "\n${name.prettyPrint()}:\n${statementSequence().joinToString("\n") { "  " + it.prettyPrint() }}\n"
 
     operator fun iterator(): Iterator<IRStatement> = statementSequence().iterator()
 
@@ -244,10 +255,16 @@ class IRBuilder {
 
 
     fun withinBlock(block: IRBlock, function: () -> Unit) {
-        val oldPosition = position
         positionAtEnd(block)
         function()
-        position = oldPosition
+    }
+
+    fun buildNot(type: Type, location: SourceLocation, name: IRLocalName, value: IRValue): IRNot {
+        return addStatement(IRNot(type, location, name, value))
+    }
+
+    fun buildBranch(location: SourceLocation, condition: IRValue, ifTrue: IRBlock, ifFalse: IRBlock): IRStatement {
+        return addStatement(IRBr(location, condition, ifTrue, ifFalse))
     }
 }
 
@@ -270,6 +287,8 @@ sealed class IRStatement {
         is IRAlloca -> "${name.prettyPrint()}: ${Type.RawPtr(type).prettyPrint()} = alloca ${type.prettyPrint()}"
         is IRStore -> "store ${ptr.prettyPrint()} ${value.prettyPrint()}"
         is IRLoad -> "${name.prettyPrint()}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
+        is IRNot -> "${name.prettyPrint()}: ${type.prettyPrint()} = not ${arg.prettyPrint()}"
+        is IRBr -> "br ${condition.prettyPrint()} then:${ifTrue.name.prettyPrint()} else:${ifFalse.name.prettyPrint()}"
     }
 }
 
@@ -309,7 +328,7 @@ sealed class IRValue {
     fun prettyPrint(): String = when (this) {
         is IRBool -> value.toString()
         is IRByteString -> "b\"${value.decodeToString()}\""
-        is IRVariable -> "${type.prettyPrint()} ${name.prettyPrint()}"
+        is IRVariable -> name.prettyPrint()
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
         is IRCIntConstant -> value.toString()
         is IRNullPtr -> "nullptr"
@@ -323,6 +342,20 @@ data class IRCall(
     val typeArgs: List<Type>?,
     val args: List<IRValue>,
     val name: IRLocalName
+) : IRStatement()
+
+data class IRNot(
+    val type: Type,
+    val location: SourceLocation,
+    val name: IRLocalName,
+    val arg: IRValue
+) : IRStatement()
+
+data class IRBr(
+    val location: SourceLocation,
+    val condition: IRValue,
+    val ifTrue: IRBlock,
+    val ifFalse: IRBlock
 ) : IRStatement()
 
 class IRBool(

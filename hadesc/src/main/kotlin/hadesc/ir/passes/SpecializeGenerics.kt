@@ -66,11 +66,17 @@ class SpecializeGenerics(
             lowerType(definition.type) as Type.Function,
             typeParams = null,
             params = definition.params.map { lowerParam(it) },
-            body = block
+            entryBlock = block
         )
 
         builder.withinBlock(block) {
-            visitBlock(definition.body)
+            visitBlock(definition.entryBlock)
+        }
+        for (otherBlocks in definition.blocks) {
+            val newBlock = IRBlock()
+            builder.withinBlock(newBlock) {
+                visitBlock(newBlock)
+            }
         }
     }
 
@@ -87,9 +93,19 @@ class SpecializeGenerics(
                     is IRAlloca -> visitAlloca(statement)
                     is IRStore -> visitStore(statement)
                     is IRLoad -> visitLoad(statement)
+                    is IRNot -> visitNot(statement)
+                    is IRBr -> visitBranch(statement)
                 }
             )
         }
+    }
+
+    private fun visitNot(statement: IRNot) {
+        builder.buildNot(lowerType(statement.type), statement.location, statement.name, lowerValue(statement.arg))
+    }
+
+    private fun visitBranch(statement: IRBr) {
+        builder.buildBranch(statement.location, lowerValue(statement.condition), statement.ifTrue, statement.ifFalse)
     }
 
     private fun visitCallStatement(statement: IRCall) {
@@ -254,11 +270,11 @@ class SpecializeGenerics(
             name, fnType,
             typeParams = null,
             params = params,
-            body = body
+            entryBlock = body
         )
         currentSpecialization = makeSubstitution(requireNotNull(def.typeParams), typeArgs)
         builder.withinBlock(body) {
-            visitBlock(def.body)
+            visitBlock(def.entryBlock)
         }
         currentSpecialization = null
     }

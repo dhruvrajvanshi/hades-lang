@@ -66,7 +66,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             definition.params.forEachIndexed { index, param ->
                 localVariables[param.name] = fn.getParam(index)
             }
-            lowerBlock(definition.body)
+            lowerBlock(definition.entryBlock)
         }
     }
 
@@ -93,6 +93,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRAlloca -> lowerAlloca(statement)
         is IRStore -> lowerStore(statement)
         is IRLoad -> lowerLoad(statement)
+        is IRNot -> TODO()
+        is IRBr -> TODO()
     }
 
     private val localVariables = mutableMapOf<IRLocalName, llvm.Value>()

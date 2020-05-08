@@ -16,6 +16,7 @@ class Desugar(private val ctx: Context) {
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
     private val builder = IRBuilder()
+    private var currentFunction: IRFunctionDef? = null
 
     fun generate(): IRModule {
         ctx.forEachSourceFile { lowerSourceFile(it) }
@@ -107,8 +108,9 @@ class Desugar(private val ctx: Context) {
                 type,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = def.params.mapIndexed { index, it -> lowerParam(it, name, index) },
-                body = IRBlock()
+                entryBlock = IRBlock()
             )
+            currentFunction = function
             definitions.add(function)
             function
         }
@@ -121,12 +123,11 @@ class Desugar(private val ctx: Context) {
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
         val function = getFunctionDef(def)
-        function.body = lowerBlock(def.body)
+        function.entryBlock = lowerBlock(def.body)
         val ty = function.type
-        builder.withinBlock(function.body) {
-            if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
-                builder.buildRetVoid()
-            }
+
+        if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
+            builder.buildRetVoid()
         }
         return function
     }
@@ -136,8 +137,7 @@ class Desugar(private val ctx: Context) {
         return IRParam(name, type, param.location, functionName, index)
     }
 
-    private fun lowerBlock(body: Block): IRBlock {
-        val block = IRBlock()
+    private fun lowerBlock(body: Block, block: IRBlock = IRBlock(IRLocalName(Name("entry")))): IRBlock {
         builder.withinBlock(block) {
             for (member in body.members) {
                 lowerBlockMember(member)
@@ -172,7 +172,12 @@ class Desugar(private val ctx: Context) {
                 expression.location,
                 expression.value
             )
-            is Expression.Not -> TODO()
+            is Expression.Not -> {
+                val ty = typeOfExpression(expression)
+                val name = IRLocalName(ctx.makeUniqueName())
+                builder.buildNot(ty, expression.location, name, lowerExpression(expression.expression))
+                builder.buildVariable(ty, expression.location, name)
+            }
         }
         assert(lowered.type == typeOfExpression(expression)) {
             "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +
@@ -292,30 +297,66 @@ class Desugar(private val ctx: Context) {
         return ctx.checker.typeOfExpression(expression)
     }
 
-    private fun lowerStatement(statement: Statement): IRStatement = when (statement) {
+    private fun lowerStatement(statement: Statement) = when (statement) {
         is Statement.Return -> lowerReturnStatement(statement)
         is Statement.Val -> lowerValStatement(statement)
         is Statement.While -> lowerWhileStatement(statement)
         is Statement.Error -> TODO()
     }
 
-    private fun lowerWhileStatement(statement: Statement.While): IRStatement {
-        TODO()
+    /**
+     * <pre>
+     * while (<condition>) <block>
+     *
+     * br %condition .while_body .while_exit
+     * .while_body
+     *   ...<block>...
+     *   br %condition .while_body .while_exit
+     * .while_exit <- position block here after we're done
+     *  ...
+     *
+     */
+    private fun lowerWhileStatement(statement: Statement.While) {
+        val whileBody = buildBlock()
+        val whileExit = buildBlock()
+
+        val condition = lowerExpression(statement.condition)
+
+        builder.buildBranch(statement.condition.location, condition, whileBody, whileExit)
+
+        lowerBlock(statement.body, whileBody)
+
+        builder.buildBranch(statement.condition.location, condition, whileBody, whileExit)
+
+        builder.position = whileExit
     }
 
-    private fun lowerReturnStatement(statement: Statement.Return): IRStatement {
-        return builder.buildReturn(lowerExpression(statement.value))
+    private fun buildBlock(): IRBlock {
+        val block = IRBlock(makeBlockName())
+        requireNotNull(currentFunction).appendBlock(block)
+        return block
+    }
+
+    private fun makeLocalName(): IRLocalName {
+        return IRLocalName(ctx.makeUniqueName())
+    }
+
+    private fun makeBlockName(): IRLocalName {
+        return IRLocalName(ctx.makeUniqueName())
+    }
+
+    private fun lowerReturnStatement(statement: Statement.Return) {
+        builder.buildReturn(lowerExpression(statement.value))
     }
 
     private val valPointers = mutableMapOf<SourceLocation, IRLocalName>()
-    private fun lowerValStatement(statement: Statement.Val): IRStatement {
+    private fun lowerValStatement(statement: Statement.Val) {
         val (name, type) = lowerLocalBinder(statement.binder)
         builder.buildAlloca(type.to, name)
         val ptr = builder.buildVariable(type, statement.location, name)
         val rhs = lowerExpression(statement.rhs)
-        val store = builder.buildStore(ptr, rhs)
+        builder.buildStore(ptr, rhs)
         valPointers[statement.location] = name
-        return store
     }
 
     private fun getValBinding(statement: Statement.Val): IRLocalName {
