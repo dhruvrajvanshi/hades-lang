@@ -58,7 +58,14 @@ data class SourceLocation(
     }
 
     override fun compareTo(other: SourceLocation): Int {
-        return if (start greaterThan other.start) {
+        return if (start == other.start) {
+            if (stop lessThan other.stop) {
+                1
+            } else {
+                -1
+            }
+
+        } else if (start greaterThan other.start) {
             1
         } else {
             -1

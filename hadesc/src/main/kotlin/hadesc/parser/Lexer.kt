@@ -70,7 +70,7 @@ class Lexer(private val file: SourcePath) {
                 advance()
             }
             advance()
-            skipWhitespace()
+            return nextToken()
         }
         startToken()
         val c = currentChar
@@ -95,16 +95,18 @@ class Lexer(private val file: SourcePath) {
 
     private fun intLiteral(): Token {
         val first = advance()
-        val type = if (first == '0' && currentChar == 'x') {
+        if (first == '0' && currentChar == 'x') {
             advance()
-            tt.HEX_INT_LITERAL
-        } else {
-            tt.INT_LITERAL
+            advance()
+            while (currentChar.isDigit() || currentChar in CharRange('A', 'F') || currentChar in CharRange('a', 'f')) {
+                advance()
+            }
+            return makeToken(tt.HEX_INT_LITERAL)
         }
         while (currentChar.isDigit()) {
             advance()
         }
-        return makeToken(type)
+        return makeToken(tt.INT_LITERAL)
     }
 
     private fun identifierOrKeyword(): Token {
