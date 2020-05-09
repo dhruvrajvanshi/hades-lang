@@ -3,7 +3,10 @@ package hades.test
 import hadesc.Compiler
 import hadesc.logging.logger
 import org.apache.commons.lang3.SystemUtils
+import org.junit.jupiter.api.DynamicNode
+import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -14,8 +17,9 @@ import kotlin.test.fail
 class HadesTestSuite {
     private val log = logger()
 
-    @Test
-    fun `should run test suite`() {
+    @OptIn(ExperimentalStdlibApi::class)
+    @TestFactory
+    fun `should run test suite`(): List<DynamicNode> {
         val directory = File("suite")
         val utilsCLib = Paths.get(directory.toString(), "submodule", "test_utils.c")
         val outputDirectory = Path.of("suite_build").toFile()
@@ -23,76 +27,56 @@ class HadesTestSuite {
             outputDirectory.deleteRecursively()
         }
         outputDirectory.mkdirs()
-        val successFiles = mutableListOf<File>()
-        val failureFiles = mutableListOf<Pair<File, Throwable>>()
-        for (file in directory.listFiles() ?: arrayOf()) {
-            if (file.extension == "hds") {
-                if ("extensions" in file.name) {
-                    continue
-                }
-                logger().debug("Running suite file {}", file)
-                val expectedStdoutFile = Paths.get(
-                    directory.toPath().toString(),
-                    file.nameWithoutExtension + ".stdout"
-                ).toFile()
-                assert(expectedStdoutFile.exists())
+        val files = directory.listFiles() ?: arrayOf()
+        return buildList {
+            for (file in files) {
+                add(DynamicTest.dynamicTest(file.name) {
+                    if (file.extension == "hds") {
+                        logger().debug("Running suite file {}", file)
+                        val expectedStdoutFile = Paths.get(
+                            directory.toPath().toString(),
+                            file.nameWithoutExtension + ".stdout"
+                        ).toFile()
+                        assert(expectedStdoutFile.exists())
 
-                val outputPath = Paths.get(
-                    outputDirectory.toString(),
-                    if (SystemUtils.IS_OS_WINDOWS)
-                        file.nameWithoutExtension + ".exe"
-                    else
-                        file.nameWithoutExtension
-                )
-                try {
-                    Compiler(
-                        arrayOf(
-                            "--output", outputPath.toString(),
-                            "--directories", "stdlib", directory.toString(),
-                            "--main", file.toString(),
-                            "--runtime", "runtime.c",
-                            "--cflags", utilsCLib.toString()
+                        val outputPath = Paths.get(
+                            outputDirectory.toString(),
+                            if (SystemUtils.IS_OS_WINDOWS)
+                                file.nameWithoutExtension + ".exe"
+                            else
+                                file.nameWithoutExtension
                         )
-                    ).run()
-                    assert(File(outputPath.toUri()).exists()) {
-                        "Expected $outputPath to be present after compilation"
-                    }
-                    val actualStdoutFile = Path.of(outputDirectory.toString(), file.nameWithoutExtension + ".stdout")
-                        .toFile()
+                        Compiler(
+                            arrayOf(
+                                "--output", outputPath.toString(),
+                                "--directories", "stdlib", directory.toString(),
+                                "--main", file.toString(),
+                                "--runtime", "runtime.c",
+                                "--cflags", utilsCLib.toString()
+                            )
+                        ).run()
+                        assert(File(outputPath.toUri()).exists()) {
+                            "Expected $outputPath to be present after compilation"
+                        }
+                        val actualStdoutFile =
+                            Path.of(outputDirectory.toString(), file.nameWithoutExtension + ".stdout")
+                                .toFile()
 
-                    val process = ProcessBuilder(outputPath.toString())
-                        .redirectError(ProcessBuilder.Redirect.INHERIT)
-                        .redirectOutput(actualStdoutFile)
-                        .start()
-                    process.waitFor(1, TimeUnit.SECONDS)
-                    assert(process.exitValue() == 0)
-                    val expectedLines = expectedStdoutFile.readLines()
-                    val actualLines = actualStdoutFile.readLines()
-                    assertEquals(
-                        expectedLines, actualLines,
-                        "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
-                    )
-                    successFiles.add(file)
-                } catch (e: Throwable) {
-                    failureFiles.add(Pair(file, e))
-                }
+                        val process = ProcessBuilder(outputPath.toString())
+                            .redirectError(ProcessBuilder.Redirect.INHERIT)
+                            .redirectOutput(actualStdoutFile)
+                            .start()
+                        process.waitFor(1, TimeUnit.SECONDS)
+                        assert(process.exitValue() == 0)
+                        val expectedLines = expectedStdoutFile.readLines()
+                        val actualLines = actualStdoutFile.readLines()
+                        assertEquals(
+                            expectedLines, actualLines,
+                            "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
+                        )
+                    }
+                })
             }
         }
-
-        for (pair in failureFiles) {
-            log.error("${pair.first}")
-            pair.second.printStackTrace()
-        }
-        for (successFile in successFiles) {
-            println("[PASS]: $successFile")
-        }
-        for (failure in failureFiles) {
-            println("[FAIL]: $failure")
-        }
-
-        if (failureFiles.isNotEmpty()) {
-            fail("There were failed cases")
-        }
-
     }
 }
