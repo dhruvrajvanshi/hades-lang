@@ -36,6 +36,11 @@ sealed class ValueBinding {
         val qualifiedName: QualifiedName,
         val declaration: Declaration.Struct
     ) : ValueBinding()
+
+    data class GlobalConst(
+        val qualifiedName: QualifiedName,
+        val declaration: Declaration.ConstDefinition
+    ) : ValueBinding()
 }
 
 sealed class TypeBinding {
@@ -244,6 +249,16 @@ class Resolver(val ctx: Context) {
                         null
                     }
                 }
+                is Declaration.ConstDefinition -> {
+                    if (declaration.name.identifier.name == ident.name) {
+                        ValueBinding.GlobalConst(
+                            sourceFileOf(declaration).moduleName.append(ident.name),
+                            declaration
+                        )
+                    } else {
+                        null
+                    }
+                }
             }
             if (binding != null) {
                 return binding
@@ -359,6 +374,9 @@ class Resolver(val ctx: Context) {
                             is Declaration.FunctionDef -> null
                             is Declaration.ExternFunctionDef -> null
                             is Declaration.Struct -> null
+                            is Declaration.ConstDefinition -> {
+                                TODO()
+                            }
                         }
                         if (binding != null) {
                             break
@@ -381,6 +399,9 @@ class Resolver(val ctx: Context) {
         is ValueBinding.Struct -> {
             val sourceFile = sourceFileOf(binder)
             sourceFile.moduleName.append(binder.identifier.name)
+        }
+        is ValueBinding.GlobalConst -> {
+            binding.qualifiedName
         }
         is ValueBinding.FunctionParam -> requireUnreachable()
         is ValueBinding.ValBinding -> requireUnreachable()

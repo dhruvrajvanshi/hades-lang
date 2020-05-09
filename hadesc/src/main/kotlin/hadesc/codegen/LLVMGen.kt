@@ -34,7 +34,25 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRFunctionDef -> lowerFunctionDef(definition)
             is IRStructDef -> lowerStructDef(definition)
             is IRExternFunctionDef -> lowerExternFunctionDef(definition)
+            is IRConstDef -> lowerConstDef(definition)
         }
+
+    private val loweredGlobals = mutableMapOf<IRGlobalName, Value>()
+    private fun lowerConstDef(definition: IRConstDef) {
+        val name = lowerName(definition.name)
+        if (loweredGlobals[definition.name] == null) {
+            val global = llvmModule.addGlobal(name, lowerType(definition.type))
+            global.initializer = lowerExpression(definition.initializer)
+            loweredGlobals[definition.name] = global.initializer
+        }
+    }
+
+    private fun getConstDefValue(def: IRConstDef): llvm.Value  {
+        if (loweredGlobals[def.name] == null) {
+            lowerConstDef(def)
+        }
+        return requireNotNull(loweredGlobals[def.name])
+    }
 
     private fun lowerStructDef(definition: IRStructDef) {
         val fn = getStructConstructor(definition)
@@ -205,6 +223,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRBinding.FunctionDef -> getDeclaration(binding.def)
         is IRBinding.ExternFunctionDef -> getDeclaration(binding.def)
         is IRBinding.StructDef -> getStructConstructor(binding.def)
+        is IRBinding.ConstDef -> getConstDefValue(binding.def)
     }
 
     private fun lowerByteString(expression: IRByteString): llvm.Value {

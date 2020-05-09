@@ -28,6 +28,7 @@ data class Diagnostic(
         object UnboundVariable : Kind(Severity.ERROR)
         object UnboundThis : Diagnostic.Kind(Severity.ERROR)
         object AmbiguousExpression : Diagnostic.Kind(Severity.ERROR)
+        object NotAConst : Diagnostic.Kind(Severity.ERROR)
 
         data class TypeNotCallable(val type: Type) : Kind(Severity.ERROR)
         data class MissingArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
@@ -56,6 +57,7 @@ data class Diagnostic(
             is IncompleteType -> "Incomplete type; Required ${requiredArgs} arg(s)"
             UnboundThis -> "'this' is not bound. Try adding a receiver parameter to the enclosing function"
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
+            NotAConst -> "Not a const. Only CInt and Bool values are allowed as global constants"
         }
 
     }

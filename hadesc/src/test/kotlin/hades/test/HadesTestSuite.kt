@@ -17,6 +17,7 @@ class HadesTestSuite {
     @Test
     fun `should run test suite`() {
         val directory = File("suite")
+        val utilsCLib = Paths.get(directory.toString(), "submodule", "test_utils.c")
         val outputDirectory = Path.of("suite_build").toFile()
         if (outputDirectory.exists()) {
             outputDirectory.deleteRecursively()
@@ -26,7 +27,7 @@ class HadesTestSuite {
         val failureFiles = mutableListOf<Pair<File, Throwable>>()
         for (file in directory.listFiles() ?: arrayOf()) {
             if (file.extension == "hds") {
-                if ("if_else" !in file.name) {
+                if ("extensions" in file.name) {
                     continue
                 }
                 logger().debug("Running suite file {}", file)
@@ -49,7 +50,8 @@ class HadesTestSuite {
                             "--output", outputPath.toString(),
                             "--directories", "stdlib", directory.toString(),
                             "--main", file.toString(),
-                            "--runtime", "runtime.c"
+                            "--runtime", "runtime.c",
+                            "--cflags", utilsCLib.toString()
                         )
                     ).run()
                     assert(File(outputPath.toUri()).exists()) {

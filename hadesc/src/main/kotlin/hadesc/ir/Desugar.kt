@@ -54,6 +54,17 @@ class Desugar(private val ctx: Context) {
             lowerStructDeclaration(declaration)
             Unit
         }
+        is Declaration.ConstDefinition -> {
+            lowerConstDeclaration(declaration)
+            Unit
+        }
+    }
+
+    private val loweredConstDefs = mutableMapOf<SourceLocation, IRConstDef>()
+    private fun lowerConstDeclaration(declaration: Declaration.ConstDefinition): IRConstDef = loweredConstDefs.computeIfAbsent(declaration.location) {
+        val initializer = lowerExpression(declaration.initializer)
+        val (name, type) = lowerGlobalBinder(declaration.name)
+        module.addConstDef(name, type, initializer)
     }
 
     private val declaredExternDefs = mutableMapOf<SourceLocation, IRExternFunctionDef>()
@@ -273,6 +284,9 @@ class Desugar(private val ctx: Context) {
             is ValueBinding.Struct -> {
                 val structDecl = lowerStructDeclaration(binding.declaration)
                 structDecl.globalName
+            }
+            is ValueBinding.GlobalConst -> {
+                lowerConstDeclaration(binding.declaration).name
             }
         }
         return builder.buildVariable(ty, node.location, name)

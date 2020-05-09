@@ -27,6 +27,8 @@ data class Token(
 
         ID,
         INT_LITERAL,
+        HEX_INT_LITERAL,
+        CONST,
 
         BYTE_STRING,
 

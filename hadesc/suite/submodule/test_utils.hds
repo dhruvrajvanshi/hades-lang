@@ -1,0 +1,3 @@
+
+extern def print_int(CInt): Void  = print_int;
+

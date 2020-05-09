@@ -11,7 +11,7 @@ import hadesc.qualifiedname.QualifiedName
 
 internal typealias tt = Token.Kind
 
-private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT)
+private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST)
 private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE, tt.IF)
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
@@ -52,12 +52,26 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.DEF -> parseDeclarationFunctionDef()
             tt.STRUCT -> parseStructDeclaration()
             tt.EXTERN -> parseExternFunctionDef()
+            tt.CONST -> parseConstDef()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseConstDef(): Declaration.ConstDefinition  {
+        val start = expect(tt.CONST)
+        val name = parseBinder()
+        expect(tt.EQ)
+        val rhs = parseExpression()
+        expect(tt.SEMICOLON)
+        return Declaration.ConstDefinition(
+            makeLocation(start, rhs),
+            name,
+            rhs
+        )
     }
 
     private fun parseStructDeclaration(): Declaration {
@@ -300,6 +314,11 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.INT_LITERAL -> {
                 val token = advance()
                 Expression.IntLiteral(token.location, token.text.toInt())
+            }
+            tt.HEX_INT_LITERAL -> {
+                val token = advance()
+                require(token.text.startsWith("0x"))
+                Expression.IntLiteral(token.location, token.text.drop(2).toInt(16))
             }
             tt.TRUE -> {
                 Expression.BoolLiteral(advance().location, true)

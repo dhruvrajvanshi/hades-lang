@@ -156,6 +156,11 @@ class Checker(
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.Struct -> checkStructDef(declaration)
+        is Declaration.ConstDefinition -> checkConstDef(declaration)
+    }
+
+    private fun checkConstDef(declaration: Declaration.ConstDefinition) {
+        declareGlobalConst(declaration)
     }
 
     private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
@@ -598,6 +603,10 @@ class Checker(
             declareStruct(binding.declaration)
             requireNotNull(binderTypes[binding.declaration.binder])
         }
+        is ValueBinding.GlobalConst -> {
+            declareGlobalConst(binding.declaration)
+            requireNotNull(binderTypes[binding.declaration.name])
+        }
     }
 
     private fun error(node: HasLocation, kind: Diagnostic.Kind) {
@@ -632,6 +641,19 @@ class Checker(
 
     private fun checkStructDef(declaration: Declaration.Struct) {
         declareStruct(declaration)
+    }
+
+    private fun declareGlobalConst(declaration: Declaration.ConstDefinition) {
+        if (binderTypes[declaration.name] != null) {
+            return
+        }
+        val rhsType = inferExpression(declaration.initializer)
+        when (rhsType) {
+            is Type.CInt -> {}
+            is Type.Bool -> {}
+            else -> error(declaration.initializer, Diagnostic.Kind.NotAConst)
+        }
+        bindValue(declaration.name, rhsType)
     }
 
     private val structFieldTypes = MutableNodeMap<Declaration.Struct, Map<Name, Type>>()

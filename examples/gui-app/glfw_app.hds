@@ -1,7 +1,8 @@
 import glfw as glfw;
+import gl as gl;
 
 def main_loop(window: *glfw.Window): Void {
-    // glClear(GL_COLOR_BUFFER_BIT);
+    gl.clear(gl.GL_COLOR_BUFFER_BIT);
 
     glfw.swap_buffers(window);
 

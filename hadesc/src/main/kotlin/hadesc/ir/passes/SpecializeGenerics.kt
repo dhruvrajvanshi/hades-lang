@@ -30,6 +30,7 @@ class SpecializeGenerics(
                     is IRExternFunctionDef -> {
                         visitExternFunctionDef(definition)
                     }
+                    is IRConstDef -> visitConstDef(definition)
                 }
             )
         }
@@ -38,6 +39,10 @@ class SpecializeGenerics(
             require(currentSpecialization == null)
         }
         return module
+    }
+
+    private fun visitConstDef(definition: IRConstDef) {
+        module.addConstDef(lowerGlobalName(definition.name), lowerType(definition.type), lowerValue(definition.initializer))
     }
 
     private fun visitSpecializationRequest(request: SpecializationRequest): Unit = when (request) {
@@ -168,6 +173,10 @@ class SpecializeGenerics(
             }
             is IRBinding.StructDef -> {
                 lowerStructDefBinding(binding, variable, typeArgs)
+            }
+            is IRBinding.ConstDef -> {
+                require(typeArgs == null)
+                variable
             }
         }
     }

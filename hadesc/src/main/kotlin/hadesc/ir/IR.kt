@@ -41,6 +41,10 @@ sealed class IRBinding {
             get() = def.constructorType
 
     }
+
+    class ConstDef(val def: IRConstDef) : IRBinding() {
+        override val type: Type get() = def.type
+    }
 }
 
 class IRModule {
@@ -57,6 +61,16 @@ class IRModule {
         val value = IRExternFunctionDef(this, name, type, externName = externName, paramTypes = paramTypes)
         add(value)
         return value
+    }
+
+    fun addConstDef(
+        name: IRGlobalName,
+        type: Type,
+        initializer: IRValue
+    ): IRConstDef {
+        val def = IRConstDef(this, name, type, initializer)
+        add(def)
+        return def
     }
 
     fun addGlobalFunctionDef(
@@ -92,6 +106,7 @@ class IRModule {
             is IRFunctionDef -> globals[def.name.name] = IRBinding.FunctionDef(def)
             is IRStructDef -> globals[def.globalName.name] = IRBinding.StructDef(def)
             is IRExternFunctionDef -> globals[def.name.name] = IRBinding.ExternFunctionDef(def)
+            is IRConstDef -> globals[def.name.name] = IRBinding.ConstDef(def)
         }
     }
 
@@ -113,6 +128,7 @@ sealed class IRDefinition {
         is IRStructDef -> "struct ${this.globalName.prettyPrint()} {" +
                 "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
         is IRExternFunctionDef -> "extern def ${name.prettyPrint()} = ${externName.text}"
+        is IRConstDef -> this.prettyPrint()
     }
 }
 
@@ -144,6 +160,17 @@ data class IRParam(
 ) {
     fun prettyPrint(): String {
         return "${name.prettyPrint()}: ${type.prettyPrint()}"
+    }
+}
+
+class IRConstDef(
+    override val module: IRModule,
+    val name: IRGlobalName,
+    val type: Type,
+    val initializer: IRValue
+) : IRDefinition() {
+    override fun prettyPrint(): String {
+        return "const ${name.prettyPrint()}: ${type.prettyPrint()} = ${initializer.prettyPrint()}"
     }
 }
 

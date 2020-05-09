@@ -24,6 +24,12 @@ sealed class Declaration : HasLocation {
         val body: Block
     ) : Declaration()
 
+    data class ConstDefinition(
+        override val location: SourceLocation,
+        val name: Binder,
+        val initializer: Expression
+    ) : Declaration()
+
     data class ExternFunctionDef(
         override val location: SourceLocation,
         val binder: Binder,

@@ -1,7 +1,6 @@
 package hadesc.parser
 
 import hadesc.ast.Token
-import hadesc.ast.TokenKind
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -24,7 +23,8 @@ val KEYWORDS = mapOf(
     "while" to tt.WHILE,
     "not" to tt.NOT,
     "if" to tt.IF,
-    "else" to tt.ELSE
+    "else" to tt.ELSE,
+    "const" to tt.CONST
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
@@ -94,11 +94,17 @@ class Lexer(private val file: SourcePath) {
     }
 
     private fun intLiteral(): Token {
-        advance()
+        val first = advance()
+        val type = if (first == '0' && currentChar == 'x') {
+            advance()
+            tt.HEX_INT_LITERAL
+        } else {
+            tt.INT_LITERAL
+        }
         while (currentChar.isDigit()) {
             advance()
         }
-        return makeToken(TokenKind.INT_LITERAL)
+        return makeToken(type)
     }
 
     private fun identifierOrKeyword(): Token {
