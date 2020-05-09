@@ -315,7 +315,7 @@ class Checker(
                 is Type.Struct -> {
                     lhsType.memberTypes[expression.property.name]
                 }
-                is Type.RawPtr -> TODO()
+                is Type.RawPtr -> null
                 is Type.Function,
                 is Type.ParamRef,
                 is Type.GenericInstance,

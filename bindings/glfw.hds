@@ -7,5 +7,14 @@ extern def terminate(): Void = glfwTerminate;
 extern def create_window(CInt, CInt, *Byte, *Monitor, *Window): *Window = glfwCreateWindow;
 extern def make_context_current(*Window): Void = glfwMakeContextCurrent;
 extern def window_should_close(*Window): Bool = glfwWindowShouldClose;
-extern def swap_buffers(*Window): Void = glfwSwapBuffers;
+extern def window_swap_buffers(*Window): Void = glfwSwapBuffers;
 extern def wait_events(): Void = glfwWaitEvents;
+
+def should_close(this: *Window): Void {
+    window_should_close(this);
+}
+
+def swap_buffers(this: *Window): Void {
+    window_swap_buffers(this);
+}
+

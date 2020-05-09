@@ -8,6 +8,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import org.jetbrains.annotations.Contract
 
 sealed class ValueBinding {
     data class GlobalFunction(
@@ -389,7 +390,7 @@ class Resolver(val ctx: Context) {
         return def?.thisParam
     }
 
-    fun resolveThisBindingDef(node: HasLocation): Declaration.FunctionDef? {
+    private fun resolveThisBindingDef(node: HasLocation): Declaration.FunctionDef? {
         val scopeStack = getScopeStack(node)
         for (scope in scopeStack) {
             if (scope is ScopeNode.FunctionDef) {
@@ -406,14 +407,18 @@ class Resolver(val ctx: Context) {
             if (scope is ScopeNode.FunctionDef && isPossibleExtensionDef(scope.declaration, name)) {
                 yield(scope.declaration)
             }
-            if (scope is ScopeNode.SourceFile) {
-                for (definition in scope.sourceFile.declarations) {
-                    if (definition is Declaration.FunctionDef) {
-                        if (isPossibleExtensionDef(definition, name)) {
-                            yield(definition)
-                        }
+            fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<Declaration.FunctionDef> = sequence {
+                for (definition in sourceFile.declarations) {
+                    if (definition is Declaration.FunctionDef && isPossibleExtensionDef(definition, name)) {
+                        yield(definition as Declaration.FunctionDef)
+                    }
+                    if (definition is Declaration.ImportAs) {
+                        yieldAll(extensionsInSourceFile(ctx.resolveSourceFile(definition.modulePath)))
                     }
                 }
+            }
+            if (scope is ScopeNode.SourceFile) {
+                yieldAll(extensionsInSourceFile(scope.sourceFile))
             }
         }
     }
@@ -431,6 +436,7 @@ class Resolver(val ctx: Context) {
     }
 }
 
+@Contract(pure = true)
 private fun isPossibleExtensionDef(def: Declaration.FunctionDef, property: Identifier): Boolean {
     return def.thisParam != null &&
             def.name.identifier.name == property.name

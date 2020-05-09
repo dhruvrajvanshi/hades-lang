@@ -4,7 +4,7 @@ import gl as gl;
 def main_loop(window: *glfw.Window): Void {
     gl.clear(gl.GL_COLOR_BUFFER_BIT);
 
-    glfw.swap_buffers(window);
+    window.swap_buffers();
 
     glfw.wait_events();
 }
@@ -16,7 +16,7 @@ def main(): Void {
 
     glfw.make_context_current(window);
 
-    while(not glfw.window_should_close(window)) {
+    while(not window.should_close()) {
         main_loop(window);
     }
 
