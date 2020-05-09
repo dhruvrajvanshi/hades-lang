@@ -183,6 +183,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRGetStructField -> lowerGetStructField(value)
         is IRCIntConstant -> lowerCIntValue(value)
         is IRNullPtr -> lowerNullPtr(value)
+        is IRMethodRef -> requireUnreachable()
     }
 
     private fun lowerCIntValue(value: IRCIntConstant): llvm.Value {

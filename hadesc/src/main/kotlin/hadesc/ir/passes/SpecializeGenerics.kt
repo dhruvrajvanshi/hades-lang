@@ -4,6 +4,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.ir.*
+import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 import java.util.concurrent.LinkedBlockingQueue
@@ -42,7 +43,11 @@ class SpecializeGenerics(
     }
 
     private fun visitConstDef(definition: IRConstDef) {
-        module.addConstDef(lowerGlobalName(definition.name), lowerType(definition.type), lowerValue(definition.initializer))
+        module.addConstDef(
+            lowerGlobalName(definition.name),
+            lowerType(definition.type),
+            lowerValue(definition.initializer)
+        )
     }
 
     private fun visitSpecializationRequest(request: SpecializationRequest): Unit = when (request) {
@@ -110,7 +115,8 @@ class SpecializeGenerics(
     private fun visitJump(statement: IRJump) {
         builder.buildJump(
             statement.location,
-            statement.label)
+            statement.label
+        )
     }
 
     private fun visitNot(statement: IRNot) {
@@ -122,7 +128,8 @@ class SpecializeGenerics(
             statement.location,
             lowerValue(statement.condition),
             statement.ifTrue,
-            statement.ifFalse)
+            statement.ifFalse
+        )
 
     }
 
@@ -144,6 +151,20 @@ class SpecializeGenerics(
         is IRGetStructField -> lowerGetStructField(value, typeArgs)
         is IRCIntConstant -> value
         is IRNullPtr -> IRNullPtr(type = lowerType(value.type), location = value.location)
+        is IRMethodRef -> lowerMethodRef(value, typeArgs)
+    }
+
+    private fun lowerMethodRef(value: IRMethodRef, typeArgs: List<Type>?): IRValue {
+        when (val binding = oldModule.resolveGlobal(value.method)) {
+            is IRBinding.FunctionDef -> {
+                if (binding.def.typeParams == null) {
+                    return lowerFunctionDefBinding(binding, value, typeArgs, value.thisArg)
+                } else {
+                    TODO()
+                }
+            }
+            else -> requireUnreachable()
+        }
     }
 
     private fun lowerGetStructField(value: IRGetStructField, typeArgs: List<Type>? = null): IRValue {
@@ -201,18 +222,28 @@ class SpecializeGenerics(
 
     private fun lowerFunctionDefBinding(
         binding: IRBinding.FunctionDef,
-        variable: IRVariable,
-        typeArgs: List<Type>?
+        node: HasLocation,
+        typeArgs: List<Type>?,
+        thisArg: IRValue? = null
     ): IRValue {
         if (binding.def.typeParams == null) {
             require(typeArgs == null)
-            return variable
+            return if (thisArg == null) {
+                builder.buildVariable(binding.type, node.location, lowerGlobalName(binding.def.name))
+            } else {
+                builder.buildMethodRef(
+                    binding.type,
+                    node.location,
+                    lowerValue(thisArg),
+                    lowerGlobalName(binding.def.name)
+                )
+            }
         }
         requireNotNull(typeArgs)
         val (loweredName, loweredType) = enqueueFunctionSpecialization(binding.def, typeArgs.map { lowerType(it) })
         return builder.buildVariable(
             loweredType,
-            variable.location,
+            node.location,
             loweredName
         )
     }

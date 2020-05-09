@@ -1,6 +1,8 @@
 package hadesc.ir
 
 import hadesc.Name
+import hadesc.ast.ThisParam
+import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -208,7 +210,7 @@ class IRBuilder {
     var position: IRBlock? = null
 
     fun buildRetVoid(): IRReturnVoidStatement {
-        return addStatement(IRReturnVoidStatement())
+        return addStatement(IRReturnVoidStatement)
     }
 
     fun buildConstBool(ty: Type, location: SourceLocation, value: Boolean): IRValue {
@@ -246,6 +248,20 @@ class IRBuilder {
 
     fun buildVariable(ty: Type, location: SourceLocation, name: IRName): IRValue {
         return IRVariable(ty, location, name)
+    }
+
+    fun buildMethodRef(
+        type: Type,
+        location: SourceLocation,
+        thisArg: IRValue,
+        method: IRGlobalName
+    ): IRValue {
+        return IRMethodRef(
+            type,
+            location,
+            thisArg,
+            method
+        )
     }
 
     fun buildCall(
@@ -353,13 +369,12 @@ class IRLoad(
     val ptr: IRValue
 ) : IRStatement()
 
-class IRReturnVoidStatement : IRStatement()
+object IRReturnVoidStatement : IRStatement()
 
 
-sealed class IRValue {
+sealed class IRValue : HasLocation {
 
     abstract val type: Type
-    abstract val location: SourceLocation
 
     override fun toString(): String {
         return prettyPrint()
@@ -373,6 +388,7 @@ sealed class IRValue {
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
         is IRCIntConstant -> value.toString()
         is IRNullPtr -> "nullptr"
+        is IRMethodRef -> "${thisArg.prettyPrint()}.${method.prettyPrint()}"
     }
 }
 
@@ -439,5 +455,12 @@ class IRCIntConstant(
 class IRNullPtr(
     override val type: Type,
     override val location: SourceLocation
+) : IRValue()
+
+class IRMethodRef(
+    override val type: Type,
+    override val location: SourceLocation,
+    val thisArg: IRValue,
+    val method: IRGlobalName
 ) : IRValue()
 

@@ -154,10 +154,7 @@ class Resolver(val ctx: Context) {
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
-        val typeParams = declaration.typeParams
-        if (typeParams == null) {
-            return null
-        }
+        val typeParams = declaration.typeParams ?: return null
         typeParams.forEach {
             if (it.binder.identifier.name == ident.name) {
                 return TypeBinding.TypeParam(it.binder)
@@ -184,11 +181,7 @@ class Resolver(val ctx: Context) {
         is ScopeNode.FunctionDef -> shallowFindInFunction(ident, scope)
         is ScopeNode.SourceFile -> shallowFindInSourceFile(ident, scope.sourceFile)
         is ScopeNode.Block -> shallowFindInBlock(ident, scope)
-        is ScopeNode.Struct -> shallowFindInStruct(ident, scope)
-    }
-
-    private fun shallowFindInStruct(ident: Identifier, scope: ScopeNode.Struct): ValueBinding? {
-        return null
+        is ScopeNode.Struct -> null
     }
 
     private fun shallowFindInBlock(ident: Identifier, scope: ScopeNode.Block): ValueBinding? {
@@ -286,7 +279,7 @@ class Resolver(val ctx: Context) {
         }
     }
 
-    public fun sourceFileOf(node: HasLocation): SourceFile {
+    private fun sourceFileOf(node: HasLocation): SourceFile {
         return requireNotNull(sourceFiles[node.location.file])
     }
 
@@ -390,27 +383,18 @@ class Resolver(val ctx: Context) {
         return null
     }
 
-    fun getQualifiedName(binder: Binder): QualifiedName = when (val binding = resolve(binder.identifier)) {
-        is ValueBinding.GlobalFunction -> requireUnreachable()
-        is ValueBinding.ExternFunction -> requireUnreachable()
-        is ValueBinding.Struct -> {
-            val sourceFile = sourceFileOf(binder)
-            sourceFile.moduleName.append(binder.identifier.name)
-        }
-        is ValueBinding.GlobalConst -> {
-            binding.qualifiedName
-        }
-        is ValueBinding.FunctionParam -> requireUnreachable()
-        is ValueBinding.ValBinding -> requireUnreachable()
-        null -> requireUnreachable()
+    fun resolveThisParam(node: HasLocation): ThisParam? {
+        val def = resolveThisBindingDef(node)
+        require(def == null || def.thisParam != null)
+        return def?.thisParam
     }
 
-    fun resolveThisParam(node: HasLocation): ThisParam? {
+    fun resolveThisBindingDef(node: HasLocation): Declaration.FunctionDef? {
         val scopeStack = getScopeStack(node)
         for (scope in scopeStack) {
             if (scope is ScopeNode.FunctionDef) {
                 if (scope.declaration.thisParam != null) {
-                    return scope.declaration.thisParam
+                    return scope.declaration
                 }
             }
         }

@@ -320,14 +320,14 @@ class Checker(
                     null
                 }
                 is Type.Application -> {
-                    inferTypeApplicationProperty(lhsType, expression.property)
+                    inferTypeApplicationProperty(expression, lhsType, expression.property)
                 }
                 is Type.Constructor -> TODO()
             }
             if (ownPropertyType != null) {
                 ownPropertyType
             } else {
-                val extensionPropertyType = inferExtensionProperty(lhsType, expression.property)
+                val extensionPropertyType = inferExtensionProperty(expression, lhsType, expression.property)
                 if (extensionPropertyType != null) {
                     extensionPropertyType
                 } else {
@@ -338,7 +338,7 @@ class Checker(
         }
     }
 
-    private fun inferTypeApplicationProperty(lhsType: Type.Application, property: Identifier): Type? =
+    private fun inferTypeApplicationProperty(lhs: Expression.Property, lhsType: Type.Application, property: Identifier): Type? =
         when (lhsType.callee) {
             is Type.Constructor -> {
                 val binder = requireNotNull(lhsType.callee.binder)
@@ -350,7 +350,7 @@ class Checker(
                             val members = typeOfStructMembers(binding.declaration)
                             val fieldType = members[property.name]
                             if (fieldType == null) {
-                                inferExtensionProperty(lhsType, property)
+                                inferExtensionProperty(lhs, lhsType, property)
                             } else {
                                 val substitution = binding.declaration.typeParams.mapIndexed { index, it ->
                                     it.binder.location to lhsType.args.elementAtOrElse(index) { Type.Error }
@@ -371,23 +371,32 @@ class Checker(
             }
         }
 
-
     /**
      * TODO: For generic extension methods, we only unify using the this type provided because
      *       we don't have access to arguments yet. We should unify the types of
      *       the passed method args as well. Not doing it right now because it requires
      *       some restructuring.
      */
-    private fun inferExtensionProperty(lhsType: Type, property: Identifier): Type? {
+    private fun inferExtensionProperty(lhs: Expression.Property, lhsType: Type, property: Identifier): Type? {
+        return getExtensionDefAndType(lhs, lhsType, property)?.second
+    }
+
+    private val extensionDefs = MutableNodeMap<Expression.Property, Declaration.FunctionDef>()
+
+    fun getExtensionDef(lhs: Expression.Property): Declaration.FunctionDef? {
+        return extensionDefs[lhs]
+    }
+
+    private fun getExtensionDefAndType(lhs: Expression.Property, lhsType: Type, property: Identifier): Pair<Declaration.FunctionDef, Type>? {
         val extensionDefs = ctx.resolver.extensionDefsInScope(property, property).toList()
         for (def in extensionDefs) {
             require(def.thisParam != null)
             val thisParamType = inferAnnotation(def.thisParam.annotation)
             if (isTypeEqual(thisParamType, lhsType)) {
-                return typeOfBinder(def.name)
+                this.extensionDefs[lhs] = def
+                return def to typeOfBinder(def.name)
             }
             if (def.typeParams != null) {
-
                 val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
                 def.typeParams.forEach {
                     substitution[it.binder.location] = makeGenericInstance(it.binder)
@@ -398,7 +407,8 @@ class Checker(
                 val thisParamTypeInstance = thisParamType.applySubstitution(substitution)
 
                 if (isAssignableTo(source = lhsType, destination = thisParamTypeInstance)) {
-                    return applyInstantiations(functionType)
+                    this.extensionDefs[lhs] = def
+                    return def to applyInstantiations(functionType)
                 }
             }
         }
