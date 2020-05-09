@@ -22,6 +22,7 @@ jobs:
       TERM: dumb
 
     steps:
+      - run: java -version
       - checkout
 
       - run: git submodule update --init --recursive
