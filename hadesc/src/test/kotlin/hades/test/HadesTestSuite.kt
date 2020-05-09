@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 
 class HadesTestSuite {
-    private val log = logger()
 
     @OptIn(ExperimentalStdlibApi::class)
     @TestFactory
@@ -28,8 +27,8 @@ class HadesTestSuite {
         val files = directory.listFiles() ?: arrayOf()
         return buildList {
             for (file in files) {
-                add(DynamicTest.dynamicTest(file.name) {
-                    if (file.extension == "hds") {
+                if (file.extension == "hds") {
+                    add(DynamicTest.dynamicTest(file.name) {
                         logger().debug("Running suite file {}", file)
                         val expectedStdoutFile = Paths.get(
                             directory.toPath().toString(),
@@ -72,8 +71,8 @@ class HadesTestSuite {
                             expectedLines, actualLines,
                             "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
                         )
-                    }
-                })
+                    })
+                }
             }
         }
     }
