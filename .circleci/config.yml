@@ -33,7 +33,7 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
-      - run: gradle wrapper
+      - run: gradle wrapper --gradle-version 6.3
       - run: ./gradlew dependencies
 
       - save_cache:
