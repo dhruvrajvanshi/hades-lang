@@ -118,7 +118,7 @@ class Desugar(private val ctx: Context) {
                 name,
                 type,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
-                params = def.params.mapIndexed { index, it -> lowerParam(it, name, index) },
+                params = def.params.mapIndexed { index, param -> lowerParam(param, name, index) },
                 entryBlock = IRBlock()
             )
             currentFunction = function
@@ -164,7 +164,6 @@ class Desugar(private val ctx: Context) {
         }
         is Block.Member.Statement -> {
             lowerStatement(member.statement)
-            Unit
         }
     }
 
@@ -185,7 +184,7 @@ class Desugar(private val ctx: Context) {
             )
             is Expression.Not -> {
                 val ty = typeOfExpression(expression)
-                val name = IRLocalName(ctx.makeUniqueName())
+                val name = makeLocalName()
                 builder.buildNot(ty, expression.location, name, lowerExpression(expression.expression))
                 builder.buildVariable(ty, expression.location, name)
             }
@@ -273,7 +272,7 @@ class Desugar(private val ctx: Context) {
             }
             is ValueBinding.ValBinding -> {
                 val ptr = getValBinding(binding.statement)
-                val derefName = IRLocalName(ctx.makeUniqueName())
+                val derefName = makeLocalName()
                 builder.buildLoad(
                     derefName,
                     ty,
@@ -303,7 +302,7 @@ class Desugar(private val ctx: Context) {
             callee,
             typeArgs = ctx.checker.getTypeArgs(expression),
             args = args,
-            name = IRLocalName(ctx.makeUniqueName())
+            name = makeLocalName()
         )
     }
 

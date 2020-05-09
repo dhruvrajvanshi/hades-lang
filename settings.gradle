@@ -1,4 +1,3 @@
 rootProject.name = 'hades'
 
-include ":hadesc"
-include ":kllvm"
+include "hadesc", "kllvm"

@@ -668,13 +668,13 @@ class Checker(
                 }
                 is Declaration.Struct.Member.Field -> {
                     val ty = inferAnnotation(member.typeAnnotation)
-                    require(fieldTypes[member.binder.identifier.name] == null) { TODO("Duplicate struct field") }
+                    require(fieldTypes[member.binder.identifier.name] == null)
                     fieldTypes[member.binder.identifier.name] = ty
                     Unit
                 }
             })
         }
-        val name = ctx.resolver.getQualifiedName(declaration.binder)
+        val name = ctx.resolver.qualifiedStructName(declaration)
         val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
         val constructor = Type.Constructor(declaration.binder, name, typeParams)
         structFieldTypes[declaration] = fieldTypes

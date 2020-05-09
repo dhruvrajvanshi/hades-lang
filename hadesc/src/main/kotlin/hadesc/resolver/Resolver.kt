@@ -286,7 +286,7 @@ class Resolver(val ctx: Context) {
         }
     }
 
-    private fun sourceFileOf(node: HasLocation): SourceFile {
+    public fun sourceFileOf(node: HasLocation): SourceFile {
         return requireNotNull(sourceFiles[node.location.file])
     }
 
@@ -299,11 +299,8 @@ class Resolver(val ctx: Context) {
         return ScopeStack(scopes)
     }
 
-
-    private fun pathToQualifiedName(path: QualifiedPath): QualifiedName = ctx.qualifiedPathToName(path)
-
-    private fun sourceFileModuleName(node: HasLocation): QualifiedName {
-        return ctx.getSourceFileOf(node).moduleName
+    fun qualifiedStructName(declaration: Declaration.Struct): QualifiedName {
+        return sourceFileOf(declaration).moduleName.append(declaration.binder.identifier.name)
     }
 
     fun onParseDeclaration(declaration: Declaration) {
@@ -320,7 +317,7 @@ class Resolver(val ctx: Context) {
                     ScopeNode.Struct(declaration)
                 )
             }
-
+            else -> {}
         }
     }
 
@@ -394,8 +391,8 @@ class Resolver(val ctx: Context) {
     }
 
     fun getQualifiedName(binder: Binder): QualifiedName = when (val binding = resolve(binder.identifier)) {
-        is ValueBinding.GlobalFunction -> TODO()
-        is ValueBinding.ExternFunction -> TODO()
+        is ValueBinding.GlobalFunction -> requireUnreachable()
+        is ValueBinding.ExternFunction -> requireUnreachable()
         is ValueBinding.Struct -> {
             val sourceFile = sourceFileOf(binder)
             sourceFile.moduleName.append(binder.identifier.name)
