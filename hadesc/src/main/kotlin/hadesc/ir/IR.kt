@@ -1,7 +1,6 @@
 package hadesc.ir
 
 import hadesc.Name
-import hadesc.ast.ThisParam
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -57,10 +56,9 @@ class IRModule {
     fun addExternFunctionDef(
         name: IRGlobalName,
         type: Type.Function,
-        externName: Name,
-        paramTypes: List<Type>
+        externName: Name
     ): IRExternFunctionDef {
-        val value = IRExternFunctionDef(this, name, type, externName = externName, paramTypes = paramTypes)
+        val value = IRExternFunctionDef(this, name, type, externName = externName)
         add(value)
         return value
     }
@@ -104,7 +102,7 @@ class IRModule {
 
     fun add(def: IRDefinition) {
         definitions.add(def)
-        val exhaustive = when (def) {
+        return when (def) {
             is IRFunctionDef -> globals[def.name.name] = IRBinding.FunctionDef(def)
             is IRStructDef -> globals[def.globalName.name] = IRBinding.StructDef(def)
             is IRExternFunctionDef -> globals[def.name.name] = IRBinding.ExternFunctionDef(def)
@@ -189,7 +187,6 @@ class IRExternFunctionDef(
     override val module: IRModule,
     val name: IRGlobalName,
     val type: Type.Function,
-    val paramTypes: List<Type>,
     val externName: Name
 ) : IRDefinition()
 

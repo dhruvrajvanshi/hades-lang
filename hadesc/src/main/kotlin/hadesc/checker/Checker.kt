@@ -23,7 +23,7 @@ class Checker(
     private val expressionTypes = MutableNodeMap<Expression, Type>()
     private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
     private val returnTypeStack = Stack<Type>()
-    private val typeArguments = MutableNodeMap<Expression.Call, List<Type>>()
+    private val typeArguments = MutableNodeMap<Expression, List<Type>>()
 
     private val genericInstantiations = mutableMapOf<Long, Type>()
     private var _nextGenericInstance = 0L
@@ -144,7 +144,7 @@ class Checker(
         return requireNotNull(structFieldTypes[declaration])
     }
 
-    fun getTypeArgs(call: Expression.Call): List<Type>? {
+    fun getTypeArgs(call: Expression): List<Type>? {
         return typeArguments[call]
     }
 
@@ -193,8 +193,14 @@ class Checker(
             bindValue(param.binder, type)
             paramTypes.add(type)
         }
+        val receiverType = if (declaration.thisParam != null) {
+            inferAnnotation(declaration.thisParam.annotation)
+        } else {
+            null
+        }
         val returnType = inferAnnotation(declaration.returnType)
         val type = Type.Function(
+            receiver = receiverType,
             from = paramTypes,
             to = returnType,
             typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
@@ -401,14 +407,13 @@ class Checker(
                 def.typeParams.forEach {
                     substitution[it.binder.location] = makeGenericInstance(it.binder)
                 }
-                val functionType = (typeOfBinder(def.name).applySubstitution(substitution) as Type.Function)
-                    .copy(typeParams = null)
+                val functionType = typeOfBinder(def.name)
 
                 val thisParamTypeInstance = thisParamType.applySubstitution(substitution)
 
                 if (isAssignableTo(source = lhsType, destination = thisParamTypeInstance)) {
                     this.extensionDefs[lhs] = def
-                    return def to applyInstantiations(functionType)
+                    return def to functionType
                 }
             }
         }
@@ -430,6 +435,12 @@ class Checker(
             }
             val len = min(calleeType.from.size, expression.args.size)
             val to = calleeType.to.applySubstitution(substitution)
+            if (calleeType.receiver != null) {
+                require(expression.callee is Expression.Property)
+                val expected = calleeType.receiver.applySubstitution(substitution)
+                val found = expression.callee.lhs
+                checkExpression(expected, found)
+            }
             for (index in 0 until len) {
                 val expected = calleeType.from[index].applySubstitution(substitution)
                 val found = expression.args[index].expression
@@ -444,6 +455,9 @@ class Checker(
                     inferExpression(expression.args[index].expression)
                 }
             }
+            if (expression.callee is Expression.Property) {
+                applyInstantiations(expression.callee)
+            }
             for (arg in expression.args) {
                 applyInstantiations(arg.expression)
             }
@@ -453,7 +467,7 @@ class Checker(
                 val instance = genericInstantiations[generic.id]
                 typeArgs.add(
                     if (instance == null) {
-                        error(expression.callee, Diagnostic.Kind.UninferrableTypeParam(it.binder))
+                        error(expression.args.firstOrNull() ?: expression, Diagnostic.Kind.UninferrableTypeParam(it.binder))
                         Type.Error
                     } else {
                         instance
@@ -462,6 +476,7 @@ class Checker(
             }
             if (calleeType.typeParams != null) {
                 typeArguments[expression] = typeArgs
+                typeArguments[expression.callee] = typeArgs
             }
             return applyInstantiations(to)
         } else {
@@ -485,6 +500,7 @@ class Checker(
         Type.Bool -> type
         is Type.RawPtr -> Type.RawPtr(type.to)
         is Type.Function -> Type.Function(
+            receiver = if (type.receiver != null) applyInstantiations(type.receiver) else null,
             typeParams = type.typeParams,
             from = type.from.map { applyInstantiations(it) },
             to = applyInstantiations(type.to)
@@ -638,6 +654,7 @@ class Checker(
         val paramTypes = declaration.paramTypes.map { inferAnnotation(it) }
         val returnType = inferAnnotation(declaration.returnType)
         val type = Type.Function(
+            receiver = null,
             from = paramTypes,
             to = returnType,
             typeParams = null // extern functions can't be generic
@@ -697,7 +714,9 @@ class Checker(
         val constructorType = Type.Function(
             from = constructorParamTypes,
             to = instanceType,
-            typeParams = declaration.typeParams?.map { Type.Param(it.binder) })
+            typeParams = declaration.typeParams?.map { Type.Param(it.binder) },
+            receiver = null
+        )
         bindValue(declaration.binder, constructorType)
     }
 }

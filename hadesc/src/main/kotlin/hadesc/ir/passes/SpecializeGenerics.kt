@@ -293,7 +293,8 @@ class SpecializeGenerics(
         return name to Type.Function(
             typeParams = null,
             from = fieldTypes.map { it.value }.toList(),
-            to = instanceType
+            to = instanceType,
+            receiver = null
         )
     }
 
@@ -350,7 +351,8 @@ class SpecializeGenerics(
         return name to Type.Function(
             typeParams = null,
             from = paramTypes,
-            to = returnType
+            to = returnType,
+            receiver = null
         )
     }
 
@@ -429,7 +431,8 @@ class SpecializeGenerics(
                 Type.Function(
                     typeParams = null,
                     from = type.from.map { lowerType(it) },
-                    to = lowerType(type.to)
+                    to = lowerType(type.to),
+                    receiver = null
                 )
             }
             is Type.Struct -> {

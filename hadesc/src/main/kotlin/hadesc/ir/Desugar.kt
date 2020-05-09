@@ -77,8 +77,7 @@ class Desugar(private val ctx: Context) {
             val def = module.addExternFunctionDef(
                 name,
                 type,
-                externName = declaration.externName.name,
-                paramTypes = declaration.paramTypes.map { ctx.checker.annotationToType(it) }
+                externName = declaration.externName.name
             )
             definitions.add(def)
             def
@@ -272,6 +271,10 @@ class Desugar(private val ctx: Context) {
             val def = requireNotNull(ctx.checker.getExtensionDef(expression))
             val type = typeOfExpression(expression)
             val (fnName, _) = lowerGlobalBinder(def.name)
+            val typeArgs = ctx.checker.getTypeArgs(expression)
+            if (def.typeParams != null) {
+                require(typeArgs != null)
+            }
             return builder.buildMethodRef(
                 type = type,
                 location = expression.location,
@@ -482,7 +485,8 @@ class Desugar(private val ctx: Context) {
             Type.Function(
                 typeParams = binderType.typeParams,
                 from = from,
-                to = binderType.to
+                to = binderType.to,
+                receiver = null
             )
         } else {
             binderType

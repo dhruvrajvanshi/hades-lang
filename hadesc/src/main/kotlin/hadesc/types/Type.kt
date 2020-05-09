@@ -18,7 +18,11 @@ sealed class Type {
         }
     }
 
-    data class Function(val from: List<Type>, val typeParams: List<Param>?, val to: Type) : Type()
+    data class Function(
+        val receiver: Type?,
+        val from: List<Type>,
+        val typeParams: List<Param>?,
+        val to: Type) : Type()
 
     data class Struct(
         val constructor: Constructor,
@@ -67,6 +71,7 @@ sealed class Type {
         Bool -> this
         is RawPtr -> RawPtr(this.to.applySubstitution(substitution))
         is Function -> Function(
+            receiver = receiver?.applySubstitution(substitution),
             typeParams = this.typeParams,
             from = this.from.map { it.applySubstitution(substitution) },
             to = this.to.applySubstitution(substitution)
