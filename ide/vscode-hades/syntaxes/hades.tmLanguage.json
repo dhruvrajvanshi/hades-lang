@@ -1,0 +1,350 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Hades",
+	"patterns": [
+		{
+			"include": "#declarations"
+		}
+	],
+	"fileTypes": [
+		"hds"
+	],
+	"repository": {
+		"declarations": {
+			"patterns": [
+				{
+					"include": "#extern-function-def"
+				},
+				{
+					"include": "#function-def"
+				},
+				{
+					"include": "#import-as"
+				},
+				{
+					"include": "#struct-def"
+				},
+				{
+					"include": "#const-def"
+				}
+			]
+		},
+		"extern-function-def": {
+			"begin": "\\b(extern)\\s+",
+			"end": ";",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.modifier.hades"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#function-signature"
+				}
+			]
+		},
+		"function-signature": {
+			"begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "[=;}]",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.hades"
+				},
+				"2": {
+					"name": "entity.name.function.hades"
+				}
+			}
+		},
+		"function-def": {
+			"begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "(?<=[}])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.hades"
+				},
+				"2": {
+					"name": "entity.name.function.hades"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#function-def-signature"
+				},
+				{
+					"include": "#block"
+				}
+			]
+		},
+		"function-def-signature": {
+			"begin": "(?<=(def)\\s+([a-zA=Z_][a-zA-Z0-9_]*))",
+			"end": "(?=[{])",
+			"patterns": [
+				{
+					"include": "#function-def-signature-param-list"
+				}
+			]
+		},
+		"function-def-signature-param-list": {
+			"begin": "(\\()",
+			"end": "\\)",
+			"patterns": [
+				{
+					"include": "#param"
+				}
+			]
+		},
+		"param": {
+			"begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "(?=[,)])",
+			"beginCaptures": {
+				"1": { "name": "variable.parameter" }
+			}
+		},
+		"import-as": {
+			"begin": "\\b(import)\\s+([a-zA-Z_][a-zA-Z0-9]*)\\b(\\.[a-zA-Z_][a-zA-Z0-9_]*)*\\s+(as)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+			"end": "[;\n]",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.hades"
+				},
+				"2": {
+					"name": "entity.name.class.hades"
+				},
+				"3": {
+					"name": "entity.name.class.hades"
+				},
+				"4": {
+					"name": "keyword.hades"
+				},
+				"5": {
+					"name": "variable.name"
+				}
+			}
+		},
+		"struct-def": {
+			"begin": "\\b(struct)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "(?<=[}])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.hades"
+				},
+				"2": {
+					"name": "entity.name.class"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#keywords"
+				}
+			]
+		},
+		"block": {
+			"begin": "([{])",
+			"end": "([}])",
+			"patterns": [
+				{
+					"include": "#statements"
+				},
+				{
+					"include": "#if-statement"
+				},
+				{
+					"include": "#block"
+				},
+				{
+					"include": "#expressions"
+				}
+			]
+		},
+		"statements": {
+			"patterns": [
+				{
+					"include": "#val-statement"
+				},
+				{
+					"include": "#return-statement"
+				}
+			]
+		},
+		"val-statement": {
+			"begin": "\\b(val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "([;\n])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword"
+				},
+				"2": {
+					"name": "variable.name"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expressions"
+				}
+			]
+		},
+		"return-statement": {
+			"begin": "\\b(return)\\b",
+			"end": "([;\n])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expressions"
+				}
+			]
+		},
+		"if-statement": {
+			"begin": "\\b(if)\\b",
+			"end": "(?<=[}])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.hades"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#block"
+				},
+				{
+					"include": "#expressions"
+				}
+			]
+		},
+		"expressions": {
+			"patterns": [
+				{
+					"include": "#boolean-literals"
+				},
+				{
+					"include": "#string-literal"
+				},
+				{
+					"include": "#variable-expressions"
+				}
+			]
+		},
+		"boolean-literals": {
+			"match": "\\b(true|false)\\b",
+			"captures": {
+				"1": {
+					"name": "constant.language"
+				}
+			}
+		},
+		"string-literal": {
+			"begin": "((b?)([\"]))",
+			"end": "([\"])",
+			"beginCaptures": {
+				"3": {
+					"name": "string.quoted.double"
+				},
+				"1": {
+					"name": "emphasis"
+				}
+			},
+			"captures": {
+				"0": {
+					"name": "string.quoted.double.hades"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#inside-string"
+				},
+				{
+					"include": "#string-escapes"
+				}
+			]
+		},
+		"inside-string": {
+			"match": "([^\"\\\\]+)",
+			"captures": {
+				"1": {
+					"name": "string.quoted.double.hades"
+				}
+			}
+		},
+		"string-escapes": {
+			"match": "(\\\\[n\\\\t\"])",
+			"captures": {
+				"1": {
+					"name": "constant.character.escape"
+				}
+			}
+		},
+		"keywords": {
+			"match": "\\b(val)\\b",
+			"name": "keyword"
+		},
+		"const-def": {
+			"begin": "\\b(const)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "[;\n]",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword"
+				},
+				"2": {
+					"name": "variable"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expressions"
+				}
+			]
+		},
+		"variable-expressions": {
+			"patterns": [
+				{
+					"include": "#variable-method"
+				},
+				{
+					"include": "#variable-call"
+				},
+				{
+					"include": "#variable-lowercase"
+				},
+				{
+					"include": "#variable-uppercase"
+				}
+			]
+		},
+		"variable-lowercase": {
+			"match": "\\b([a-z_][a-zA-Z0-9_]*)\\b",
+			"captures": {
+				"1": {
+					"name": "variable.name"
+				}
+			}
+		},
+		"variable-uppercase": {
+			"match": "\\b([A-Z_][a-zA-Z0-9_]*)\\b",
+			"captures": {
+				"1": {
+					"name": "entity.name.class"
+				}
+			}		
+		},
+		"variable-call": {
+			"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\(\\b",
+			"captures": {
+				"1": {
+					"name": "entity.name.function"
+				}
+			}
+		},
+		"variable-method": {
+			"match": "\\b(\\.)(([a-zA-Z_][a-zA-Z0-9_]*))\\(\\b",
+			"captures": {
+				"2": {
+					"name": "entity.name.function"
+				}
+			}
+		}
+	},
+	"scopeName": "hades"
+}

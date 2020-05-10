@@ -1,0 +1,25 @@
+{
+    "name": "vscode-hades",
+    "displayName": "vscode-hades",
+    "description": "",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.45.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "hades",
+            "aliases": ["Hades", "hades"],
+            "extensions": ["hds"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "hades",
+            "scopeName": "hades",
+            "path": "./syntaxes/hades.tmLanguage.json"
+        }]
+    }
+}
