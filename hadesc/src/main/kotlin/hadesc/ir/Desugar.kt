@@ -204,11 +204,6 @@ class Desugar(private val ctx: Context) {
                 builder.buildVariable(ty, expression.location, name)
             }
         }
-        assert(lowered.type == typeOfExpression(expression)) {
-            "Type of lowered expression at ${expression.location} is not same as unlowered expression: " +
-                    "lowered type: ${lowered.type.prettyPrint()}\n" +
-                    "original type: ${typeOfExpression(expression).prettyPrint()}"
-        }
         return lowered
     }
 
