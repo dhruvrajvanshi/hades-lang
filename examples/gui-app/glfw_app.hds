@@ -16,7 +16,7 @@ def main(): Void {
 
     glfw.make_context_current(window);
 
-    while(not window.should_close()) {
+    while not window.should_close() {
         main_loop(window);
     }
 

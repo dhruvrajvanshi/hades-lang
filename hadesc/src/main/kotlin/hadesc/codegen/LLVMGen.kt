@@ -4,6 +4,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
 import hadesc.logging.logger
+import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import llvm.*
 import org.bytedeco.javacpp.BytePointer
@@ -20,7 +21,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val builder = llvm.Builder(llvmCtx)
 
     fun generate() {
-        logger().info(irModule.prettyPrint())
         for (it in irModule) {
             lowerDefinition(it)
         }
@@ -309,7 +309,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMPrintMessageAction, buffer)
         require(error == 0) {
             log.error("Invalid llvm module: ${llvmModule.sourceFileName}\n")
-            llvmModule.dump()
             "Invalid LLVM module"
         }
     }
@@ -322,7 +321,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-
+    private val structTypes = mutableMapOf<QualifiedName, StructType>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
         Type.Error -> requireUnreachable()
         Type.Byte -> byteTy
@@ -340,11 +339,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 variadic = false
             )
         }
-        is Type.Struct -> StructType(
-            type.memberTypes.values.map { lowerType(it) },
-            packed = false,
-            ctx = llvmCtx
-        )
+        is Type.Struct -> structTypes.computeIfAbsent(type.constructor.name) {
+            val name = type.constructor.name.mangle()
+            val structTy = StructType(name, llvmCtx)
+            structTy.setBody(type.memberTypes.values.map { lowerType(it) }, packed = false)
+            structTy
+        }
         is Type.ParamRef ->
             TODO("Can't lower unspecialized type param")
         is Type.GenericInstance -> requireUnreachable()
@@ -388,7 +388,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         log.info(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
         log.debug(builder.command().joinToString(","))
-        val process = builder.start()
+        val process = builder
+            .inheritIO()
+            .start()
         val exitCode = process.waitFor()
         assert(exitCode == 0) {
             log.error(process.inputStream.readAllBytes().toString(StandardCharsets.UTF_8))

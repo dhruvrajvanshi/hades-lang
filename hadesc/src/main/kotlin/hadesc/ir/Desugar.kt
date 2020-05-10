@@ -269,14 +269,23 @@ class Desugar(private val ctx: Context) {
             )
         } else {
             val def = requireNotNull(ctx.checker.getExtensionDef(expression))
-            val type = typeOfExpression(expression)
-            val (fnName, _) = lowerGlobalBinder(def.name)
+            val thisTy = typeOfExpression(expression.lhs)
+            val (fnName, methodTy) = lowerGlobalBinder(def.name)
+            require(methodTy is Type.Function)
             val typeArgs = ctx.checker.getTypeArgs(expression)
             if (def.typeParams != null) {
                 require(typeArgs != null)
             }
             return builder.buildMethodRef(
-                type = type,
+                type = Type.Function(
+                    receiver = null,
+                    to = methodTy.to,
+                    typeParams = methodTy.typeParams,
+                    from = buildList {
+                        add(thisTy)
+                        addAll(methodTy.from)
+                    }
+                ),
                 location = expression.location,
                 thisArg = lhs,
                 method = fnName
@@ -302,7 +311,8 @@ class Desugar(private val ctx: Context) {
             is ValueBinding.FunctionParam -> {
                 val index = binding.index
                 assert(index > -1)
-                getFunctionDef(binding.declaration).params[index].name
+                val indexWithThis = if (binding.declaration.thisParam != null) index + 1 else index
+                getFunctionDef(binding.declaration).params[indexWithThis].name
             }
             is ValueBinding.ValBinding -> {
                 val ptr = getValBinding(binding.statement)

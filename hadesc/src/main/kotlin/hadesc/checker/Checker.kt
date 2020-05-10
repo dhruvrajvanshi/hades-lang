@@ -34,9 +34,12 @@ class Checker(
         requireNotNull(expressionTypes[expression])
     }
 
-    private fun resolveQualifiedTypeVariable(path: QualifiedPath): Type? {
+    private fun resolveQualifiedTypeVariable(node: HasLocation, path: QualifiedPath): Type? {
         val struct = ctx.resolver.resolveQualifiedStructDef(path)
-        require(struct != null)
+        if (struct == null) {
+            error(node.location, Diagnostic.Kind.UnboundType(path.identifiers.last().name))
+            return null
+        }
         val instanceType = typeOfStructInstance(struct)
         return if (struct.typeParams == null) {
             instanceType
@@ -105,7 +108,7 @@ class Checker(
                 )
             }
             is TypeAnnotation.Qualified -> {
-                val typeBinding = resolveQualifiedTypeVariable(annotation.qualifiedPath)
+                val typeBinding = resolveQualifiedTypeVariable(annotation, annotation.qualifiedPath)
                 if (typeBinding != null) {
                     typeBinding
                 } else {
@@ -523,7 +526,7 @@ class Checker(
     }
 
     private fun applyInstantiations(expression: Expression) {
-        val ty = requireNotNull(expressionTypes[expression])
+        val ty = expressionTypes[expression] ?: inferExpression(expression)
         val instance = applyInstantiations(ty)
         expressionTypes[expression] = instance
     }

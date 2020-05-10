@@ -1,3 +1,4 @@
 
 extern def puts(*Byte): Void = puts;
+extern def exit(CInt): Void = exit;
 

@@ -53,7 +53,8 @@ sealed class Type {
             val typeParams = if (this.typeParams != null) {
                 "[${this.typeParams.joinToString(", ") { it.prettyPrint() }}]"
             } else ""
-            "$typeParams(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
+            val receiver = if (this.receiver == null) "" else "this: ${this.receiver.prettyPrint()}, "
+            "$typeParams($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
         is Struct -> constructor.name.names.joinToString(".") { it.text }
         is ParamRef -> this.name.identifier.name.text

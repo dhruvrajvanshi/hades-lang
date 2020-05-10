@@ -1,0 +1,23 @@
+
+struct Application {}
+struct Window {}
+
+const APPLICATION_FLAGS_NONE = 0;
+extern def application_new(*Byte, CInt): *Application = gtk_application_new;
+extern def object_unref(*Application): Void = gtk_object_unref;
+extern def application_window_new(*Application): *Window = gtk_application_window_new;
+extern def window_set_default_size(*Window, CInt, CInt): Void = gtk_window_set_default_size;
+extern def window_set_title(*Window, *Byte): Void = gtk_window_set_title;
+
+def new_window(this: *Application): *Window {
+    return application_window_new(this);
+}
+
+def set_title(this: *Window, title: *Byte): Void {
+    window_set_title(this, title);
+}
+
+def set_default_size(this: *Window, x: CInt, y: CInt): Void {
+    window_set_default_size(this, x, y);
+}
+
