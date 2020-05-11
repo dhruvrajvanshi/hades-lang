@@ -20,7 +20,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val log = logger()
     private val llvmCtx = llvm.Context()
     private val llvmModule = llvm.Module(ctx.options.main.toString(), llvmCtx)
-    private val builder = llvm.Builder(llvmCtx)
+    private val builder = Builder(llvmCtx)
 
     fun generate() {
         for (it in irModule) {
@@ -49,7 +49,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun getConstDefValue(def: IRConstDef): llvm.Value  {
+    private fun getConstDefValue(def: IRConstDef): Value  {
         if (loweredGlobals[def.name] == null) {
             lowerConstDef(def)
         }
@@ -201,7 +201,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         localVariables[statement.name] = builder.buildNot(lowerExpression(statement.arg), name)
     }
 
-    private val localVariables = mutableMapOf<IRLocalName, llvm.Value>()
+    private val localVariables = mutableMapOf<IRLocalName, Value>()
 
     private fun lowerAlloca(statement: IRAlloca) {
         val name = lowerName(statement.name)
@@ -224,16 +224,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         localVariables[statement.name] = ref
     }
 
-    private fun getLocalVariable(name: IRLocalName): llvm.Value {
-        return requireNotNull(localVariables[name])
-    }
-
-
     private fun lowerReturnStatement(statement: IRReturnInstruction) {
         builder.buildRet(lowerExpression(statement.value))
     }
 
-    private fun lowerExpression(value: IRValue): llvm.Value = when (value) {
+    private fun lowerExpression(value: IRValue): Value = when (value) {
         is IRBool -> lowerBoolExpression(value)
         is IRByteString -> lowerByteString(value)
         is IRVariable -> lowerVariable(value)
@@ -243,15 +238,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRMethodRef -> requireUnreachable()
     }
 
-    private fun lowerCIntValue(value: IRCIntConstant): llvm.Value {
+    private fun lowerCIntValue(value: IRCIntConstant): Value {
         return ConstantInt(value = value.value.toLong(), type = cIntTy, signExtend = false)
     }
 
-    private fun lowerNullPtr(value: IRNullPtr): llvm.Value {
+    private fun lowerNullPtr(value: IRNullPtr): Value {
         return (lowerType(value.type) as PointerType).getConstantNullPointer()
     }
 
-    private fun lowerGetStructField(expression: IRGetStructField): llvm.Value {
+    private fun lowerGetStructField(expression: IRGetStructField): Value {
         return builder.buildExtractValue(
             lowerExpression(expression.lhs),
             expression.index,
@@ -259,7 +254,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
     }
 
-    private fun lowerBoolExpression(expression: IRBool): llvm.Value {
+    private fun lowerBoolExpression(expression: IRBool): Value {
         return if (expression.value) {
             trueValue
         } else {
@@ -267,7 +262,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun lowerVariable(expression: IRVariable): llvm.Value {
+    private fun lowerVariable(expression: IRVariable): Value {
         return when (expression.name) {
             is IRLocalName -> requireNotNull(localVariables[expression.name]) {
                 "Unbound variable: ${expression.name.prettyPrint()}"
@@ -284,7 +279,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRBinding.ConstDef -> getConstDefValue(binding.def)
     }
 
-    private fun lowerByteString(expression: IRByteString): llvm.Value {
+    private fun lowerByteString(expression: IRByteString): Value {
         val text = expression.value.decodeToString()
         val constStringRef = llvm.ConstantArray(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
@@ -292,10 +287,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             constStringRef.getType()
         )
         globalRef.initializer = constStringRef
-        return llvm.Value(LLVM.LLVMConstPointerCast(globalRef.ref, bytePtrTy.ref))
+        return Value(LLVM.LLVMConstPointerCast(globalRef.ref, bytePtrTy.ref))
     }
 
-    private fun lowerCallExpression(expression: IRCall): llvm.Value {
+    private fun lowerCallExpression(expression: IRCall): Value {
         val callee = lowerExpression(expression.callee)
         require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
@@ -306,13 +301,13 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return ref
     }
 
-    private fun withinBlock(basicBlock: llvm.BasicBlock, fn: llvm.Builder.() -> Unit) {
+    private fun withinBlock(basicBlock: BasicBlock, fn: Builder.() -> Unit) {
         builder.positionAtEnd(basicBlock)
         builder.fn()
     }
 
 
-    private fun getDeclaration(externFunctionDef: IRExternFunctionDef): llvm.FunctionValue {
+    private fun getDeclaration(externFunctionDef: IRExternFunctionDef): FunctionValue {
         val irName = externFunctionDef.externName
         val type = lowerFunctionType(externFunctionDef.type)
         val name = if (irName.text == "main") {
@@ -323,7 +318,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return llvmModule.getFunction(name)?.asFunctionValue() ?: llvmModule.addFunction(name, type)
     }
 
-    private fun getDeclaration(def: IRFunctionDef): llvm.FunctionValue {
+    private fun getDeclaration(def: IRFunctionDef): FunctionValue {
         val irName = def.name
         val type = lowerFunctionType(def.type)
         val name = if (irName.mangle() == "main") {
@@ -334,7 +329,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return (llvmModule.getFunction(name) ?: llvmModule.addFunction(name, type)).asFunctionValue()
     }
 
-    private fun getStructConstructor(def: IRStructDef): llvm.FunctionValue {
+    private fun getStructConstructor(def: IRStructDef): FunctionValue {
         val name = lowerName(def.globalName)
         val existing = llvmModule.getFunction(name)?.asFunctionValue()
         return if (existing != null) {
@@ -350,9 +345,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
 
-    private fun lowerFunctionType(type: Type): llvm.FunctionType {
+    private fun lowerFunctionType(type: Type): FunctionType {
         val lowered = lowerType(type)
-        require(lowered is llvm.FunctionType)
+        require(lowered is FunctionType)
         return lowered
     }
 
@@ -370,7 +365,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun llvm.FunctionValue.verify() {
+    private fun FunctionValue.verify() {
         val validate = LLVM.LLVMVerifyFunction(ref, LLVM.LLVMPrintMessageAction)
         if (validate > 0) {
             log.debug("Bad function: ${this.dumpToString()}")
