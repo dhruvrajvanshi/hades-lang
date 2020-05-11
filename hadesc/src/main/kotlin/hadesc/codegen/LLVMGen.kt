@@ -108,27 +108,27 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         basicBlock
     }
 
-    private fun lowerStatement(statement: IRStatement) = when (statement) {
-        is IRReturnStatement -> lowerReturnStatement(statement)
-        is IRReturnVoidStatement -> {
+    private fun lowerStatement(instruction: IRInstruction) = when (instruction) {
+        is IRReturnInstruction -> lowerReturnStatement(instruction)
+        is IRReturnVoidInstruction -> {
             builder.buildRetVoid()
             Unit
         }
         is IRValue -> {
-            lowerExpression(statement)
+            lowerExpression(instruction)
             Unit
         }
         is IRCall -> {
-            lowerCallExpression(statement)
+            lowerCallExpression(instruction)
             Unit
         }
-        is IRAlloca -> lowerAlloca(statement)
-        is IRStore -> lowerStore(statement)
-        is IRLoad -> lowerLoad(statement)
-        is IRNot -> lowerNot(statement)
-        is IRBr -> lowerBr(statement)
-        is IRJump -> lowerJump(statement)
-        is IRBinOp -> lowerBinOp(statement)
+        is IRAlloca -> lowerAlloca(instruction)
+        is IRStore -> lowerStore(instruction)
+        is IRLoad -> lowerLoad(instruction)
+        is IRNot -> lowerNot(instruction)
+        is IRBr -> lowerBr(instruction)
+        is IRJump -> lowerJump(instruction)
+        is IRBinOp -> lowerBinOp(instruction)
     }
 
     private fun lowerBinOp(statement: IRBinOp) {
@@ -229,7 +229,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
 
-    private fun lowerReturnStatement(statement: IRReturnStatement) {
+    private fun lowerReturnStatement(statement: IRReturnInstruction) {
         builder.buildRet(lowerExpression(statement.value))
     }
 

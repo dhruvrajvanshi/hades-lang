@@ -193,11 +193,11 @@ class IRExternFunctionDef(
 class IRTypeParam(val name: IRLocalName, val binderLocation: SourceLocation)
 
 class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
-    var statements = mutableListOf<IRStatement>()
+    var statements = mutableListOf<IRInstruction>()
     fun prettyPrint(): String =
         "\n${name.prettyPrint()}:\n${statementSequence().joinToString("\n") { "  " + it.prettyPrint() }}\n"
 
-    operator fun iterator(): Iterator<IRStatement> = statementSequence().iterator()
+    operator fun iterator(): Iterator<IRInstruction> = statementSequence().iterator()
 
     private fun statementSequence() = statements.toList().asSequence()
 }
@@ -206,8 +206,8 @@ class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
 class IRBuilder {
     var position: IRBlock? = null
 
-    fun buildRetVoid(): IRReturnVoidStatement {
-        return addStatement(IRReturnVoidStatement)
+    fun buildRetVoid(): IRReturnVoidInstruction {
+        return addStatement(IRReturnVoidInstruction)
     }
 
     fun buildConstBool(ty: Type, location: SourceLocation, value: Boolean): IRValue {
@@ -215,10 +215,10 @@ class IRBuilder {
     }
 
 
-    fun <S : IRStatement> addStatement(statement: S): S {
+    fun <S : IRInstruction> addStatement(statement: S): S {
         val statements = requireNotNull(position).statements
         if (statements.isNotEmpty()) {
-            require(statements.last() !is IRReturnStatement) {
+            require(statements.last() !is IRReturnInstruction) {
                 "Tried to add statement after terminator"
             }
             require(statements.last() !is IRBr) {
@@ -282,19 +282,19 @@ class IRBuilder {
         return ref
     }
 
-    fun buildReturn(value: IRValue): IRStatement {
-        return addStatement(IRReturnStatement(value))
+    fun buildReturn(value: IRValue): IRInstruction {
+        return addStatement(IRReturnInstruction(value))
     }
 
-    fun buildAlloca(type: Type, name: IRLocalName): IRStatement {
+    fun buildAlloca(type: Type, name: IRLocalName): IRInstruction {
         return addStatement(IRAlloca(type, name))
     }
 
-    fun buildLoad(name: IRLocalName, type: Type, ptr: IRValue): IRStatement {
+    fun buildLoad(name: IRLocalName, type: Type, ptr: IRValue): IRInstruction {
         return addStatement(IRLoad(name, type, ptr))
     }
 
-    fun buildStore(ptr: IRValue, value: IRValue): IRStatement {
+    fun buildStore(ptr: IRValue, value: IRValue): IRInstruction {
         return addStatement(IRStore(ptr, value))
     }
 
@@ -304,7 +304,7 @@ class IRBuilder {
             lhs: IRValue,
             operator: BinaryOperator,
             rhs: IRValue
-    ): IRStatement {
+    ): IRInstruction {
         return addStatement(IRBinOp(type, name, lhs, operator, rhs))
     }
 
@@ -322,22 +322,22 @@ class IRBuilder {
         return addStatement(IRNot(type, location, name, value))
     }
 
-    fun buildBranch(location: SourceLocation, condition: IRValue, ifTrue: IRLocalName, ifFalse: IRLocalName): IRStatement {
+    fun buildBranch(location: SourceLocation, condition: IRValue, ifTrue: IRLocalName, ifFalse: IRLocalName): IRInstruction {
         return addStatement(IRBr(location, condition, ifTrue, ifFalse))
     }
 
-    fun buildJump(location: SourceLocation, name: IRLocalName): IRStatement {
+    fun buildJump(location: SourceLocation, name: IRLocalName): IRInstruction {
         return addStatement(IRJump(location, name))
     }
 }
 
-sealed class IRStatement {
+sealed class IRInstruction {
     override fun toString(): String = prettyPrint()
 
     @OptIn(ExperimentalStdlibApi::class)
     fun prettyPrint(): String = when (this) {
-        is IRReturnStatement -> "return ${value.prettyPrint()}"
-        is IRReturnVoidStatement -> "return void"
+        is IRReturnInstruction -> "return ${value.prettyPrint()}"
+        is IRReturnVoidInstruction -> "return void"
         is IRCall -> {
             val typeArgs = if (typeArgs == null) {
                 ""
@@ -357,27 +357,27 @@ sealed class IRStatement {
     }
 }
 
-class IRReturnStatement(
+class IRReturnInstruction(
     val value: IRValue
-) : IRStatement()
+) : IRInstruction()
 
 class IRAlloca(
     val type: Type,
     val name: IRLocalName
-) : IRStatement()
+) : IRInstruction()
 
 class IRStore(
     val ptr: IRValue,
     val value: IRValue
-) : IRStatement()
+) : IRInstruction()
 
 class IRLoad(
     val name: IRLocalName,
     val type: Type,
     val ptr: IRValue
-) : IRStatement()
+) : IRInstruction()
 
-object IRReturnVoidStatement : IRStatement()
+object IRReturnVoidInstruction : IRInstruction()
 
 class IRBinOp(
     val type: Type,
@@ -385,7 +385,7 @@ class IRBinOp(
     val lhs: IRValue,
     val operator: BinaryOperator,
     val rhs: IRValue
-) : IRStatement()
+) : IRInstruction()
 
 
 sealed class IRValue : HasLocation {
@@ -415,26 +415,26 @@ data class IRCall(
     val typeArgs: List<Type>?,
     val args: List<IRValue>,
     val name: IRLocalName
-) : IRStatement()
+) : IRInstruction()
 
 data class IRNot(
     val type: Type,
     val location: SourceLocation,
     val name: IRLocalName,
     val arg: IRValue
-) : IRStatement()
+) : IRInstruction()
 
 data class IRBr(
     val location: SourceLocation,
     val condition: IRValue,
     val ifTrue: IRLocalName,
     val ifFalse: IRLocalName
-) : IRStatement()
+) : IRInstruction()
 
 data class IRJump(
     val location: SourceLocation,
     val label: IRLocalName
-) : IRStatement()
+) : IRInstruction()
 
 class IRBool(
     override val type: Type,

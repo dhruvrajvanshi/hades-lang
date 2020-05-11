@@ -94,8 +94,8 @@ class SpecializeGenerics(
         for (statement in oldBlock) {
             exhaustive(
                 when (statement) {
-                    is IRReturnStatement -> visitReturnStatement(statement)
-                    is IRReturnVoidStatement -> {
+                    is IRReturnInstruction -> visitReturnStatement(statement)
+                    is IRReturnVoidInstruction -> {
                         builder.buildRetVoid()
                         Unit
                     }
@@ -395,7 +395,7 @@ class SpecializeGenerics(
         return name
     }
 
-    private fun visitReturnStatement(statement: IRReturnStatement) {
+    private fun visitReturnStatement(statement: IRReturnInstruction) {
         builder.buildReturn(lowerValue(statement.value))
     }
 
