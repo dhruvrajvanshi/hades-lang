@@ -21,12 +21,12 @@ A systems level programming language that compiles to LLVM
     - [ ] Debugger support
 
 ## Editor support
-Git checkout this repo
 Basic syntax hilighting is supported
 ### IntelliJ
-Got to `File > Settings > Editor > TextMate bundles`
-Add a new bundle from directory `ide/vscode-hades`.
-You should get basic syntax hilighting for .hds files.
+1. Git checkout this repo.
+2. Go to `File > Settings > Editor > TextMate bundles`
+3. Add a new bundle from directory `ide/vscode-hades`.
+You should now get basic syntax hilighting for .hds files.
 
 ### VS Code
 Plugin isn't published yet. It's in `ide/vscode-hades` Figure it out.
