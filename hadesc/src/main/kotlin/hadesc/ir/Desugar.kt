@@ -203,6 +203,7 @@ class Desugar(private val ctx: Context) {
                 builder.buildNot(ty, expression.location, name, lowerExpression(expression.expression))
                 builder.buildVariable(ty, expression.location, name)
             }
+            is Expression.BinaryOperation -> TODO()
         }
         return lowered
     }

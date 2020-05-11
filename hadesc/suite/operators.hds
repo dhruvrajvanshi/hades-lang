@@ -1,0 +1,36 @@
+import submodule.test_utils as utils;
+import libc as c;
+
+def short_circuit(): Bool {
+    c.puts(b"Should not be printed");
+    return true;
+}
+
+def main(): Void {
+    val x = 1;
+    utils.print_int(x + 1);
+    utils.print_int(x - 1);
+    utils.print_int(2 * 5);
+
+    utils.print_int(1 + 2 * 5);
+    utils.print_int(2 * 5 + 1);
+
+    utils.print_bool(x > 0);
+    utils.print_bool(x >= 0);
+    utils.print_bool(x > 1);
+    utils.print_bool(x >= 1);
+
+    utils.print_bool(x < 1);
+    utils.print_bool(x <= 1);
+    utils.print_bool(x == 1);
+    utils.print_bool(x == 2);
+    utils.print_bool(x != 2);
+    utils.print_bool(x != 1);
+
+
+    utils.print_bool(true and false);
+    utils.print_bool(true or false);
+
+    val x = true or short_circuit();
+    val y = false and short_circuit();
+}

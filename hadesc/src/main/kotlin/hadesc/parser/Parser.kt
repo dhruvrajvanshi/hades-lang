@@ -15,9 +15,43 @@ private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTE
 private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE, tt.IF)
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
-    'n' to '\n',
-    '0' to '\u0000'
+        'n' to '\n',
+        '0' to '\u0000'
 )
+
+private val OPERATORS = listOf(
+        setOf(tt.AND, tt.OR),
+        setOf(
+                tt.LESS_THAN,
+                tt.LESS_THAN_EQUAL,
+                tt.GREATER_THAN_EQUAL,
+                tt.GREATER_THAN),
+        setOf(tt.EQEQ, tt.BANG_EQ),
+        setOf(tt.PLUS, tt.MINUS),
+        setOf(tt.STAR)
+)
+
+typealias op = Expression.BinaryOperator
+
+private val BINARY_OPERATORS = mapOf(
+        tt.LESS_THAN to op.LESS_THAN,
+        tt.LESS_THAN_EQUAL to op.LESS_THAN_EQUAL,
+        tt.GREATER_THAN to op.GREATER_THAN,
+        tt.GREATER_THAN_EQUAL to op.GREATER_THAN_EQUAL,
+        tt.PLUS to op.PLUS,
+        tt.MINUS to op.MINUS,
+        tt.STAR to op.TIMES,
+        tt.AND to op.AND,
+        tt.OR to op.OR,
+        tt.EQEQ to op.EQUALS,
+        tt.BANG_EQ to op.NOT_EQUALS
+).apply {
+    for (tokenType in keys) {
+        require(OPERATORS.any { it.contains(tokenType) }) {
+            "operator token type $tokenType missing in precedence table"
+        }
+    }
+}
 
 object SyntaxError : Error()
 
@@ -61,16 +95,16 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         return decl
     }
 
-    private fun parseConstDef(): Declaration.ConstDefinition  {
+    private fun parseConstDef(): Declaration.ConstDefinition {
         val start = expect(tt.CONST)
         val name = parseBinder()
         expect(tt.EQ)
         val rhs = parseExpression()
         expect(tt.SEMICOLON)
         return Declaration.ConstDefinition(
-            makeLocation(start, rhs),
-            name,
-            rhs
+                makeLocation(start, rhs),
+                name,
+                rhs
         )
     }
 
@@ -88,10 +122,10 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val stop = expect(tt.RBRACE)
 
         return Declaration.Struct(
-            makeLocation(start, stop),
-            binder,
-            typeParams,
-            members
+                makeLocation(start, stop),
+                binder,
+                typeParams,
+                members
         )
     }
 
@@ -109,8 +143,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val annotation = parseTypeAnnotation()
         expect(tt.SEMICOLON)
         return Declaration.Struct.Member.Field(
-            binder,
-            annotation
+                binder,
+                annotation
         )
     }
 
@@ -131,11 +165,11 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
         expect(tt.SEMICOLON)
         return Declaration.ExternFunctionDef(
-            makeLocation(start, returnType),
-            binder = name,
-            paramTypes = params,
-            returnType = returnType,
-            externName = externName
+                makeLocation(start, returnType),
+                binder = name,
+                paramTypes = params,
+                returnType = returnType,
+                externName = externName
         )
     }
 
@@ -176,14 +210,14 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val annotation = parseTypeAnnotation()
         val block = parseBlock()
         return Declaration.FunctionDef(
-            location = makeLocation(start, block),
-            name = name,
-            scopeStartToken = scopeStartToken,
-            typeParams = typeParams,
-            thisParam = thisParam,
-            params = params,
-            returnType = annotation,
-            body = block
+                location = makeLocation(start, block),
+                name = name,
+                scopeStartToken = scopeStartToken,
+                typeParams = typeParams,
+                thisParam = thisParam,
+                params = params,
+                returnType = annotation,
+                body = block
         )
     }
 
@@ -255,10 +289,10 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             null
         }
         return Statement.If(
-            location = makeLocation(start, ifFalse ?: ifTrue),
-            condition = condition,
-            ifTrue = ifTrue,
-            ifFalse = ifFalse
+                location = makeLocation(start, ifFalse ?: ifTrue),
+                condition = condition,
+                ifTrue = ifTrue,
+                ifFalse = ifFalse
         )
     }
 
@@ -267,9 +301,9 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val condition = parseExpression()
         val block = parseBlock()
         return Statement.While(
-            makeLocation(start, block),
-            condition,
-            block
+                makeLocation(start, block),
+                condition,
+                block
         )
     }
 
@@ -278,8 +312,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val value = parseExpression()
         expect(tt.SEMICOLON)
         return Statement.Return(
-            makeLocation(start, value),
-            value
+                makeLocation(start, value),
+                value
         )
     }
 
@@ -291,14 +325,48 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val rhs = parseExpression()
         expect(tt.SEMICOLON)
         return Statement.Val(
-            makeLocation(start, rhs),
-            binder,
-            typeAnnotation,
-            rhs
+                makeLocation(start, rhs),
+                binder,
+                typeAnnotation,
+                rhs
         )
     }
 
     private fun parseExpression(): Expression {
+        return parseExpressionMinPrecedence(0)
+    }
+
+    private fun parseExpressionMinPrecedence(minPrecedence: Int): Expression {
+        return if (minPrecedence == OPERATORS.size) {
+            parsePrimaryExpression()
+        } else {
+            var currentExpression = parseExpressionMinPrecedence(minPrecedence + 1)
+            while (currentToken.kind in OPERATORS[minPrecedence]) {
+                val opToken = advance()
+                currentExpression = makeBinOp(
+                        currentExpression,
+                        opToken.kind,
+                        parseExpressionMinPrecedence(minPrecedence + 1)
+                )
+            }
+
+            currentExpression
+        }
+    }
+
+    private fun makeBinOp(lhs: Expression, operatorToken: TokenKind, rhs: Expression): Expression {
+        val operator = requireNotNull(BINARY_OPERATORS[operatorToken]) {
+            "Bug: Token type not found in binary operators table $operatorToken"
+        }
+        return Expression.BinaryOperation(
+                makeLocation(lhs, rhs),
+                lhs,
+                operator,
+                rhs
+        )
+    }
+
+    private fun parsePrimaryExpression(): Expression {
         val head = when (currentToken.kind) {
             tt.LPAREN -> {
                 advance()
@@ -378,22 +446,22 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 }
                 val stop = expect(tt.RPAREN)
                 parseExpressionTail(
-                    Expression.Call(
-                        makeLocation(head, stop),
-                        head,
-                        args
-                    )
+                        Expression.Call(
+                                makeLocation(head, stop),
+                                head,
+                                args
+                        )
                 )
             }
             tt.DOT -> {
                 advance()
                 val ident = parseIdentifier()
                 parseExpressionTail(
-                    Expression.Property(
-                        makeLocation(head, ident),
-                        head,
-                        ident
-                    )
+                        Expression.Property(
+                                makeLocation(head, ident),
+                                head,
+                                ident
+                        )
                 )
             }
             else -> head
@@ -436,8 +504,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         val binder = parseBinder()
         val annotation = parseOptionalAnnotation()
         return Param(
-            binder = binder,
-            annotation = annotation
+                binder = binder,
+                annotation = annotation
         )
     }
 
@@ -469,8 +537,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 val start = advance()
                 val to = parseTypeAnnotation()
                 TypeAnnotation.Ptr(
-                    makeLocation(start, to),
-                    to
+                        makeLocation(start, to),
+                        to
                 )
             }
             else -> {
@@ -495,9 +563,9 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 }
                 val end = expect(tt.RSQB)
                 TypeAnnotation.Application(
-                    makeLocation(head, end),
-                    head,
-                    args
+                        makeLocation(head, end),
+                        head,
+                        args
                 )
             }
             else -> head
@@ -505,9 +573,9 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun <T> parseSeperatedList(
-        seperator: Token.Kind,
-        terminator: Token.Kind,
-        parseItem: () -> T
+            seperator: Token.Kind,
+            terminator: Token.Kind,
+            parseItem: () -> T
     ): List<T> = buildList {
         var isFirst = true
         while (currentToken.kind != terminator && currentToken.kind != tt.EOF) {
@@ -530,7 +598,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     private fun at(kind: tt): Boolean = currentToken.kind == kind
 
     private fun recoverFromError(
-        stopBefore: Set<tt> = declarationRecoveryTokens
+            stopBefore: Set<tt> = declarationRecoveryTokens
     ) {
         while (true) {
             if (isEOF()) {
@@ -553,6 +621,6 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun isEOF() =
-        currentToken.kind == tt.EOF
+            currentToken.kind == tt.EOF
 }
 

@@ -21,9 +21,22 @@ data class Token(
         THIS,
         NULLPTR,
         WHILE,
-        NOT,
         IF,
         ELSE,
+
+        NOT,
+        AND,
+        OR,
+
+        GREATER_THAN,
+        LESS_THAN,
+        GREATER_THAN_EQUAL,
+        LESS_THAN_EQUAL,
+
+        PLUS,
+        MINUS,
+
+        EQEQ,
 
         ID,
         INT_LITERAL,
@@ -45,6 +58,7 @@ data class Token(
         RSQB,
 
         EQ,
+        BANG_EQ,
 
         EOF,
         ERROR,

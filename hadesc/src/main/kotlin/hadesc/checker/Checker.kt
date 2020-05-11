@@ -293,6 +293,7 @@ class Checker(
                 checkExpression(Type.Bool, expression.expression)
                 Type.Bool
             }
+            is Expression.BinaryOperation -> TODO()
         }
         expressionTypes[expression] = ty
         return ty

@@ -1,3 +1,4 @@
 
 extern def print_int(CInt): Void  = print_int;
+// extern def print_bool(Bool): Void = print_bool;
 

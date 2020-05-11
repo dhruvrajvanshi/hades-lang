@@ -22,6 +22,8 @@ val KEYWORDS = mapOf(
     "nullptr" to tt.NULLPTR,
     "while" to tt.WHILE,
     "not" to tt.NOT,
+    "and" to tt.AND,
+    "or" to tt.OR,
     "if" to tt.IF,
     "else" to tt.ELSE,
     "const" to tt.CONST
@@ -36,7 +38,6 @@ val SINGLE_CHAR_TOKENS = mapOf(
     '}' to tt.RBRACE,
     ',' to tt.COMMA,
     ':' to tt.COLON,
-    '=' to tt.EQ,
     '*' to tt.STAR,
     '[' to tt.LSQB,
     ']' to tt.RSQB
@@ -78,6 +79,50 @@ class Lexer(private val file: SourcePath) {
             c == EOF_CHAR -> makeToken(tt.EOF)
             c.isIdentifierStarter() -> {
                 identifierOrKeyword()
+            }
+            c == '=' -> {
+                advance()
+                if (currentChar == '=') {
+                    advance()
+                    makeToken(tt.EQEQ)
+                } else {
+                    makeToken(tt.EQ)
+                }
+            }
+            c == '>' -> {
+                advance()
+                if (currentChar == '=') {
+                    advance()
+                    makeToken(tt.GREATER_THAN_EQUAL)
+                } else {
+                    makeToken(tt.GREATER_THAN)
+                }
+            }
+            c == '<' -> {
+                advance()
+                if (currentChar == '=') {
+                    advance()
+                    makeToken(tt.LESS_THAN_EQUAL)
+                } else {
+                    makeToken(tt.LESS_THAN_EQUAL)
+                }
+            }
+            c == '+' -> {
+                advance()
+                makeToken(tt.PLUS)
+            }
+            c == '-' -> {
+                advance()
+                makeToken(tt.MINUS)
+            }
+            c == '!' -> {
+                advance()
+                if (currentChar == '=') {
+                    advance()
+                    makeToken(tt.BANG_EQ)
+                } else {
+                    makeToken(tt.ERROR)
+                }
             }
             SINGLE_CHAR_TOKENS.containsKey(c) -> {
                 advance()
