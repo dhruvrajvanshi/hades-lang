@@ -8,7 +8,7 @@ import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
-import hadesc.ir.Desugar
+import hadesc.ir.IRGen
 import hadesc.ir.passes.SpecializeGenerics
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
@@ -36,7 +36,7 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        val irModule = Desugar(this).generate()
+        val irModule = IRGen(this).generate()
 
         val newModule = SpecializeGenerics(this, irModule).run()
 

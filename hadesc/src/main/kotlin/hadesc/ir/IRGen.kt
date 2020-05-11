@@ -12,7 +12,7 @@ import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
 @OptIn(ExperimentalStdlibApi::class)
-class Desugar(private val ctx: Context) {
+class IRGen(private val ctx: Context) {
     private val module = IRModule()
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
