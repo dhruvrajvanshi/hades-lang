@@ -298,6 +298,16 @@ class IRBuilder {
         return addStatement(IRStore(ptr, value))
     }
 
+    fun buildBinOp(
+            type: Type,
+            name: IRLocalName,
+            lhs: IRValue,
+            operator: BinaryOperator,
+            rhs: IRValue
+    ): IRStatement {
+        return addStatement(IRBinOp(type, name, lhs, operator, rhs))
+    }
+
     private fun positionAtEnd(block: IRBlock) {
         this.position = block
     }
@@ -343,6 +353,7 @@ sealed class IRStatement {
         is IRNot -> "${name.prettyPrint()}: ${type.prettyPrint()} = not ${arg.prettyPrint()}"
         is IRBr -> "br ${condition.prettyPrint()} then:${ifTrue.prettyPrint()} else:${ifFalse.prettyPrint()}"
         is IRJump -> "jmp ${label.prettyPrint()}"
+        is IRBinOp -> "${name.prettyPrint()}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()} ${rhs.prettyPrint()}"
     }
 }
 
@@ -367,6 +378,14 @@ class IRLoad(
 ) : IRStatement()
 
 object IRReturnVoidStatement : IRStatement()
+
+class IRBinOp(
+    val type: Type,
+    val name: IRLocalName,
+    val lhs: IRValue,
+    val operator: BinaryOperator,
+    val rhs: IRValue
+) : IRStatement()
 
 
 sealed class IRValue : HasLocation {

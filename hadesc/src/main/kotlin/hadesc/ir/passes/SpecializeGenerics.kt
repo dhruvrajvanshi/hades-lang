@@ -106,6 +106,7 @@ class SpecializeGenerics(
                     is IRNot -> visitNot(statement)
                     is IRBr -> visitBranch(statement)
                     is IRJump -> visitJump(statement)
+                    is IRBinOp -> visitBinOp(statement)
                 }
             )
         }
@@ -116,6 +117,16 @@ class SpecializeGenerics(
         builder.buildJump(
             statement.location,
             statement.label
+        )
+    }
+
+    private fun visitBinOp(binOp: IRBinOp) {
+        builder.buildBinOp(
+                lowerType(binOp.type),
+                lowerLocalName(binOp.name),
+                lowerValue(binOp.lhs),
+                binOp.operator,
+                lowerValue(binOp.rhs)
         )
     }
 

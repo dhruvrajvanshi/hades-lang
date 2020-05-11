@@ -104,7 +104,7 @@ class Lexer(private val file: SourcePath) {
                     advance()
                     makeToken(tt.LESS_THAN_EQUAL)
                 } else {
-                    makeToken(tt.LESS_THAN_EQUAL)
+                    makeToken(tt.LESS_THAN)
                 }
             }
             c == '+' -> {

@@ -203,7 +203,15 @@ class Desugar(private val ctx: Context) {
                 builder.buildNot(ty, expression.location, name, lowerExpression(expression.expression))
                 builder.buildVariable(ty, expression.location, name)
             }
-            is Expression.BinaryOperation -> TODO()
+            is Expression.BinaryOperation -> {
+                // TOOD: Need to handle short circuiting operators separately
+                val ty = typeOfExpression(expression)
+                val lhs = lowerExpression(expression.lhs)
+                val rhs = lowerExpression(expression.rhs)
+                val name = makeLocalName()
+                builder.buildBinOp(ty, name, lhs, expression.operator, rhs)
+                builder.buildVariable(ty, expression.location, name)
+            }
         }
         return lowered
     }

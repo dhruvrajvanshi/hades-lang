@@ -6,6 +6,7 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
+import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.TypeBinding
@@ -769,7 +770,7 @@ private class MutableNodeMap<T : HasLocation, V> {
     }
 }
 
-typealias op = Expression.BinaryOperator
+typealias op = BinaryOperator
 val BIN_OP_RULES: Map<op, Pair<Pair<Type, Type>, Type>> = mapOf(
         op.PLUS to (Type.CInt to Type.CInt to Type.CInt),
         op.MINUS to (Type.CInt to Type.CInt to Type.CInt),

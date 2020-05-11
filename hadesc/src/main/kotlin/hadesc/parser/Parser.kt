@@ -3,6 +3,7 @@ package hadesc.parser
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.Position
 import hadesc.location.SourceLocation
@@ -31,7 +32,7 @@ private val OPERATORS = listOf(
         setOf(tt.STAR)
 )
 
-typealias op = Expression.BinaryOperator
+typealias op = BinaryOperator
 
 private val BINARY_OPERATORS = mapOf(
         tt.LESS_THAN to op.LESS_THAN,

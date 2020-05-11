@@ -12,4 +12,7 @@ void print_bool(bool value) {
         printf("false\n");
     }
 }
+void print_byte_string(char* message) {
+    printf("%s", message);
+}
 

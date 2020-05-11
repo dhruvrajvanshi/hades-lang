@@ -1,5 +1,6 @@
 package hadesc.ast
 
+import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
@@ -59,24 +60,6 @@ sealed class Expression : HasLocation {
         val operator: BinaryOperator,
         val rhs: Expression
     ) : Expression()
-
-    enum class BinaryOperator {
-        PLUS,
-        MINUS,
-        TIMES,
-
-        AND,
-        OR,
-
-        EQUALS,
-        NOT_EQUALS,
-
-        GREATER_THAN,
-        GREATER_THAN_EQUAL,
-
-        LESS_THAN,
-        LESS_THAN_EQUAL
-    }
 }
 
 data class Arg(

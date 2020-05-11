@@ -1,5 +1,7 @@
 package hadesc.codegen
 
+import dev.supergrecko.kllvm.ir.instructions.IntPredicate
+import dev.supergrecko.kllvm.ir.instructions.Opcode
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
@@ -126,6 +128,61 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRNot -> lowerNot(statement)
         is IRBr -> lowerBr(statement)
         is IRJump -> lowerJump(statement)
+        is IRBinOp -> lowerBinOp(statement)
+    }
+
+    private fun lowerBinOp(statement: IRBinOp) {
+        val name = lowerName(statement.name)
+
+        localVariables[statement.name] = if (isPredicateOperator(statement.operator)) {
+            builder.buildICmp(
+                    lowerPredicateOperator(statement.operator),
+                    lowerExpression(statement.lhs),
+                    lowerExpression(statement.rhs),
+                    name
+            )
+        } else {
+            builder.buildBinOp(
+                    lowerOperator(statement.operator),
+                    lowerExpression(statement.lhs),
+                    lowerExpression(statement.rhs),
+                    name)
+        }
+    }
+
+    private fun lowerPredicateOperator(operator: BinaryOperator): IntPredicate {
+        return when(operator) {
+            BinaryOperator.EQUALS -> IntPredicate.EQ
+            BinaryOperator.NOT_EQUALS -> IntPredicate.NE
+            BinaryOperator.GREATER_THAN -> IntPredicate.SGT
+            BinaryOperator.GREATER_THAN_EQUAL -> IntPredicate.SGE
+            BinaryOperator.LESS_THAN -> IntPredicate.SLT
+            BinaryOperator.LESS_THAN_EQUAL -> IntPredicate.SLE
+            else -> requireUnreachable()
+        }
+    }
+
+    private fun isPredicateOperator(operator: BinaryOperator): Boolean {
+        return when (operator) {
+            BinaryOperator.EQUALS,
+            BinaryOperator.NOT_EQUALS,
+            BinaryOperator.GREATER_THAN,
+            BinaryOperator.GREATER_THAN_EQUAL,
+            BinaryOperator.LESS_THAN,
+            BinaryOperator.LESS_THAN_EQUAL -> true
+            else -> false
+        }
+    }
+
+    private fun lowerOperator(op: BinaryOperator): Opcode {
+        return when (op) {
+            BinaryOperator.PLUS -> Opcode.Add
+            BinaryOperator.MINUS -> Opcode.Sub
+            BinaryOperator.TIMES -> Opcode.Mul
+            BinaryOperator.AND -> Opcode.And
+            BinaryOperator.OR -> Opcode.Or
+            else -> requireUnreachable()
+        }
     }
 
     private fun lowerJump(statement: IRJump) {
