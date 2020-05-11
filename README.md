@@ -1,30 +1,32 @@
 # Hades
+ [![Hades](https://circleci.com/gh/dhruvrajvanshi/hades-lang.svg?style=shield)](https://app.circleci.com/pipelines/github/dhruvrajvanshi/hades-lang)
+
 A systems level programming language that compiles to LLVM
 
 - [x] Easy interop with C
 - [x] Structs
 - [x] Generic types
 - [x] Extension Methods
-- [] Automatic Refcounting
-- []  Closures
-- []  Named function arguments
-- [] Interfaces
-- [] Algebraic data types (enums)
+- [ ] Automatic Refcounting
+- [ ] Closures
+- [ ] Named function arguments
+- [ ] Interfaces
+- [ ] Algebraic data types (enums)
 - Editor integration
     - Syntax hilighting
         - [x] VSCode
         - [x] Intellij
-    - [] Error highlighting
-    - [] Autocompletion
-    - [] Debugger support
+    - [ ] Error highlighting
+    - [ ] Autocompletion
+    - [ ] Debugger support
 
 ## Editor support
-Git checkout this repo
 Basic syntax hilighting is supported
 ### IntelliJ
-Got to `File > Settings > Editor > TextMate bundles`
-Add a new bundle from directory `ide/vscode-hades`.
-You should get basic syntax hilighting for .hds files.
+1. Git checkout this repo.
+2. Go to `File > Settings > Editor > TextMate bundles`
+3. Add a new bundle from directory `ide/vscode-hades`.
+You should now get basic syntax hilighting for .hds files.
 
 ### VS Code
 Plugin isn't published yet. It's in `ide/vscode-hades` Figure it out.
