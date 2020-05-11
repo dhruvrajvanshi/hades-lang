@@ -204,16 +204,97 @@ class Desugar(private val ctx: Context) {
                 builder.buildVariable(ty, expression.location, name)
             }
             is Expression.BinaryOperation -> {
-                // TOOD: Need to handle short circuiting operators separately
-                val ty = typeOfExpression(expression)
-                val lhs = lowerExpression(expression.lhs)
-                val rhs = lowerExpression(expression.rhs)
-                val name = makeLocalName()
-                builder.buildBinOp(ty, name, lhs, expression.operator, rhs)
-                builder.buildVariable(ty, expression.location, name)
+                if (isShortCircuitingOperator(expression.operator)) {
+                    lowerShortCircuitingOperator(expression)
+                } else {
+                    val ty = typeOfExpression(expression)
+                    val lhs = lowerExpression(expression.lhs)
+                    val rhs = lowerExpression(expression.rhs)
+                    val name = makeLocalName()
+                    builder.buildBinOp(ty, name, lhs, expression.operator, rhs)
+                    builder.buildVariable(ty, expression.location, name)
+                }
             }
         }
         return lowered
+    }
+
+    private fun isShortCircuitingOperator(operator: BinaryOperator): Boolean {
+        return operator == BinaryOperator.AND || operator == BinaryOperator.OR
+    }
+
+    /**
+     * %condition = alloca Bool
+     * store %condition lhs
+     * %lhs = load %condition
+
+     * .done:
+     * load %condition
+     */
+    private fun lowerShortCircuitingOperator(expression: Expression.BinaryOperation): IRValue {
+        val conditionName = makeLocalName()
+        val conditionPtr = IRVariable(Type.RawPtr(Type.Bool), expression.lhs.location, conditionName)
+        val lhsName = makeLocalName()
+        val lhs = IRVariable(Type.Bool, expression.location, lhsName)
+        val done = buildBlock()
+        // %condition = alloca Bool
+        // store %condition lhs
+        // %lhs = load %condition
+        builder.buildAlloca(Type.Bool, conditionName)
+        builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.lhs))
+        builder.buildLoad(name = lhsName, ptr = conditionPtr, type = Type.Bool)
+
+        when (expression.operator) {
+            BinaryOperator.AND -> {
+                // br %lhs if_true:.and_rhs if_false:.and_short_circuit
+                // .and_rhs:
+                //   store %condition rhs
+                //   jmp .done
+                // .and_short_circuit:
+                //   jmp .done
+                val andRHS = buildBlock()
+                val andShortCircuit = buildBlock()
+                builder.buildBranch(expression.location, lhs, ifTrue = andRHS.name, ifFalse = andShortCircuit.name)
+                builder.withinBlock(andRHS) {
+                    builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
+                    builder.buildJump(expression.lhs.location, done.name)
+                }
+                builder.withinBlock(andShortCircuit) {
+                    builder.buildJump(expression.rhs.location, done.name)
+                }
+
+            }
+            BinaryOperator.OR -> {
+                // br %lhs if_true:.or_short_circuit if_false:.or_rhs
+                // .or_short_circuit:
+                //   jmp .done
+                // .or_rhs:
+                //   store %condition rhs
+                //   jmp .done
+                val orShortCircuit = buildBlock()
+                val orRHS = buildBlock()
+
+                builder.buildBranch(expression.location, lhs, ifTrue = orShortCircuit.name, ifFalse = orRHS.name)
+                builder.withinBlock(orShortCircuit) {
+                    builder.buildJump(expression.lhs.location, done.name)
+                }
+                builder.withinBlock(orRHS) {
+                    builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
+                    builder.buildJump(expression.rhs.location, done.name)
+                }
+            }
+            else -> {
+                requireUnreachable()
+            }
+        }
+
+
+        builder.position = done
+        val resultName = makeLocalName()
+        builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
+
+        return IRVariable(Type.Bool, expression.location, resultName)
+
     }
 
     private fun lowerThisExpression(expression: Expression.This): IRValue {
@@ -455,7 +536,7 @@ class Desugar(private val ctx: Context) {
     }
 
     private fun buildBlock(): IRBlock {
-        val block = IRBlock(makeBlockName())
+        val block = IRBlock(_makeBlockName())
         requireNotNull(currentFunction).appendBlock(block)
         return block
     }
@@ -464,7 +545,7 @@ class Desugar(private val ctx: Context) {
         return IRLocalName(ctx.makeUniqueName())
     }
 
-    private fun makeBlockName(): IRLocalName {
+    private fun _makeBlockName(): IRLocalName {
         return IRLocalName(ctx.makeUniqueName())
     }
 
