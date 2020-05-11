@@ -293,10 +293,32 @@ class Checker(
                 checkExpression(Type.Bool, expression.expression)
                 Type.Bool
             }
-            is Expression.BinaryOperation -> TODO()
+            is Expression.BinaryOperation -> {
+                if (expression.operator == op.EQUALS || expression.operator == op.NOT_EQUALS) {
+                    val lhsTy = inferExpression(expression.lhs)
+                    checkExpression(lhsTy, expression.rhs)
+
+                    if (!doesTypeAllowEqualityComparison(lhsTy)) {
+                        error(expression.location, Diagnostic.Kind.TypeNotEqualityComparable(lhsTy))
+                    }
+
+                    Type.Bool
+                } else {
+                    val (args, result) = requireNotNull(BIN_OP_RULES[expression.operator]) {
+                        "Missing operator in BIN_OP_RULES: ${expression.operator}"
+                    }
+                    checkExpression(args.first, expression.lhs)
+                    checkExpression(args.second, expression.rhs)
+                    result
+                }
+            }
         }
         expressionTypes[expression] = ty
         return ty
+    }
+
+    private fun doesTypeAllowEqualityComparison(type: Type): Boolean {
+        return type is Type.Bool || type is Type.CInt || type is Type.Byte || type is Type.RawPtr
     }
 
     private fun inferThis(expression: Expression.This): Type {
@@ -746,4 +768,19 @@ private class MutableNodeMap<T : HasLocation, V> {
         map[key.location] = value
     }
 }
+
+typealias op = Expression.BinaryOperator
+val BIN_OP_RULES: Map<op, Pair<Pair<Type, Type>, Type>> = mapOf(
+        op.PLUS to (Type.CInt to Type.CInt to Type.CInt),
+        op.MINUS to (Type.CInt to Type.CInt to Type.CInt),
+        op.TIMES to (Type.CInt to Type.CInt to Type.CInt),
+
+        op.GREATER_THAN_EQUAL to (Type.CInt to Type.CInt to Type.Bool),
+        op.LESS_THAN_EQUAL to (Type.CInt to Type.CInt to Type.Bool),
+        op.GREATER_THAN to (Type.CInt to Type.CInt to Type.Bool),
+        op.LESS_THAN to (Type.CInt to Type.CInt to Type.Bool),
+
+        op.AND to (Type.Bool to Type.Bool to Type.Bool),
+        op.OR to (Type.Bool to Type.Bool to Type.Bool)
+)
 
