@@ -42,6 +42,9 @@ data class Diagnostic(
         data class IncompleteType(val requiredArgs: Int) : Diagnostic.Kind(Severity.ERROR)
         data class TypeNotEqualityComparable(val type: Type) : Diagnostic.Kind(Severity.ERROR)
         data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
+        data class NotAPointerType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
+
+        object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -63,6 +66,8 @@ data class Diagnostic(
             NotAConst -> "Not a const. Only CInt and Bool values are allowed as global constants"
             is TypeNotEqualityComparable -> "Type ${type.prettyPrint()} is not equatable"
             is OperatorNotApplicable -> "Operator not applicable type"
+            NotAnAddressableValue -> "Not an addressable value"
+            is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
         }
 
     }

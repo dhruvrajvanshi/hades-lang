@@ -219,8 +219,35 @@ class IRGen(private val ctx: Context) {
                     type = Type.CInt,
                     location = expression.location,
                     ofType = ctx.checker.annotationToType(expression.type))
+            is Expression.AddressOf -> lowerAddressOf(expression)
+            is Expression.Load -> lowerLoad(expression)
         }
         return lowered
+    }
+
+    private fun lowerLoad(expression: Expression.Load): IRValue {
+        val ptr = lowerExpression(expression.expression)
+        val name = makeLocalName()
+        val ty = typeOfExpression(expression.expression)
+        require(ty is Type.RawPtr)
+        builder.buildLoad(name, ty.to, ptr)
+        return IRVariable(
+                type = ty.to,
+                location = expression.location,
+                name = name
+        )
+    }
+
+    private fun lowerAddressOf(expression: Expression.AddressOf): IRValue {
+        require(expression.expression is Expression.Var)
+        val binding = ctx.resolver.resolve(expression.expression.name)
+        require(binding is ValueBinding.ValBinding)
+        val ptrName = requireNotNull(valPointers[binding.statement.location])
+        return IRVariable(
+                type = typeOfExpression(expression),
+                location = expression.location,
+                name = ptrName
+        )
     }
 
     private fun isShortCircuitingOperator(operator: BinaryOperator): Boolean {

@@ -41,7 +41,8 @@ val SINGLE_CHAR_TOKENS = mapOf(
     ':' to tt.COLON,
     '*' to tt.STAR,
     '[' to tt.LSQB,
-    ']' to tt.RSQB
+    ']' to tt.RSQB,
+    '&' to tt.AMPERSAND
 )
 
 class Lexer(private val file: SourcePath) {

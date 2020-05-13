@@ -397,7 +397,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             }
             tt.NOT -> {
                 val start = advance()
-                val expression = parseExpression()
+                val expression = parsePrimaryExpression()
                 Expression.Not(makeLocation(start, expression), expression)
             }
             tt.THIS -> {
@@ -409,6 +409,16 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 val type = parseTypeAnnotation()
                 val stop = expect(tt.RSQB)
                 Expression.SizeOf(makeLocation(start, stop), type)
+            }
+            tt.AMPERSAND -> {
+                val start = advance()
+                val expression = parsePrimaryExpression()
+                Expression.AddressOf(makeLocation(start, expression), expression)
+            }
+            tt.STAR -> {
+                val start = advance()
+                val expression = parseExpression()
+                Expression.Load(makeLocation(start, expression), expression)
             }
             else -> {
                 val location = advance().location

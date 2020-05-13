@@ -55,6 +55,7 @@ data class Token(
         COMMA,
         COLON,
         STAR,
+        AMPERSAND,
         LSQB,
         RSQB,
 

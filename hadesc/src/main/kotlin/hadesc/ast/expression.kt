@@ -65,6 +65,16 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val type: TypeAnnotation
     ) : Expression()
+
+    data class AddressOf(
+        override val location: SourceLocation,
+        val expression: Expression
+    ) : Expression()
+
+    data class Load(
+        override val location: SourceLocation,
+        val expression: Expression
+    ) : Expression()
 }
 
 data class Arg(
