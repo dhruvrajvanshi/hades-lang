@@ -1,0 +1,11 @@
+import submodule.test_utils as utils;
+
+def main(): Void {
+    utils.print_bool(size_of[CIntPair] == 2 * size_of[CInt]);
+}
+
+struct CIntPair {
+    val x: CInt;
+    val y: CInt;
+}
+

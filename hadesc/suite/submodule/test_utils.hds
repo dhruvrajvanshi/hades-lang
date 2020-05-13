@@ -2,4 +2,5 @@
 extern def print_int(CInt): Void  = print_int;
 extern def print_bool(Bool): Void = print_bool;
 extern def print_byte_string(*Byte): Void = print_byte_string;
+extern def print_size(Size): Void = print_size;
 

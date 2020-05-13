@@ -60,6 +60,11 @@ sealed class Expression : HasLocation {
         val operator: BinaryOperator,
         val rhs: Expression
     ) : Expression()
+
+    data class SizeOf(
+        override val location: SourceLocation,
+        val type: TypeAnnotation
+    ) : Expression()
 }
 
 data class Arg(

@@ -403,6 +403,13 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.THIS -> {
                 Expression.This(advance().location)
             }
+            tt.SIZE_OF -> {
+                val start = advance()
+                expect(tt.LSQB)
+                val type = parseTypeAnnotation()
+                val stop = expect(tt.RSQB)
+                Expression.SizeOf(makeLocation(start, stop), type)
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)

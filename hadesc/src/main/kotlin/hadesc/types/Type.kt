@@ -11,6 +11,7 @@ sealed class Type {
     object Void : Type()
     object Bool : Type()
     object CInt : Type()
+    object Size : Type()
     data class RawPtr(val to: Type) : Type()
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
@@ -61,6 +62,7 @@ sealed class Type {
         is GenericInstance -> name.identifier.name.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
+        Size -> "Size"
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>): Type = when (this) {
@@ -69,6 +71,7 @@ sealed class Type {
         Byte,
         Void,
         CInt,
+        Size,
         Bool -> this
         is RawPtr -> RawPtr(this.to.applySubstitution(substitution))
         is Function -> Function(

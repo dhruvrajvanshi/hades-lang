@@ -78,6 +78,7 @@ class DiagnosticReporter {
             System.err.print(' ')
         }
         printErrLn("^")
+
     }
 
     private fun printLocationLine(location: SourceLocation) {

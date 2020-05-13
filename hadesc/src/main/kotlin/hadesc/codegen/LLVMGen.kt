@@ -44,8 +44,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val name = lowerName(definition.name)
         if (loweredGlobals[definition.name] == null) {
             val global = llvmModule.addGlobal(name, lowerType(definition.type))
-            global.initializer = lowerExpression(definition.initializer)
-            loweredGlobals[definition.name] = global.initializer
+            global.setInitializer(lowerExpression(definition.initializer))
+            loweredGlobals[definition.name] = requireNotNull(global.getInitializer())
         }
     }
 
@@ -58,7 +58,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerStructDef(definition: IRStructDef) {
         val fn = getStructConstructor(definition)
-        withinBlock(fn.appendBasicBlock("entry")) {
+        withinBlock(fn.createBlock("entry", llvmCtx)) {
             val instanceType = lowerType(definition.instanceType)
             val thisPtr = buildAlloca(instanceType, "this")
             var index = -1
@@ -92,9 +92,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val blocks = mutableMapOf<Pair<String, IRLocalName>, BasicBlock>()
     private fun getBlock(blockName: IRLocalName): BasicBlock {
-        val fnName = requireNotNull(currentFunction?.valueName)
+        val fnName = requireNotNull(currentFunction?.getName())
         return blocks.computeIfAbsent(fnName to blockName) {
-            requireNotNull(currentFunction).appendBasicBlock(it.second.mangle())
+            requireNotNull(currentFunction).createBlock(it.second.mangle(), llvmCtx)
         }
     }
 
@@ -235,7 +235,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRGetStructField -> lowerGetStructField(value)
         is IRCIntConstant -> lowerCIntValue(value)
         is IRNullPtr -> lowerNullPtr(value)
+        is IRSizeOf -> lowerSizeOf(value)
         is IRMethodRef -> requireUnreachable()
+    }
+
+    private fun lowerSizeOf(value: IRSizeOf): Value {
+        return Value(LLVM.LLVMSizeOf(lowerType(value.ofType).ref))
     }
 
     private fun lowerCIntValue(value: IRCIntConstant): Value {
@@ -286,7 +291,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             stringLiteralName(),
             constStringRef.getType()
         )
-        globalRef.initializer = constStringRef
+        globalRef.setInitializer(constStringRef)
         return Value(LLVM.LLVMConstPointerCast(globalRef.ref, bytePtrTy.ref))
     }
 
@@ -360,7 +365,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val buffer = ByteArray(100)
         val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMPrintMessageAction, buffer)
         require(error == 0) {
-            log.error("Invalid llvm module: ${llvmModule.sourceFileName}\n")
+            log.error("Invalid llvm module: ${llvmModule.getSourceFileName()}\n")
             "Invalid LLVM module"
         }
     }
@@ -402,6 +407,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> requireUnreachable()
         is Type.Constructor -> requireUnreachable()
+        Type.Size -> sizeTy
     }
 
     private var nextLiteralIndex = 0
@@ -417,6 +423,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val cIntTy = llvm.IntType(32, llvmCtx)
     private val trueValue = llvm.ConstantInt(boolTy, 1, false)
     private val falseValue = llvm.ConstantInt(boolTy, 0, false)
+    private val sizeTy = llvm.IntType(64, llvmCtx) // FIXME: This isn't portable
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
         return llvm.PointerType(to)

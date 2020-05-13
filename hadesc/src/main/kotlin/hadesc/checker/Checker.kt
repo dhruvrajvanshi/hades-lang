@@ -88,6 +88,7 @@ class Checker(
                 "Bool" -> Type.Bool
                 "Byte" -> Type.Byte
                 "CInt" -> Type.CInt
+                "Size" -> Type.Size
                 else -> {
                     val typeBinding = resolveTypeVariable(annotation.name)
                     if (typeBinding != null) {
@@ -313,6 +314,10 @@ class Checker(
                     result
                 }
             }
+            is Expression.SizeOf -> {
+                inferAnnotation(expression.type)
+                Type.Size
+            }
         }
         expressionTypes[expression] = ty
         return ty
@@ -320,6 +325,7 @@ class Checker(
 
     private fun doesTypeAllowEqualityComparison(type: Type): Boolean {
         return type is Type.Bool || type is Type.CInt || type is Type.Byte || type is Type.RawPtr
+                || type is Type.Size
     }
 
     private fun inferThis(expression: Expression.This): Type {
@@ -349,6 +355,7 @@ class Checker(
                 Type.Byte,
                 Type.Void,
                 Type.CInt,
+                Type.Size,
                 Type.Bool -> {
                     null
                 }
@@ -523,6 +530,7 @@ class Checker(
         Type.Byte,
         Type.Void,
         Type.CInt,
+        Type.Size,
         is Type.ParamRef,
         Type.Bool -> type
         is Type.RawPtr -> Type.RawPtr(type.to)
@@ -559,6 +567,9 @@ class Checker(
         expression is Expression.NullPtr && expected is Type.RawPtr -> {
             expressionTypes[expression] = expected
         }
+        expression is Expression.IntLiteral && expected is Type.Size -> {
+            expressionTypes[expression] = Type.Size
+        }
         else -> {
             val exprType = inferExpression(expression)
             checkAssignability(expression.location, destination = expected, source = exprType)
@@ -575,6 +586,7 @@ class Checker(
         source is Type.Error || destination is Type.Error -> {
             true
         }
+        source is Type.Size && destination is Type.Size -> true
         source is Type.CInt && destination is Type.CInt -> true
         source is Type.Bool && destination is Type.Bool -> {
             true
@@ -780,6 +792,15 @@ val BIN_OP_RULES: Map<op, Pair<Pair<Type, Type>, Type>> = mapOf(
         op.LESS_THAN_EQUAL to (Type.CInt to Type.CInt to Type.Bool),
         op.GREATER_THAN to (Type.CInt to Type.CInt to Type.Bool),
         op.LESS_THAN to (Type.CInt to Type.CInt to Type.Bool),
+
+        op.PLUS to (Type.Size to Type.Size to Type.Size),
+        op.MINUS to (Type.Size to Type.Size to Type.Size),
+        op.TIMES to (Type.Size to Type.Size to Type.Size),
+
+        op.GREATER_THAN_EQUAL to (Type.Size to Type.Size to Type.Bool),
+        op.LESS_THAN_EQUAL to (Type.Size to Type.Size to Type.Bool),
+        op.GREATER_THAN to (Type.Size to Type.Size to Type.Bool),
+        op.LESS_THAN to (Type.Size to Type.Size to Type.Bool),
 
         op.AND to (Type.Bool to Type.Bool to Type.Bool),
         op.OR to (Type.Bool to Type.Bool to Type.Bool)

@@ -215,6 +215,10 @@ class IRGen(private val ctx: Context) {
                     builder.buildVariable(ty, expression.location, name)
                 }
             }
+            is Expression.SizeOf -> IRSizeOf(
+                    type = Type.CInt,
+                    location = expression.location,
+                    ofType = ctx.checker.annotationToType(expression.type))
         }
         return lowered
     }

@@ -23,6 +23,7 @@ data class Token(
         WHILE,
         IF,
         ELSE,
+        SIZE_OF,
 
         NOT,
         AND,

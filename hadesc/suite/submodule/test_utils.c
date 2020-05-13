@@ -16,3 +16,7 @@ void print_byte_string(char* message) {
     printf("%s", message);
 }
 
+void print_size(size_t size) {
+    printf("%zu\n", size);
+}
+

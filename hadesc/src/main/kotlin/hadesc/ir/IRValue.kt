@@ -22,6 +22,7 @@ sealed class IRValue : HasLocation {
         is IRCIntConstant -> value.toString()
         is IRNullPtr -> "nullptr"
         is IRMethodRef -> "${thisArg.prettyPrint()}.${method.prettyPrint()}"
+        is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"
     }
 }
 
@@ -67,5 +68,11 @@ class IRMethodRef(
         override val location: SourceLocation,
         val thisArg: IRValue,
         val method: IRGlobalName
+) : IRValue()
+
+class IRSizeOf(
+    override val type: Type,
+    override val location: SourceLocation,
+    val ofType: Type
 ) : IRValue()
 

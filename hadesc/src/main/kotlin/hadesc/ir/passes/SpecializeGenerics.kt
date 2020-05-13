@@ -163,6 +163,16 @@ class SpecializeGenerics(
         is IRCIntConstant -> value
         is IRNullPtr -> IRNullPtr(type = lowerType(value.type), location = value.location)
         is IRMethodRef -> lowerMethodRef(value, typeArgs)
+        is IRSizeOf -> lowerSizeOf(value, typeArgs)
+    }
+
+    private fun lowerSizeOf(value: IRSizeOf, typeArgs: List<Type>?): IRValue {
+        require(typeArgs == null)
+        return IRSizeOf(
+                type = lowerType(value.type),
+                ofType = lowerType(value.ofType),
+                location = value.location
+        )
     }
 
     private fun lowerMethodRef(value: IRMethodRef, typeArgs: List<Type>?): IRValue {
@@ -477,6 +487,7 @@ class SpecializeGenerics(
             is Type.Application -> {
                 lowerType(type.callee, type.args)
             }
+            Type.Size -> type
         }
     }
 }

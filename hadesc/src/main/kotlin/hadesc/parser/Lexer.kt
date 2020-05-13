@@ -26,7 +26,8 @@ val KEYWORDS = mapOf(
     "or" to tt.OR,
     "if" to tt.IF,
     "else" to tt.ELSE,
-    "const" to tt.CONST
+    "const" to tt.CONST,
+    "size_of" to tt.SIZE_OF
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
