@@ -12,6 +12,7 @@ import hadesc.location.SourceLocation
 import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
+import jdk.jshell.Diag
 import java.util.*
 import kotlin.math.min
 
@@ -306,12 +307,17 @@ class Checker(
 
                     Type.Bool
                 } else {
-                    val (args, result) = requireNotNull(BIN_OP_RULES[expression.operator]) {
-                        "Missing operator in BIN_OP_RULES: ${expression.operator}"
+                    val lhsType = inferExpression(expression.lhs)
+                    val rule = BIN_OP_RULES[expression.operator to lhsType]
+                    if (rule == null) {
+                        inferExpression(expression.rhs)
+                        error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+                        Type.Error
+                    } else {
+                        val (rhsTy, retTy) = rule
+                        checkExpression(rhsTy, expression.rhs)
+                        retTy
                     }
-                    checkExpression(args.first, expression.lhs)
-                    checkExpression(args.second, expression.rhs)
-                    result
                 }
             }
             is Expression.SizeOf -> {
@@ -783,26 +789,26 @@ private class MutableNodeMap<T : HasLocation, V> {
 }
 
 typealias op = BinaryOperator
-val BIN_OP_RULES: Map<op, Pair<Pair<Type, Type>, Type>> = mapOf(
-        op.PLUS to (Type.CInt to Type.CInt to Type.CInt),
-        op.MINUS to (Type.CInt to Type.CInt to Type.CInt),
-        op.TIMES to (Type.CInt to Type.CInt to Type.CInt),
+val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
+        (op.PLUS to Type.CInt) to (Type.CInt to Type.CInt),
+        (op.MINUS to Type.CInt) to (Type.CInt to Type.CInt),
+        (op.TIMES to Type.CInt) to (Type.CInt to Type.CInt),
 
-        op.GREATER_THAN_EQUAL to (Type.CInt to Type.CInt to Type.Bool),
-        op.LESS_THAN_EQUAL to (Type.CInt to Type.CInt to Type.Bool),
-        op.GREATER_THAN to (Type.CInt to Type.CInt to Type.Bool),
-        op.LESS_THAN to (Type.CInt to Type.CInt to Type.Bool),
+        (op.GREATER_THAN_EQUAL to Type.CInt) to (Type.CInt to Type.Bool),
+        (op.LESS_THAN_EQUAL to Type.CInt) to (Type.CInt to Type.Bool),
+        (op.GREATER_THAN to Type.CInt) to (Type.CInt to Type.Bool),
+        (op.LESS_THAN to Type.CInt) to (Type.CInt to Type.Bool),
 
-        op.PLUS to (Type.Size to Type.Size to Type.Size),
-        op.MINUS to (Type.Size to Type.Size to Type.Size),
-        op.TIMES to (Type.Size to Type.Size to Type.Size),
+        (op.PLUS to Type.Size) to (Type.Size to Type.Size),
+        (op.MINUS to Type.Size) to (Type.Size to Type.Size),
+        (op.TIMES to Type.Size) to (Type.Size to Type.Size),
 
-        op.GREATER_THAN_EQUAL to (Type.Size to Type.Size to Type.Bool),
-        op.LESS_THAN_EQUAL to (Type.Size to Type.Size to Type.Bool),
-        op.GREATER_THAN to (Type.Size to Type.Size to Type.Bool),
-        op.LESS_THAN to (Type.Size to Type.Size to Type.Bool),
+        (op.GREATER_THAN_EQUAL to Type.Size) to (Type.Size to Type.Bool),
+        (op.LESS_THAN_EQUAL to Type.Size) to (Type.Size to Type.Bool),
+        (op.GREATER_THAN to Type.Size) to (Type.Size to Type.Bool),
+        (op.LESS_THAN to Type.Size) to (Type.Size to Type.Bool),
 
-        op.AND to (Type.Bool to Type.Bool to Type.Bool),
-        op.OR to (Type.Bool to Type.Bool to Type.Bool)
+        (op.AND to Type.Bool) to (Type.Bool to Type.Bool),
+        (op.OR to Type.Bool) to (Type.Bool to Type.Bool)
 )
 

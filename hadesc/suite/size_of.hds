@@ -1,7 +1,7 @@
 import submodule.test_utils as utils;
 
 def main(): Void {
-    utils.print_bool(size_of[CIntPair] == 2 * size_of[CInt]);
+    utils.print_bool(size_of[CIntPair] == size_of[CInt] * 2);
 }
 
 struct CIntPair {

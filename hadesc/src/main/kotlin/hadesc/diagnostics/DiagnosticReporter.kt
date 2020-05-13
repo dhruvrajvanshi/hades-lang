@@ -3,6 +3,7 @@ package hadesc.diagnostics
 import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.ast.Token
+import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
@@ -40,6 +41,7 @@ data class Diagnostic(
         data class UninferrableTypeParam(val binder: Binder) : Diagnostic.Kind(Severity.ERROR)
         data class IncompleteType(val requiredArgs: Int) : Diagnostic.Kind(Severity.ERROR)
         data class TypeNotEqualityComparable(val type: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -60,6 +62,7 @@ data class Diagnostic(
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
             NotAConst -> "Not a const. Only CInt and Bool values are allowed as global constants"
             is TypeNotEqualityComparable -> "Type ${type.prettyPrint()} is not equatable"
+            is OperatorNotApplicable -> "Operator not applicable type"
         }
 
     }
