@@ -237,6 +237,18 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRNullPtr -> lowerNullPtr(value)
         is IRSizeOf -> lowerSizeOf(value)
         is IRMethodRef -> requireUnreachable()
+        is IRPointerCast -> lowerPointerCast(value)
+    }
+
+    private fun lowerPointerCast(value: IRPointerCast): Value {
+        val expr = lowerExpression(value.arg)
+        return Value(
+                LLVM.LLVMBuildPointerCast(
+                        builder.ref,
+                        expr.ref,
+                        PointerType(lowerType(value.toPointerOfType)).ref,
+                        ctx.makeUniqueName().text
+                ))
     }
 
     private fun lowerSizeOf(value: IRSizeOf): Value {

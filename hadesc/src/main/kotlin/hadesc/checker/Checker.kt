@@ -338,6 +338,14 @@ class Checker(
                     Type.Error
                 }
             }
+            is Expression.PointerCast -> {
+                val toPtrOfType = inferAnnotation(expression.toType)
+                val argTy = inferExpression(expression.arg)
+                if (argTy !is Type.RawPtr) {
+                    error(expression, Diagnostic.Kind.NotAPointerType(argTy))
+                }
+                Type.RawPtr(toPtrOfType)
+            }
         }
         expressionTypes[expression] = ty
         return ty
@@ -635,6 +643,9 @@ class Checker(
             true
         }
         source is Type.Byte && destination is Type.Byte -> {
+            true
+        }
+        source is Type.Void && destination is Type.Void -> {
             true
         }
         source is Type.ParamRef && destination is Type.ParamRef

@@ -221,8 +221,21 @@ class IRGen(private val ctx: Context) {
                     ofType = ctx.checker.annotationToType(expression.type))
             is Expression.AddressOf -> lowerAddressOf(expression)
             is Expression.Load -> lowerLoad(expression)
+            is Expression.PointerCast -> lowerPointerCast(expression)
         }
         return lowered
+    }
+
+    private fun lowerPointerCast(expression: Expression.PointerCast): IRValue {
+        val toPointerOfType = ctx.checker.annotationToType(expression.toType)
+
+        return IRPointerCast(
+            type = Type.RawPtr(toPointerOfType),
+            location = expression.location,
+            toPointerOfType = toPointerOfType,
+            arg = lowerExpression(expression.arg)
+        )
+
     }
 
     private fun lowerLoad(expression: Expression.Load): IRValue {

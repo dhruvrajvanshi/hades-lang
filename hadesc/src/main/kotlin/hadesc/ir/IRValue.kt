@@ -23,6 +23,7 @@ sealed class IRValue : HasLocation {
         is IRNullPtr -> "nullptr"
         is IRMethodRef -> "${thisArg.prettyPrint()}.${method.prettyPrint()}"
         is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"
+        is IRPointerCast -> "pointer_cast[${toPointerOfType.prettyPrint()}](${arg.prettyPrint()})"
     }
 }
 
@@ -74,5 +75,12 @@ class IRSizeOf(
     override val type: Type,
     override val location: SourceLocation,
     val ofType: Type
+) : IRValue()
+
+class IRPointerCast(
+    override val type: Type,
+    override val location: SourceLocation,
+    val toPointerOfType: Type,
+    val arg: IRValue
 ) : IRValue()
 

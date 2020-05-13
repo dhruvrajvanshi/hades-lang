@@ -420,6 +420,21 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                 val expression = parseExpression()
                 Expression.Load(makeLocation(start, expression), expression)
             }
+            tt.POINTER_CAST -> {
+                val start = advance()
+                expect(tt.LSQB)
+                val toType = parseTypeAnnotation()
+                expect(tt.RSQB)
+                expect(tt.LPAREN)
+                val arg = parseExpression()
+                val stop = expect(tt.RPAREN)
+                Expression.PointerCast(
+                        makeLocation(start, stop),
+                        toType,
+                        arg
+                )
+
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)

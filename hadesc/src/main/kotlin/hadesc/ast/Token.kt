@@ -24,6 +24,7 @@ data class Token(
         IF,
         ELSE,
         SIZE_OF,
+        POINTER_CAST,
 
         NOT,
         AND,

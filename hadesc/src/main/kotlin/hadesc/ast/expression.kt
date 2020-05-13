@@ -75,6 +75,12 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val expression: Expression
     ) : Expression()
+
+    data class PointerCast(
+        override val location: SourceLocation,
+        val toType: TypeAnnotation,
+        val arg: Expression
+    ) : Expression()
 }
 
 data class Arg(

@@ -164,6 +164,12 @@ class SpecializeGenerics(
         is IRNullPtr -> IRNullPtr(type = lowerType(value.type), location = value.location)
         is IRMethodRef -> lowerMethodRef(value, typeArgs)
         is IRSizeOf -> lowerSizeOf(value, typeArgs)
+        is IRPointerCast -> IRPointerCast(
+                type = lowerType(value.type),
+                toPointerOfType = lowerType(value.toPointerOfType),
+                arg = lowerValue(value.arg),
+                location = value.location
+        )
     }
 
     private fun lowerSizeOf(value: IRSizeOf, typeArgs: List<Type>?): IRValue {
