@@ -1,6 +1,10 @@
 
 struct Application {}
 struct Window {}
+struct ButtonBox {}
+struct Widget {}
+struct Container {}
+struct Button {}
 
 const APPLICATION_FLAGS_NONE = 0;
 extern def application_new(*Byte, CInt): *Application = gtk_application_new;
@@ -8,16 +12,48 @@ extern def object_unref(*Application): Void = gtk_object_unref;
 extern def application_window_new(*Application): *Window = gtk_application_window_new;
 extern def window_set_default_size(*Window, CInt, CInt): Void = gtk_window_set_default_size;
 extern def window_set_title(*Window, *Byte): Void = gtk_window_set_title;
+extern def button_box_new(): *ButtonBox = gtk_button_box_new;
+extern def button_new_with_label(*Byte): *Button = gtk_button_new_with_label;
+extern def container_add(*Container, *Widget): Void = gtk_container_add;
+extern def widget_show_all(*Widget): Void = gtk_widget_show_all;
+
+def CONTAINER[T](ptr: *T): *Container {
+    return pointer_cast[Container](ptr);
+}
+
+def WIDGET[T](ptr: *T): *Widget {
+    return pointer_cast[Widget](ptr);
+}
+
+def as_widget[T](this: *T): *Widget {
+    return WIDGET(this);
+}
+
+def as_container[T](this: *T): *Container {
+    return CONTAINER(this);
+}
 
 def new_window(this: *Application): *Window {
     return application_window_new(this);
 }
 
-def set_title(this: *Window, title: *Byte): Void {
+def set_title(this: *Window, title: *Byte): *Window {
     window_set_title(this, title);
+    return this;
 }
 
-def set_default_size(this: *Window, x: CInt, y: CInt): Void {
+def set_default_size(this: *Window, x: CInt, y: CInt): *Window {
     window_set_default_size(this, x, y);
+    return this;
 }
+
+def add[T](this: *Container, widget: *T): *Container {
+    container_add(this, widget.as_widget());
+    return this;
+}
+
+def show_all(this: *Widget): Void {
+    widget_show_all(this);
+}
+
 

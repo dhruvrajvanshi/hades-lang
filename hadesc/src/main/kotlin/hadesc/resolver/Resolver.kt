@@ -366,7 +366,7 @@ class Resolver(val ctx: Context) {
                             is Declaration.ExternFunctionDef -> null
                             is Declaration.Struct -> null
                             is Declaration.ConstDefinition -> {
-                                TODO()
+                                null
                             }
                         }
                         if (binding != null) {

@@ -9,9 +9,26 @@ def main(argc: CInt, argv: **Byte): Void {
   c.exit(status);
 }
 
+extern def connect_exit_button(*Gtk.Button, *Gtk.Window): Void = connect_exit_button;
+
+def on_app_activate(app: *Gtk.Application, data: *Void): Void {
+  val window = make_window(app);
+  window.as_widget().show_all();
+}
+
 def make_window(app: *Gtk.Application): *Gtk.Window {
-  val window = app.new_window();
-  window.set_title(b"Window");
-  window.set_default_size(200, 200);
+  val window = app.new_window()
+    .set_title(b"Window")
+    .set_default_size(200, 200);
+
+//   button_box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+  val button_box = Gtk.button_box_new();
+  window.as_container().add(button_box.as_widget());
+
+  val button = Gtk.button_new_with_label(b"Exit");
+  connect_exit_button(button, window);
+
+  button_box.as_container()
+    .add(button);
   return window;
 }
