@@ -749,7 +749,7 @@ class Checker(
         }
         is ValueBinding.ExternFunction -> {
             declareExternFunctionDef(binding.declaration)
-            requireNotNull(binderTypes[binding.declaration.binder])
+            Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is ValueBinding.FunctionParam -> {
             declareFunctionDef(binding.declaration)
@@ -761,7 +761,7 @@ class Checker(
         }
         is ValueBinding.Struct -> {
             declareStruct(binding.declaration)
-            requireNotNull(binderTypes[binding.declaration.binder])
+            Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is ValueBinding.GlobalConst -> {
             declareGlobalConst(binding.declaration)
