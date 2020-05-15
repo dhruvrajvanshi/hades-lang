@@ -520,29 +520,36 @@ class Checker(
 
     private fun inferCall(expression: Expression.Call): Type {
         val calleeType = inferExpression(expression.callee)
-        if (calleeType is Type.Function) {
+        val functionType = if (calleeType is Type.Function) {
+            calleeType
+        } else if (calleeType is Type.RawPtr && calleeType.to is Type.Function) {
+            calleeType.to
+        } else {
+            Type.Error
+        }
+        if (functionType is Type.Function) {
             val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
-            calleeType.typeParams?.forEach {
+            functionType.typeParams?.forEach {
                 substitution[it.binder.location] = makeGenericInstance(it.binder)
             }
-            val len = min(calleeType.from.size, expression.args.size)
-            val to = calleeType.to.applySubstitution(substitution)
-            if (calleeType.receiver != null) {
+            val len = min(functionType.from.size, expression.args.size)
+            val to = functionType.to.applySubstitution(substitution)
+            if (functionType.receiver != null) {
                 require(expression.callee is Expression.Property)
-                val expected = calleeType.receiver.applySubstitution(substitution)
+                val expected = functionType.receiver.applySubstitution(substitution)
                 val found = expression.callee.lhs
                 checkExpression(expected, found)
             }
             for (index in 0 until len) {
-                val expected = calleeType.from[index].applySubstitution(substitution)
+                val expected = functionType.from[index].applySubstitution(substitution)
                 val found = expression.args[index].expression
                 checkExpression(expected, found)
             }
 
-            if (calleeType.from.size > expression.args.size) {
-                error(expression, Diagnostic.Kind.MissingArgs(required = calleeType.from.size))
-            } else if (calleeType.from.size < expression.args.size) {
-                error(expression, Diagnostic.Kind.TooManyArgs(required = calleeType.from.size))
+            if (functionType.from.size > expression.args.size) {
+                error(expression, Diagnostic.Kind.MissingArgs(required = functionType.from.size))
+            } else if (functionType.from.size < expression.args.size) {
+                error(expression, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
                 for (index in len + 1 until expression.args.size) {
                     inferExpression(expression.args[index].expression)
                 }
@@ -554,7 +561,7 @@ class Checker(
                 applyInstantiations(arg.expression)
             }
             val typeArgs = mutableListOf<Type>()
-            calleeType.typeParams?.forEach {
+            functionType.typeParams?.forEach {
                 val generic = requireNotNull(substitution[it.binder.location])
                 val instance = genericInstantiations[generic.id]
                 typeArgs.add(
@@ -567,7 +574,7 @@ class Checker(
                         }
                 )
             }
-            if (calleeType.typeParams != null) {
+            if (functionType.typeParams != null) {
                 typeArguments[expression] = typeArgs
                 typeArguments[expression.callee] = typeArgs
             }
@@ -576,8 +583,8 @@ class Checker(
             for (arg in expression.args) {
                 inferExpression(arg.expression)
             }
-            if (calleeType != Type.Error) {
-                error(expression, Diagnostic.Kind.TypeNotCallable(calleeType))
+            if (functionType != Type.Error) {
+                error(expression, Diagnostic.Kind.TypeNotCallable(functionType))
             }
             return Type.Error
         }
@@ -719,9 +726,6 @@ class Checker(
 
             isEqual
         }
-        destination is Type.RawPtr && source is Type.Function -> {
-            isAssignableTo(destination = destination.to, source = source)
-        }
         else -> {
             false
         }
@@ -741,7 +745,7 @@ class Checker(
     private fun inferBinding(binding: ValueBinding) = when (binding) {
         is ValueBinding.GlobalFunction -> {
             declareFunctionDef(binding.declaration)
-            requireNotNull(binderTypes[binding.declaration.name])
+            Type.RawPtr(requireNotNull(binderTypes[binding.declaration.name]))
         }
         is ValueBinding.ExternFunction -> {
             declareExternFunctionDef(binding.declaration)
