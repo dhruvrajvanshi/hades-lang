@@ -118,6 +118,14 @@ class Checker(
                     Type.Error
                 }
             }
+            is TypeAnnotation.Function -> {
+                Type.Function(
+                        receiver = null,
+                        typeParams = null,
+                        from = annotation.from.map { inferAnnotation(it) },
+                        to = inferAnnotation(annotation.to)
+                )
+            }
         }
         annotationTypes[annotation] = type
         if (!allowIncomplete && type is Type.Constructor && type.params != null) {
@@ -684,6 +692,32 @@ class Checker(
                 genericInstantiations[destination.id] = source
                 true
             }
+        }
+        source is Type.GenericInstance -> {
+            val sourceInstance = genericInstantiations[source.id]
+            if (sourceInstance != null) {
+                isAssignableTo(source = sourceInstance, destination = destination)
+            } else {
+                genericInstantiations[source.id] = destination
+                true
+            }
+        }
+        source is Type.Function && destination is Type.Function -> {
+            require(source.receiver == null)
+            require(destination.receiver == null)
+            require(source.typeParams == null)
+            require(destination.typeParams == null)
+            var isEqual = true
+            isEqual = isEqual && source.from.size == destination.from.size
+            isEqual = isEqual && source.from.zip(destination.from).all { (source, destination) ->
+                // Function type assignability is contravariant in parameter type
+                // so source and destination types are reversed here
+                isAssignableTo(source = destination, destination = source)
+            }
+            isEqual = isEqual && isAssignableTo(source = source.to, destination = destination.to)
+
+
+            isEqual
         }
         else -> {
             false

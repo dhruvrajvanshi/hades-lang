@@ -25,4 +25,10 @@ sealed class TypeAnnotation : HasLocation {
         override val location: SourceLocation,
         val qualifiedPath: QualifiedPath
     ) : TypeAnnotation()
+
+    data class Function(
+        override val location: SourceLocation,
+        val from: List<TypeAnnotation>,
+        val to: TypeAnnotation
+    ) : TypeAnnotation()
 }

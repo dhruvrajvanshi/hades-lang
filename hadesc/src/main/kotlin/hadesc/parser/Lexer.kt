@@ -116,7 +116,12 @@ class Lexer(private val file: SourcePath) {
             }
             c == '-' -> {
                 advance()
-                makeToken(tt.MINUS)
+                if (currentChar == '>') {
+                    advance()
+                    makeToken(tt.ARROW)
+                } else {
+                    makeToken(tt.MINUS)
+                }
             }
             c == '!' -> {
                 advance()

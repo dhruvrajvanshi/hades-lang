@@ -23,6 +23,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val builder = Builder(llvmCtx)
 
     fun generate() {
+        logger().info(irModule.prettyPrint())
         for (it in irModule) {
             lowerDefinition(it)
         }
@@ -364,8 +365,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerFunctionType(type: Type): FunctionType {
         val lowered = lowerType(type)
-        require(lowered is FunctionType)
-        return lowered
+        require(lowered is PointerType)
+        return lowered.getElementType().asFunctionType()
     }
 
     private fun lowerName(name: IRName): String {
@@ -402,11 +403,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             require(type.typeParams == null) {
                 "Can't lower unspecialized generic function type"
             }
-            FunctionType(
+            PointerType(FunctionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
                 variadic = false
-            )
+            ))
         }
         is Type.Struct -> structTypes.computeIfAbsent(type.constructor.name) {
             val name = type.constructor.name.mangle()

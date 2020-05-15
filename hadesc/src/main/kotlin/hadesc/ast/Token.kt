@@ -40,6 +40,8 @@ data class Token(
 
         EQEQ,
 
+        ARROW,
+
         ID,
         INT_LITERAL,
         HEX_INT_LITERAL,

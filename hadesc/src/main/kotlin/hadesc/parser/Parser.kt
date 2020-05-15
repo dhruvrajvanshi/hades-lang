@@ -574,6 +574,20 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
                         to
                 )
             }
+            tt.LPAREN -> {
+                val start = advance()
+                val from = parseSeperatedList(tt.COMMA, terminator = tt.RPAREN) {
+                    parseTypeAnnotation()
+                }
+                expect(tt.RPAREN)
+                expect(tt.ARROW)
+                val to = parseTypeAnnotation()
+                TypeAnnotation.Function(
+                        makeLocation(start, to),
+                        from,
+                        to
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.TypeAnnotationExpected)
