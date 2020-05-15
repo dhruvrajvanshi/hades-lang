@@ -497,6 +497,26 @@ class Parser(
 
     private fun parseExpressionTail(head: Expression): Expression {
         return when (currentToken.kind) {
+            tt.LSQB -> {
+                advance()
+                val typeArgs = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                    parseTypeAnnotation()
+                }
+                expect(tt.RSQB)
+                expect(tt.LPAREN)
+                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
+                    parseArg()
+                }
+                val stop = expect(tt.RPAREN)
+                parseExpressionTail(
+                        Expression.Call(
+                                makeLocation(head, stop),
+                                typeArgs,
+                                head,
+                                args
+                        )
+                )
+            }
             tt.LPAREN -> {
                 advance()
                 val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
@@ -506,6 +526,7 @@ class Parser(
                 parseExpressionTail(
                         Expression.Call(
                                 makeLocation(head, stop),
+                                null,
                                 head,
                                 args
                         )
