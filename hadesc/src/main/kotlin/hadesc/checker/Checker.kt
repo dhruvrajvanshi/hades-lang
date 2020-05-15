@@ -551,9 +551,17 @@ class Checker(
             Type.Error
         }
         if (functionType is Type.Function) {
-            val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
+            val substitution = mutableMapOf<SourceLocation, Type>()
             functionType.typeParams?.forEach {
                 substitution[it.binder.location] = makeGenericInstance(it.binder)
+            }
+            if (functionType.typeParams != null && expression.typeArgs != null) {
+                functionType.typeParams.zip(expression.typeArgs).forEach { (typeParam, typeArg) ->
+                    substitution[typeParam.binder.location] = inferAnnotation(typeArg)
+                }
+                if (expression.typeArgs.size > functionType.typeParams.size) {
+                    error(expression.location, Diagnostic.Kind.TooManyTypeArgs)
+                }
             }
             val len = min(functionType.from.size, expression.args.size)
             val to = functionType.to.applySubstitution(substitution)
@@ -586,7 +594,9 @@ class Checker(
             val typeArgs = mutableListOf<Type>()
             functionType.typeParams?.forEach {
                 val generic = requireNotNull(substitution[it.binder.location])
-                val instance = genericInstantiations[generic.id]
+                val instance = if (generic is Type.GenericInstance)
+                    genericInstantiations[generic.id]
+                else generic
                 typeArgs.add(
                         if (instance == null) {
                             error(expression.args.firstOrNull()
