@@ -1,8 +1,6 @@
 import gtk as Gtk;
 import libc as c;
 
-extern def run(*Gtk.Application, CInt, **Byte): CInt = run;
-
 def main(argc: CInt, argv: **Byte): Void {
   val app = Gtk.application_new(b"org.gtk.example", Gtk.APPLICATION_FLAGS_NONE);
   val status = run(app, argc, argv);

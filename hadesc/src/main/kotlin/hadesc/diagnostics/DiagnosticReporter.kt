@@ -45,6 +45,7 @@ data class Diagnostic(
         data class NotAPointerType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
 
         object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
+        object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -68,6 +69,7 @@ data class Diagnostic(
             is OperatorNotApplicable -> "Operator not applicable type"
             NotAnAddressableValue -> "Not an addressable value"
             is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
+            AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
         }
 
     }

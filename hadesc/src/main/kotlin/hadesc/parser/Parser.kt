@@ -57,14 +57,17 @@ private val BINARY_OPERATORS = mapOf(
 object SyntaxError : Error()
 
 @OptIn(ExperimentalStdlibApi::class)
-class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePath) {
-    private val lexer = Lexer(file)
-    private var currentToken = lexer.nextToken()
+class Parser(
+        private val ctx: Context,
+        private val moduleName: QualifiedName,
+        val file: SourcePath
+) {
+    private val tokenBuffer = TokenBuffer(maxLookahead = 3, lexer = Lexer(file))
+    private val currentToken get() = tokenBuffer.currentToken
 
     fun parseSourceFile(): SourceFile {
         val declarations = parseDeclarations()
         val start = Position(1, 1)
-        val stop = declarations.lastOrNull()?.location?.stop ?: start
         val location = SourceLocation(file, start, currentToken.location.stop)
         val sourceFile = SourceFile(location, moduleName, declarations)
         ctx.resolver.onParseSourceFile(sourceFile)
@@ -265,6 +268,8 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun isStatementPredicted(): Boolean {
         return currentToken.kind in statementPredictors
+                // LocalAssignment
+                || (currentToken.kind == TokenKind.ID && tokenBuffer.peek(1).kind == TokenKind.EQ)
     }
 
     private fun parseStatement(): Statement {
@@ -273,10 +278,23 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
             tt.VAL -> parseValStatement()
             tt.WHILE -> parseWhileStatement()
             tt.IF -> parseIfStatement()
+            tt.ID -> parseLocalAssignment()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.StatementExpected)
             }
         }
+    }
+
+    private fun parseLocalAssignment(): Statement {
+        val name = parseIdentifier()
+        expect(tt.EQ)
+        val value = parseExpression()
+        expect(tt.SEMICOLON)
+        return Statement.LocalAssignment(
+                makeLocation(name, value),
+                name,
+                value
+        )
     }
 
     private fun parseIfStatement(): Statement {
@@ -320,6 +338,12 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
 
     private fun parseValStatement(): Statement {
         val start = expect(tt.VAL)
+        val isMutable = if (at(tt.MUT)) {
+            advance()
+            true
+        } else {
+            false
+        }
         val binder = parseBinder()
         val typeAnnotation = parseOptionalAnnotation()
         expect(tt.EQ)
@@ -327,6 +351,7 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
         expect(tt.SEMICOLON)
         return Statement.Val(
                 makeLocation(start, rhs),
+                isMutable,
                 binder,
                 typeAnnotation,
                 rhs
@@ -662,12 +687,33 @@ class Parser(val ctx: Context, val moduleName: QualifiedName, val file: SourcePa
     }
 
     private fun advance(): Token {
-        val result = currentToken
-        currentToken = lexer.nextToken()
-        return result
+        return tokenBuffer.advance()
     }
 
     private fun isEOF() =
             currentToken.kind == tt.EOF
+}
+
+class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
+    private val buffer: Array<Token> = Array(maxLookahead) { lexer.nextToken() }
+
+    private var current = 0
+
+    val currentToken: Token get() {
+        return buffer[current]
+    }
+
+    fun advance(): Token {
+        val result = currentToken
+        buffer[current] = lexer.nextToken()
+        current = (current + 1) % maxLookahead
+        return result
+    }
+
+    fun peek(offset: Int): Token {
+        require(offset < maxLookahead) {"Tried to peek past max lookahead $maxLookahead"}
+        return buffer[(current + offset) % maxLookahead]
+    }
+
 }
 

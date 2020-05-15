@@ -253,12 +253,16 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerAddressOf(expression: Expression.AddressOf): IRValue {
         require(expression.expression is Expression.Var)
-        val binding = ctx.resolver.resolve(expression.expression.name)
+        return resolveLocalVariablePointer(expression.expression.name)
+    }
+
+    private fun resolveLocalVariablePointer(name: Identifier): IRValue {
+        val binding = ctx.resolver.resolve(name)
         require(binding is ValueBinding.ValBinding)
         val ptrName = requireNotNull(valPointers[binding.statement.location])
         return IRVariable(
-                type = typeOfExpression(expression),
-                location = expression.location,
+                type = lowerLocalBinder(binding.statement.binder).second,
+                location = name.location,
                 name = ptrName
         )
     }
@@ -498,7 +502,11 @@ class IRGen(private val ctx: Context) {
         is Statement.Val -> lowerValStatement(statement)
         is Statement.While -> lowerWhileStatement(statement)
         is Statement.If -> lowerIfStatement(statement)
-        is Statement.Error -> TODO()
+        is Statement.LocalAssignment -> lowerLocalAssignment(statement)
+        is Statement.Error -> requireUnreachable()
+    }
+    private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
+        builder.buildStore(ptr = resolveLocalVariablePointer(statement.name), value = lowerExpression(statement.value))
     }
 
     /**

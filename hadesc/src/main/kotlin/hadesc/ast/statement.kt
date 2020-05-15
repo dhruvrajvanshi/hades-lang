@@ -11,6 +11,7 @@ sealed class Statement : HasLocation {
 
     data class Val(
         override val location: SourceLocation,
+        val isMutable: Boolean,
         val binder: Binder,
         val typeAnnotation: TypeAnnotation?,
         val rhs: Expression
@@ -27,6 +28,12 @@ sealed class Statement : HasLocation {
         val condition: Expression,
         val ifTrue: Block,
         val ifFalse: Block?
+    ) : Statement()
+
+    data class LocalAssignment(
+        override val location: SourceLocation,
+        val name: Identifier,
+        val value: Expression
     ) : Statement()
 
     data class Error(override val location: SourceLocation) : Statement()

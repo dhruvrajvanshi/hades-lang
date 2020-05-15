@@ -252,6 +252,29 @@ class Checker(
         is Statement.If -> checkIfStatement(statement)
         is Statement.Error -> {
         }
+        is Statement.LocalAssignment -> checkLocalAssignment(statement)
+    }
+
+    private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
+        val binding = ctx.resolver.resolve(statement.name)
+        return when (binding) {
+            is ValueBinding.ValBinding -> {
+                if (!binding.statement.isMutable) {
+                    error(statement.name, Diagnostic.Kind.AssignmentToImmutableVariable)
+                }
+                checkValStatement(binding.statement)
+                val type = requireNotNull(binderTypes[binding.statement.binder])
+                checkExpression(type, statement.value)
+
+            }
+            null -> {
+                error(statement.name, Diagnostic.Kind.UnboundVariable)
+            }
+            else -> {
+                // TODO: Show a more helpful diagnostic here
+                error(statement.name, Diagnostic.Kind.NotAnAddressableValue)
+            }
+        }
     }
 
     private fun checkIfStatement(statement: Statement.If) {
