@@ -53,7 +53,7 @@ data class Diagnostic(
             StatementExpected -> "Statement expected"
             is UnexpectedToken -> "Unexpected token ${found.text}; Expected $expected"
             UnboundVariable -> "Unbound variable"
-            is TypeNotCallable -> "Type $type is not callable"
+            is TypeNotCallable -> "Type ${type.prettyPrint()} is not callable"
             is MissingArgs -> "Missing args; $required required"
             is TooManyArgs -> "Too many args; $required required"
             is TypeNotAssignable -> "Type ${source.prettyPrint()} is not assignable to ${destination.prettyPrint()}"

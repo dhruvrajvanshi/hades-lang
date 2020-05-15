@@ -719,6 +719,9 @@ class Checker(
 
             isEqual
         }
+        destination is Type.RawPtr && source is Type.Function -> {
+            isAssignableTo(destination = destination.to, source = source)
+        }
         else -> {
             false
         }

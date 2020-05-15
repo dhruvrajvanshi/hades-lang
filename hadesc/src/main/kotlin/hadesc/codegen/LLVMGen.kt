@@ -23,11 +23,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val builder = Builder(llvmCtx)
 
     fun generate() {
-        logger().info(irModule.prettyPrint())
         for (it in irModule) {
             lowerDefinition(it)
         }
-        verifyModule()
+//        verifyModule()
         writeModuleToFile()
         linkWithRuntime()
     }
@@ -379,6 +378,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMPrintMessageAction, buffer)
         require(error == 0) {
             log.error("Invalid llvm module: ${llvmModule.getSourceFileName()}\n")
+            log.error(LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
             "Invalid LLVM module"
         }
     }

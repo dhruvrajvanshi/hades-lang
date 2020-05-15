@@ -9,7 +9,21 @@ def main(argc: CInt, argv: **Byte): Void {
   c.exit(status);
 }
 
-extern def connect_exit_button(*Gtk.Button, *Gtk.Window): Void = connect_exit_button;
+
+def run(app: *Gtk.Application, argc: CInt, argv: **Byte): CInt {
+  Gtk.signal_connect(app.as_widget(), b"activate", Gtk.CALLBACK(on_app_activate), nullptr);
+  val status = Gtk.application_run(app, argc, argv);
+  return status;
+}
+
+def print_hello(widget: *Gtk.Widget): Void {
+  Gtk.print(b"Hello World\n");
+}
+
+def connect_exit_button(button: *Gtk.Button, window: *Gtk.Window): Void {
+   Gtk.signal_connect (button.as_widget(), b"clicked", Gtk.CALLBACK(print_hello), nullptr);
+   Gtk.signal_connect_swapped (button.as_widget(), b"clicked", Gtk.CALLBACK(Gtk.widget_destroy), pointer_cast[Void](window));
+}
 
 def on_app_activate(app: *Gtk.Application, data: *Void): Void {
   val window = make_window(app);

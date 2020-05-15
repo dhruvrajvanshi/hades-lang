@@ -16,6 +16,19 @@ extern def button_box_new(): *ButtonBox = gtk_button_box_new;
 extern def button_new_with_label(*Byte): *Button = gtk_button_new_with_label;
 extern def container_add(*Container, *Widget): Void = gtk_container_add;
 extern def widget_show_all(*Widget): Void = gtk_widget_show_all;
+extern def print(*Byte): Void = g_print;
+extern def widget_destroy(*Widget): Void = gtk_widget_destroy;
+extern def signal_connect_data(*Widget, *Byte, *Void, *Void, *Void, CInt): Void = g_signal_connect_data;
+extern def application_run(*Application, CInt, **Byte): CInt = g_application_run;
+
+
+def signal_connect_swapped(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
+    signal_connect_data(instance, signal, handler, data, nullptr, 2);
+}
+
+def signal_connect(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
+   signal_connect_data(instance, signal, handler, data, nullptr, 0);
+}
 
 def CONTAINER[T](ptr: *T): *Container {
     return pointer_cast[Container](ptr);
@@ -23,6 +36,10 @@ def CONTAINER[T](ptr: *T): *Container {
 
 def WIDGET[T](ptr: *T): *Widget {
     return pointer_cast[Widget](ptr);
+}
+
+def CALLBACK[T](ptr: *T): *Void {
+    return pointer_cast[Void](ptr);
 }
 
 def as_widget[T](this: *T): *Widget {
