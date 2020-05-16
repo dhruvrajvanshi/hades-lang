@@ -1,0 +1,37 @@
+import submodule.test_utils as utils;
+
+struct IntAndBool {
+    val int: CInt;
+    val bool: Bool;
+}
+
+def main(): Void {
+    val value = IntAndBool(10, true);
+    utils.print_int(value.get[CInt]());
+    utils.print_int(get_int(value));
+    utils.print_bool(get[IntAndBool, Bool](value));
+}
+
+def get_int[T: Has[CInt]](value: T): CInt {
+    return value.get[T]();
+}
+
+def get[V, T: Has[V]](t: T): V {
+    return t.get[V]();
+}
+
+implementation Has[CInt] for IntAndBool {
+    def get(this: This): CInt {
+        return this.int;
+    }
+}
+implementation Has[Bool] for IntAndBool {
+    def get(this: This): Bool {
+        return this.bool;
+    }
+}
+
+interface Has[T] {
+    def get(this: This): T;
+}
+

@@ -254,6 +254,8 @@ class Resolver(val ctx: Context) {
                         null
                     }
                 }
+                is Declaration.Interface -> null
+                is Declaration.Implementation -> null
             }
             if (binding != null) {
                 return binding
@@ -369,6 +371,8 @@ class Resolver(val ctx: Context) {
                             is Declaration.ConstDefinition -> {
                                 null
                             }
+                            is Declaration.Interface -> null
+                            is Declaration.Implementation -> null
                         }
                         if (binding != null) {
                             break

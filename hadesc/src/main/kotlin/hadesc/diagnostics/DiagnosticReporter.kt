@@ -47,6 +47,7 @@ data class Diagnostic(
         object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
         object TooManyTypeArgs : Diagnostic.Kind(Severity.ERROR)
+        object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -72,6 +73,7 @@ data class Diagnostic(
             is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
             AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
             is TooManyTypeArgs -> "Too many type args"
+            InterfaceMemberExpected -> "interface member expected"
         }
 
     }

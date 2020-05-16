@@ -31,4 +31,7 @@ sealed class TypeAnnotation : HasLocation {
         val from: List<TypeAnnotation>,
         val to: TypeAnnotation
     ) : TypeAnnotation()
+    data class This(
+        override val location: SourceLocation
+    ) : TypeAnnotation()
 }

@@ -12,7 +12,10 @@ import hadesc.qualifiedname.QualifiedName
 
 internal typealias tt = Token.Kind
 
-private val declarationRecoveryTokens = setOf(tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST)
+private val declarationRecoveryTokens = setOf(
+        tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
+        tt.INTERFACE, tt.IMPLEMENTATION
+)
 private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE, tt.IF)
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
@@ -91,12 +94,104 @@ class Parser(
             tt.STRUCT -> parseStructDeclaration()
             tt.EXTERN -> parseExternFunctionDef()
             tt.CONST -> parseConstDef()
+            tt.INTERFACE -> parseInterfaceDeclaration()
+            tt.IMPLEMENTATION -> parseImplementationDeclaration()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseImplementationDeclaration(): Declaration {
+        val start = expect(tt.IMPLEMENTATION)
+        val interfaceRef = parseInterfaceRef()
+        expect(tt.FOR)
+        val forType = parseTypeAnnotation()
+        expect(tt.LBRACE)
+        val members = buildList {
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                add(Declaration.Implementation.Member.FunctionDef(parseDeclarationFunctionDef()))
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.Implementation(
+                makeLocation(start, stop),
+                interfaceRef = interfaceRef,
+                forType = forType,
+                members = members
+        )
+    }
+
+    private fun parseInterfaceRef(): InterfaceRef {
+        val path = parseQualifiedPath()
+        val typeArgs = if (at(tt.LSQB)) {
+            advance()
+            val args = parseSeperatedList(tt.COLON, tt.RSQB) { parseTypeAnnotation() }
+            expect(tt.RSQB)
+            args
+        } else null
+        return InterfaceRef(
+                path,
+                typeArgs
+        )
+    }
+
+    private fun parseInterfaceDeclaration(): Declaration {
+        val start = expect(tt.INTERFACE)
+        val binder = parseBinder()
+        val typeParams = if (at(tt.LSQB)) {
+            advance()
+            val params = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                parseTypeParam()
+            }
+            expect(tt.RSQB)
+            params
+        } else {
+            null
+        }
+        expect(tt.LBRACE)
+        val members = buildList {
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                add(parseInterfaceMember())
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.Interface(
+            makeLocation(start, stop),
+            binder,
+            typeParams,
+            members
+        )
+    }
+
+    private fun parseInterfaceMember(): Declaration.Interface.Member = when(currentToken.kind) {
+        tt.DEF -> {
+            advance()
+            val binder = parseBinder()
+            val typeParams = if(at(tt.LSQB)) {
+                val params = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                    parseTypeParam()
+                }
+                expect(tt.RSQB)
+                params
+            } else null
+            val (thisParam, params) = parseParams()
+            expect(tt.COLON)
+            val returnType = parseTypeAnnotation()
+            expect(tt.SEMICOLON)
+            Declaration.Interface.Member.FunctionSignature(
+                    binder,
+                    typeParams,
+                    thisParam,
+                    params,
+                    returnType
+            )
+        }
+        else -> {
+            syntaxError(currentToken.location, Diagnostic.Kind.InterfaceMemberExpected)
+        }
     }
 
     private fun parseConstDef(): Declaration.ConstDefinition {
@@ -204,7 +299,7 @@ class Parser(
         return Identifier(tok.location, ctx.makeName(tok.text))
     }
 
-    private fun parseDeclarationFunctionDef(): Declaration {
+    private fun parseDeclarationFunctionDef(): Declaration.FunctionDef {
         val start = expect(tt.DEF)
         val name = parseBinder()
         val typeParams = parseOptionalTypeParams()
@@ -228,12 +323,21 @@ class Parser(
     private fun parseOptionalTypeParams(): List<TypeParam>? = if (currentToken.kind == tt.LSQB) {
         advance()
         val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.RSQB) {
-            TypeParam(parseBinder())
+            parseTypeParam()
         }
         expect(tt.RSQB)
         list
     } else {
         null
+    }
+
+    private fun parseTypeParam(): TypeParam {
+        val binder = parseBinder()
+        val bound = if (at(tt.COLON)) {
+            advance()
+            parseInterfaceRef()
+        } else null
+        return TypeParam(binder, bound)
     }
 
     private fun parseBlock(): Block {
@@ -612,6 +716,10 @@ class Parser(
                     TypeAnnotation.Var(id)
                 }
             }
+            tt.THIS_TYPE -> {
+                val location = advance().location
+                TypeAnnotation.This(location)
+            }
             tt.STAR -> {
                 val start = advance()
                 val to = parseTypeAnnotation()
@@ -693,6 +801,7 @@ class Parser(
     private fun recoverFromError(
             stopBefore: Set<tt> = declarationRecoveryTokens
     ) {
+        advance()
         while (true) {
             if (isEOF()) {
                 break

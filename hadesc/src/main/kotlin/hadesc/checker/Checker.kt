@@ -126,6 +126,7 @@ class Checker(
                         to = inferAnnotation(annotation.to)
                 )
             }
+            is TypeAnnotation.This -> TODO()
         }
         annotationTypes[annotation] = type
         if (!allowIncomplete && type is Type.Constructor && type.params != null) {
@@ -170,6 +171,8 @@ class Checker(
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.Struct -> checkStructDef(declaration)
         is Declaration.ConstDefinition -> checkConstDef(declaration)
+        is Declaration.Interface -> TODO()
+        is Declaration.Implementation -> TODO()
     }
 
     private fun checkConstDef(declaration: Declaration.ConstDefinition) {

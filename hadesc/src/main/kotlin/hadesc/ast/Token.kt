@@ -26,6 +26,10 @@ data class Token(
         SIZE_OF,
         POINTER_CAST,
         MUT,
+        INTERFACE,
+        IMPLEMENTATION,
+        THIS_TYPE,
+        FOR,
 
         NOT,
         AND,

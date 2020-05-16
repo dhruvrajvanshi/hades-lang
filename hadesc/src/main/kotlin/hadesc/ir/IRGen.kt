@@ -59,6 +59,8 @@ class IRGen(private val ctx: Context) {
             lowerConstDeclaration(declaration)
             Unit
         }
+        is Declaration.Interface -> TODO()
+        is Declaration.Implementation -> TODO()
     }
 
     private val loweredConstDefs = mutableMapOf<SourceLocation, IRConstDef>()

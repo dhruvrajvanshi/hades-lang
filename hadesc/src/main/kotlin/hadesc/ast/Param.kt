@@ -17,7 +17,8 @@ data class ThisParam(
 ) : HasLocation
 
 data class TypeParam(
-    val binder: Binder
+    val binder: Binder,
+    val bound: InterfaceRef?
 ) : HasLocation {
     fun prettyPrint(): String = binder.identifier.name.text
     override val location: SourceLocation

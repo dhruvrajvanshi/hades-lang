@@ -54,6 +54,33 @@ sealed class Declaration : HasLocation {
         }
     }
 
+    data class Interface(
+        override val location: SourceLocation,
+        val name: Binder,
+        val typeParams: List<TypeParam>?,
+        val members: List<Member>
+    ) : Declaration() {
+        sealed class Member {
+            data class FunctionSignature(
+                val binder: Binder,
+                val typeParams: List<TypeParam>?,
+                val thisParam: ThisParam?,
+                val params: List<Param>,
+                val returnType: TypeAnnotation
+            ) : Member()
+        }
+    }
+
+    data class Implementation(
+        override val location: SourceLocation,
+        val interfaceRef: InterfaceRef,
+        val forType: TypeAnnotation,
+        val members: List<Member>
+    ) : Declaration() {
+        sealed class Member {
+            data class FunctionDef(val functionDef: Declaration.FunctionDef): Member()
+        }
+    }
 }
 
 

@@ -29,7 +29,11 @@ val KEYWORDS = mapOf(
     "const" to tt.CONST,
     "size_of" to tt.SIZE_OF,
     "pointer_cast" to tt.POINTER_CAST,
-    "mut" to tt.MUT
+    "mut" to tt.MUT,
+    "interface" to tt.INTERFACE,
+    "implementation" to tt.IMPLEMENTATION,
+    "This" to tt.THIS_TYPE,
+    "for" to tt.FOR
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
