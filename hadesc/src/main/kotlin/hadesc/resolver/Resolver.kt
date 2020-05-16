@@ -390,32 +390,32 @@ class Resolver(val ctx: Context) {
     }
 
     fun resolveThisParam(node: HasLocation): ThisParam? {
-        val def = resolveThisBindingDef(node)
+        val def = resolveThisBindingSignature(node)
         require(def == null || def.thisParam != null)
         return def?.thisParam
     }
 
-    private fun resolveThisBindingDef(node: HasLocation): Declaration.FunctionDef? {
+    private fun resolveThisBindingSignature(node: HasLocation): FunctionSignature? {
         val scopeStack = getScopeStack(node)
         for (scope in scopeStack) {
             if (scope is ScopeNode.FunctionDef) {
-                if (scope.declaration.thisParam != null) {
-                    return scope.declaration
+                if (scope.declaration.signature.thisParam != null) {
+                    return scope.declaration.signature
                 }
             }
         }
         return null
     }
 
-    fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence<Declaration.FunctionDef> {
+    fun extensionSignaturesInScope(node: HasLocation, name: Identifier) = sequence<FunctionSignature> {
         for (scope in getScopeStack(node)) {
-            if (scope is ScopeNode.FunctionDef && isPossibleExtensionDef(scope.declaration, name)) {
-                yield(scope.declaration)
+            if (scope is ScopeNode.FunctionDef && isPossibleExtensionSignature(scope.declaration.signature, name)) {
+                yield(scope.declaration.signature)
             }
-            fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<Declaration.FunctionDef> = sequence {
+            fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<FunctionSignature> = sequence {
                 for (definition in sourceFile.declarations) {
-                    if (definition is Declaration.FunctionDef && isPossibleExtensionDef(definition, name)) {
-                        yield(definition as Declaration.FunctionDef)
+                    if (definition is Declaration.FunctionDef && isPossibleExtensionSignature(definition.signature, name)) {
+                        yield(definition.signature)
                     }
                     if (definition is Declaration.ImportAs) {
                         yieldAll(extensionsInSourceFile(ctx.resolveSourceFile(definition.modulePath)))
@@ -442,7 +442,7 @@ class Resolver(val ctx: Context) {
 }
 
 @Contract(pure = true)
-private fun isPossibleExtensionDef(def: Declaration.FunctionDef, property: Identifier): Boolean {
+private fun isPossibleExtensionSignature(def: FunctionSignature, property: Identifier): Boolean {
     return def.thisParam != null &&
             def.name.identifier.name == property.name
 }

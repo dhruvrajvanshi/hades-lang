@@ -166,32 +166,27 @@ class Parser(
         )
     }
 
-    private fun parseInterfaceMember(): Declaration.Interface.Member = when(currentToken.kind) {
-        tt.DEF -> {
-            advance()
-            val binder = parseBinder()
-            val typeParams = if(at(tt.LSQB)) {
-                val params = parseSeperatedList(tt.COMMA, tt.RSQB) {
-                    parseTypeParam()
-                }
-                expect(tt.RSQB)
-                params
-            } else null
-            val (thisParam, params) = parseParams()
-            expect(tt.COLON)
-            val returnType = parseTypeAnnotation()
-            expect(tt.SEMICOLON)
-            Declaration.Interface.Member.FunctionSignature(
-                    binder,
-                    typeParams,
-                    thisParam,
-                    params,
-                    returnType
-            )
-        }
-        else -> {
-            syntaxError(currentToken.location, Diagnostic.Kind.InterfaceMemberExpected)
-        }
+    private fun parseInterfaceMember(): Declaration.Interface.Member {
+        val signature = parseFunctionSignature()
+        expect(tt.SEMICOLON)
+        return Declaration.Interface.Member.FunctionSignature(signature)
+    }
+
+    private fun parseFunctionSignature(): FunctionSignature {
+        val start = expect(tt.DEF)
+        val binder = parseBinder()
+        val typeParams = parseOptionalTypeParams()
+        val (thisParam, params) = parseParams()
+        expect(tt.COLON)
+        val returnType = parseTypeAnnotation()
+        return FunctionSignature(
+                makeLocation(start, returnType),
+                binder,
+                typeParams,
+                thisParam,
+                params,
+                returnType
+        )
     }
 
     private fun parseConstDef(): Declaration.ConstDefinition {
@@ -300,23 +295,12 @@ class Parser(
     }
 
     private fun parseDeclarationFunctionDef(): Declaration.FunctionDef {
-        val start = expect(tt.DEF)
-        val name = parseBinder()
-        val typeParams = parseOptionalTypeParams()
-        val scopeStartToken = expect(tt.LPAREN)
-        val (thisParam, params) = parseParams(scopeStartToken)
-        expect(tt.COLON)
-        val annotation = parseTypeAnnotation()
-        val block = parseBlock()
+        val signature = parseFunctionSignature()
+        val body = parseBlock()
         return Declaration.FunctionDef(
-                location = makeLocation(start, block),
-                name = name,
-                scopeStartToken = scopeStartToken,
-                typeParams = typeParams,
-                thisParam = thisParam,
-                params = params,
-                returnType = annotation,
-                body = block
+                location = makeLocation(signature, body),
+                signature = signature,
+                body = body
         )
     }
 

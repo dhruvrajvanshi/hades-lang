@@ -403,7 +403,7 @@ class IRGen(private val ctx: Context) {
                 index
             )
         } else {
-            val def = requireNotNull(ctx.checker.getExtensionDef(expression))
+            val def = requireNotNull(ctx.checker.getExtensionSignature(expression))
             val thisTy = typeOfExpression(expression.lhs)
             val (fnName, methodTy) = lowerGlobalBinder(def.name)
             require(methodTy is Type.Function)

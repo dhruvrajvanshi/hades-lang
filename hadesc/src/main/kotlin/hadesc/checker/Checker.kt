@@ -171,8 +171,16 @@ class Checker(
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.Struct -> checkStructDef(declaration)
         is Declaration.ConstDefinition -> checkConstDef(declaration)
-        is Declaration.Interface -> TODO()
-        is Declaration.Implementation -> TODO()
+        is Declaration.Interface -> checkInterfaceDeclaration(declaration)
+        is Declaration.Implementation -> checkImplementationDeclaration(declaration)
+    }
+
+    private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {
+        TODO()
+    }
+
+    private fun checkInterfaceDeclaration(declaration: Declaration.Interface) {
+        TODO()
     }
 
     private fun checkConstDef(declaration: Declaration.ConstDefinition) {
@@ -180,7 +188,7 @@ class Checker(
     }
 
     private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
-        val functionType = declareFunctionDef(declaration)
+        val functionType = declareFunctionSignature(declaration.signature)
         withReturnType(functionType.to) {
             checkBlock(declaration.body)
         }
@@ -193,14 +201,14 @@ class Checker(
         returnTypeStack.pop()
     }
 
-    private fun declareFunctionDef(declaration: Declaration.FunctionDef): Type.Function {
-        val cached = binderTypes[declaration.name]
+    private fun declareFunctionSignature(signature: FunctionSignature): Type.Function {
+        val cached = binderTypes[signature.name]
         if (cached != null) {
             require(cached is Type.Function)
             return cached
         }
         val paramTypes = mutableListOf<Type>()
-        for (param in declaration.params) {
+        for (param in signature.params) {
             val type = if (param.annotation != null) {
                 inferAnnotation(param.annotation)
             } else {
@@ -209,20 +217,25 @@ class Checker(
             bindValue(param.binder, type)
             paramTypes.add(type)
         }
-        val receiverType = if (declaration.thisParam != null) {
-            inferAnnotation(declaration.thisParam.annotation)
+        val receiverType = if (signature.thisParam != null) {
+            inferAnnotation(signature.thisParam.annotation)
         } else {
             null
         }
-        val returnType = inferAnnotation(declaration.returnType)
+        val returnType = inferAnnotation(signature.returnType)
         val type = Type.Function(
                 receiver = receiverType,
                 from = paramTypes,
                 to = returnType,
-                typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
+                typeParams = signature.typeParams?.map { inferTypeParam(it) }
         )
-        bindValue(declaration.name, type)
+        bindValue(signature.name, type)
         return type
+    }
+
+    private fun inferTypeParam(it: TypeParam): Type.Param {
+        // FIXME: Infer bound
+        return Type.Param(it.binder)
     }
 
     private fun checkBlock(block: Block) {
@@ -505,14 +518,14 @@ class Checker(
         return getExtensionDefAndType(lhs, lhsType, property)?.second
     }
 
-    private val extensionDefs = MutableNodeMap<Expression.Property, Declaration.FunctionDef>()
+    private val extensionDefs = MutableNodeMap<Expression.Property, FunctionSignature>()
 
-    fun getExtensionDef(lhs: Expression.Property): Declaration.FunctionDef? {
+    fun getExtensionSignature(lhs: Expression.Property): FunctionSignature? {
         return extensionDefs[lhs]
     }
 
-    private fun getExtensionDefAndType(lhs: Expression.Property, lhsType: Type, property: Identifier): Pair<Declaration.FunctionDef, Type>? {
-        val extensionDefs = ctx.resolver.extensionDefsInScope(property, property).toList()
+    private fun getExtensionDefAndType(lhs: Expression.Property, lhsType: Type, property: Identifier): Pair<FunctionSignature, Type>? {
+        val extensionDefs = ctx.resolver.extensionSignaturesInScope(property, property).toList()
         for (def in extensionDefs) {
             require(def.thisParam != null)
             val thisParamType = inferAnnotation(def.thisParam.annotation)
@@ -780,7 +793,7 @@ class Checker(
 
     private fun inferBinding(binding: ValueBinding) = when (binding) {
         is ValueBinding.GlobalFunction -> {
-            declareFunctionDef(binding.declaration)
+            declareFunctionSignature(binding.declaration.signature)
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.name]))
         }
         is ValueBinding.ExternFunction -> {
@@ -788,7 +801,7 @@ class Checker(
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is ValueBinding.FunctionParam -> {
-            declareFunctionDef(binding.declaration)
+            declareFunctionSignature(binding.declaration.signature)
             requireNotNull(binderTypes[binding.param.binder])
         }
         is ValueBinding.ValBinding -> {

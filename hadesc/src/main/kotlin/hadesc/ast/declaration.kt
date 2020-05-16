@@ -15,14 +15,14 @@ sealed class Declaration : HasLocation {
 
     data class FunctionDef(
         override val location: SourceLocation,
-        val scopeStartToken: Token,
-        val name: Binder,
-        val typeParams: List<TypeParam>?,
-        val thisParam: ThisParam?,
-        val params: List<Param>,
-        val returnType: TypeAnnotation,
+        val signature: FunctionSignature,
         val body: Block
-    ) : Declaration()
+    ) : Declaration() {
+        val name get() = signature.name
+        val typeParams get() = signature.typeParams
+        val thisParam = signature.thisParam
+        val params get() = signature.params
+    }
 
     data class ConstDefinition(
         override val location: SourceLocation,
@@ -62,11 +62,7 @@ sealed class Declaration : HasLocation {
     ) : Declaration() {
         sealed class Member {
             data class FunctionSignature(
-                val binder: Binder,
-                val typeParams: List<TypeParam>?,
-                val thisParam: ThisParam?,
-                val params: List<Param>,
-                val returnType: TypeAnnotation
+                    val signature: hadesc.ast.FunctionSignature
             ) : Member()
         }
     }
