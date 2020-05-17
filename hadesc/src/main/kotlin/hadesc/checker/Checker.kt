@@ -126,13 +126,22 @@ class Checker(
                         to = inferAnnotation(annotation.to)
                 )
             }
-            is TypeAnnotation.This -> TODO()
+            is TypeAnnotation.This -> resolveThisType(annotation)
         }
         annotationTypes[annotation] = type
         if (!allowIncomplete && type is Type.Constructor && type.params != null) {
             error(annotation, Diagnostic.Kind.IncompleteType(type.params.size))
         }
         return type
+    }
+
+    private fun resolveThisType(node: HasLocation): Type {
+        val interfaceDecl = ctx.resolver.getEnclosingInterfaceDecl(node)
+        return if (interfaceDecl != null) {
+            Type.ThisRef(interfaceDecl.location)
+        } else {
+            Type.Error
+        }
     }
 
     private fun checkTypeApplication(annotation: TypeAnnotation.Application, callee: Type, args: List<Type>) {
@@ -176,11 +185,28 @@ class Checker(
     }
 
     private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {
-        TODO()
+
+        val interfaceRef = declaration.interfaceRef
+        val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        if (interfaceDef == null || interfaceDef !is Declaration.Interface) {
+            error(declaration.interfaceRef.path, Diagnostic.Kind.NotAnInterface)
+        }
+
+        for (member in declaration.members) {
+            exhaustive(when(member) {
+                is Declaration.Implementation.Member.FunctionDef -> {
+                    checkFunctionDef(member.functionDef)
+                }
+            })
+        }
     }
 
     private fun checkInterfaceDeclaration(declaration: Declaration.Interface) {
-        TODO()
+        for (member in declaration.members) {
+            exhaustive(when (member) {
+                is Declaration.Interface.Member.FunctionSignature -> declareFunctionSignature(member.signature)
+            })
+        }
     }
 
     private fun checkConstDef(declaration: Declaration.ConstDefinition) {
@@ -325,12 +351,12 @@ class Checker(
         checkedValStatements.add(statement.location)
     }
 
-    private fun inferExpression(expression: Expression): Type {
+    private fun inferExpression(expression: Expression, typeArgs: List<TypeAnnotation>? = null): Type {
         val ty = when (expression) {
             is Expression.Error -> Type.Error
             is Expression.Var -> inferVar(expression)
             is Expression.Call -> inferCall(expression)
-            is Expression.Property -> inferProperty(expression)
+            is Expression.Property -> inferProperty(expression, typeArgs)
             is Expression.ByteString -> Type.RawPtr(Type.Byte)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.This -> inferThis(expression)
@@ -434,7 +460,7 @@ class Checker(
         return inferAnnotation(thisParam.annotation)
     }
 
-    private fun inferProperty(expression: Expression.Property): Type {
+    private fun inferProperty(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): Type {
         val globalBinding = ctx.resolver.resolveModuleProperty(expression)
         return if (globalBinding != null) {
             inferBinding(globalBinding)
@@ -459,7 +485,8 @@ class Checker(
                 is Type.Application -> {
                     inferTypeApplicationProperty(expression, lhsType, expression.property)
                 }
-                is Type.Constructor -> TODO()
+                is Type.Constructor -> requireUnreachable()
+                is Type.ThisRef -> null
             }
             if (ownPropertyType != null) {
                 ownPropertyType
@@ -468,8 +495,78 @@ class Checker(
                 if (extensionPropertyType != null) {
                     extensionPropertyType
                 } else {
-                    error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
-                    Type.Error
+                    val interfacePropertyType = getInterfacePropertyType(lhsType, expression.property, typeArgs)
+                    if (interfacePropertyType != null) {
+                        interfacePropertyType
+                    } else {
+                        error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                        Type.Error
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getInterfacePropertyType(lhsType: Type, property: Identifier, typeArgs: List<TypeAnnotation>?): Type? {
+        val implementations = implementedInterfaceRefs(lhsType, property).toList()
+        require(typeArgs == null) {
+            TODO("Generic methods within interfaces not implemented")
+        }
+        for (interfaceRef in implementations) {
+            val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path) ?: continue
+            if (interfaceDef !is Declaration.Interface) {
+                continue
+            }
+            val implementationTypeArgs = interfaceRef.typeArgs
+                ?.map { inferAnnotation(it) }
+                ?: listOf()
+            val substitution = interfaceDef.typeParams
+                ?.map { it.binder.location }
+                ?.zip(implementationTypeArgs)
+                ?.toMap()
+                ?: emptyMap()
+            for (member in interfaceDef.members) {
+                val memberType = when (member) {
+                    is Declaration.Interface.Member.FunctionSignature -> {
+                        val functionType = declareFunctionSignature(member.signature)
+                        if (
+                            member.signature.name.identifier.name == property.name
+                            && functionType.receiver == null) {
+                            null
+                        } else {
+                            functionType.applySubstitution(
+                                substitution,
+                                lhsType
+                            )
+                        }
+                    }
+                }
+
+                if (memberType != null) {
+                    return memberType
+                }
+            }
+        }
+        return null
+    }
+
+    private fun implementedInterfaceRefs(lhsType: Type, node: HasLocation) = sequence {
+        for (implementation in ctx.resolver.implementationsInScope(node)) {
+            val forType = inferAnnotation(implementation.forType)
+            if (isAssignableTo(source = lhsType, destination = forType)) {
+                yield(implementation.interfaceRef)
+            } else {
+                if (lhsType is Type.ParamRef) {
+                    val typeBinding = ctx.resolver.resolveTypeVariable(lhsType.name.identifier) ?: continue
+                    require(typeBinding is TypeBinding.TypeParam)
+                    val bound = typeBinding.bound ?: continue
+                    val decl = ctx.resolver.resolveDeclaration(bound.path)
+                    if (decl !is Declaration.Interface) {
+                        continue
+                    }
+
+                    yield(bound)
+
                 }
             }
         }
@@ -525,7 +622,7 @@ class Checker(
     }
 
     private fun getExtensionDefAndType(lhs: Expression.Property, lhsType: Type, property: Identifier): Pair<FunctionSignature, Type>? {
-        val extensionDefs = ctx.resolver.extensionSignaturesInScope(property, property).toList()
+        val extensionDefs = ctx.resolver.extensionSignaturesInScope(property, property)
         for (def in extensionDefs) {
             require(def.thisParam != null)
             val thisParamType = inferAnnotation(def.thisParam.annotation)
@@ -557,8 +654,8 @@ class Checker(
         return Type.GenericInstance(binder, _nextGenericInstance)
     }
 
-    private fun inferCall(expression: Expression.Call): Type {
-        val calleeType = inferExpression(expression.callee)
+    private fun inferCall(expression: Expression.Call, expectedReturnType: Type? = null): Type {
+        val calleeType = inferExpression(expression.callee, expression.typeArgs)
         val functionType = if (calleeType is Type.Function) {
             calleeType
         } else if (calleeType is Type.RawPtr && calleeType.to is Type.Function) {
@@ -581,6 +678,9 @@ class Checker(
             }
             val len = min(functionType.from.size, expression.args.size)
             val to = functionType.to.applySubstitution(substitution)
+            if (expectedReturnType != null) {
+                checkAssignability(expression.location, source = to, destination = expectedReturnType)
+            }
             if (functionType.receiver != null) {
                 require(expression.callee is Expression.Property)
                 val expected = functionType.receiver.applySubstitution(substitution)
@@ -607,6 +707,7 @@ class Checker(
             for (arg in expression.args) {
                 applyInstantiations(arg.expression)
             }
+
             val typeArgs = mutableListOf<Type>()
             functionType.typeParams?.forEach {
                 val generic = requireNotNull(substitution[it.binder.location])
@@ -670,6 +771,7 @@ class Checker(
             )
         }
         is Type.Constructor -> type
+        is Type.ThisRef -> type
     }
 
     private fun applyInstantiations(expression: Expression) {
@@ -678,7 +780,7 @@ class Checker(
         expressionTypes[expression] = instance
     }
 
-    private fun checkExpression(expected: Type, expression: Expression) = when {
+    private fun checkExpression(expected: Type, expression: Expression): Unit = when {
         expression is Expression.NullPtr && expected is Type.RawPtr -> {
             expressionTypes[expression] = expected
         }
@@ -686,7 +788,7 @@ class Checker(
             expressionTypes[expression] = Type.Size
         }
         else -> {
-            val exprType = inferExpression(expression)
+            val exprType = inferExpression(expression, null)
             checkAssignability(expression.location, destination = expected, source = exprType)
         }
     }

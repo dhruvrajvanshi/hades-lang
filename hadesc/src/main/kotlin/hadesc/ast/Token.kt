@@ -27,7 +27,7 @@ data class Token(
         POINTER_CAST,
         MUT,
         INTERFACE,
-        IMPLEMENTATION,
+        IMPLEMENT,
         THIS_TYPE,
         FOR,
 

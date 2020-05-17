@@ -48,6 +48,7 @@ data class Diagnostic(
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
         object TooManyTypeArgs : Diagnostic.Kind(Severity.ERROR)
         object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
+        object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -74,6 +75,7 @@ data class Diagnostic(
             AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
             is TooManyTypeArgs -> "Too many type args"
             InterfaceMemberExpected -> "interface member expected"
+            NotAnInterface -> "Not an interface"
         }
 
     }
@@ -82,10 +84,12 @@ data class Diagnostic(
 class DiagnosticReporter {
     var hasErrors = false
     private val fileLines = mutableMapOf<SourcePath, List<String>>()
+    public val errors = mutableListOf<Diagnostic>()
     fun report(location: SourceLocation, kind: Diagnostic.Kind) {
         if (kind.severity == Diagnostic.Severity.ERROR) {
             hasErrors = true
         }
+        errors.add(Diagnostic(location, kind))
         printErrLn("${kind.severity}: ${location.file.path}:(${location.start.line}:${location.start.column}): ${kind.prettyPrint()}")
         printLocationLine(location)
         for (i in 0..location.start.column + location.start.line.toString().length) {
@@ -106,6 +110,5 @@ class DiagnosticReporter {
     private fun printErrLn(string: String) {
         System.err.println(string)
     }
-
 
 }

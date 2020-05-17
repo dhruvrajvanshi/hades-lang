@@ -31,7 +31,7 @@ val KEYWORDS = mapOf(
     "pointer_cast" to tt.POINTER_CAST,
     "mut" to tt.MUT,
     "interface" to tt.INTERFACE,
-    "implementation" to tt.IMPLEMENTATION,
+    "implement" to tt.IMPLEMENT,
     "This" to tt.THIS_TYPE,
     "for" to tt.FOR
 )

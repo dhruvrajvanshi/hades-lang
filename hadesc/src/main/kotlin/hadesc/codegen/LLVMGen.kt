@@ -421,6 +421,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Application -> requireUnreachable()
         is Type.Constructor -> requireUnreachable()
         Type.Size -> sizeTy
+        is Type.ThisRef -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0

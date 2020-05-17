@@ -41,6 +41,7 @@ sealed class Type {
     data class GenericInstance(val name: Binder, val id: Long) : Type()
 
     data class Application(val callee: Type, val args: List<Type>) : Type()
+    data class ThisRef(val location: SourceLocation) : Type()
 
 
     fun prettyPrint(): String = when (this) {
@@ -63,36 +64,43 @@ sealed class Type {
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
         Size -> "Size"
+        is ThisRef -> "This"
     }
 
-    fun applySubstitution(substitution: Map<SourceLocation, Type>): Type = when (this) {
-        is GenericInstance,
-        Error,
-        Byte,
-        Void,
-        CInt,
-        Size,
-        Bool -> this
-        is RawPtr -> RawPtr(this.to.applySubstitution(substitution))
-        is Function -> Function(
-            receiver = receiver?.applySubstitution(substitution),
-            typeParams = this.typeParams,
-            from = this.from.map { it.applySubstitution(substitution) },
-            to = this.to.applySubstitution(substitution)
-        )
-        is Struct -> {
-            Struct(
-                constructor = this.constructor,
-                memberTypes = this.memberTypes.mapValues { it.value.applySubstitution(substitution) }
+    fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
+        fun Type.recurse(): Type {
+            return applySubstitution(substitution, thisType)
+        }
+        return when (this) {
+            is GenericInstance,
+            Error,
+            Byte,
+            Void,
+            CInt,
+            Size,
+            Bool -> this
+            is RawPtr -> RawPtr(to.recurse())
+            is Function -> Function(
+                receiver = receiver?.recurse(),
+                typeParams = this.typeParams,
+                from = this.from.map { it.recurse() },
+                to = this.to.recurse()
             )
+            is Struct -> {
+                Struct(
+                    constructor = this.constructor,
+                    memberTypes = this.memberTypes.mapValues { it.value.recurse() }
+                )
+            }
+            is ParamRef -> {
+                substitution[this.name.location] ?: this
+            }
+            is Application -> {
+                Application(callee.recurse(), args.map { it.recurse() })
+            }
+            is Constructor -> this
+            is ThisRef -> thisType?.recurse() ?: this
         }
-        is ParamRef -> {
-            substitution[this.name.location] ?: this
-        }
-        is Application -> {
-            Application(callee.applySubstitution(substitution), args.map { it.applySubstitution(substitution) })
-        }
-        is Constructor -> this
     }
 }
 

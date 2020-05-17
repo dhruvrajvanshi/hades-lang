@@ -1,0 +1,5 @@
+suite/interface_type_checking.hds:10: FunctionNotInInterface
+suite/interface_type_checking.hds:13: TypeNotAssignable
+suite/interface_type_checking.hds:18: MissingMember
+suite/interface_type_checking.hds:21: NotAnInterface
+suite/interface_type_checking.hds:22: NotAnInterface

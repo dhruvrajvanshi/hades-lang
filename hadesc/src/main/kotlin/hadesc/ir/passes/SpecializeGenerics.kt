@@ -494,6 +494,7 @@ class SpecializeGenerics(
                 lowerType(type.callee, type.args)
             }
             Type.Size -> type
+            is Type.ThisRef -> requireUnreachable()
         }
     }
 }

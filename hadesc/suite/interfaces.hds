@@ -1,4 +1,6 @@
 import submodule.test_utils as utils;
+import submodule.printable_interface as pi;
+import libc as c;
 
 struct IntAndBool {
     val int: CInt;
@@ -7,25 +9,40 @@ struct IntAndBool {
 
 def main(): Void {
     val value = IntAndBool(10, true);
-    utils.print_int(value.get[CInt]());
+    utils.print_int(value.get());
     utils.print_int(get_int(value));
-    utils.print_bool(get[IntAndBool, Bool](value));
+    utils.print_bool(get[Bool](value));
+    print(true);
+    print(10);
+    print(b"string");
+}
+
+implement pi.Printable for Bool {
+    def print(this: Bool): Void {
+        utils.print_bool(this);
+    }
+}
+
+implement pi.Printable for *Byte {
+    def print(this: *Byte): Void {
+        c.puts(this);
+    }
 }
 
 def get_int[T: Has[CInt]](value: T): CInt {
-    return value.get[T]();
+    return get[CInt, T](value);
 }
 
 def get[V, T: Has[V]](t: T): V {
-    return t.get[V]();
+    return t.get();
 }
 
-implementation Has[CInt] for IntAndBool {
+implement Has[CInt] for IntAndBool {
     def get(this: This): CInt {
         return this.int;
     }
 }
-implementation Has[Bool] for IntAndBool {
+implement Has[Bool] for IntAndBool {
     def get(this: This): Bool {
         return this.bool;
     }
@@ -34,4 +51,9 @@ implementation Has[Bool] for IntAndBool {
 interface Has[T] {
     def get(this: This): T;
 }
+
+def print[T: pi.Printable](value: T): Void {
+    value.print();
+}
+
 

@@ -34,7 +34,10 @@ class HadesTestSuite {
                             directory.toPath().toString(),
                             file.nameWithoutExtension + ".stdout"
                         ).toFile()
-                        assert(expectedStdoutFile.exists())
+                        val expectedErrorsFile = Paths.get(
+                            directory.toPath().toString(),
+                            file.nameWithoutExtension + ".errors"
+                        ).toFile()
 
                         val outputPath = Paths.get(
                             outputDirectory.toString(),
@@ -43,7 +46,7 @@ class HadesTestSuite {
                             else
                                 file.nameWithoutExtension
                         )
-                        Compiler(
+                        val compiler = Compiler(
                             arrayOf(
                                 "--output", outputPath.toString(),
                                 "--directories", "stdlib", directory.toString(),
@@ -51,26 +54,42 @@ class HadesTestSuite {
                                 "--runtime", "runtime.c",
                                 "--cflags", utilsCLib.toString()
                             )
-                        ).run()
-                        assert(File(outputPath.toUri()).exists()) {
-                            "Expected $outputPath to be present after compilation"
-                        }
-                        val actualStdoutFile =
-                            Path.of(outputDirectory.toString(), file.nameWithoutExtension + ".stdout")
-                                .toFile()
-
-                        val process = ProcessBuilder(outputPath.toString())
-                            .redirectError(ProcessBuilder.Redirect.INHERIT)
-                            .redirectOutput(actualStdoutFile)
-                            .start()
-                        process.waitFor(1, TimeUnit.SECONDS)
-                        assert(process.exitValue() == 0)
-                        val expectedLines = expectedStdoutFile.readLines()
-                        val actualLines = actualStdoutFile.readLines()
-                        assertEquals(
-                            expectedLines, actualLines,
-                            "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
                         )
+                        val diagnostics = compiler.run()
+                        if (expectedStdoutFile.exists()) {
+                            assert(File(outputPath.toUri()).exists()) {
+                                "Expected $outputPath to be present after compilation"
+                            }
+                            val actualStdoutFile =
+                                Path.of(outputDirectory.toString(), file.nameWithoutExtension + ".stdout")
+                                    .toFile()
+
+                            val process = ProcessBuilder(outputPath.toString())
+                                .redirectError(ProcessBuilder.Redirect.INHERIT)
+                                .redirectOutput(actualStdoutFile)
+                                .start()
+                            process.waitFor(1, TimeUnit.SECONDS)
+                            assert(process.exitValue() == 0)
+                            val expectedLines = expectedStdoutFile.readLines()
+                            val actualLines = actualStdoutFile.readLines()
+                            assertEquals(
+                                expectedLines, actualLines,
+                                "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
+                            )
+                        } else {
+                            assert(expectedErrorsFile.exists())
+                            val expectedErrors = expectedErrorsFile.readLines()
+                            val actualErrors = diagnostics
+                                    .sortedBy { it.sourceLocation.start }
+                                    .map {
+                                        "${it.sourceLocation.file.path}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
+                                    }
+                            assertEquals(
+                                expectedErrors,
+                                actualErrors
+                            )
+                        }
+
                     })
                 }
             }

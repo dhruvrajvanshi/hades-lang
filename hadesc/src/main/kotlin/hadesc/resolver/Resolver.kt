@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -49,11 +50,10 @@ sealed class TypeBinding {
         val declaration: Declaration.Struct
     ) : TypeBinding()
 
-    data class TypeParam(val binder: Binder) : TypeBinding()
+    data class TypeParam(val binder: Binder, val bound: InterfaceRef?) : TypeBinding()
 }
 
 sealed class ScopeNode {
-    // Update function getEnclosingDeclaration when adding a new declaration scope
     data class FunctionDef(
         val declaration: Declaration.FunctionDef
     ) : ScopeNode()
@@ -64,6 +64,7 @@ sealed class ScopeNode {
 
     data class Block(val block: hadesc.ast.Block) : ScopeNode()
     data class Struct(val declaration: Declaration.Struct) : ScopeNode()
+    data class Interface(val declaration: Declaration.Interface) : ScopeNode()
 
     val location
         get(): SourceLocation = when (this) {
@@ -71,6 +72,7 @@ sealed class ScopeNode {
             is SourceFile -> sourceFile.location
             is Block -> block.location
             is Struct -> declaration.location
+            is Interface -> declaration.location
         }
 }
 
@@ -142,7 +144,7 @@ class Resolver(val ctx: Context) {
             }
             when {
                 param != null -> {
-                    TypeBinding.TypeParam(param.binder)
+                    TypeBinding.TypeParam(param.binder, param.bound)
                 }
                 ident.name == scopeNode.declaration.binder.identifier.name -> {
                     TypeBinding.Struct(scopeNode.declaration)
@@ -152,13 +154,19 @@ class Resolver(val ctx: Context) {
                 }
             }
         }
+        is ScopeNode.Interface -> {
+            val param = scopeNode.declaration.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }
+            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
         val typeParams = declaration.typeParams ?: return null
         typeParams.forEach {
             if (it.binder.identifier.name == ident.name) {
-                return TypeBinding.TypeParam(it.binder)
+                return TypeBinding.TypeParam(it.binder, it.bound)
             }
         }
         return null
@@ -183,6 +191,7 @@ class Resolver(val ctx: Context) {
         is ScopeNode.SourceFile -> shallowFindInSourceFile(ident, scope.sourceFile)
         is ScopeNode.Block -> shallowFindInBlock(ident, scope)
         is ScopeNode.Struct -> null
+        is ScopeNode.Interface -> null
     }
 
     private fun shallowFindInBlock(ident: Identifier, scope: ScopeNode.Block): ValueBinding? {
@@ -314,6 +323,20 @@ class Resolver(val ctx: Context) {
                     ScopeNode.Struct(declaration)
                 )
             }
+            is Declaration.Implementation -> {
+                for (member in declaration.members) {
+                    exhaustive(when (member) {
+                        is Declaration.Implementation.Member.FunctionDef -> {
+                            addScopeNode(
+                                declaration.location.file,
+                                ScopeNode.FunctionDef(member.functionDef))
+                        }
+                    })
+                }
+            }
+            is Declaration.Interface -> {
+                addScopeNode(declaration.location.file, ScopeNode.Interface(declaration))
+            }
             else -> {}
         }
     }
@@ -380,6 +403,7 @@ class Resolver(val ctx: Context) {
                     }
                     binding
                 }
+                is ScopeNode.Interface -> null
             }
             if (binding != null) {
                 return binding
@@ -405,6 +429,31 @@ class Resolver(val ctx: Context) {
             }
         }
         return null
+    }
+
+    fun interfacesInScope(node: HasLocation): Sequence<Declaration.Interface> = sequence {
+        val sourceFile = sourceFileOf(node)
+        yieldAll(interfacesInSourceFile(sourceFile))
+        for (file in directlyImportedSourceFiles(sourceFile)) {
+            yieldAll(interfacesInSourceFile(file))
+        }
+
+    }
+
+    private fun interfacesInSourceFile(sourceFile: SourceFile): Sequence<Declaration.Interface> = sequence {
+        for (decl in sourceFile.declarations) {
+            if (decl is Declaration.Interface) {
+                yield(decl as Declaration.Interface)
+            }
+        }
+    }
+
+    private fun directlyImportedSourceFiles(sourceFile: SourceFile): Sequence<SourceFile> = sequence {
+        for (declaration in sourceFile.declarations) {
+            if (declaration is Declaration.ImportAs) {
+                yield(ctx.resolveSourceFile(declaration.modulePath))
+            }
+        }
     }
 
     fun extensionSignaturesInScope(node: HasLocation, name: Identifier) = sequence<FunctionSignature> {
@@ -435,6 +484,89 @@ class Resolver(val ctx: Context) {
             if (decl is Declaration.ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
                 val importedSourceFile = ctx.resolveSourceFile(decl.modulePath)
                 return findTypeInSourceFile(path.identifiers.last(), importedSourceFile)?.declaration
+            }
+        }
+        return null
+    }
+
+    fun resolveDeclaration(path: QualifiedPath): Declaration? {
+        if (path.identifiers.size == 1) {
+            val name = path.identifiers.first()
+            return findDeclarationOf(sourceFileOf(name), name)
+        } else {
+            require(path.identifiers.size == 2)
+            val moduleName = path.identifiers.first()
+            val sourceFile = sourceFileOf(moduleName)
+            for (declaration in sourceFile.declarations) {
+                if (declaration is Declaration.ImportAs && declaration.asName.identifier.name == moduleName.name) {
+                    val name = path.identifiers[1]
+                    return findDeclarationOf(ctx.resolveSourceFile(declaration.modulePath), name)
+                }
+            }
+            return null
+        }
+
+    }
+
+    private fun findDeclarationOf(sourceFile: SourceFile, name: Identifier): Declaration? {
+        for (declaration in sourceFile.declarations) {
+            val decl = when (declaration) {
+                is Declaration.Error -> null
+                is Declaration.ImportAs -> null
+                is Declaration.FunctionDef -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else null
+                is Declaration.ConstDefinition -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.ExternFunctionDef -> if (declaration.binder.identifier.name == name.name) {
+                    declaration
+                } else null
+                is Declaration.Struct -> if (declaration.binder.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.Interface -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.Implementation -> null
+            }
+            if (decl != null) {
+                return decl
+            }
+        }
+        return null
+
+    }
+
+    fun implementationsInScope(node: HasLocation) = sequence<Declaration.Implementation> {
+        val sourceFile = sourceFileOf(node)
+        val importedFiles = directlyImportedSourceFiles(sourceFile)
+        yieldAll(implementationsInSourceFile(sourceFile))
+        for (importedFile in importedFiles) {
+            yieldAll(implementationsInSourceFile(importedFile))
+        }
+    }
+
+    private fun implementationsInSourceFile(
+        sourceFile: SourceFile
+    ): Sequence<Declaration.Implementation> = sequence {
+        for (declaration in sourceFile.declarations) {
+            if (declaration is Declaration.Implementation) {
+                yield(declaration as Declaration.Implementation)
+            }
+        }
+    }
+
+    fun getEnclosingInterfaceDecl(node: HasLocation): Declaration.Interface? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeNode.Interface) {
+                return scopeNode.declaration
             }
         }
         return null

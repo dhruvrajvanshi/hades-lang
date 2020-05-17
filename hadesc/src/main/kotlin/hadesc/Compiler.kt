@@ -1,6 +1,7 @@
 package hadesc
 
 import hadesc.context.Context
+import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import java.nio.file.Path
 import kotlin.streams.toList
@@ -64,17 +65,18 @@ class Compiler(
     private val log = logger()
     private val options = Options.fromArgs(args)
 
-    fun run() {
+    fun run(): List<Diagnostic> {
         log.debug("CompilerOptions: $options")
-        when (options) {
+        return when (options) {
             is BuildOptions ->
                 build(options)
         }
     }
 
-    private fun build(options: BuildOptions) {
-        log.debug("Building")
+    private fun build(options: BuildOptions): List<Diagnostic> {
         val ctx = Context(options)
+        log.debug("Building")
         ctx.build()
+        return ctx.diagnosticReporter.errors
     }
 }

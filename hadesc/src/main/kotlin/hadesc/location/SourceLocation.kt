@@ -8,8 +8,22 @@ typealias Column = Int
 data class Position(
     val line: Line,
     val column: Column
-) {
+): Comparable<Position> {
     override fun toString(): String = "(Line: $line, Column: $column)"
+
+    override fun compareTo(other: Position): Int {
+        return when {
+            this greaterThan other -> {
+                1
+            }
+            this lessThan other -> {
+                -1
+            }
+            else -> {
+                0
+            }
+        }
+    }
 
     infix fun greaterThan(other: Position): Boolean {
         if (line == other.line) {
