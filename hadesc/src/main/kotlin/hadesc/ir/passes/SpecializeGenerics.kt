@@ -368,11 +368,11 @@ class SpecializeGenerics(
         def: IRFunctionDef,
         typeArgs: List<Type>
     ): Pair<IRGlobalName, Type.Function> {
-        requireNotNull(def.typeParams)
-        val substitution = makeSubstitution(def.typeParams, typeArgs)
+        requireNotNull(def.signature.typeParams)
+        val substitution = makeSubstitution(def.signature.typeParams, typeArgs)
         val loweredTypeArgs = typeArgs.map { lowerType(it.applySubstitution(substitution)) }
         val name = specializationName(def.name, loweredTypeArgs)
-        require(def.typeParams.size == typeArgs.size)
+        require(def.signature.typeParams.size == typeArgs.size)
         val paramTypes = def.params.map { lowerType(it.type.applySubstitution(substitution)) }
         val returnType = lowerType(def.type.to.applySubstitution(substitution))
         return name to Type.Function(

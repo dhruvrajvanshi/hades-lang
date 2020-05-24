@@ -15,15 +15,23 @@ sealed class IRDefinition {
     }
 }
 
+data class IRFunctionSignature(
+    val name: IRGlobalName,
+    val type: Type.Function,
+    val typeParams: List<IRTypeParam>?,
+    val params: List<IRParam>
+)
+
 class IRFunctionDef(
-        override val module: IRModule,
-        val name: IRGlobalName,
-        val type: Type.Function,
-        val typeParams: List<IRTypeParam>?,
-        val params: List<IRParam>,
-        var entryBlock: IRBlock,
-        var blocks: MutableList<IRBlock>
+    override val module: IRModule,
+    val signature: IRFunctionSignature,
+    var entryBlock: IRBlock,
+    var blocks: MutableList<IRBlock>
 ) : IRDefinition() {
+    val name get() = signature.name
+    val type get() = signature.type
+    val params get() = signature.params
+    val typeParams get() = signature.typeParams
     fun appendBlock(block: IRBlock) {
         blocks.add(block)
     }

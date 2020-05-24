@@ -21,7 +21,7 @@ sealed class IRValue : HasLocation {
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
         is IRCIntConstant -> value.toString()
         is IRNullPtr -> "nullptr"
-        is IRMethodRef -> "${thisArg.prettyPrint()}.${method.prettyPrint()}"
+        is IRMethodRef -> "${thisArg.prettyPrint()}::${method.prettyPrint()}"
         is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"
         is IRPointerCast -> "pointer_cast[${toPointerOfType.prettyPrint()}](${arg.prettyPrint()})"
     }

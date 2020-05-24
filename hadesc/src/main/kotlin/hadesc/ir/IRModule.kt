@@ -36,7 +36,11 @@ class IRModule {
             params: List<IRParam>,
             entryBlock: IRBlock
     ): IRFunctionDef {
-        val value = IRFunctionDef(this, name, type, typeParams, params, entryBlock, blocks = mutableListOf())
+        val value = IRFunctionDef(
+                this,
+                IRFunctionSignature(name, type, typeParams, params),
+                entryBlock,
+                blocks = mutableListOf())
         add(value)
         return value
     }
