@@ -68,6 +68,7 @@ class IRModule {
             is IRExternFunctionDef -> globals[def.name.name] = IRBinding.ExternFunctionDef(def)
             is IRConstDef -> globals[def.name.name] = IRBinding.ConstDef(def)
             is IRInterfaceDef -> TODO()
+            is IRImplementationDef -> TODO()
         }
     }
 

@@ -38,6 +38,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRExternFunctionDef -> lowerExternFunctionDef(definition)
             is IRConstDef -> lowerConstDef(definition)
             is IRInterfaceDef -> TODO()
+            is IRImplementationDef -> TODO()
         }
 
     private val loweredGlobals = mutableMapOf<IRGlobalName, Value>()

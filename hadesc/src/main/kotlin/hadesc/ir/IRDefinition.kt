@@ -20,6 +20,12 @@ sealed class IRDefinition {
                     members.joinToString("\n") { "  " + it.prettyPrint() }
                     "\n}"
         }
+        is IRImplementationDef -> {
+            val body = "{\n" +
+                    implementations.joinToString("\n") { "  " + it.prettyPrint() } +
+            "\n}"
+            "implementation ${name.prettyPrint()} : ${interfaceRef.prettyPrint()} for ${forType.prettyPrint()} $body"
+        }
     }
 }
 
@@ -90,6 +96,14 @@ data class IRInterfaceDef(
         val typeParams: List<IRTypeParam>?,
         val members: List<IRFunctionSignature>
 ) : IRDefinition()
+
+data class IRImplementationDef(
+        override val module: IRModule,
+        val name: IRGlobalName,
+        val interfaceRef: IRInterfaceRef,
+        val forType: Type,
+        val implementations: List<IRFunctionDef>
+): IRDefinition()
 
 data class IRParam(
         val name: IRLocalName,

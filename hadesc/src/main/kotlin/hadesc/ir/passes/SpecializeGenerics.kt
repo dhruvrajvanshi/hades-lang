@@ -33,6 +33,7 @@ class SpecializeGenerics(
                     }
                     is IRConstDef -> visitConstDef(definition)
                     is IRInterfaceDef -> TODO()
+                    is IRImplementationDef -> TODO()
                 }
             )
         }
