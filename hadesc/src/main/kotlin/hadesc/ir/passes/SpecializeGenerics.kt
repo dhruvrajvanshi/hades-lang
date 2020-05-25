@@ -75,6 +75,7 @@ class SpecializeGenerics(
         val block = IRBlock(definition.entryBlock.name)
 
         val fn = module.addGlobalFunctionDef(
+            definition.signature.location,
             lowerGlobalName(definition.name),
             lowerType(definition.type) as Type.Function,
             typeParams = null,
@@ -165,7 +166,7 @@ class SpecializeGenerics(
         is IRGetStructField -> lowerGetStructField(value, typeArgs)
         is IRCIntConstant -> value
         is IRNullPtr -> IRNullPtr(type = lowerType(value.type), location = value.location)
-        is IRMethodRef -> lowerMethodRef(value, typeArgs)
+        is IRMethodRef -> requireUnreachable()
         is IRSizeOf -> lowerSizeOf(value, typeArgs)
         is IRPointerCast -> IRPointerCast(
                 type = lowerType(value.type),
@@ -190,7 +191,7 @@ class SpecializeGenerics(
                 if (binding.def.typeParams == null) {
                     return lowerFunctionDefBinding(binding, value, typeArgs, value.thisArg)
                 } else {
-                    TODO()
+                    requireUnreachable { "Unlowered receiver found after ExplicitThis phase" }
                 }
             }
             else -> requireUnreachable()
@@ -351,6 +352,7 @@ class SpecializeGenerics(
             IRParam(param.name, type = type, index = param.index, location = param.location, functionName = name)
         }
         val fn = module.addGlobalFunctionDef(
+            def.signature.location,
             name, fnType,
             typeParams = null,
             params = params,

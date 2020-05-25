@@ -9,6 +9,7 @@ import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.ir.IRGen
+import hadesc.ir.passes.ExplicitThis
 import hadesc.ir.passes.SpecializeGenerics
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
@@ -36,11 +37,12 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        val irModule = IRGen(this).generate()
+        var irModule = IRGen(this).generate()
 
-        val newModule = SpecializeGenerics(this, irModule).run()
+        irModule = ExplicitThis(this, irModule).run()
+        irModule = SpecializeGenerics(this, irModule).run()
 
-        LLVMGen(this, newModule).use {
+        LLVMGen(this, irModule).use {
             it.generate()
         }
     }

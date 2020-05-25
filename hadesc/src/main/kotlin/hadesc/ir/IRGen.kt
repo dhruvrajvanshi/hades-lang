@@ -116,25 +116,14 @@ class IRGen(private val ctx: Context) {
         return declaredFunctionDefs.computeIfAbsent(def.location) {
             val (functionName, type) = lowerGlobalBinder(def.name)
             require(type is Type.Function)
-            val params = if (def.thisParam == null) {
-                def.params.mapIndexed { index, param -> lowerParam(param, functionName, index) }
-            } else buildList {
-                add(
-                    IRParam(
-                        name = IRLocalName(ctx.makeName("this")),
-                        functionName = functionName,
-                        index = 0,
-                        location = def.thisParam.location,
-                        type = ctx.checker.annotationToType(def.thisParam.annotation)
-                    )
-                )
-                addAll(def.params.mapIndexed { index, param -> lowerParam(param, functionName, index + 1) })
-            }
+            val params = def.params.mapIndexed { index, param -> lowerParam(param, functionName, index) }
+            val receiverType = def.signature.thisParam?.annotation?.let { ctx.checker.annotationToType(it) }
 
             val function = module.addGlobalFunctionDef(
+                def.signature.location,
                 functionName,
                 type,
-                receiverType = null,
+                receiverType = receiverType,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = params,
                 entryBlock = IRBlock()
@@ -474,22 +463,12 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerCall(expression: Expression.Call): IRValue {
         val callee = lowerExpression(expression.callee)
-        val args = if (callee is IRMethodRef) buildList {
-            add(callee.thisArg)
-            for (arg in expression.args) {
-                add(lowerExpression(arg.expression))
-            }
-        } else {
-            expression.args.map { lowerExpression(it.expression) }
-        }
+        val args = expression.args.map { lowerExpression(it.expression) }
         val type = typeOfExpression(expression)
-        val loweredCallee = if (callee is IRMethodRef) {
-            builder.buildVariable(callee.type, callee.location, callee.method)
-        } else callee
         return builder.buildCall(
             type,
             expression.location,
-            callee = loweredCallee,
+            callee = callee,
             typeArgs = ctx.checker.getTypeArgs(expression),
             args = args,
             name = makeLocalName()
@@ -624,24 +603,8 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerGlobalBinder(name: Binder): Pair<IRGlobalName, Type> {
         val sourceFile = ctx.getSourceFileOf(name)
-        val decl = ctx.resolver.getDeclarationContaining(name)
         val binderType = ctx.checker.typeOfBinder(name)
-        val ty = if (decl is Declaration.FunctionDef && decl.thisParam != null) {
-            require(binderType is Type.Function)
-            val from = buildList {
-                add(ctx.checker.annotationToType(decl.thisParam.annotation))
-                addAll(binderType.from)
-            }
-            Type.Function(
-                typeParams = binderType.typeParams,
-                from = from,
-                to = binderType.to,
-                receiver = null
-            )
-        } else {
-            binderType
-        }
-        return IRGlobalName(sourceFile.moduleName.append(name.identifier.name)) to ty
+        return IRGlobalName(sourceFile.moduleName.append(name.identifier.name)) to binderType
     }
 
     private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.RawPtr> {

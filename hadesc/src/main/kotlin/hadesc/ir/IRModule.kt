@@ -1,6 +1,7 @@
 package hadesc.ir
 
 import hadesc.Name
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
@@ -30,6 +31,7 @@ class IRModule {
     }
 
     fun addGlobalFunctionDef(
+            location: SourceLocation,
             name: IRGlobalName,
             type: Type.Function,
             typeParams: List<IRTypeParam>?,
@@ -39,7 +41,7 @@ class IRModule {
     ): IRFunctionDef {
         val value = IRFunctionDef(
                 this,
-                IRFunctionSignature(name, type, typeParams, receiverType, params, listOf()),
+                IRFunctionSignature(location, name, type, typeParams, receiverType, params, listOf()),
                 entryBlock,
                 blocks = mutableListOf())
         add(value)

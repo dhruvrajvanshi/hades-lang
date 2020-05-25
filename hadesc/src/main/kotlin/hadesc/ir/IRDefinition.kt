@@ -30,6 +30,7 @@ sealed class IRDefinition {
 }
 
 data class IRFunctionSignature(
+    val location: SourceLocation,
     val name: IRGlobalName,
     val type: Type.Function,
     val typeParams: List<IRTypeParam>?,
