@@ -38,7 +38,7 @@ class IRModule {
     ): IRFunctionDef {
         val value = IRFunctionDef(
                 this,
-                IRFunctionSignature(name, type, typeParams, params),
+                IRFunctionSignature(name, type, typeParams, params, listOf()),
                 entryBlock,
                 blocks = mutableListOf())
         add(value)
@@ -67,6 +67,7 @@ class IRModule {
             is IRStructDef -> globals[def.globalName.name] = IRBinding.StructDef(def)
             is IRExternFunctionDef -> globals[def.name.name] = IRBinding.ExternFunctionDef(def)
             is IRConstDef -> globals[def.name.name] = IRBinding.ConstDef(def)
+            is IRInterfaceDef -> TODO()
         }
     }
 

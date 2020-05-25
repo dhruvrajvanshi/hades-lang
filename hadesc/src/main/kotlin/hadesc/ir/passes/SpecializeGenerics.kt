@@ -32,6 +32,7 @@ class SpecializeGenerics(
                         visitExternFunctionDef(definition)
                     }
                     is IRConstDef -> visitConstDef(definition)
+                    is IRInterfaceDef -> TODO()
                 }
             )
         }

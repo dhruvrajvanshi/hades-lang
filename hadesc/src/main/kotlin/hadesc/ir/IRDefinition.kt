@@ -12,6 +12,14 @@ sealed class IRDefinition {
                 "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
         is IRExternFunctionDef -> "extern def ${name.prettyPrint()} = ${externName.text}"
         is IRConstDef -> this.prettyPrint()
+        is IRInterfaceDef -> {
+            val params = if (typeParams != null) {
+                "[" + typeParams.joinToString(",") { it.name.prettyPrint() } + "]"
+            } else ""
+            "interface ${name.prettyPrint()}$params {\n" +
+                    members.joinToString("\n") { "  " + it.prettyPrint() }
+                    "\n}"
+        }
     }
 }
 
@@ -19,8 +27,42 @@ data class IRFunctionSignature(
     val name: IRGlobalName,
     val type: Type.Function,
     val typeParams: List<IRTypeParam>?,
-    val params: List<IRParam>
-)
+    val params: List<IRParam>,
+    val constraints: List<IRConstraint>
+) {
+    fun prettyPrint(): String {
+        val typeParamsStr = if (typeParams != null)
+            "[" + typeParams.joinToString(", ") { it.name.prettyPrint() } + "]"
+        else ""
+        val paramsStr = "(" + params.joinToString(", ") { it.prettyPrint() } + ")"
+        val constraintsStr = if (constraints.isEmpty()) "" else
+            constraints.joinToString(", ") { it.prettyPrint() }
+        return "def ${name.prettyPrint()}: ${type.prettyPrint()} = $typeParamsStr$paramsStr$constraintsStr"
+    }
+}
+
+data class IRConstraint(
+        val forType: Type,
+        val interfaceRef: IRInterfaceRef
+) {
+    fun prettyPrint(): String {
+        return "${interfaceRef.prettyPrint()} for $forType "
+    }
+}
+
+data class IRInterfaceRef(
+    val name: IRGlobalName,
+    val typeArgs: List<Type>
+) {
+    fun prettyPrint(): String {
+        val typeArgsStr = if (typeArgs.isEmpty()) {
+            ""
+        } else {
+            typeArgs.joinToString(", ") { it.prettyPrint() }
+        }
+        return "${name.prettyPrint()}$typeArgsStr"
+    }
+}
 
 class IRFunctionDef(
     override val module: IRModule,
@@ -41,6 +83,13 @@ class IRFunctionDef(
                 "${entryBlock.prettyPrint()}\n${blocks.joinToString(""){ it.prettyPrint() }}}"
     }
 }
+
+data class IRInterfaceDef(
+        override val module: IRModule,
+        val name: IRGlobalName,
+        val typeParams: List<IRTypeParam>?,
+        val members: List<IRFunctionSignature>
+) : IRDefinition()
 
 data class IRParam(
         val name: IRLocalName,
