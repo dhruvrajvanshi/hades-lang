@@ -78,6 +78,7 @@ class SpecializeGenerics(
             lowerGlobalName(definition.name),
             lowerType(definition.type) as Type.Function,
             typeParams = null,
+            receiverType = null,
             params = definition.params.map { lowerParam(it) },
             entryBlock = block
         )
@@ -353,6 +354,7 @@ class SpecializeGenerics(
             name, fnType,
             typeParams = null,
             params = params,
+            receiverType = null,
             entryBlock = body
         )
         currentSpecialization = makeSubstitution(requireNotNull(def.typeParams), typeArgs)

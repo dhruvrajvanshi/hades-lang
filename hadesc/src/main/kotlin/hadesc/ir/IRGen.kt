@@ -134,6 +134,7 @@ class IRGen(private val ctx: Context) {
             val function = module.addGlobalFunctionDef(
                 functionName,
                 type,
+                receiverType = null,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = params,
                 entryBlock = IRBlock()
