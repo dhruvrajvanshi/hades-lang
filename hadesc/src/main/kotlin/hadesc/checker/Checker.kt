@@ -47,7 +47,6 @@ class Checker(
             instanceType
         } else {
             require(instanceType is Type.Application)
-            require(instanceType.callee is Type.Constructor)
             instanceType.callee
         }
     }
@@ -61,7 +60,6 @@ class Checker(
                     instanceType
                 } else {
                     require(instanceType is Type.Application)
-                    require(instanceType.callee is Type.Constructor)
                     instanceType.callee
                 }
             }
@@ -105,6 +103,7 @@ class Checker(
                 val callee = inferAnnotation(annotation.callee, allowIncomplete = true)
                 val args = annotation.args.map { inferAnnotation(it) }
                 checkTypeApplication(annotation, callee, args)
+                require(callee is Type.Constructor)
                 Type.Application(
                         callee,
                         args
@@ -494,9 +493,6 @@ class Checker(
             val lhsType = inferExpression(expression.lhs)
             val ownPropertyType = when (lhsType) {
                 Type.Error -> Type.Error
-                is Type.Struct -> {
-                    lhsType.memberTypes[expression.property.name]
-                }
                 is Type.RawPtr -> null
                 is Type.Function,
                 is Type.ParamRef,
@@ -509,9 +505,9 @@ class Checker(
                     null
                 }
                 is Type.Application -> {
-                    inferTypeApplicationProperty(expression, lhsType, expression.property)
+                    inferTypeConstructorFieldType(expression, lhsType.callee, lhsType.args, expression.property)
                 }
-                is Type.Constructor -> requireUnreachable()
+                is Type.Constructor -> inferTypeConstructorFieldType(expression, lhsType, null, expression.property)
                 is Type.ThisRef -> null
             }
             if (ownPropertyType != null) {
@@ -598,37 +594,32 @@ class Checker(
         }
     }
 
-    private fun inferTypeApplicationProperty(lhs: Expression.Property, lhsType: Type.Application, property: Identifier): Type? =
-            when (lhsType.callee) {
-                is Type.Constructor -> {
-                    val binder = requireNotNull(lhsType.callee.binder)
-                    when (val binding = ctx.resolver.resolveTypeVariable(binder.identifier)) {
-                        is TypeBinding.Struct -> {
-                            if (binding.declaration.typeParams == null) {
-                                null
-                            } else {
-                                val members = typeOfStructMembers(binding.declaration)
-                                val fieldType = members[property.name]
-                                if (fieldType == null) {
-                                    inferExtensionProperty(lhs, lhsType, property)
-                                } else {
-                                    val substitution = binding.declaration.typeParams.mapIndexed { index, it ->
-                                        it.binder.location to lhsType.args.elementAtOrElse(index) { Type.Error }
-                                    }.toMap()
+    private fun inferTypeConstructorFieldType(
+            lhs: Expression.Property,
+            typeConstructor: Type.Constructor,
+            typeArgs: List<Type>?,
+            property: Identifier
+    ): Type? {
+        val binder = requireNotNull(typeConstructor.binder)
+        return when (val binding = ctx.resolver.resolveTypeVariable(binder.identifier)) {
+            is TypeBinding.Struct -> {
+                val members = typeOfStructMembers(binding.declaration)
+                val fieldType = members[property.name]
+                if (fieldType == null) {
+                    inferExtensionProperty(lhs, typeConstructor, property)
+                } else {
+                    val substitution = binding.declaration.typeParams?.mapIndexed { index, it ->
+                        it.binder.location to (typeArgs ?: listOf()).elementAtOrElse(index) { Type.Error }
+                    }?.toMap() ?: mapOf()
 
-                                    fieldType.applySubstitution(substitution)
-                                }
-                            }
-                        }
-                        else -> {
-                            null
-                        }
-                    }
+                    fieldType.applySubstitution(substitution)
+                }
+            }
+            else -> {
+                null
+            }
+        }
 
-                }
-                else -> {
-                    null
-                }
             }
 
     /**
@@ -789,17 +780,12 @@ class Checker(
                     )
                 }
         )
-        is Type.Struct ->
-            Type.Struct(
-                    constructor = type.constructor,
-                    memberTypes = type.memberTypes.mapValues { applyInstantiations(it.value) }
-            )
         is Type.GenericInstance -> {
             genericInstantiations[type.id] ?: type
         }
         is Type.Application -> {
             Type.Application(
-                    applyInstantiations(type.callee),
+                    applyInstantiations(type.callee) as Type.Constructor,
                     type.args.map { applyInstantiations(it) }
             )
         }
@@ -853,9 +839,6 @@ class Checker(
         }
         source is Type.RawPtr && destination is Type.RawPtr ->
             isAssignableTo(source.to, destination.to)
-        source is Type.Struct && destination is Type.Struct && source.constructor == destination.constructor -> {
-            true
-        }
         source is Type.Constructor && destination is Type.Constructor && source.name == destination.name -> {
             true
         }
@@ -1029,7 +1012,7 @@ class Checker(
         val instanceType = if (typeParams != null) {
             Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
         } else {
-            Type.Struct(constructor, fieldTypes)
+            constructor
         }
         val constructorParamTypes = fieldTypes.values.toList()
         val constructorType = Type.Function(

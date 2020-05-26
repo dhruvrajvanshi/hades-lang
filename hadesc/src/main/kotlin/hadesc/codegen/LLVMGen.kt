@@ -411,17 +411,21 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 variadic = false
             )
         }
-        is Type.Struct -> structTypes.computeIfAbsent(type.constructor.name) {
-            val name = type.constructor.name.mangle()
-            val structTy = StructType(name, llvmCtx)
-            structTy.setBody(type.memberTypes.values.map { lowerType(it) }, packed = false)
-            structTy
+        is Type.Constructor ->  {
+            structTypes.computeIfAbsent(type.name) {
+                val binding = irModule.resolveGlobal(type.name)
+                require(binding is IRBinding.StructDef)
+                val memberTypes = binding.def.fields
+                val name = type.name.mangle()
+                val structTy = StructType(name, llvmCtx)
+                structTy.setBody(memberTypes.values.map { lowerType(it) }, packed = false)
+                structTy
+            }
         }
         is Type.ParamRef ->
             TODO("Can't lower unspecialized type param")
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> requireUnreachable()
-        is Type.Constructor -> requireUnreachable()
         Type.Size -> sizeTy
         is Type.ThisRef -> requireUnreachable()
     }

@@ -296,10 +296,7 @@ class SpecializeGenerics(
         require(def.typeParams.size == typeArgs.size)
         val substitution = makeSubstitution(def.typeParams, typeArgs)
         val fieldTypes = def.fields.mapValues { lowerType(it.value.applySubstitution(substitution)) }
-        val instanceType = Type.Struct(
-            Type.Constructor(binder = null, name = name.name, params = null),
-            fieldTypes
-        )
+        val instanceType = Type.Constructor(binder = null, name = name.name, params = null)
         return name to Type.Function(
             typeParams = null,
             from = fieldTypes.map { it.value }.toList(),
@@ -446,14 +443,6 @@ class SpecializeGenerics(
                     to = lowerType(type.to),
                     receiver = null
                 )
-            }
-            is Type.Struct -> {
-                // we don't need to recursively lower struct types
-                // because this struct types are specialized by getSpecializedStructConstructor type
-                // in the Type.Constructor branch
-                // The only struct types this function is called with are already
-                // fully lowered.
-                type
             }
             is Type.Constructor -> {
                 if (type.params == null) {

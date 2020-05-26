@@ -13,7 +13,6 @@ interface TypeTransformer {
         Type.Size -> lowerSizeType(type)
         is Type.RawPtr -> lowerRawPtrType(type)
         is Type.Function -> lowerFunctionType(type)
-        is Type.Struct -> lowerStructType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
         is Type.ParamRef -> lowerParamRefType(type)
         is Type.GenericInstance -> requireUnreachable()
@@ -34,11 +33,6 @@ interface TypeTransformer {
 
     fun lowerBoolType(type: Type): Type = type
 
-    fun lowerStructType(type: Type.Struct): Type = Type.Struct(
-            constructor = lowerType(type.constructor) as Type.Constructor,
-            memberTypes = type.memberTypes.mapValues { lowerType(it.value) }
-    )
-
     fun lowerTypeConstructor(type: Type.Constructor): Type = Type.Constructor(
             type.binder,
             name = type.name,
@@ -48,7 +42,7 @@ interface TypeTransformer {
     fun lowerParamRefType(type: Type.ParamRef): Type = type
 
     fun lowerTypeApplication(type: Type.Application): Type = Type.Application(
-            callee = lowerType(type.callee),
+            callee = lowerType(type.callee) as Type.Constructor,
             args = type.args.map { lowerType(it) }
     )
 

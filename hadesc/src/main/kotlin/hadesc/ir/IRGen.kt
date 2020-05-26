@@ -368,8 +368,12 @@ class IRGen(private val ctx: Context) {
         val lhs = lowerExpression(expression.lhs)
         val lhsType = lhs.type
 
-        val ownPropertyTypes: Map<Name, Type>? = if (lhsType is Type.Struct) {
-            lhsType.memberTypes
+        val ownPropertyTypes: Map<Name, Type>? = if (lhsType is Type.Constructor) {
+            val identifier = requireNotNull(lhsType.binder?.identifier)
+            val binding = ctx.resolver.resolveTypeVariable(identifier)
+            requireNotNull(binding)
+            require(binding is TypeBinding.Struct)
+            ctx.checker.typeOfStructMembers(binding.declaration)
         } else if (lhsType is Type.Application) {
             require(lhsType.callee is Type.Constructor)
             val identifier = requireNotNull(lhsType.callee.binder?.identifier)

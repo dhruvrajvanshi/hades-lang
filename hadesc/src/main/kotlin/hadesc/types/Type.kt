@@ -1,6 +1,5 @@
 package hadesc.types
 
-import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -40,22 +39,13 @@ sealed class Type {
         }
     }
 
-    data class Struct(
-        val constructor: Constructor,
-        val memberTypes: Map<Name, Type>
-    ) : Type() {
-        private val indices = memberTypes.keys.map { it.text }.toList()
-        fun indexOf(key: String) = indices.indexOf(key)
-
-    }
-
     data class Constructor(val binder: Binder?, val name: QualifiedName, val params: List<Param>?) : Type()
 
     data class ParamRef(val name: Binder) : Type()
 
     data class GenericInstance(val name: Binder, val id: Long) : Type()
 
-    data class Application(val callee: Type, val args: List<Type>) : Type()
+    data class Application(val callee: Constructor, val args: List<Type>) : Type()
     data class ThisRef(val location: SourceLocation) : Type()
 
 
@@ -74,7 +64,6 @@ sealed class Type {
             val whereClause = if (constraints.isEmpty()) "" else " where ${ this.constraints.joinToString(", ") {it.prettyPrint()} }"
             "$typeParams($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
         }
-        is Struct -> constructor.name.names.joinToString(".") { it.text }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> name.identifier.name.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
@@ -109,17 +98,11 @@ sealed class Type {
                     )
                 }
             )
-            is Struct -> {
-                Struct(
-                    constructor = this.constructor,
-                    memberTypes = this.memberTypes.mapValues { it.value.recurse() }
-                )
-            }
             is ParamRef -> {
                 substitution[this.name.location] ?: this
             }
             is Application -> {
-                Application(callee.recurse(), args.map { it.recurse() })
+                Application(callee.recurse() as Constructor, args.map { it.recurse() })
             }
             is Constructor -> this
             is ThisRef -> thisType?.recurse() ?: this
