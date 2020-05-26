@@ -52,7 +52,7 @@ class IRBuilder {
             type: Type,
             location: SourceLocation,
             thisArg: IRValue,
-            method: IRGlobalName
+            method: IRValue
     ): IRValue {
         return IRMethodRef(
                 type,

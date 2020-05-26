@@ -68,7 +68,7 @@ class IRMethodRef(
         override val type: Type,
         override val location: SourceLocation,
         val thisArg: IRValue,
-        val method: IRGlobalName
+        val method: IRValue
 ) : IRValue()
 
 class IRSizeOf(

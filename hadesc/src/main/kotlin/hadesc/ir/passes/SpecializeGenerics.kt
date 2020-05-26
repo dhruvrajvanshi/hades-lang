@@ -185,19 +185,6 @@ class SpecializeGenerics(
         )
     }
 
-    private fun lowerMethodRef(value: IRMethodRef, typeArgs: List<Type>?): IRValue {
-        when (val binding = oldModule.resolveGlobal(value.method)) {
-            is IRBinding.FunctionDef -> {
-                if (binding.def.typeParams == null) {
-                    return lowerFunctionDefBinding(binding, value, typeArgs, value.thisArg)
-                } else {
-                    requireUnreachable { "Unlowered receiver found after ExplicitThis phase" }
-                }
-            }
-            else -> requireUnreachable()
-        }
-    }
-
     private fun lowerGetStructField(value: IRGetStructField, typeArgs: List<Type>? = null): IRValue {
         val lhs = lowerValue(value.lhs)
         return builder.buildGetStructField(
@@ -259,16 +246,8 @@ class SpecializeGenerics(
     ): IRValue {
         if (binding.def.typeParams == null) {
             require(typeArgs == null)
-            return if (thisArg == null) {
-                builder.buildVariable(binding.type, node.location, lowerGlobalName(binding.def.name))
-            } else {
-                builder.buildMethodRef(
-                    binding.type,
-                    node.location,
-                    lowerValue(thisArg),
-                    lowerGlobalName(binding.def.name)
-                )
-            }
+            require(thisArg == null)
+            return builder.buildVariable(binding.type, node.location, lowerGlobalName(binding.def.name))
         }
         requireNotNull(typeArgs)
         val (loweredName, loweredType) = enqueueFunctionSpecialization(binding.def, typeArgs.map { lowerType(it) })

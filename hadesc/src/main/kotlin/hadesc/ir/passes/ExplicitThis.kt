@@ -58,10 +58,7 @@ class ExplicitThis(
 
     override fun lowerCallInstruction(instruction: IRCall) {
         val callee = if (instruction.callee is IRMethodRef)
-            IRVariable(
-                    location = instruction.callee.location,
-                    type = lowerType(instruction.callee.type),
-                    name = instruction.callee.method)
+            lowerValue(instruction.callee.method)
             else lowerValue(instruction.callee)
         val args = buildList {
             if (instruction.callee is IRMethodRef) {

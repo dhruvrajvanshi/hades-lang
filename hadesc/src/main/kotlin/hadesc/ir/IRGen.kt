@@ -413,7 +413,7 @@ class IRGen(private val ctx: Context) {
                 ),
                 location = expression.location,
                 thisArg = lhs,
-                method = fnName
+                method = IRVariable(name = fnName, type = methodTy, location = expression.lhs.location)
             )
         }
     }
