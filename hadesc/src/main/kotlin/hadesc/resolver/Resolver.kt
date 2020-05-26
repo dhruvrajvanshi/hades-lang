@@ -309,6 +309,10 @@ class Resolver(val ctx: Context) {
         return sourceFileOf(declaration).moduleName.append(declaration.binder.identifier.name)
     }
 
+    fun qualifiedInterfaceName(declaration: Declaration.Interface): QualifiedName {
+        return sourceFileOf(declaration).moduleName.append(declaration.name.identifier.name)
+    }
+
     fun onParseDeclaration(declaration: Declaration) {
         when (declaration) {
             is Declaration.FunctionDef -> {

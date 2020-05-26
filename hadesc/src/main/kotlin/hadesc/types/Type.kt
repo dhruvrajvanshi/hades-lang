@@ -23,7 +23,22 @@ sealed class Type {
         val receiver: Type?,
         val from: List<Type>,
         val typeParams: List<Param>?,
-        val to: Type) : Type()
+        val to: Type,
+        val constraints: List<Constraint> = listOf()
+    ) : Type()
+
+    data class Constraint(
+        val interfaceName: QualifiedName,
+        val args: List<Type>,
+        val param: Param
+    ) {
+        fun prettyPrint(): String {
+            val argsStr = if (args.isEmpty())
+                ""
+            else "[${args.joinToString(", ") {it.prettyPrint()} }]"
+            return "${param.binder.identifier.name.text}: ${interfaceName.mangle()}$argsStr"
+        }
+    }
 
     data class Struct(
         val constructor: Constructor,
@@ -56,7 +71,8 @@ sealed class Type {
                 "[${this.typeParams.joinToString(", ") { it.prettyPrint() }}]"
             } else ""
             val receiver = if (this.receiver == null) "" else "this: ${this.receiver.prettyPrint()}, "
-            "$typeParams($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
+            val whereClause = if (constraints.isEmpty()) "" else " where ${ this.constraints.joinToString(", ") {it.prettyPrint()} }"
+            "$typeParams($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
         }
         is Struct -> constructor.name.names.joinToString(".") { it.text }
         is ParamRef -> this.name.identifier.name.text
@@ -84,7 +100,14 @@ sealed class Type {
                 receiver = receiver?.recurse(),
                 typeParams = this.typeParams,
                 from = this.from.map { it.recurse() },
-                to = this.to.recurse()
+                to = this.to.recurse(),
+                constraints = this.constraints.map {
+                    Constraint(
+                            it.interfaceName,
+                            param = it.param,
+                            args = it.args.map { arg -> arg.recurse() }
+                    )
+                }
             )
             is Struct -> {
                 Struct(

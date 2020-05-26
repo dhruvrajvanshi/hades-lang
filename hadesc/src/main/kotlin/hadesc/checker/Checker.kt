@@ -9,6 +9,7 @@ import hadesc.exhaustive
 import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
@@ -123,7 +124,8 @@ class Checker(
                         receiver = null,
                         typeParams = null,
                         from = annotation.from.map { inferAnnotation(it) },
-                        to = inferAnnotation(annotation.to)
+                        to = inferAnnotation(annotation.to),
+                        constraints = listOf()
                 )
             }
             is TypeAnnotation.This -> resolveThisType(annotation)
@@ -249,14 +251,38 @@ class Checker(
             null
         }
         val returnType = inferAnnotation(signature.returnType)
+        val constraints = buildList {
+            signature.typeParams?.forEach {
+                if (it.bound != null) {
+                    val interfaceName = resolveInterfaceName(it.bound)
+                    if (interfaceName != null) {
+                        add(Type.Constraint(
+                                interfaceName = interfaceName,
+                                args = it.bound.typeArgs?.map { arg -> inferAnnotation(arg) } ?: listOf(),
+                                param = Type.Param(it.binder)
+                        ))
+                    }
+                }
+            }
+        }
         val type = Type.Function(
                 receiver = receiverType,
                 from = paramTypes,
                 to = returnType,
-                typeParams = signature.typeParams?.map { inferTypeParam(it) }
+                typeParams = signature.typeParams?.map { inferTypeParam(it) },
+                constraints = constraints
         )
         bindValue(signature.name, type)
         return type
+    }
+
+    private fun resolveInterfaceName(interfaceRef: InterfaceRef): QualifiedName? {
+        val decl = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        if (decl == null || decl !is Declaration.Interface) {
+            error(interfaceRef.path.location, Diagnostic.Kind.NotAnInterface)
+            return null
+        }
+        return ctx.resolver.qualifiedInterfaceName(decl)
     }
 
     private fun inferTypeParam(it: TypeParam): Type.Param {
@@ -754,7 +780,14 @@ class Checker(
                 receiver = if (type.receiver != null) applyInstantiations(type.receiver) else null,
                 typeParams = type.typeParams,
                 from = type.from.map { applyInstantiations(it) },
-                to = applyInstantiations(type.to)
+                to = applyInstantiations(type.to),
+                constraints = type.constraints.map {
+                    Type.Constraint(
+                            interfaceName = it.interfaceName,
+                            args = it.args.map { arg -> applyInstantiations(arg) },
+                            param = it.param
+                    )
+                }
         )
         is Type.Struct ->
             Type.Struct(
@@ -942,7 +975,8 @@ class Checker(
                 receiver = null,
                 from = paramTypes,
                 to = returnType,
-                typeParams = null // extern functions can't be generic
+                typeParams = null, // extern functions can't be generic
+                constraints = listOf()
         )
         bindValue(declaration.binder, type)
     }
@@ -1002,7 +1036,8 @@ class Checker(
                 from = constructorParamTypes,
                 to = instanceType,
                 typeParams = declaration.typeParams?.map { Type.Param(it.binder) },
-                receiver = null
+                receiver = null,
+                constraints = listOf()
         )
         bindValue(declaration.binder, constructorType)
     }
