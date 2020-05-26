@@ -141,6 +141,8 @@ class Checker(
         return if (interfaceDecl != null) {
             Type.ThisRef(interfaceDecl.location)
         } else {
+            // TODO: Allow implement defs to refer to This type
+            error(node, Diagnostic.Kind.UnboundThisType)
             Type.Error
         }
     }
@@ -161,11 +163,6 @@ class Checker(
         val constructorType = typeOfStructConstructor(declaration)
         require(constructorType is Type.Function)
         return constructorType.to
-    }
-
-    fun typeOfStructMembers(declaration: Declaration.Struct): Map<Name, Type> {
-        declareStruct(declaration)
-        return requireNotNull(structFieldTypes[declaration])
     }
 
     fun getTypeArgs(call: Expression): List<Type>? {
@@ -485,51 +482,54 @@ class Checker(
         return inferAnnotation(thisParam.annotation)
     }
 
-    private fun inferProperty(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): Type {
+    fun getPropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>? = null): PropertyBinding? {
         val globalBinding = ctx.resolver.resolveModuleProperty(expression)
-        return if (globalBinding != null) {
-            inferBinding(globalBinding)
-        } else {
-            val lhsType = inferExpression(expression.lhs)
-            val ownPropertyType = when (lhsType) {
-                Type.Error -> Type.Error
-                is Type.RawPtr -> null
-                is Type.Function,
-                is Type.ParamRef,
-                is Type.GenericInstance,
-                Type.Byte,
-                Type.Void,
-                Type.CInt,
-                Type.Size,
-                Type.Bool -> {
-                    null
-                }
-                is Type.Application -> {
-                    inferTypeConstructorFieldType(expression, lhsType.callee, lhsType.args, expression.property)
-                }
-                is Type.Constructor -> inferTypeConstructorFieldType(expression, lhsType, null, expression.property)
-                is Type.ThisRef -> null
+        if (globalBinding != null) {
+            return PropertyBinding.Global(inferBinding(globalBinding), globalBinding)
+        }
+        val structFieldBinding = getStructFieldBinding(expression)
+        if (structFieldBinding != null) {
+            return structFieldBinding
+        }
+        val extensionMethodBinding = getGlobalExtensionFunctionBinding(expression)
+        if (extensionMethodBinding != null) {
+            return extensionMethodBinding
+        }
+
+        val interfaceExtensionBinding = getInterfacePropertyBinding(expression, typeArgs)
+        if (interfaceExtensionBinding != null) {
+            return interfaceExtensionBinding
+        }
+
+        return null
+    }
+
+    private fun getStructFieldBinding(expression: Expression.Property): PropertyBinding? {
+        return when (val lhsType = inferExpression(expression.lhs)) {
+            is Type.Application -> {
+                getStructFieldBindingForTypeConstructor(lhsType.callee, lhsType.args, expression.property)
             }
-            if (ownPropertyType != null) {
-                ownPropertyType
-            } else {
-                val extensionPropertyType = inferExtensionProperty(expression, lhsType, expression.property)
-                if (extensionPropertyType != null) {
-                    extensionPropertyType
-                } else {
-                    val interfacePropertyType = getInterfacePropertyType(lhsType, expression.property, typeArgs)
-                    if (interfacePropertyType != null) {
-                        interfacePropertyType
-                    } else {
-                        error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
-                        Type.Error
-                    }
-                }
+            is Type.Constructor -> {
+                getStructFieldBindingForTypeConstructor(lhsType, null, expression.property)
             }
+            else -> null
         }
     }
 
-    private fun getInterfacePropertyType(lhsType: Type, property: Identifier, typeArgs: List<TypeAnnotation>?): Type? {
+    private fun inferProperty(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): Type {
+        return when (val binding = getPropertyBinding(expression, typeArgs)) {
+            null -> {
+                val lhsType = inferExpression(expression.lhs, typeArgs)
+                error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                Type.Error
+            }
+            else -> binding.type
+        }
+    }
+
+    private fun getInterfacePropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs, typeArgs)
+        val property = expression.property
         val implementations = implementedInterfaceRefs(lhsType, property).toList()
         require(typeArgs == null) {
             TODO("Generic methods within interfaces not implemented")
@@ -565,7 +565,7 @@ class Checker(
                 }
 
                 if (memberType != null) {
-                    return memberType
+                    return PropertyBinding.InterfaceExtensionFunction(memberType)
                 }
             }
         }
@@ -594,26 +594,33 @@ class Checker(
         }
     }
 
-    private fun inferTypeConstructorFieldType(
-            lhs: Expression.Property,
+    private fun getStructFieldBindingForTypeConstructor(
             typeConstructor: Type.Constructor,
             typeArgs: List<Type>?,
             property: Identifier
-    ): Type? {
+    ): PropertyBinding? {
         val binder = requireNotNull(typeConstructor.binder)
         return when (val binding = ctx.resolver.resolveTypeVariable(binder.identifier)) {
             is TypeBinding.Struct -> {
-                val members = typeOfStructMembers(binding.declaration)
-                val fieldType = members[property.name]
-                if (fieldType == null) {
-                    inferExtensionProperty(lhs, typeConstructor, property)
-                } else {
-                    val substitution = binding.declaration.typeParams?.mapIndexed { index, it ->
-                        it.binder.location to (typeArgs ?: listOf()).elementAtOrElse(index) { Type.Error }
-                    }?.toMap() ?: mapOf()
+                val field = binding.declaration.members.find {
+                    it is Declaration.Struct.Member.Field && it.binder.identifier.name == property.name
+                } as Declaration.Struct.Member.Field?
 
-                    fieldType.applySubstitution(substitution)
+                if (field == null) {
+                    return null
                 }
+
+                val fieldType = inferAnnotation(field.typeAnnotation)
+
+                val substitution = binding.declaration.typeParams?.mapIndexed { index, it ->
+                    it.binder.location to (typeArgs ?: listOf()).elementAtOrElse(index) { Type.Error }
+                }?.toMap() ?: mapOf()
+
+                PropertyBinding.StructField(
+                        type = fieldType.applySubstitution(substitution),
+                        structDecl = binding.declaration,
+                        member = field
+                )
             }
             else -> {
                 null
@@ -622,34 +629,23 @@ class Checker(
 
             }
 
-    /**
-     * TODO: For generic extension methods, we only unify using the this type provided because
-     *       we don't have access to arguments yet. We should unify the types of
-     *       the passed method args as well. Not doing it right now because it requires
-     *       some restructuring.
-     */
-    private fun inferExtensionProperty(lhs: Expression.Property, lhsType: Type, property: Identifier): Type? {
-        return getExtensionDefAndType(lhs, lhsType, property)?.second
-    }
+    private val extensionDefs = MutableNodeMap<Expression.Property, Declaration.FunctionDef>()
 
-    private val extensionDefs = MutableNodeMap<Expression.Property, FunctionSignature>()
-
-    fun getExtensionSignature(lhs: Expression.Property): FunctionSignature? {
-        return extensionDefs[lhs]
-    }
-
-    private fun getExtensionDefAndType(lhs: Expression.Property, lhsType: Type, property: Identifier): Pair<FunctionSignature, Type>? {
-        val extensionDefs = ctx.resolver.extensionSignaturesInScope(property, property)
+    private fun getGlobalExtensionFunctionBinding(expression: Expression.Property): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs)
+        val property = expression.property
+        val extensionDefs = ctx.resolver.extensionDefsInScope(property, property)
         for (def in extensionDefs) {
             require(def.thisParam != null)
             val thisParamType = inferAnnotation(def.thisParam.annotation)
             if (isTypeEqual(thisParamType, lhsType)) {
-                this.extensionDefs[lhs] = def
-                return def to typeOfBinder(def.name)
+                this.extensionDefs[expression] = def
+                return PropertyBinding.GlobalExtensionFunction(typeOfBinder(def.name), def)
             }
-            if (def.typeParams != null) {
+            val typeParams = def.typeParams
+            if (typeParams != null) {
                 val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
-                def.typeParams.forEach {
+                typeParams.forEach {
                     substitution[it.binder.location] = makeGenericInstance(it.binder)
                 }
                 val functionType = typeOfBinder(def.name)
@@ -657,8 +653,8 @@ class Checker(
                 val thisParamTypeInstance = thisParamType.applySubstitution(substitution)
 
                 if (isAssignableTo(source = lhsType, destination = thisParamTypeInstance)) {
-                    this.extensionDefs[lhs] = def
-                    return def to functionType
+                    this.extensionDefs[expression] = def
+                    return PropertyBinding.GlobalExtensionFunction(functionType, def)
                 }
             }
         }
@@ -1008,7 +1004,6 @@ class Checker(
         val name = ctx.resolver.qualifiedStructName(declaration)
         val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
         val constructor = Type.Constructor(declaration.binder, name, typeParams)
-        structFieldTypes[declaration] = fieldTypes
         val instanceType = if (typeParams != null) {
             Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
         } else {

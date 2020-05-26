@@ -38,12 +38,12 @@ def get[V, T: Has[V]](t: T): V {
 }
 
 implement Has[CInt] for IntAndBool {
-    def get(this: This): CInt {
+    def get(this: IntAndBool): CInt {
         return this.int;
     }
 }
 implement Has[Bool] for IntAndBool {
-    def get(this: This): Bool {
+    def get(this: IntAndBool): Bool {
         return this.bool;
     }
 }

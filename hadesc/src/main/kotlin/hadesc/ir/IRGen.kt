@@ -3,11 +3,11 @@ package hadesc.ir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
+import hadesc.checker.PropertyBinding
 import hadesc.context.Context
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.resolver.TypeBinding
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
@@ -358,60 +358,49 @@ class IRGen(private val ctx: Context) {
         )
     }
 
-    private fun lowerProperty(expression: Expression.Property): IRValue =
-        when (val binding = ctx.resolver.resolveModuleProperty(expression)) {
-            null -> lowerMethodOrProperty(expression)
-            else -> lowerBindingRef(typeOfExpression(expression), expression, binding)
+    private fun lowerProperty(expression: Expression.Property): IRValue {
+        return when (val binding = requireNotNull(ctx.checker.getPropertyBinding(expression))) {
+            is PropertyBinding.Global -> lowerBindingRef(typeOfExpression(expression), expression, binding.binding)
+            is PropertyBinding.StructField -> {
+                lowerStructFieldBinding(expression, binding)
+            }
+            is PropertyBinding.GlobalExtensionFunction -> {
+                lowerGlobalExtensionFunctionBinding(expression, binding)
+            }
+            is PropertyBinding.InterfaceExtensionFunction -> TODO()
         }
+    }
 
-    private fun lowerMethodOrProperty(expression: Expression.Property): IRValue {
+    private fun lowerGlobalExtensionFunctionBinding(expression: Expression.Property, binding: PropertyBinding.GlobalExtensionFunction): IRValue {
         val lhs = lowerExpression(expression.lhs)
-        val lhsType = lhs.type
-
-        val ownPropertyTypes: Map<Name, Type>? = if (lhsType is Type.Constructor) {
-            val identifier = requireNotNull(lhsType.binder?.identifier)
-            val binding = ctx.resolver.resolveTypeVariable(identifier)
-            requireNotNull(binding)
-            require(binding is TypeBinding.Struct)
-            ctx.checker.typeOfStructMembers(binding.declaration)
-        } else if (lhsType is Type.Application) {
-            require(lhsType.callee is Type.Constructor)
-            val identifier = requireNotNull(lhsType.callee.binder?.identifier)
-            val binding = ctx.resolver.resolveTypeVariable(identifier)
-            requireNotNull(binding)
-            require(binding is TypeBinding.Struct)
-            ctx.checker.typeOfStructMembers(binding.declaration)
-        } else {
-            null
+        val def = binding.def
+        val (fnName, methodTy) = lowerGlobalBinder(def.name)
+        require(methodTy is Type.Function)
+        require(methodTy.receiver != null)
+        val typeArgs = ctx.checker.getTypeArgs(expression)
+        if (def.typeParams != null) {
+            require(typeArgs != null)
         }
+        return builder.buildMethodRef(
+                type = methodTy,
+                location = expression.location,
+                thisArg = lhs,
+                method = IRVariable(name = fnName, type = methodTy, location = expression.lhs.location)
+        )
+    }
 
-        val index = ownPropertyTypes?.keys?.indexOf(expression.property.name)
-        if (ownPropertyTypes != null && index != null && index > -1) {
-            requireNotNull(ownPropertyTypes[expression.property.name])
-            val rhsType = typeOfExpression(expression)
-            return builder.buildGetStructField(
+    private fun lowerStructFieldBinding(expression: Expression.Property, binding: PropertyBinding.StructField): IRValue {
+        val rhsType = typeOfExpression(expression)
+        val lhs = lowerExpression(expression.lhs)
+        val index = binding.structDecl.members.indexOfFirst { it === binding.member }
+        require(index > -1)
+        return builder.buildGetStructField(
                 rhsType,
                 expression.location,
                 lhs,
                 expression.property.name,
                 index
-            )
-        } else {
-            val def = requireNotNull(ctx.checker.getExtensionSignature(expression))
-            val (fnName, methodTy) = lowerGlobalBinder(def.name)
-            require(methodTy is Type.Function)
-            require(methodTy.receiver != null)
-            val typeArgs = ctx.checker.getTypeArgs(expression)
-            if (def.typeParams != null) {
-                require(typeArgs != null)
-            }
-            return builder.buildMethodRef(
-                type = methodTy,
-                location = expression.location,
-                thisArg = lhs,
-                method = IRVariable(name = fnName, type = methodTy, location = expression.lhs.location)
-            )
-        }
+        )
     }
 
     private fun lowerVar(variable: Expression.Var): IRValue {

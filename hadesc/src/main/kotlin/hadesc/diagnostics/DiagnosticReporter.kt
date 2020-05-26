@@ -49,6 +49,7 @@ data class Diagnostic(
         object TooManyTypeArgs : Diagnostic.Kind(Severity.ERROR)
         object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
         object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
+        object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -76,6 +77,7 @@ data class Diagnostic(
             is TooManyTypeArgs -> "Too many type args"
             InterfaceMemberExpected -> "interface member expected"
             NotAnInterface -> "Not an interface"
+            UnboundThisType -> "This type not allowed here"
         }
 
     }

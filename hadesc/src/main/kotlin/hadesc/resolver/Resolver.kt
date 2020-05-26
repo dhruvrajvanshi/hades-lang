@@ -460,15 +460,15 @@ class Resolver(val ctx: Context) {
         }
     }
 
-    fun extensionSignaturesInScope(node: HasLocation, name: Identifier) = sequence<FunctionSignature> {
+    fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence<Declaration.FunctionDef> {
         for (scope in getScopeStack(node)) {
             if (scope is ScopeNode.FunctionDef && isPossibleExtensionSignature(scope.declaration.signature, name)) {
-                yield(scope.declaration.signature)
+                yield(scope.declaration)
             }
-            fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<FunctionSignature> = sequence {
+            fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<Declaration.FunctionDef> = sequence {
                 for (definition in sourceFile.declarations) {
                     if (definition is Declaration.FunctionDef && isPossibleExtensionSignature(definition.signature, name)) {
-                        yield(definition.signature)
+                        yield(definition as Declaration.FunctionDef)
                     }
                     if (definition is Declaration.ImportAs) {
                         yieldAll(extensionsInSourceFile(ctx.resolveSourceFile(definition.modulePath)))
