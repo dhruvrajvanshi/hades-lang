@@ -394,23 +394,15 @@ class IRGen(private val ctx: Context) {
             )
         } else {
             val def = requireNotNull(ctx.checker.getExtensionSignature(expression))
-            val thisTy = typeOfExpression(expression.lhs)
             val (fnName, methodTy) = lowerGlobalBinder(def.name)
             require(methodTy is Type.Function)
+            require(methodTy.receiver != null)
             val typeArgs = ctx.checker.getTypeArgs(expression)
             if (def.typeParams != null) {
                 require(typeArgs != null)
             }
             return builder.buildMethodRef(
-                type = Type.Function(
-                    receiver = null,
-                    to = methodTy.to,
-                    typeParams = methodTy.typeParams,
-                    from = buildList {
-                        add(thisTy)
-                        addAll(methodTy.from)
-                    }
-                ),
+                type = methodTy,
                 location = expression.location,
                 thisArg = lhs,
                 method = IRVariable(name = fnName, type = methodTy, location = expression.lhs.location)
