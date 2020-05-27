@@ -79,7 +79,16 @@ interface TransformationPass: TypeTransformer {
         is IRNullPtr -> lowerNullPtr(value)
         is IRSizeOf -> lowerSizeOf(value)
         is IRPointerCast -> lowerPointerCast(value)
-        is IRMethodRef -> requireUnreachable()
+        is IRMethodRef -> lowerMethodRef(value)
+    }
+
+    fun lowerMethodRef(value: IRMethodRef): IRValue {
+        return builder.buildMethodRef(
+                lowerType(value.type),
+                location = value.location,
+                method = lowerValue(value.method),
+                thisArg = lowerValue(value.thisArg)
+        )
     }
 
     fun lowerPointerCast(value: IRPointerCast): IRValue {
@@ -142,7 +151,7 @@ interface TransformationPass: TypeTransformer {
                 name = name,
                 type = lowerType(definition.type) as Type.Function,
                 typeParams = definition.typeParams?.map { lowerTypeParam(it) },
-                receiverType = null,
+                receiverType = definition.signature.receiverType?.let { lowerType(it) },
                 entryBlock = newEntryBlock,
                 params = params,
                 constraints = definition.signature.constraints.map {
