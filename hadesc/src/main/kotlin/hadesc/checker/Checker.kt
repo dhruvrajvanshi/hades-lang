@@ -185,9 +185,10 @@ class Checker(
     private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {
 
         val interfaceRef = declaration.interfaceRef
+        checkInterfaceRef(interfaceRef)
         val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path)
         if (interfaceDef == null || interfaceDef !is Declaration.Interface) {
-            error(declaration.interfaceRef.path, Diagnostic.Kind.NotAnInterface)
+            return
         }
 
         for (member in declaration.members) {
@@ -196,6 +197,16 @@ class Checker(
                     checkFunctionDef(member.functionDef)
                 }
             })
+        }
+    }
+
+    private fun checkInterfaceRef(interfaceRef: InterfaceRef) {
+        val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        if (interfaceDef == null || interfaceDef !is Declaration.Interface) {
+            error(interfaceRef.path, Diagnostic.Kind.NotAnInterface)
+        }
+        interfaceRef.typeArgs?.forEach {
+            inferAnnotation(it)
         }
     }
 
@@ -252,6 +263,7 @@ class Checker(
         val constraints = buildList {
             signature.typeParams?.forEach {
                 if (it.bound != null) {
+                    checkInterfaceRef(it.bound)
                     val interfaceName = resolveInterfaceName(it.bound)
                     if (interfaceName != null) {
                         add(Type.Constraint(
@@ -274,7 +286,7 @@ class Checker(
         return type
     }
 
-    fun resolveInterfaceName(interfaceRef: InterfaceRef): QualifiedName? {
+    private fun resolveInterfaceName(interfaceRef: InterfaceRef): QualifiedName? {
         val decl = ctx.resolver.resolveDeclaration(interfaceRef.path)
         if (decl == null || decl !is Declaration.Interface) {
             error(interfaceRef.path.location, Diagnostic.Kind.NotAnInterface)
