@@ -8,8 +8,12 @@ sealed class IRDefinition {
     abstract val module: IRModule
     open fun prettyPrint(): String = when (this) {
         is IRFunctionDef -> this.prettyPrint()
-        is IRStructDef -> "struct ${this.globalName.prettyPrint()} {" +
-                "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
+        is IRStructDef -> {
+            val typeParamsStr = if (typeParams == null) ""
+            else "[${typeParams.joinToString(", ") {it.name.prettyPrint()}}]"
+            "struct ${this.globalName.prettyPrint()}$typeParamsStr {" +
+                    "\n${fields.entries.joinToString("\n") { "  val ${it.key.text}: ${it.value.prettyPrint()};" }}\n}"
+        }
         is IRExternFunctionDef -> "extern def ${name.prettyPrint()} = ${externName.text}"
         is IRConstDef -> this.prettyPrint()
         is IRInterfaceDef -> {
