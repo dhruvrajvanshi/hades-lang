@@ -17,6 +17,7 @@ class ExplicitThis(
         val from =  if (type.receiver != null)
             listOf(lowerType(type.receiver)) + nonReceiverParams
         else nonReceiverParams
+        require(type.constraints.isEmpty())
         return Type.Function(
                 receiver = null,
                 typeParams = type.typeParams,
@@ -46,7 +47,8 @@ class ExplicitThis(
                 typeParams = definition.typeParams?.map { lowerTypeParam(it) },
                 receiverType = null,
                 entryBlock = newEntryBlock,
-                params = params
+                params = params,
+                constraints = listOf()
         )
         for (block in definition.blocks) {
             val newBlock = IRBlock(block.name)

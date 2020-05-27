@@ -108,5 +108,9 @@ sealed class Type {
             is ThisRef -> thisType?.recurse() ?: this
         }
     }
+
+    override fun toString(): String {
+        return prettyPrint()
+    }
 }
 

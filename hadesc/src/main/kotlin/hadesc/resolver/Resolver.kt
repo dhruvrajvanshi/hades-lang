@@ -567,6 +567,16 @@ class Resolver(val ctx: Context) {
         }
     }
 
+
+    fun getEnclosingFunction(node: HasLocation): Declaration.FunctionDef? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeNode.FunctionDef) {
+                return scopeNode.declaration
+            }
+        }
+        return null
+    }
+
     fun getEnclosingInterfaceDecl(node: HasLocation): Declaration.Interface? {
         for (scopeNode in getScopeStack(node)) {
             if (scopeNode is ScopeNode.Interface) {

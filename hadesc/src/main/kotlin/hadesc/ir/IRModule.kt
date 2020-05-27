@@ -37,11 +37,20 @@ class IRModule {
             typeParams: List<IRTypeParam>?,
             receiverType: Type?,
             params: List<IRParam>,
-            entryBlock: IRBlock
+            entryBlock: IRBlock,
+            constraints: List<IRConstraint>
     ): IRFunctionDef {
         val value = IRFunctionDef(
                 this,
-                IRFunctionSignature(location, name, type, typeParams, receiverType, params, listOf()),
+                IRFunctionSignature(
+                        location,
+                        name,
+                        type,
+                        typeParams,
+                        receiverType,
+                        params,
+                        constraints
+                ),
                 entryBlock,
                 blocks = mutableListOf())
         add(value)

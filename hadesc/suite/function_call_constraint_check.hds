@@ -1,0 +1,9 @@
+
+def main(): Void {
+    val x = f(1);
+}
+
+def f[T: Foo](value: T): Void {}
+
+interface Foo {
+}

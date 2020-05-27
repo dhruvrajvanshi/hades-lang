@@ -60,11 +60,12 @@ data class IRFunctionSignature(
 }
 
 data class IRConstraint(
-        val forType: Type,
+        val name: IRLocalName,
+        val typeParam: IRTypeParam,
         val interfaceRef: IRInterfaceRef
 ) {
     fun prettyPrint(): String {
-        return "${interfaceRef.prettyPrint()} for $forType "
+        return "${name.prettyPrint()}: ${interfaceRef.prettyPrint()} for ${typeParam.name.name.text} "
     }
 }
 

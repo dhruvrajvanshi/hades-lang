@@ -50,7 +50,7 @@ interface TransformationPass: TypeTransformer {
     fun lowerTypeParam(typeParam: IRTypeParam): IRTypeParam {
         return IRTypeParam(
                 lowerLocalName(typeParam.name),
-                binderLocation = typeParam.binderLocation
+                binder = typeParam.binder
         )
     }
 
@@ -144,7 +144,17 @@ interface TransformationPass: TypeTransformer {
                 typeParams = definition.typeParams?.map { lowerTypeParam(it) },
                 receiverType = null,
                 entryBlock = newEntryBlock,
-                params = params
+                params = params,
+                constraints = definition.signature.constraints.map {
+                    IRConstraint(
+                            name = it.name
+                            ,
+                            typeParam = it.typeParam,
+                            interfaceRef = it.interfaceRef.copy(
+                                    typeArgs = it.interfaceRef.typeArgs.map { arg -> lowerType(arg) }
+                            )
+                    )
+                }
         )
         for (block in definition.blocks) {
             val newBlock = IRBlock(block.name)

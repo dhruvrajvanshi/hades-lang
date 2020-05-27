@@ -28,6 +28,8 @@ sealed class PropertyBinding {
      * extension function defined inside an interface
      */
     data class InterfaceExtensionFunction(
-            override val type: Type
+        override val type: Type,
+        val implementationBinding: ImplementationBinding,
+        val memberIndex: Int
     ): PropertyBinding()
 }

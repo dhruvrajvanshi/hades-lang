@@ -18,7 +18,7 @@ sealed class IRValue : HasLocation {
         is IRBool -> value.toString()
         is IRByteString -> "b\"${value.decodeToString()}\""
         is IRVariable -> name.prettyPrint()
-        is IRGetStructField -> "${lhs.prettyPrint()}.${rhs.text}"
+        is IRGetStructField -> "${lhs.prettyPrint()}.${rhs?.text ?: index}"
         is IRCIntConstant -> value.toString()
         is IRNullPtr -> "nullptr"
         is IRMethodRef -> "${thisArg.prettyPrint()}::${method.prettyPrint()}"
@@ -49,7 +49,7 @@ class IRGetStructField(
         override val type: Type,
         override val location: SourceLocation,
         val lhs: IRValue,
-        val rhs: Name,
+        val rhs: Name?,
         val index: Int
 ) : IRValue()
 

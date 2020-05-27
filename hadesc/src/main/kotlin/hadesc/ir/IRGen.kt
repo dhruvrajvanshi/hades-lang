@@ -3,11 +3,14 @@ package hadesc.ir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
+import hadesc.checker.ImplementationBinding
 import hadesc.checker.PropertyBinding
 import hadesc.context.Context
+import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 
@@ -59,8 +62,102 @@ class IRGen(private val ctx: Context) {
             lowerConstDeclaration(declaration)
             Unit
         }
-        is Declaration.Interface -> TODO()
-        is Declaration.Implementation -> TODO()
+        is Declaration.Interface -> lowerInterfaceDecl(declaration)
+        is Declaration.Implementation -> {
+            lowerImplementation(declaration)
+        }
+    }
+
+    private fun lowerInterfaceDecl(declaration: Declaration.Interface) {
+        val name = globalBinderName(declaration.name)
+        val typeParams = declaration.typeParams?.map { lowerTypeParam(it) }
+        val interfaceRef = IRInterfaceRef(
+                name,
+                typeArgs = declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: listOf()
+        )
+        val thisTypeParamBinder = Binder(declaration.name.identifier.copy(name = ctx.makeName("This")))
+        val thisType = Type.ParamRef(thisTypeParamBinder)
+        val instanceType = typeOfInterfaceInstance(interfaceRef, thisType)
+        val fields = declaration.members.map {
+            exhaustive(when (it) {
+                is Declaration.Interface.Member.FunctionSignature ->
+                    it.signature.name.identifier.name to
+                            ctx.checker.typeOfFunctionSignature(it.signature).applySubstitution(mapOf(), thisType)
+            })
+        }.toMap()
+        val constructorType = Type.Function(
+                typeParams = listOf(
+                        Type.Param(thisTypeParamBinder)
+                ) + (declaration.typeParams?.map { Type.Param(it.binder) } ?: listOf()),
+                constraints = emptyList(),
+                to = instanceType,
+                receiver = null,
+                from = fields.values.toList()
+        )
+        module.addStructDef(
+                constructorType = constructorType,
+                instanceType = instanceType,
+                fields = fields,
+                typeParams = typeParams,
+                name = name
+        )
+    }
+
+    private fun getImplTypeAndName(declaration: Declaration.Implementation): Pair<IRGlobalName, Type> {
+        val name = implName(declaration)
+        val type = implType(declaration)
+        return name to type
+    }
+
+    private fun implType(declaration: Declaration.Implementation): Type {
+        return getInterfaceRefType(declaration.interfaceRef, ctx.checker.annotationToType(declaration.forType))
+    }
+
+    private fun resolveInterfaceDecl(interfaceRef: InterfaceRef): Declaration.Interface {
+        val interfaceDecl = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        require(interfaceDecl is Declaration.Interface)
+        return interfaceDecl
+    }
+
+    private fun getInterfaceRefType(interfaceRef: InterfaceRef, thisType: Type): Type {
+        return typeOfInterfaceInstance(lowerInterfaceRef(interfaceRef), thisType)
+    }
+
+    private fun lowerInterfaceRef(interfaceRef: InterfaceRef): IRInterfaceRef {
+        val decl = requireNotNull(ctx.resolver.resolveDeclaration(interfaceRef.path))
+        require(decl is Declaration.Interface)
+        val name = ctx.resolver.qualifiedInterfaceName(decl)
+        return IRInterfaceRef(
+                IRGlobalName(name),
+                interfaceRef.typeArgs?.map { ctx.checker.annotationToType(it) } ?: listOf()
+        )
+    }
+
+    private fun typeOfInterfaceInstance(interfaceRef: IRInterfaceRef, thisType: Type): Type {
+        val interfaceDecl = ctx.checker.getInterfaceDecl(interfaceRef.name.name)
+        val interfaceName = interfaceRef.name.name
+        require(interfaceDecl.typeParams?.size ?: 0 == interfaceRef.typeArgs.size)
+        val interfaceTypeParams = interfaceDecl.typeParams?.map {
+            require(it.bound == null)
+            Type.Param(it.binder)
+        } ?: listOf()
+        return Type.Application(
+                callee = Type.Constructor(
+                        binder = interfaceDecl.name,
+                        name = interfaceName,
+                        params = listOf(Type.Param(Binder(interfaceDecl.name.identifier.copy(name = ctx.makeName("This"))))) + interfaceTypeParams
+                ),
+                args = listOf(thisType) + interfaceRef.typeArgs
+        )
+    }
+
+    private fun implName(declaration: Declaration.Implementation): IRGlobalName {
+        // TODO: Pick a properly mangled name here
+        return IRGlobalName(QualifiedName(listOf(ctx.makeUniqueName())))
+    }
+
+    private fun lowerImplementation(declaration: Declaration.Implementation) {
+        TODO()
     }
 
     private val loweredConstDefs = mutableMapOf<SourceLocation, IRConstDef>()
@@ -126,7 +223,20 @@ class IRGen(private val ctx: Context) {
                 receiverType = receiverType,
                 typeParams = def.typeParams?.map { lowerTypeParam(it) },
                 params = params,
-                entryBlock = IRBlock()
+                entryBlock = IRBlock(),
+                constraints = type.constraints.map {
+                    IRConstraint(
+                            makeLocalName(),
+                            IRTypeParam(
+                                    IRLocalName(it.param.binder.identifier.name),
+                                    it.param.binder
+                            ),
+                            IRInterfaceRef(
+                                name = IRGlobalName(it.interfaceName),
+                                typeArgs = it.args
+                            )
+                    )
+                }
             )
             currentFunction = function
             definitions.add(function)
@@ -136,7 +246,7 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerTypeParam(typeParam: TypeParam): IRTypeParam {
-        return IRTypeParam(IRLocalName(typeParam.binder.identifier.name), typeParam.location)
+        return IRTypeParam(IRLocalName(typeParam.binder.identifier.name), typeParam.binder)
     }
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
@@ -367,8 +477,70 @@ class IRGen(private val ctx: Context) {
             is PropertyBinding.GlobalExtensionFunction -> {
                 lowerGlobalExtensionFunctionBinding(expression, binding)
             }
-            is PropertyBinding.InterfaceExtensionFunction -> TODO()
+            is PropertyBinding.InterfaceExtensionFunction -> {
+                lowerInterfaceExtensionFunction(expression, binding)
+            }
         }
+    }
+
+    private fun lowerInterfaceExtensionFunction(expression: Expression.Property, binding: PropertyBinding.InterfaceExtensionFunction): IRValue {
+        val implRef = lowerImplBinding(expression.location, binding.implementationBinding)
+        val memberType = typeOfImplMember(binding.implementationBinding.interfaceRef, binding.memberIndex)
+
+        val memberRef = builder.buildGetStructField(
+                ty = memberType,
+                location = expression.location,
+                lhs = implRef,
+                index = binding.memberIndex,
+                field = null
+        )
+        return builder.buildMethodRef(
+                type = binding.type,
+                method = memberRef,
+                thisArg = lowerExpression(expression.lhs),
+                location = expression.location
+        )
+    }
+
+    private fun typeOfImplMember(interfaceRef: InterfaceRef, memberIndex: Int): Type {
+        val interfaceDecl = resolveInterfaceDecl(interfaceRef)
+        return when (val member = interfaceDecl.members[memberIndex]) {
+            is Declaration.Interface.Member.FunctionSignature -> ctx.checker.typeOfFunctionSignature(member.signature)
+        }
+    }
+
+    private fun lowerImplBinding(location: SourceLocation, implementationBinding: ImplementationBinding): IRValue {
+        return when(implementationBinding) {
+            is ImplementationBinding.TypeBound -> {
+                val functionDef = getFunctionDef(implementationBinding.functionDef)
+                val typeParams = requireNotNull(functionDef.typeParams)
+                val typeParam = typeParams[implementationBinding.typeParamIndex]
+                val constraint = requireNotNull(functionDef.signature.constraints.find { it.typeParam == typeParam })
+                builder.buildVariable(
+                        ty = typeOfConstraint(constraint),
+                        location = location,
+                        name = constraint.name
+                )
+            }
+            is ImplementationBinding.GlobalImpl -> {
+                getImplAsValue(location, implementationBinding.implDef)
+            }
+        }
+    }
+
+    private fun typeOfConstraint(constraint: IRConstraint): Type {
+        return typeOfInterfaceInstance(
+                constraint.interfaceRef,
+                Type.ParamRef(constraint.typeParam.binder))
+    }
+
+    private fun getImplAsValue(location: SourceLocation, implDef: Declaration.Implementation): IRValue {
+        val (name, type) = getImplTypeAndName(implDef)
+        return builder.buildVariable(
+                ty = type,
+                name = name,
+                location = location
+        )
     }
 
     private fun lowerGlobalExtensionFunctionBinding(expression: Expression.Property, binding: PropertyBinding.GlobalExtensionFunction): IRValue {
@@ -587,9 +759,13 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerGlobalBinder(name: Binder): Pair<IRGlobalName, Type> {
-        val sourceFile = ctx.getSourceFileOf(name)
         val binderType = ctx.checker.typeOfBinder(name)
-        return IRGlobalName(sourceFile.moduleName.append(name.identifier.name)) to binderType
+        return globalBinderName(name) to binderType
+    }
+
+    private fun globalBinderName(name: Binder): IRGlobalName {
+        val sourceFile = ctx.getSourceFileOf(name)
+        return IRGlobalName(sourceFile.moduleName.append(name.identifier.name))
     }
 
     private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.RawPtr> {

@@ -81,7 +81,8 @@ class SpecializeGenerics(
             typeParams = null,
             receiverType = null,
             params = definition.params.map { lowerParam(it) },
-            entryBlock = block
+            entryBlock = block,
+            constraints = listOf()
         )
         currentFunction = fn
         lowerBlock(oldBlock = definition.entryBlock, newBlock = block)
@@ -333,7 +334,8 @@ class SpecializeGenerics(
             typeParams = null,
             params = params,
             receiverType = null,
-            entryBlock = body
+            entryBlock = body,
+            constraints = emptyList()
         )
         currentSpecialization = makeSubstitution(requireNotNull(def.typeParams), typeArgs)
         currentFunction = fn

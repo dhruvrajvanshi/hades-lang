@@ -38,7 +38,7 @@ class IRBuilder {
             ty: Type,
             location: SourceLocation,
             lhs: IRValue,
-            field: Name,
+            field: Name?,
             index: Int
     ): IRValue {
         return IRGetStructField(ty, location, lhs = lhs, rhs = field, index = index)

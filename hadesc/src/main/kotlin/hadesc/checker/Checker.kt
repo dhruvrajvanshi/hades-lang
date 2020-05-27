@@ -200,9 +200,11 @@ class Checker(
     }
 
     private fun checkInterfaceDeclaration(declaration: Declaration.Interface) {
+        val name = ctx.resolver.qualifiedInterfaceName(declaration)
+        interfaceDecls[name] = declaration
         for (member in declaration.members) {
             exhaustive(when (member) {
-                is Declaration.Interface.Member.FunctionSignature -> declareFunctionSignature(member.signature)
+                is Declaration.Interface.Member.FunctionSignature -> typeOfFunctionSignature(member.signature)
             })
         }
     }
@@ -212,7 +214,7 @@ class Checker(
     }
 
     private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
-        val functionType = declareFunctionSignature(declaration.signature)
+        val functionType = typeOfFunctionSignature(declaration.signature)
         withReturnType(functionType.to) {
             checkBlock(declaration.body)
         }
@@ -225,7 +227,7 @@ class Checker(
         returnTypeStack.pop()
     }
 
-    private fun declareFunctionSignature(signature: FunctionSignature): Type.Function {
+    fun typeOfFunctionSignature(signature: FunctionSignature): Type.Function {
         val cached = binderTypes[signature.name]
         if (cached != null) {
             require(cached is Type.Function)
@@ -272,7 +274,7 @@ class Checker(
         return type
     }
 
-    private fun resolveInterfaceName(interfaceRef: InterfaceRef): QualifiedName? {
+    fun resolveInterfaceName(interfaceRef: InterfaceRef): QualifiedName? {
         val decl = ctx.resolver.resolveDeclaration(interfaceRef.path)
         if (decl == null || decl !is Declaration.Interface) {
             error(interfaceRef.path.location, Diagnostic.Kind.NotAnInterface)
@@ -530,11 +532,12 @@ class Checker(
     private fun getInterfacePropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): PropertyBinding? {
         val lhsType = inferExpression(expression.lhs, typeArgs)
         val property = expression.property
-        val implementations = implementedInterfaceRefs(lhsType, property).toList()
+        val implementations = getImplementationBindingsForType(lhsType, atNode = expression).toList()
         require(typeArgs == null) {
             TODO("Generic methods within interfaces not implemented")
         }
-        for (interfaceRef in implementations) {
+        for (implRef in implementations) {
+            val interfaceRef = implRef.interfaceRef
             val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path) ?: continue
             if (interfaceDef !is Declaration.Interface) {
                 continue
@@ -547,13 +550,17 @@ class Checker(
                 ?.zip(implementationTypeArgs)
                 ?.toMap()
                 ?: emptyMap()
-            for (member in interfaceDef.members) {
+            var memberIndex = -1
+            memberLoop@ for (member in interfaceDef.members) {
+                memberIndex++
                 val memberType = when (member) {
                     is Declaration.Interface.Member.FunctionSignature -> {
-                        val functionType = declareFunctionSignature(member.signature)
-                        if (
-                            member.signature.name.identifier.name == property.name
-                            && functionType.receiver == null) {
+
+                        if (member.signature.name.identifier.name != property.name) {
+                            continue@memberLoop
+                        }
+                        val functionType = typeOfFunctionSignature(member.signature)
+                        if (functionType.receiver == null) {
                             null
                         } else {
                             functionType.applySubstitution(
@@ -565,18 +572,18 @@ class Checker(
                 }
 
                 if (memberType != null) {
-                    return PropertyBinding.InterfaceExtensionFunction(memberType)
+                    return PropertyBinding.InterfaceExtensionFunction(memberType, implRef, memberIndex)
                 }
             }
         }
         return null
     }
 
-    private fun implementedInterfaceRefs(lhsType: Type, node: HasLocation) = sequence {
-        for (implementation in ctx.resolver.implementationsInScope(node)) {
+    private fun getImplementationBindingsForType(lhsType: Type, atNode: HasLocation): Sequence<ImplementationBinding> = sequence {
+        for (implementation in ctx.resolver.implementationsInScope(atNode)) {
             val forType = inferAnnotation(implementation.forType)
             if (isAssignableTo(source = lhsType, destination = forType)) {
-                yield(implementation.interfaceRef)
+                yield(ImplementationBinding.GlobalImpl(implementation))
             } else {
                 if (lhsType is Type.ParamRef) {
                     val typeBinding = ctx.resolver.resolveTypeVariable(lhsType.name.identifier) ?: continue
@@ -586,8 +593,12 @@ class Checker(
                     if (decl !is Declaration.Interface) {
                         continue
                     }
-
-                    yield(bound)
+                    val functionDef = requireNotNull(ctx.resolver.getEnclosingFunction(lhsType.name))
+                    val typeParamIndex = functionDef.typeParams?.indexOfFirst {
+                        it.binder.location == lhsType.name.location
+                    }
+                    require(typeParamIndex != null && typeParamIndex > -1)
+                    yield(ImplementationBinding.TypeBound(bound, functionDef, typeParamIndex))
 
                 }
             }
@@ -907,7 +918,7 @@ class Checker(
 
     private fun inferBinding(binding: ValueBinding) = when (binding) {
         is ValueBinding.GlobalFunction -> {
-            declareFunctionSignature(binding.declaration.signature)
+            typeOfFunctionSignature(binding.declaration.signature)
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.name]))
         }
         is ValueBinding.ExternFunction -> {
@@ -915,7 +926,7 @@ class Checker(
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is ValueBinding.FunctionParam -> {
-            declareFunctionSignature(binding.declaration.signature)
+            typeOfFunctionSignature(binding.declaration.signature)
             requireNotNull(binderTypes[binding.param.binder])
         }
         is ValueBinding.ValBinding -> {
@@ -1018,6 +1029,11 @@ class Checker(
                 constraints = listOf()
         )
         bindValue(declaration.binder, constructorType)
+    }
+
+    private val interfaceDecls = mutableMapOf<QualifiedName, Declaration.Interface>()
+    fun getInterfaceDecl(name: QualifiedName): Declaration.Interface {
+        return requireNotNull(interfaceDecls[name])
     }
 }
 
