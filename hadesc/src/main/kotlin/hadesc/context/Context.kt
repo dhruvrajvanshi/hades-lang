@@ -70,6 +70,9 @@ class Context(
     }
 
     fun resolveSourceFile(moduleName: QualifiedName): SourceFile {
+        if (moduleName.size == 0) {
+            return sourceFile(moduleName, SourcePath(options.main))
+        }
         val parts = moduleName.names.joinToString("/") { it.text }
         val paths = mutableListOf<Path>()
         for (directory in options.directories) {

@@ -541,13 +541,49 @@ class Checker(
         }
     }
 
+    private fun getInterfaceImplementation(type: Type, node: HasLocation, interfaceName: QualifiedName, interfaceArgs: List<Type>): ImplementationBinding? {
+        val implementations = getImplementationBindingsForType(type, atNode = node).toList()
+        val actualInterfaceDef = ctx.resolver.resolveDeclaration(interfaceName) ?: return null
+        if (actualInterfaceDef !is Declaration.Interface) {
+            return null
+        }
+        val foundInstances = mutableListOf<ImplementationBinding>()
+        for (implRef in implementations) {
+            val interfaceRef = implRef.interfaceRef
+            val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path) ?: continue
+            if (interfaceDef !is Declaration.Interface) {
+                continue
+            }
+            if (interfaceDef.location != actualInterfaceDef.location) {
+                continue
+            }
+            val implementationTypeArgs = interfaceRef.typeArgs
+                    ?.map { inferAnnotation(it) }
+                    ?: listOf()
+            if (implementationTypeArgs.size != interfaceArgs.size) {
+                continue
+            }
+
+            val typeArgsMatch = implementationTypeArgs.zip(interfaceArgs).all { (actual, expected) ->
+                isAssignableTo(destination = expected, source = actual)
+            }
+
+            if (typeArgsMatch) {
+                foundInstances.add(implRef)
+            }
+
+        }
+        require(foundInstances.size < 2) {"Overlapping instances"}
+        return foundInstances.firstOrNull()
+    }
+
     private fun getInterfacePropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): PropertyBinding? {
-        val lhsType = inferExpression(expression.lhs, typeArgs)
-        val property = expression.property
-        val implementations = getImplementationBindingsForType(lhsType, atNode = expression).toList()
         require(typeArgs == null) {
             TODO("Generic methods within interfaces not implemented")
         }
+        val lhsType = inferExpression(expression.lhs, typeArgs)
+        val property = expression.property
+        val implementations = getImplementationBindingsForType(lhsType, atNode = expression).toList()
         for (implRef in implementations) {
             val interfaceRef = implRef.interfaceRef
             val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path) ?: continue
@@ -697,6 +733,7 @@ class Checker(
         } else if (calleeType is Type.RawPtr && calleeType.to is Type.Function) {
             calleeType.to
         } else {
+            error(expression.location, Diagnostic.Kind.TypeNotCallable(calleeType))
             Type.Error
         }
         if (functionType is Type.Function) {
@@ -759,6 +796,18 @@ class Checker(
                             instance
                         }
                 )
+            }
+            for (constraint in functionType.constraints) {
+                val generic = requireNotNull(substitution[constraint.param.binder.location])
+                val instance = if (generic is Type.GenericInstance)
+                    genericInstantiations[generic.id]
+                else generic
+                if (instance != null) {
+                    val implBinding = getInterfaceImplementation(instance, expression, constraint.interfaceName, constraint.args)
+                    if (implBinding == null) {
+                        error(expression, Diagnostic.Kind.NoImplementationFound)
+                    }
+                }
             }
             if (functionType.typeParams != null) {
                 typeArguments[expression] = typeArgs
@@ -1046,6 +1095,10 @@ class Checker(
     private val interfaceDecls = mutableMapOf<QualifiedName, Declaration.Interface>()
     fun getInterfaceDecl(name: QualifiedName): Declaration.Interface {
         return requireNotNull(interfaceDecls[name])
+    }
+
+    fun getConstraintBindings(expression: Expression.Call): Any? {
+        return null
     }
 }
 

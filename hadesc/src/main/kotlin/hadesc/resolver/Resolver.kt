@@ -188,7 +188,7 @@ class Resolver(val ctx: Context) {
 
     private fun shallowFindInScope(ident: Identifier, scope: ScopeNode): ValueBinding? = when (scope) {
         is ScopeNode.FunctionDef -> shallowFindInFunction(ident, scope)
-        is ScopeNode.SourceFile -> shallowFindInSourceFile(ident, scope.sourceFile)
+        is ScopeNode.SourceFile -> shallowFindInSourceFile(ident.name, scope.sourceFile)
         is ScopeNode.Block -> shallowFindInBlock(ident, scope)
         is ScopeNode.Struct -> null
         is ScopeNode.Interface -> null
@@ -218,15 +218,15 @@ class Resolver(val ctx: Context) {
         return null
     }
 
-    private fun shallowFindInSourceFile(ident: Identifier, sourceFile: SourceFile): ValueBinding? {
+    private fun shallowFindInSourceFile(name: Name, sourceFile: SourceFile): ValueBinding? {
         for (declaration in sourceFile.declarations) {
             val binding = when (declaration) {
                 is Declaration.Error -> null
                 is Declaration.ImportAs -> null
                 is Declaration.FunctionDef -> {
-                    if (declaration.thisParam == null && declaration.name.identifier.name == ident.name) {
+                    if (declaration.thisParam == null && declaration.name.identifier.name == name) {
                         ValueBinding.GlobalFunction(
-                            sourceFileOf(declaration).moduleName.append(ident.name),
+                            sourceFileOf(declaration).moduleName.append(name),
                             declaration
                         )
                     } else {
@@ -234,9 +234,9 @@ class Resolver(val ctx: Context) {
                     }
                 }
                 is Declaration.ExternFunctionDef -> {
-                    if (declaration.binder.identifier.name == ident.name) {
+                    if (declaration.binder.identifier.name == name) {
                         ValueBinding.ExternFunction(
-                            sourceFileOf(declaration).moduleName.append(ident.name),
+                            sourceFileOf(declaration).moduleName.append(name),
                             declaration
                         )
                     } else {
@@ -244,9 +244,9 @@ class Resolver(val ctx: Context) {
                     }
                 }
                 is Declaration.Struct -> {
-                    if (declaration.binder.identifier.name == ident.name) {
+                    if (declaration.binder.identifier.name == name) {
                         ValueBinding.Struct(
-                            sourceFileOf(declaration).moduleName.append(ident.name),
+                            sourceFileOf(declaration).moduleName.append(name),
                             declaration
                         )
                     } else {
@@ -254,9 +254,9 @@ class Resolver(val ctx: Context) {
                     }
                 }
                 is Declaration.ConstDefinition -> {
-                    if (declaration.name.identifier.name == ident.name) {
+                    if (declaration.name.identifier.name == name) {
                         ValueBinding.GlobalConst(
-                            sourceFileOf(declaration).moduleName.append(ident.name),
+                            sourceFileOf(declaration).moduleName.append(name),
                             declaration
                         )
                     } else {
@@ -388,7 +388,7 @@ class Resolver(val ctx: Context) {
                             is Declaration.Error -> null
                             is Declaration.ImportAs -> if (declaration.asName.identifier.name == expression.lhs.name.name) {
                                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                                shallowFindInSourceFile(expression.property, sourceFile)
+                                shallowFindInSourceFile(expression.property.name, sourceFile)
                             } else {
                                 null
                             }
@@ -488,6 +488,28 @@ class Resolver(val ctx: Context) {
             if (decl is Declaration.ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
                 val importedSourceFile = ctx.resolveSourceFile(decl.modulePath)
                 return findTypeInSourceFile(path.identifiers.last(), importedSourceFile)?.declaration
+            }
+        }
+        return null
+    }
+
+    fun resolveDeclaration(qualifiedName: QualifiedName): Declaration? {
+        val modulePath = QualifiedName(qualifiedName.names.dropLast(1))
+        val declName = qualifiedName.names.last()
+        val sourceFile = ctx.resolveSourceFile(modulePath)
+        for (decl in sourceFile.declarations) {
+            val match = exhaustive(when(decl) {
+                is Declaration.Error -> false
+                is Declaration.ImportAs -> decl.asName.identifier.name == declName
+                is Declaration.FunctionDef -> decl.name.identifier.name == declName
+                is Declaration.ConstDefinition -> decl.name.identifier.name == declName
+                is Declaration.ExternFunctionDef -> decl.binder.identifier.name == declName
+                is Declaration.Struct -> decl.binder.identifier.name == declName
+                is Declaration.Interface -> decl.name.identifier.name == declName
+                is Declaration.Implementation -> false
+            })
+            if (match) {
+                return decl
             }
         }
         return null

@@ -50,6 +50,7 @@ data class Diagnostic(
         object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
         object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
+        object NoImplementationFound : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -78,6 +79,7 @@ data class Diagnostic(
             InterfaceMemberExpected -> "interface member expected"
             NotAnInterface -> "Not an interface"
             UnboundThisType -> "This type not allowed here"
+            NoImplementationFound -> "No implementation found"
         }
 
     }
