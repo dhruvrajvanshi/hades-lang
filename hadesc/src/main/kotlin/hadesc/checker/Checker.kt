@@ -730,6 +730,7 @@ class Checker(
         return Type.GenericInstance(binder, _nextGenericInstance)
     }
 
+    private val implBindings = MutableNodeMap<Expression.Call, List<ImplementationBinding>>()
     private fun inferCall(expression: Expression.Call, expectedReturnType: Type? = null): Type {
         val calleeType = inferExpression(expression.callee, expression.typeArgs)
         val functionType = if (calleeType is Type.Function) {
@@ -801,6 +802,7 @@ class Checker(
                         }
                 )
             }
+            val constraintBindings = mutableListOf<ImplementationBinding>()
             for (constraint in functionType.constraints) {
                 val generic = requireNotNull(substitution[constraint.param.binder.location])
                 val forType = if (generic is Type.GenericInstance)
@@ -816,9 +818,12 @@ class Checker(
                     )
                     if (implBinding == null) {
                         error(expression, Diagnostic.Kind.NoImplementationFound)
+                    } else {
+                        constraintBindings.add(implBinding)
                     }
                 }
             }
+            implBindings[expression] = constraintBindings
             if (functionType.typeParams != null) {
                 typeArguments[expression] = typeArgs
                 typeArguments[expression.callee] = typeArgs
@@ -1107,8 +1112,8 @@ class Checker(
         return requireNotNull(interfaceDecls[name])
     }
 
-    fun getConstraintBindings(expression: Expression.Call): Any? {
-        return null
+    fun getConstraintBindings(expression: Expression.Call): List<ImplementationBinding> {
+        return requireNotNull(implBindings[expression])
     }
 }
 

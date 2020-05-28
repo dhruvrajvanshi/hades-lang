@@ -11,7 +11,7 @@ def main(): Void {
     val value = IntAndBool(10, true);
     utils.print_int(value.get());
     utils.print_int(get_int(value));
-    utils.print_bool(get[Bool](value));
+    utils.print_bool(get[Bool, IntAndBool](value));
     print(true);
     print(10);
     print(b"string");

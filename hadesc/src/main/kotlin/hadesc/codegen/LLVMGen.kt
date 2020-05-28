@@ -254,9 +254,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerAggregate(value: IRAggregate): Value {
         return ConstantStruct(
-                value.values.map { lowerExpression(it) },
-                packed = false,
-                context = llvmCtx
+                lowerType(value.type) as dev.supergrecko.kllvm.ir.types.StructType,
+                value.values.map { lowerExpression(it) }
         )
     }
 

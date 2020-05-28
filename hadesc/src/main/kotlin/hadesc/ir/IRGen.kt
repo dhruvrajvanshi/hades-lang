@@ -181,7 +181,7 @@ class IRGen(private val ctx: Context) {
                 require(implFuncDef is Declaration.Implementation.Member.FunctionDef)
                 val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = name.name)
                 add(builder.buildVariable(
-                        ty = functionDef.type,
+                        ty = Type.RawPtr(functionDef.type),
                         location = implFuncDef.functionDef.location,
                         name = functionDef.name
 
@@ -680,12 +680,13 @@ class IRGen(private val ctx: Context) {
         val callee = lowerExpression(expression.callee)
         val args = expression.args.map { lowerExpression(it.expression) }
         val type = typeOfExpression(expression)
+        val constraintBindings = ctx.checker.getConstraintBindings(expression)
         return builder.buildCall(
             type,
             expression.location,
             callee = callee,
             typeArgs = ctx.checker.getTypeArgs(expression),
-            args = args,
+            args = args + constraintBindings.map { lowerImplBinding(callee.location, it) },
             name = makeLocalName()
         )
     }

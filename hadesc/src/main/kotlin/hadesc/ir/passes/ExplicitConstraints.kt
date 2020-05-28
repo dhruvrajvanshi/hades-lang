@@ -3,7 +3,6 @@ package hadesc.ir.passes
 import hadesc.ast.Binder
 import hadesc.context.Context
 import hadesc.ir.*
-import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
@@ -13,16 +12,6 @@ class ExplicitConstraints(
 ): TransformationPass {
     override val builder: IRBuilder = IRBuilder()
     override val module: IRModule = IRModule()
-
-    init {
-        logger().info("Before ExplicitConstraints pass: ${inputModule.prettyPrint()}")
-    }
-
-    override fun run(): IRModule {
-        val result = super.run()
-        logger().info("After constraints pass: ${module.prettyPrint()}")
-        return result
-    }
 
     private fun typeOfInterfaceInstance(interfaceName: QualifiedName, thisType: Type, typeArgs: List<Type>): Type {
         val interfaceDecl = ctx.checker.getInterfaceDecl(interfaceName)
