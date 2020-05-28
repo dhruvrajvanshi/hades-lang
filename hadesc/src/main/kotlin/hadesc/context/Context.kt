@@ -9,6 +9,7 @@ import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.ir.IRGen
+import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
 import hadesc.ir.passes.SpecializeGenerics
 import hadesc.location.HasLocation
@@ -39,6 +40,7 @@ class Context(
         }
         var irModule = IRGen(this).generate()
 
+        irModule = ExplicitConstraints(this, irModule).run()
         irModule = ExplicitThis(this, irModule).run()
         irModule = SpecializeGenerics(this, irModule).run()
 
