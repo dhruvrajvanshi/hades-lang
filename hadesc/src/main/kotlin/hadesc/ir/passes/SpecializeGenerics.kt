@@ -175,6 +175,11 @@ class SpecializeGenerics(
                 arg = lowerValue(value.arg),
                 location = value.location
         )
+        is IRAggregate -> IRAggregate(
+                type = lowerType(value.type),
+                location = value.location,
+                values = value.values.map { lowerValue(it) }
+        )
     }
 
     private fun lowerSizeOf(value: IRSizeOf, typeArgs: List<Type>?): IRValue {
@@ -428,7 +433,7 @@ class SpecializeGenerics(
     private fun lowerType(type: Type, typeArgs: List<Type>? = null): Type {
         assert(typeArgs == null || type is Type.Constructor)
         return when (type) {
-            Type.Error,
+            Type.Error -> requireUnreachable()
             Type.Byte,
             Type.Void,
             Type.CInt,

@@ -70,19 +70,27 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerInterfaceDecl(declaration: Declaration.Interface) {
         val name = globalBinderName(declaration.name)
-        val typeParams = declaration.typeParams?.map { lowerTypeParam(it) }
+        val thisTypeParamBinder = Binder(declaration.name.identifier.copy(name = ctx.makeName("This")))
+        val typeParams = buildList {
+            add(IRTypeParam(IRLocalName(ctx.makeName("This")), thisTypeParamBinder))
+            declaration.typeParams?.forEach {
+                add(lowerTypeParam(it))
+            }
+        }
         val interfaceRef = IRInterfaceRef(
                 name,
                 typeArgs = declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: listOf()
         )
-        val thisTypeParamBinder = Binder(declaration.name.identifier.copy(name = ctx.makeName("This")))
         val thisType = Type.ParamRef(thisTypeParamBinder)
         val instanceType = typeOfInterfaceInstance(interfaceRef, thisType)
         val fields = declaration.members.map {
             exhaustive(when (it) {
-                is Declaration.Interface.Member.FunctionSignature ->
+                is Declaration.Interface.Member.FunctionSignature -> {
+                    val fnType = ctx.checker.typeOfFunctionSignature(it.signature).applySubstitution(mapOf(), thisType)
+                    require(fnType is Type.Function)
                     it.signature.name.identifier.name to
-                            ctx.checker.typeOfFunctionSignature(it.signature).applySubstitution(mapOf(), thisType)
+                            Type.RawPtr(fnType)
+                }
             })
         }.toMap()
         val constructorType = Type.Function(
@@ -151,13 +159,45 @@ class IRGen(private val ctx: Context) {
         )
     }
 
-    private fun implName(declaration: Declaration.Implementation): IRGlobalName {
+    private val implNames = mutableMapOf<SourceLocation, IRGlobalName>()
+    private fun implName(declaration: Declaration.Implementation): IRGlobalName = implNames.getOrPut(declaration.location) {
         // TODO: Pick a properly mangled name here
-        return IRGlobalName(QualifiedName(listOf(ctx.makeUniqueName())))
+        return IRGlobalName(QualifiedName(listOf(ctx.makeName("impl$" + implType(declaration).prettyPrint()))))
     }
 
     private fun lowerImplementation(declaration: Declaration.Implementation) {
-        TODO()
+        val type = implType(declaration)
+        val name = implName(declaration)
+        val interfaceDecl = resolveInterfaceDecl(declaration.interfaceRef)
+        val values = buildList {
+            for (member in interfaceDecl.members) {
+                require(member is Declaration.Interface.Member.FunctionSignature)
+                val implFuncDef = declaration.members.find {
+                    when(it) {
+                        is Declaration.Implementation.Member.FunctionDef ->
+                            it.functionDef.name.identifier.name == member.signature.name.identifier.name
+                    }
+                }
+                require(implFuncDef is Declaration.Implementation.Member.FunctionDef)
+                val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = name.name)
+                add(builder.buildVariable(
+                        ty = functionDef.type,
+                        location = implFuncDef.functionDef.location,
+                        name = functionDef.name
+
+                ))
+            }
+        }
+        val initializer = IRAggregate(
+                type = type,
+                location = declaration.location,
+                values = values
+        )
+        module.addConstDef(
+                name,
+                type,
+                initializer = initializer
+        )
     }
 
     private val loweredConstDefs = mutableMapOf<SourceLocation, IRConstDef>()
@@ -209,9 +249,11 @@ class IRGen(private val ctx: Context) {
 
     private val declaredFunctionDefs = mutableMapOf<SourceLocation, IRFunctionDef>()
 
-    private fun getFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
+    private fun getFunctionDef(def: Declaration.FunctionDef, prefix: QualifiedName? = null): IRFunctionDef {
         return declaredFunctionDefs.computeIfAbsent(def.location) {
-            val (functionName, type) = lowerGlobalBinder(def.name)
+            val (unprefixedName, type) = lowerGlobalBinder(def.name)
+            val functionName = if (prefix == null) unprefixedName
+            else IRGlobalName(unprefixedName.name.withPrefix(prefix))
             require(type is Type.Function)
             val params = def.params.mapIndexed { index, param -> lowerParam(param, functionName, index) }
             val receiverType = def.signature.thisParam?.annotation?.let { ctx.checker.annotationToType(it) }
@@ -234,7 +276,9 @@ class IRGen(private val ctx: Context) {
                             IRInterfaceRef(
                                 name = IRGlobalName(it.interfaceName),
                                 typeArgs = it.args
-                            )
+                            ),
+                            type = typeOfInterfaceInstance(interfaceRefOf(it), Type.ParamRef(it.param.binder)),
+                            location = def.signature.location
                     )
                 }
             )
@@ -245,12 +289,16 @@ class IRGen(private val ctx: Context) {
 
     }
 
+    private fun interfaceRefOf(constraint: Type.Constraint): IRInterfaceRef {
+        return IRInterfaceRef(IRGlobalName(constraint.interfaceName), typeArgs = constraint.args)
+    }
+
     private fun lowerTypeParam(typeParam: TypeParam): IRTypeParam {
         return IRTypeParam(IRLocalName(typeParam.binder.identifier.name), typeParam.binder)
     }
 
-    private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef): IRFunctionDef {
-        val function = getFunctionDef(def)
+    private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef, prefix: QualifiedName? = null): IRFunctionDef {
+        val function = getFunctionDef(def, prefix)
         function.entryBlock = lowerBlock(def.body)
         val ty = function.type
 
@@ -318,7 +366,7 @@ class IRGen(private val ctx: Context) {
                 }
             }
             is Expression.SizeOf -> IRSizeOf(
-                    type = Type.CInt,
+                    type = Type.Size,
                     location = expression.location,
                     ofType = ctx.checker.annotationToType(expression.type))
             is Expression.AddressOf -> lowerAddressOf(expression)
@@ -485,7 +533,9 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerInterfaceExtensionFunction(expression: Expression.Property, binding: PropertyBinding.InterfaceExtensionFunction): IRValue {
         val implRef = lowerImplBinding(expression.location, binding.implementationBinding)
-        val memberType = typeOfImplMember(binding.implementationBinding.interfaceRef, binding.memberIndex)
+        require(binding.type is Type.Function)
+        requireNotNull(binding.type.receiver)
+        val memberType = typeOfImplMember(binding.implementationBinding.interfaceRef, binding.memberIndex, binding.type.receiver)
 
         val memberRef = builder.buildGetStructField(
                 ty = memberType,
@@ -502,10 +552,18 @@ class IRGen(private val ctx: Context) {
         )
     }
 
-    private fun typeOfImplMember(interfaceRef: InterfaceRef, memberIndex: Int): Type {
+    private fun typeOfImplMember(interfaceRef: InterfaceRef, memberIndex: Int, thisType: Type): Type {
         val interfaceDecl = resolveInterfaceDecl(interfaceRef)
+
+        val substitution = interfaceDecl.typeParams?.zip(interfaceRef.typeArgs ?: listOf())?.map {
+            it.first.binder.location to ctx.checker.annotationToType(it.second)
+        }?.toMap() ?: mapOf()
         return when (val member = interfaceDecl.members[memberIndex]) {
-            is Declaration.Interface.Member.FunctionSignature -> ctx.checker.typeOfFunctionSignature(member.signature)
+            is Declaration.Interface.Member.FunctionSignature -> {
+                val fnType = ctx.checker.typeOfFunctionSignature(member.signature).applySubstitution(substitution, thisType)
+                require(fnType is Type.Function)
+                Type.RawPtr(fnType)
+            }
         }
     }
 

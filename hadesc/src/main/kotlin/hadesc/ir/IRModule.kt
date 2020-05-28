@@ -8,6 +8,7 @@ import hadesc.types.Type
 class IRModule {
     private val definitions = mutableListOf<IRDefinition>()
     private val globals = mutableMapOf<QualifiedName, IRBinding>()
+    val size get() = definitions.size
     fun prettyPrint(): String = definitions.joinToString("\n") { it.prettyPrint() }
 
     fun addExternFunctionDef(

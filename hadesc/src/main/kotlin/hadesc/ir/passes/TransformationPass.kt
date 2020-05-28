@@ -80,6 +80,15 @@ interface TransformationPass: TypeTransformer {
         is IRSizeOf -> lowerSizeOf(value)
         is IRPointerCast -> lowerPointerCast(value)
         is IRMethodRef -> lowerMethodRef(value)
+        is IRAggregate -> lowerAggregateValue(value)
+    }
+
+    fun lowerAggregateValue(value: IRAggregate): IRValue {
+        return IRAggregate(
+                type = lowerType(value.type),
+                location = value.location,
+                values = value.values.map { lowerValue(it) }
+        )
     }
 
     fun lowerMethodRef(value: IRMethodRef): IRValue {
@@ -156,9 +165,10 @@ interface TransformationPass: TypeTransformer {
                 params = params,
                 constraints = definition.signature.constraints.map {
                     IRConstraint(
-                            name = it.name
-                            ,
-                            typeParam = it.typeParam,
+                            name = lowerLocalName(it.name),
+                            type = lowerType(it.type),
+                            location = it.location,
+                            typeParam = lowerTypeParam(it.typeParam),
                             interfaceRef = it.interfaceRef.copy(
                                     typeArgs = it.interfaceRef.typeArgs.map { arg -> lowerType(arg) }
                             )
@@ -183,11 +193,12 @@ interface TransformationPass: TypeTransformer {
         )
     }
 
-    fun lowerBlock(oldBlock: IRBlock, newBlock: IRBlock) {
+    fun lowerBlock(oldBlock: IRBlock, newBlock: IRBlock): IRBlock {
         builder.position = newBlock
         for (instruction in oldBlock) {
             lowerInstruction(instruction)
         }
+        return newBlock
     }
 
     fun lowerInstruction(instruction: IRInstruction): Unit = when(instruction) {

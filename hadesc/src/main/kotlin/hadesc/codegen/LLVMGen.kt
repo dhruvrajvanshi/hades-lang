@@ -2,6 +2,7 @@ package hadesc.codegen
 
 import dev.supergrecko.kllvm.ir.instructions.IntPredicate
 import dev.supergrecko.kllvm.ir.instructions.Opcode
+import dev.supergrecko.kllvm.ir.values.constants.ConstantStruct
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
@@ -23,7 +24,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val builder = Builder(llvmCtx)
 
     fun generate() {
+        var defIndex = -1
         for (it in irModule) {
+            defIndex++
+            logger().debug("Lowering definition $defIndex of ${irModule.size}")
             lowerDefinition(it)
         }
         verifyModule()
@@ -31,8 +35,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         linkWithRuntime()
     }
 
-    private fun lowerDefinition(definition: IRDefinition): Unit =
-        when (definition) {
+    private fun lowerDefinition(definition: IRDefinition): Unit {
+        logger().debug("LLVMGen::lowerDefinition")
+        return when (definition) {
             is IRFunctionDef -> lowerFunctionDef(definition)
             is IRStructDef -> lowerStructDef(definition)
             is IRExternFunctionDef -> lowerExternFunctionDef(definition)
@@ -40,9 +45,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRInterfaceDef -> TODO()
             is IRImplementationDef -> TODO()
         }
+    }
 
     private val loweredGlobals = mutableMapOf<IRGlobalName, Value>()
     private fun lowerConstDef(definition: IRConstDef) {
+        logger().debug("LLVMGen::lowerConstDef(${definition.name.prettyPrint()})")
         val name = lowerName(definition.name)
         if (loweredGlobals[definition.name] == null) {
             val global = llvmModule.addGlobal(name, lowerType(definition.type))
@@ -59,6 +66,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerStructDef(definition: IRStructDef) {
+        logger().debug("LLVMGen::lowerStructDef(${definition.globalName.prettyPrint()})")
         val fn = getStructConstructor(definition)
         withinBlock(fn.createBlock("entry", llvmCtx)) {
             val instanceType = lowerType(definition.instanceType)
@@ -81,6 +89,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
+        logger().debug("LLVMGen::lowerFunctionDef(${definition.name.prettyPrint()})")
         val fn = getDeclaration(definition)
         currentFunction = fn
         definition.params.forEachIndexed { index, param ->
@@ -240,6 +249,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRSizeOf -> lowerSizeOf(value)
         is IRMethodRef -> requireUnreachable()
         is IRPointerCast -> lowerPointerCast(value)
+        is IRAggregate -> lowerAggregate(value)
+    }
+
+    private fun lowerAggregate(value: IRAggregate): Value {
+        return ConstantStruct(
+                value.values.map { lowerExpression(it) },
+                packed = false,
+                context = llvmCtx
+        )
     }
 
     private fun lowerPointerCast(value: IRPointerCast): Value {
@@ -284,7 +302,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerVariable(expression: IRVariable): Value {
         return when (expression.name) {
             is IRLocalName -> requireNotNull(localVariables[expression.name]) {
-                "Unbound variable: ${expression.name.prettyPrint()}"
+                "${expression.location}: Unbound variable: ${expression.name.prettyPrint()}"
             }
             is IRGlobalName -> lowerGlobalVariable(expression.name)
         }
@@ -338,6 +356,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun getDeclaration(def: IRFunctionDef): FunctionValue {
+        require(def.signature.constraints.isEmpty())
         val irName = def.name
         val type = lowerFunctionType(def.type)
         val name = if (irName.mangle() == "main") {
@@ -402,6 +421,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.CInt -> cIntTy
         is Type.RawPtr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
+            require(type.constraints.isEmpty()) {
+                "Found type constraints in LLVMGen phase"
+            }
             require(type.typeParams == null) {
                 "Can't lower unspecialized generic function type"
             }

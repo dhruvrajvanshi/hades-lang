@@ -5,7 +5,9 @@ import hadesc.types.Type
 
 interface TypeTransformer {
     fun lowerType(type: Type): Type = when (type) {
-        Type.Error -> requireUnreachable()
+        Type.Error -> requireUnreachable() {
+            TODO()
+        }
         Type.Byte -> lowerByteType(type)
         Type.Void -> lowerVoidType(type)
         Type.Bool -> lowerBoolType(type)

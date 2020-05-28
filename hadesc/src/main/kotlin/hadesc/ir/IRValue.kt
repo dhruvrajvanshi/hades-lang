@@ -24,6 +24,7 @@ sealed class IRValue : HasLocation {
         is IRMethodRef -> "${thisArg.prettyPrint()}::${method.prettyPrint()}"
         is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"
         is IRPointerCast -> "pointer_cast[${toPointerOfType.prettyPrint()}](${arg.prettyPrint()})"
+        is IRAggregate -> "${type.prettyPrint()} { ${values.joinToString(", ") {it.prettyPrint()}} }"
     }
 }
 
@@ -82,5 +83,11 @@ class IRPointerCast(
     override val location: SourceLocation,
     val toPointerOfType: Type,
     val arg: IRValue
+) : IRValue()
+
+class IRAggregate(
+    override val type: Type,
+    override val location: SourceLocation,
+    val values: List<IRValue>
 ) : IRValue()
 
