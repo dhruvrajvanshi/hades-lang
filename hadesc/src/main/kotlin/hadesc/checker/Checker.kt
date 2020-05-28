@@ -573,7 +573,9 @@ class Checker(
             }
 
         }
-        require(foundInstances.size < 2) {"Overlapping instances"}
+        require(foundInstances.size < 2) {
+            "Overlapping instances"
+        }
         return foundInstances.firstOrNull()
     }
 
@@ -627,31 +629,33 @@ class Checker(
         return null
     }
 
-    private fun getImplementationBindingsForType(lhsType: Type, atNode: HasLocation): Sequence<ImplementationBinding> = sequence {
+    private fun getImplementationBindingsForType(lhsType: Type, atNode: HasLocation): Collection<ImplementationBinding> = sequence {
         for (implementation in ctx.resolver.implementationsInScope(atNode)) {
+            val interfaceDecl = ctx.resolver.resolveDeclaration(implementation.interfaceRef.path)
+            if (interfaceDecl !is Declaration.Interface) {
+                continue
+            }
             val forType = inferAnnotation(implementation.forType)
             if (isAssignableTo(source = lhsType, destination = forType)) {
                 yield(ImplementationBinding.GlobalImpl(implementation))
-            } else {
-                if (lhsType is Type.ParamRef) {
-                    val typeBinding = ctx.resolver.resolveTypeVariable(lhsType.name.identifier) ?: continue
-                    require(typeBinding is TypeBinding.TypeParam)
-                    val bound = typeBinding.bound ?: continue
-                    val decl = ctx.resolver.resolveDeclaration(bound.path)
-                    if (decl !is Declaration.Interface) {
-                        continue
-                    }
-                    val functionDef = requireNotNull(ctx.resolver.getEnclosingFunction(lhsType.name))
-                    val typeParamIndex = functionDef.typeParams?.indexOfFirst {
-                        it.binder.location == lhsType.name.location
-                    }
-                    require(typeParamIndex != null && typeParamIndex > -1)
-                    yield(ImplementationBinding.TypeBound(bound, functionDef, typeParamIndex))
-
-                }
             }
         }
-    }
+        if (lhsType is Type.ParamRef) {
+            val typeBinding = ctx.resolver.resolveTypeVariable(lhsType.name.identifier)
+            require(typeBinding is TypeBinding.TypeParam)
+            val bound = typeBinding.bound
+            if (bound != null) {
+                val functionDef = requireNotNull(ctx.resolver.getEnclosingFunction(lhsType.name))
+                val typeParamIndex = functionDef.typeParams?.indexOfFirst {
+                    it.binder.location == lhsType.name.location
+                }
+                require(typeParamIndex != null && typeParamIndex > -1)
+
+                yield(ImplementationBinding.TypeBound(bound, functionDef, typeParamIndex))
+            }
+
+        }
+    }.toList()
 
     private fun getStructFieldBindingForTypeConstructor(
             typeConstructor: Type.Constructor,
@@ -799,11 +803,17 @@ class Checker(
             }
             for (constraint in functionType.constraints) {
                 val generic = requireNotNull(substitution[constraint.param.binder.location])
-                val instance = if (generic is Type.GenericInstance)
+                val forType = if (generic is Type.GenericInstance)
                     genericInstantiations[generic.id]
                 else generic
-                if (instance != null) {
-                    val implBinding = getInterfaceImplementation(instance, expression, constraint.interfaceName, constraint.args)
+                if (forType != null) {
+                    val interfaceTypeArgs = constraint.args.map { it.applySubstitution(substitution) }
+                    val implBinding = getInterfaceImplementation(
+                            forType,
+                            expression,
+                            constraint.interfaceName,
+                            interfaceTypeArgs
+                    )
                     if (implBinding == null) {
                         error(expression, Diagnostic.Kind.NoImplementationFound)
                     }
