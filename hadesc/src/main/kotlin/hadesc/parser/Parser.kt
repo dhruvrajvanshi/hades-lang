@@ -548,6 +548,21 @@ class Parser(
                 )
 
             }
+            tt.IF -> {
+                val start = advance()
+                expect(tt.LPAREN)
+                val condition = parseExpression()
+                expect(tt.RPAREN)
+                val trueBranch = parseExpression()
+                expect(tt.ELSE)
+                val falseBranch = parseExpression()
+                Expression.If(
+                        makeLocation(start, falseBranch),
+                        condition,
+                        trueBranch,
+                        falseBranch
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)

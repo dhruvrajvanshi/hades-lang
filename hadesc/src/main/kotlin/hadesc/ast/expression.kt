@@ -82,6 +82,13 @@ sealed class Expression : HasLocation {
         val toType: TypeAnnotation,
         val arg: Expression
     ) : Expression()
+
+    data class If(
+        override val location: SourceLocation,
+        val condition: Expression,
+        val trueBranch: Expression,
+        val falseBranch: Expression
+    ) : Expression()
 }
 
 data class Arg(

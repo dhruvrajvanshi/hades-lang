@@ -372,6 +372,7 @@ class IRGen(private val ctx: Context) {
             is Expression.AddressOf -> lowerAddressOf(expression)
             is Expression.Load -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
+            is Expression.If -> lowerIfExpression(expression)
         }
         return lowered
     }
@@ -748,6 +749,39 @@ class IRGen(private val ctx: Context) {
             builder.buildJump(endLocation, end.name)
         }
         builder.position = end
+    }
+
+    private fun lowerIfExpression(expr: Expression.If): IRValue {
+        val resultPtrName = makeLocalName()
+        val type = ctx.checker.typeOfExpression(expr.trueBranch)
+        builder.buildAlloca(type, resultPtrName)
+        val condition = lowerExpression(expr.condition)
+        val ifTrue = buildBlock()
+        val ifFalse = buildBlock()
+        val resultBlock = buildBlock()
+        val resultPtr = builder.buildVariable(type, expr.location, resultPtrName)
+
+        builder.buildBranch(expr.location, condition, ifTrue.name, ifFalse.name);
+
+        builder.withinBlock(ifTrue) {
+            builder.buildStore(ptr = resultPtr, value = lowerExpression(expr.trueBranch))
+            builder.buildJump(expr.trueBranch.location, resultBlock.name)
+        }
+
+        builder.withinBlock(ifFalse) {
+            builder.buildStore(ptr = resultPtr, value = lowerExpression(expr.falseBranch))
+            builder.buildJump(expr.falseBranch.location, resultBlock.name)
+        }
+
+        val resultName = makeLocalName()
+        builder.withinBlock(resultBlock) {
+            builder.buildLoad(resultName, type, resultPtr);
+        }
+        return builder.buildVariable(
+                type,
+                expr.location,
+                resultName
+        )
     }
 
     /**

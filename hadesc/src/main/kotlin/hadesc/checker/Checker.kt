@@ -455,6 +455,12 @@ class Checker(
                 }
                 Type.RawPtr(toPtrOfType)
             }
+            is Expression.If -> {
+                checkExpression(Type.Bool, expression.condition)
+                val lhsType = inferExpression(expression.trueBranch)
+                checkExpression(lhsType, expression.falseBranch)
+                lhsType
+            }
         }
         expressionTypes[expression] = ty
         return ty
