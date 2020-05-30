@@ -43,11 +43,15 @@ data class Position(
 
 inline class SourcePath(val path: Path)
 
+
 data class SourceLocation(
     val file: SourcePath,
     val start: Position,
     val stop: Position
-) : Comparable<SourceLocation> {
+) : Comparable<SourceLocation>, HasLocation {
+    override val location: SourceLocation
+        get() = this
+
     override fun toString(): String {
         return "($file:${start.line})"
     }

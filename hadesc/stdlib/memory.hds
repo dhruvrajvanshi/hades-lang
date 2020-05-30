@@ -1,0 +1,5 @@
+import libc as c;
+
+def free[T](ptr: *T): Void {
+    libc.free(pointer_cast[Void](ptr));
+}

@@ -333,7 +333,7 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerExpression(expression: Expression): IRValue {
-        val lowered = when (expression) {
+        return when (expression) {
             is Expression.Error -> requireUnreachable()
             is Expression.Var -> lowerVar(expression)
             is Expression.Call -> lowerCall(expression)
@@ -343,7 +343,7 @@ class IRGen(private val ctx: Context) {
             is Expression.This -> lowerThisExpression(expression)
             is Expression.NullPtr -> IRNullPtr(typeOfExpression(expression), expression.location)
             is Expression.IntLiteral -> IRCIntConstant(
-                typeOfExpression(expression),
+                    typeOfExpression(expression),
                 expression.location,
                 expression.value
             )
@@ -373,8 +373,8 @@ class IRGen(private val ctx: Context) {
             is Expression.Load -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
+            is Expression.New -> TODO()
         }
-        return lowered
     }
 
     private fun lowerPointerCast(expression: Expression.PointerCast): IRValue {
