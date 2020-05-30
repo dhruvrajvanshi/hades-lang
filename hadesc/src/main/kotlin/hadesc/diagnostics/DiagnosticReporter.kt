@@ -51,6 +51,7 @@ data class Diagnostic(
         object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
         object NoImplementationFound : Diagnostic.Kind(Severity.ERROR)
+        object InvalidNewExpression : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -80,6 +81,7 @@ data class Diagnostic(
             NotAnInterface -> "Not an interface"
             UnboundThisType -> "This type not allowed here"
             NoImplementationFound -> "No implementation found"
+            InvalidNewExpression -> "Invalid new target; Expected a struct declaration"
         }
 
     }

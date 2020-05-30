@@ -180,6 +180,12 @@ class SpecializeGenerics(
                 location = value.location,
                 values = value.values.map { lowerValue(it) }
         )
+        is IRGetElementPointer -> IRGetElementPointer(
+                type = lowerType(value.type),
+                location = value.location,
+                offset = value.offset,
+                ptr = lowerValue(value.ptr)
+        )
     }
 
     private fun lowerSizeOf(value: IRSizeOf, typeArgs: List<Type>?): IRValue {

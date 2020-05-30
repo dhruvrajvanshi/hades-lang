@@ -25,6 +25,7 @@ sealed class IRValue : HasLocation {
         is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"
         is IRPointerCast -> "pointer_cast[${toPointerOfType.prettyPrint()}](${arg.prettyPrint()})"
         is IRAggregate -> "${type.prettyPrint()} { ${values.joinToString(", ") {it.prettyPrint()}} }"
+        is IRGetElementPointer -> "gep $ptr->$offset"
     }
 }
 
@@ -89,5 +90,12 @@ class IRAggregate(
     override val type: Type,
     override val location: SourceLocation,
     val values: List<IRValue>
+) : IRValue()
+
+class IRGetElementPointer(
+    override val type: Type,
+    override val location: SourceLocation,
+    val ptr: IRValue,
+    val offset: Int
 ) : IRValue()
 

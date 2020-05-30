@@ -30,6 +30,7 @@ data class Token(
         IMPLEMENT,
         THIS_TYPE,
         FOR,
+        NEW,
 
         NOT,
         AND,

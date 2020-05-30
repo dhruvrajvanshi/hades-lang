@@ -33,7 +33,8 @@ val KEYWORDS = mapOf(
     "interface" to tt.INTERFACE,
     "implement" to tt.IMPLEMENT,
     "This" to tt.THIS_TYPE,
-    "for" to tt.FOR
+    "for" to tt.FOR,
+    "new" to tt.NEW
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

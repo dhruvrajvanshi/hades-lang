@@ -30,6 +30,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             logger().debug("Lowering definition $defIndex of ${irModule.size}")
             lowerDefinition(it)
         }
+        logger().info(LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
@@ -250,6 +251,15 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRMethodRef -> requireUnreachable()
         is IRPointerCast -> lowerPointerCast(value)
         is IRAggregate -> lowerAggregate(value)
+        is IRGetElementPointer -> lowerGetElementPointer(value)
+    }
+
+    private fun lowerGetElementPointer(value: IRGetElementPointer): Value {
+        return builder.buildStructGEP(
+                pointer = lowerExpression(value.ptr),
+                name = ctx.makeUniqueName().text,
+                index = value.offset
+        )
     }
 
     private fun lowerAggregate(value: IRAggregate): Value {

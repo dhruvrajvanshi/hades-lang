@@ -530,7 +530,7 @@ class Parser(
             }
             tt.STAR -> {
                 val start = advance()
-                val expression = parseExpression()
+                val expression = parsePrimaryExpression()
                 Expression.Load(makeLocation(start, expression), expression)
             }
             tt.POINTER_CAST -> {
@@ -561,6 +561,27 @@ class Parser(
                         condition,
                         trueBranch,
                         falseBranch
+                )
+            }
+            tt.NEW -> {
+                val start = advance()
+                val path = parseQualifiedPath()
+                val typeArgs = if (at(tt.LSQB)) {
+                    advance()
+                    val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                        parseTypeAnnotation()
+                    }
+                    expect(tt.RSQB)
+                    args
+                } else null
+                expect(tt.LPAREN)
+                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) { parseArg() }
+                val stop = expect(tt.RPAREN)
+                Expression.New(
+                        makeLocation(start, stop),
+                        path,
+                        typeArgs,
+                        args
                 )
             }
             else -> {
