@@ -1,8 +1,12 @@
 import submodule.printable_interface as p;
+import memory as mem;
 
 def main(): Void {
     val ptr = new Box(10);
     (*ptr).print();
+
+    mem.free(ptr);
+
 }
 
 implement p.Printable for Box[CInt] {

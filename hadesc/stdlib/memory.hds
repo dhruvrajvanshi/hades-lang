@@ -1,5 +1,10 @@
-import libc as c;
+import libc as libc;
 
 def free[T](ptr: *T): Void {
     libc.free(pointer_cast[Void](ptr));
 }
+
+def unsafe_allocate_unitialized[T](): *T {
+    return pointer_cast[T](libc.malloc(size_of[T]));
+}
+

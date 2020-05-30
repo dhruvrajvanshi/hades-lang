@@ -81,6 +81,16 @@ interface TransformationPass: TypeTransformer {
         is IRPointerCast -> lowerPointerCast(value)
         is IRMethodRef -> lowerMethodRef(value)
         is IRAggregate -> lowerAggregateValue(value)
+        is IRGetElementPointer -> lowerGetElementPointerValue(value)
+    }
+
+    fun lowerGetElementPointerValue(value: IRGetElementPointer): IRValue {
+        return IRGetElementPointer(
+                type = lowerType(value.type),
+                location = value.location,
+                offset = value.offset,
+                ptr = lowerValue(value.ptr)
+        )
     }
 
     fun lowerAggregateValue(value: IRAggregate): IRValue {

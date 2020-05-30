@@ -10,6 +10,7 @@ import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.ValueBinding
 import hadesc.types.Type
@@ -17,6 +18,7 @@ import hadesc.types.Type
 @OptIn(ExperimentalStdlibApi::class)
 class IRGen(private val ctx: Context) {
     private val module = IRModule()
+    // FIXME: Remove unnecessary member function
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
     private val builder = IRBuilder()
@@ -234,17 +236,63 @@ class IRGen(private val ctx: Context) {
                 is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
             }
         }.toMap()
-        val (name, type) = lowerGlobalBinder(declaration.binder)
+        val instanceType = ctx.checker.typeOfStructInstance(declaration)
+        val (name, constructorType) = lowerGlobalBinder(declaration.binder)
+        require(constructorType is Type.Function)
+
+        val typeParams = declaration.typeParams?.map { lowerTypeParam(it) }
         val def = module.addStructDef(
-            type as Type.Function,
-            ctx.checker.typeOfStructInstance(declaration),
+            constructorType,
+            instanceType,
             name,
-            typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+            typeParams = typeParams,
             fields = fields
         )
         definitions.add(def)
         addedStructDefs[declaration.location] = def
+        val initializerType = structInitializerType(constructorType, instanceType)
+        val initializerName = structInitializerName(name)
+        val fn = module.addGlobalFunctionDef(
+                declaration.location,
+                name = initializerName,
+                typeParams = typeParams,
+                type = initializerType,
+                receiverType = null,
+                params = initializerType.from.mapIndexed { index, type ->
+                    IRParam(makeLocalName(), type, declaration.location, initializerName, index)
+                },
+                entryBlock = IRBlock(),
+                constraints = listOf()
+        )
+        val oldPosition = builder.position
+        builder.withinBlock(fn.entryBlock) {
+            val thisParam = fn.params[0]
+            val thisPtr = builder.buildVariable(
+                    ty = thisParam.type,
+                    location = thisParam.location,
+                    name = thisParam.name
+            )
+            fn.params.drop(1).forEachIndexed { index, param ->
+                builder.buildStore(
+                        ptr = IRGetElementPointer(param.type, param.location, ptr = thisPtr, offset = index),
+                        value = builder.buildVariable(param.type, param.location, param.name)
+                )
+            }
+            builder.buildRetVoid()
+        }
+        builder.position = oldPosition
         return def
+    }
+
+    private fun structInitializerName(name: IRGlobalName): IRGlobalName {
+        return IRGlobalName(name.name.append(ctx.makeName("init")))
+    }
+
+    private fun structInitializerType(constructorType: Type.Function, instanceType: Type): Type.Function {
+        return constructorType.copy(
+                from = listOf(Type.RawPtr(instanceType)) + constructorType.from,
+                to = Type.Void
+        )
     }
 
     private val declaredFunctionDefs = mutableMapOf<SourceLocation, IRFunctionDef>()
@@ -299,6 +347,7 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef, prefix: QualifiedName? = null): IRFunctionDef {
         val function = getFunctionDef(def, prefix)
+        logger().debug("IRGen::lowerGlobalFunctionDef(${function.name.prettyPrint()})")
         function.entryBlock = lowerBlock(def.body)
         val ty = function.type
 
@@ -373,8 +422,60 @@ class IRGen(private val ctx: Context) {
             is Expression.Load -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
-            is Expression.New -> TODO()
+            is Expression.New -> lowerNewExpression(expression)
         }
+    }
+
+    private fun lowerNewExpression(expression: Expression.New): IRValue {
+        val constructorDecl = ctx.resolver.resolveDeclaration(expression.qualifiedPath)
+        require(constructorDecl is Declaration.Struct)
+        val structDef = lowerStructDeclaration(constructorDecl)
+
+        val type = typeOfExpression(expression)
+        require(type is Type.RawPtr)
+        val thisPtrName = makeLocalName()
+        val allocUninitializedName = IRGlobalName(QualifiedName(listOf(
+                ctx.makeName("memory"),
+                ctx.makeName("unsafe_allocate_unitialized")
+        )))
+        val allocatorBinding = module.resolveGlobal(allocUninitializedName)
+        require(allocatorBinding is IRBinding.FunctionDef)
+
+        builder.buildCall(
+                type = type,
+                location = expression.location,
+                name = thisPtrName,
+                typeArgs = listOf(type.to),
+                args = listOf(),
+                callee = builder.buildVariable(allocatorBinding.type, expression.location, allocUninitializedName)
+        )
+        val thisPtr = builder.buildVariable(type, expression.location, thisPtrName)
+
+        val args = listOf(thisPtr) + expression.args.map { lowerExpression(it.expression) }
+        val typeArgs = ctx.checker.getTypeArgs(expression)
+
+        val calleeDef = module.resolveGlobal(structInitializerName(structDef.globalName))
+        require(calleeDef is IRBinding.FunctionDef)
+        val calleeName = calleeDef.def.name
+
+        require(structDef.constructorType is Type.Function)
+        val initializerType = calleeDef.def.type
+        val initializer = builder.buildVariable(
+                initializerType,
+                expression.qualifiedPath.location,
+                calleeName
+        )
+
+        builder.buildCall(
+                Type.Void,
+                location = expression.location,
+                callee = initializer,
+                args = args,
+                typeArgs = typeArgs,
+                name = makeLocalName()
+        )
+
+        return thisPtr
     }
 
     private fun lowerPointerCast(expression: Expression.PointerCast): IRValue {
