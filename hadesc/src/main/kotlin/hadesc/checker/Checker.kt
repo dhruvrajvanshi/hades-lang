@@ -180,6 +180,7 @@ class Checker(
         is Declaration.ConstDefinition -> checkConstDef(declaration)
         is Declaration.Interface -> checkInterfaceDeclaration(declaration)
         is Declaration.Implementation -> checkImplementationDeclaration(declaration)
+        is Declaration.EnumDeclaration -> TODO()
     }
 
     private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {
@@ -461,6 +462,8 @@ class Checker(
                 checkExpression(lhsType, expression.falseBranch)
                 lhsType
             }
+            is Expression.TypeApplication -> TODO()
+            is Expression.Match -> TODO()
         }
         expressionTypes[expression] = ty
         return ty

@@ -66,6 +66,7 @@ class IRGen(private val ctx: Context) {
         is Declaration.Implementation -> {
             lowerImplementation(declaration)
         }
+        is Declaration.EnumDeclaration -> TODO()
     }
 
     private fun lowerInterfaceDecl(declaration: Declaration.Interface) {
@@ -373,6 +374,8 @@ class IRGen(private val ctx: Context) {
             is Expression.Load -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
+            is Expression.TypeApplication -> TODO()
+            is Expression.Match -> TODO()
         }
         return lowered
     }

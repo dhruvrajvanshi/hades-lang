@@ -89,6 +89,23 @@ sealed class Expression : HasLocation {
         val trueBranch: Expression,
         val falseBranch: Expression
     ) : Expression()
+
+    data class TypeApplication(
+        override val location: SourceLocation,
+        val lhs: Expression,
+        val args: List<TypeAnnotation>
+    ) : Expression()
+
+    data class Match(
+        override val location: SourceLocation,
+        val value: Expression,
+        val arms: List<Arm>
+    ) : Expression() {
+        data class Arm(
+                val pattern: Pattern,
+                val expression: Expression
+        )
+    }
 }
 
 data class Arg(
