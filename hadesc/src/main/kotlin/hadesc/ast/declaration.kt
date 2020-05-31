@@ -78,13 +78,13 @@ sealed class Declaration : HasLocation {
         }
     }
 
-    data class EnumDeclaration(
+    data class Enum(
         override val location: SourceLocation,
         val name: Binder,
         val typeParams: List<TypeParam>?,
         val cases: List<Case>
     ) : Declaration() {
-        sealed class Case(
+        data class Case(
             val name: Binder,
             val params: List<TypeAnnotation>
         )

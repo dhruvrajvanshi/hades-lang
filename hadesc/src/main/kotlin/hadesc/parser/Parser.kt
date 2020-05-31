@@ -96,6 +96,7 @@ class Parser(
             tt.CONST -> parseConstDef()
             tt.INTERFACE -> parseInterfaceDeclaration()
             tt.IMPLEMENT -> parseImplementationDeclaration()
+            tt.ENUM -> parseEnumDeclaration()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
@@ -199,6 +200,41 @@ class Parser(
                 makeLocation(start, rhs),
                 name,
                 rhs
+        )
+    }
+
+    private fun parseEnumDeclaration(): Declaration {
+        val start = expect(tt.ENUM)
+        val binder = parseBinder()
+        val typeParams = parseOptionalTypeParams()
+        expect(tt.LBRACE)
+        val cases = buildList {
+            while (at(tt.ID)) {
+                add(parseEnumDeclarationCase())
+                expect(tt.SEMICOLON)
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.Enum(
+                makeLocation(start, stop),
+                binder,
+                typeParams,
+                cases
+        )
+    }
+
+    private fun parseEnumDeclarationCase(): Declaration.Enum.Case {
+        val name = parseBinder()
+        val params = buildList {
+            if (at(tt.LPAREN)) {
+                advance()
+                addAll(parseSeperatedList(tt.COMMA, tt.RPAREN) { parseTypeAnnotation() })
+                expect(tt.RPAREN)
+            }
+        }
+        return Declaration.Enum.Case(
+                name,
+                params
         )
     }
 
@@ -563,12 +599,58 @@ class Parser(
                         falseBranch
                 )
             }
+            tt.MATCH -> {
+                val start = advance()
+                val value = parseExpression()
+                expect(tt.LBRACE)
+                val arms = parseSeperatedList(tt.COMMA, tt.RBRACE) {
+                    parseMatchArm()
+                }
+                val stop = expect(tt.RBRACE)
+                Expression.Match(
+                        makeLocation(start, stop),
+                        value,
+                        arms
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         return parseExpressionTail(head)
+    }
+
+    private fun parseMatchArm(): Expression.Match.Arm {
+        val pattern = parsePattern()
+        expect(tt.ARROW)
+        val expression = parseExpression()
+        return Expression.Match.Arm(
+                pattern, expression
+        )
+    }
+
+    private fun parsePattern(): Pattern = when (currentToken.kind) {
+        tt.ID -> {
+            val ident = parseIdentifier()
+            Pattern.Name(ident)
+        }
+        tt.DOT -> {
+            advance()
+            val name = parseIdentifier()
+            val params = buildList {
+                if (at(tt.LPAREN)) {
+                    advance()
+                    addAll(parseSeperatedList(tt.COMMA, tt.RPAREN) { parsePattern() })
+                    expect(tt.RPAREN)
+                }
+            }
+            Pattern.DotName(name, params)
+        }
+        else -> {
+            val location = advance().location
+            syntaxError(location, Diagnostic.Kind.PatternExpected)
+        }
     }
 
     private fun parseExpressionByteString(): Expression {
@@ -605,20 +687,28 @@ class Parser(
                 val typeArgs = parseSeperatedList(tt.COMMA, tt.RSQB) {
                     parseTypeAnnotation()
                 }
-                expect(tt.RSQB)
-                expect(tt.LPAREN)
-                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
-                    parseArg()
+                val rsqb = expect(tt.RSQB)
+                if (at(tt.LPAREN)) {
+                    expect(tt.LPAREN)
+                    val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
+                        parseArg()
+                    }
+                    val stop = expect(tt.RPAREN)
+                    parseExpressionTail(
+                            Expression.Call(
+                                    makeLocation(head, stop),
+                                    typeArgs,
+                                    head,
+                                    args
+                            )
+                    )
+                } else {
+                    parseExpressionTail(Expression.TypeApplication(
+                            makeLocation(head, rsqb),
+                            head,
+                            typeArgs
+                    ))
                 }
-                val stop = expect(tt.RPAREN)
-                parseExpressionTail(
-                        Expression.Call(
-                                makeLocation(head, stop),
-                                typeArgs,
-                                head,
-                                args
-                        )
-                )
             }
             tt.LPAREN -> {
                 advance()

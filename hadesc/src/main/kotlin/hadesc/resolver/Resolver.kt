@@ -265,7 +265,7 @@ class Resolver(val ctx: Context) {
                 }
                 is Declaration.Interface -> null
                 is Declaration.Implementation -> null
-                is Declaration.EnumDeclaration -> TODO()
+                is Declaration.Enum -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -401,7 +401,7 @@ class Resolver(val ctx: Context) {
                             }
                             is Declaration.Interface -> null
                             is Declaration.Implementation -> null
-                            is Declaration.EnumDeclaration -> null
+                            is Declaration.Enum -> null
                         }
                         if (binding != null) {
                             break
@@ -509,7 +509,7 @@ class Resolver(val ctx: Context) {
                 is Declaration.Struct -> decl.binder.identifier.name == declName
                 is Declaration.Interface -> decl.name.identifier.name == declName
                 is Declaration.Implementation -> false
-                is Declaration.EnumDeclaration -> decl.name.identifier.name == declName
+                is Declaration.Enum -> decl.name.identifier.name == declName
             })
             if (match) {
                 return decl
@@ -564,7 +564,7 @@ class Resolver(val ctx: Context) {
                     null
                 }
                 is Declaration.Implementation -> null
-                is Declaration.EnumDeclaration -> if (declaration.name.identifier.name == name.name) {
+                is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
                     null

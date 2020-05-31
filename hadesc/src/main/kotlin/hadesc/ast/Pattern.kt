@@ -5,9 +5,9 @@ import hadesc.location.SourceLocation
 
 
 sealed class Pattern: HasLocation {
-    data class DotName(val identifier: Identifier, val args: List<Pattern>) : Pattern() {
+    data class DotName(val identifier: Identifier, val params: List<Pattern>) : Pattern() {
         override val location get() =
-            SourceLocation.between(identifier, args.lastOrNull() ?: identifier)
+            SourceLocation.between(identifier, params.lastOrNull() ?: identifier)
     }
     data class Name(val identifier: Identifier): Pattern() {
         override val location: SourceLocation

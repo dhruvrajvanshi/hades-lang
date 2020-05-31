@@ -180,7 +180,7 @@ class Checker(
         is Declaration.ConstDefinition -> checkConstDef(declaration)
         is Declaration.Interface -> checkInterfaceDeclaration(declaration)
         is Declaration.Implementation -> checkImplementationDeclaration(declaration)
-        is Declaration.EnumDeclaration -> TODO()
+        is Declaration.Enum -> TODO()
     }
 
     private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {

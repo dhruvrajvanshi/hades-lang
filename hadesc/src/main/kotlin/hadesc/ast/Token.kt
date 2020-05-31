@@ -30,6 +30,8 @@ data class Token(
         IMPLEMENT,
         THIS_TYPE,
         FOR,
+        MATCH,
+        ENUM,
 
         NOT,
         AND,

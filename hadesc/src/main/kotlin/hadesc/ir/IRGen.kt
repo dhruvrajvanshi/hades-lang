@@ -66,7 +66,7 @@ class IRGen(private val ctx: Context) {
         is Declaration.Implementation -> {
             lowerImplementation(declaration)
         }
-        is Declaration.EnumDeclaration -> TODO()
+        is Declaration.Enum -> TODO()
     }
 
     private fun lowerInterfaceDecl(declaration: Declaration.Interface) {

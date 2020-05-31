@@ -18,7 +18,7 @@ def get_string_value(value: Optional[*Byte]): *Byte {
     return match value {
         .Some(message) -> message,
         .None -> b"None"
-    }
+    };
 }
 
 def get_int_value(value: Optional[CInt]): CInt {
