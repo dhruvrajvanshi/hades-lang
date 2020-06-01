@@ -9,8 +9,10 @@ sealed class Pattern: HasLocation {
         override val location get() =
             SourceLocation.between(identifier, params.lastOrNull() ?: identifier)
     }
-    data class Name(val identifier: Identifier): Pattern() {
+    data class Name(val binder: Binder): Pattern() {
         override val location: SourceLocation
-            get() = identifier.location
+            get() = binder.location
     }
+
+    data class Else(override val location: SourceLocation): Pattern()
 }

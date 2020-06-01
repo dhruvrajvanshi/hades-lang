@@ -43,6 +43,13 @@ sealed class ValueBinding {
         val qualifiedName: QualifiedName,
         val declaration: Declaration.ConstDefinition
     ) : ValueBinding()
+
+    data class EnumCaseConstructor(
+        val declaration: Declaration.Enum,
+        val case: Declaration.Enum.Case
+    ) : ValueBinding()
+
+    data class Pattern(val pattern: hadesc.ast.Pattern.Name) : ValueBinding()
 }
 
 sealed class TypeBinding {
@@ -51,6 +58,10 @@ sealed class TypeBinding {
     ) : TypeBinding()
 
     data class TypeParam(val binder: Binder, val bound: InterfaceRef?) : TypeBinding()
+
+    data class Enum(
+            val declaration: Declaration.Enum
+    ) : TypeBinding()
 }
 
 sealed class ScopeNode {
@@ -64,6 +75,8 @@ sealed class ScopeNode {
 
     data class Block(val block: hadesc.ast.Block) : ScopeNode()
     data class Struct(val declaration: Declaration.Struct) : ScopeNode()
+    data class Enum(val declaration: Declaration.Enum) : ScopeNode()
+    data class MatchArm(val arm: Expression.Match.Arm) : ScopeNode()
     data class Interface(val declaration: Declaration.Interface) : ScopeNode()
 
     val location
@@ -73,6 +86,8 @@ sealed class ScopeNode {
             is Block -> block.location
             is Struct -> declaration.location
             is Interface -> declaration.location
+            is Enum -> declaration.location
+            is MatchArm -> arm.location
         }
 }
 
@@ -154,12 +169,25 @@ class Resolver(val ctx: Context) {
                 }
             }
         }
+        is ScopeNode.Enum -> {
+            val param = scopeNode.declaration.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }
+            when {
+                param != null -> TypeBinding.TypeParam(param.binder, param.bound)
+                ident.name == scopeNode.declaration.name.identifier.name -> {
+                    TypeBinding.Enum(scopeNode.declaration)
+                }
+                else -> null
+            }
+        }
         is ScopeNode.Interface -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
             }
             if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
         }
+        is ScopeNode.MatchArm -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -172,10 +200,12 @@ class Resolver(val ctx: Context) {
         return null
     }
 
-    private fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding.Struct? {
+    private fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
         for (declaration in sourceFile.declarations) {
             val binding = if (declaration is Declaration.Struct && declaration.binder.identifier.name == ident.name) {
                 TypeBinding.Struct(declaration)
+            } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
+                TypeBinding.Enum(declaration)
             } else {
                 null
             }
@@ -192,6 +222,33 @@ class Resolver(val ctx: Context) {
         is ScopeNode.Block -> shallowFindInBlock(ident, scope)
         is ScopeNode.Struct -> null
         is ScopeNode.Interface -> null
+        is ScopeNode.Enum -> null
+        is ScopeNode.MatchArm -> shallowFindInMatchArm(ident, scope)
+    }
+
+    private fun shallowFindInMatchArm(ident: Identifier, scope: ScopeNode.MatchArm): ValueBinding? {
+        return findInPattern(ident, scope.arm.pattern)
+    }
+
+    private fun findInPattern(ident: Identifier, pattern: Pattern): ValueBinding? = when (pattern) {
+        is Pattern.DotName -> {
+            var binding: ValueBinding? = null
+            for (param in pattern.params) {
+                val found = findInPattern(ident, param)
+                if (found != null) {
+                    binding = found
+                }
+            }
+            binding
+        }
+        is Pattern.Name -> {
+            if (ident.name == pattern.binder.identifier.name) {
+                ValueBinding.Pattern(pattern)
+            } else {
+                null
+            }
+        }
+        is Pattern.Else -> null
     }
 
     private fun shallowFindInBlock(ident: Identifier, scope: ScopeNode.Block): ValueBinding? {
@@ -265,7 +322,7 @@ class Resolver(val ctx: Context) {
                 }
                 is Declaration.Interface -> null
                 is Declaration.Implementation -> null
-                is Declaration.Enum -> TODO()
+                is Declaration.Enum -> null
             }
             if (binding != null) {
                 return binding
@@ -310,8 +367,16 @@ class Resolver(val ctx: Context) {
         return sourceFileOf(declaration).moduleName.append(declaration.binder.identifier.name)
     }
 
+    fun qualifiedEnumName(declaration: Declaration.Enum): QualifiedName {
+        return sourceFileOf(declaration).moduleName.append(declaration.name.identifier.name)
+    }
+
     fun qualifiedInterfaceName(declaration: Declaration.Interface): QualifiedName {
         return sourceFileOf(declaration).moduleName.append(declaration.name.identifier.name)
+    }
+
+    fun onParseMatchArm(arm: Expression.Match.Arm) {
+        addScopeNode(arm.location.file, ScopeNode.MatchArm(arm))
     }
 
     fun onParseDeclaration(declaration: Declaration) {
@@ -341,6 +406,9 @@ class Resolver(val ctx: Context) {
             }
             is Declaration.Interface -> {
                 addScopeNode(declaration.location.file, ScopeNode.Interface(declaration))
+            }
+            is Declaration.Enum -> {
+                addScopeNode(declaration.location.file, ScopeNode.Enum(declaration))
             }
             else -> {}
         }
@@ -401,7 +469,17 @@ class Resolver(val ctx: Context) {
                             }
                             is Declaration.Interface -> null
                             is Declaration.Implementation -> null
-                            is Declaration.Enum -> null
+                            is Declaration.Enum -> {
+                                if (declaration.name.identifier.name == expression.lhs.name.name) {
+                                    declaration.cases.find {
+                                        it.name.identifier.name == expression.property.name
+                                    }?.let { case ->
+                                        ValueBinding.EnumCaseConstructor(declaration, case)
+                                    }
+                                } else {
+                                    null
+                                }
+                            }
                         }
                         if (binding != null) {
                             break
@@ -410,6 +488,8 @@ class Resolver(val ctx: Context) {
                     binding
                 }
                 is ScopeNode.Interface -> null
+                is ScopeNode.Enum -> null
+                is ScopeNode.MatchArm -> null
             }
             if (binding != null) {
                 return binding
@@ -489,7 +569,13 @@ class Resolver(val ctx: Context) {
         for (decl in sourceFile.declarations) {
             if (decl is Declaration.ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
                 val importedSourceFile = ctx.resolveSourceFile(decl.modulePath)
-                return findTypeInSourceFile(path.identifiers.last(), importedSourceFile)?.declaration
+                val binding = findTypeInSourceFile(path.identifiers.last(), importedSourceFile)
+                return if (binding == null) {
+                    null
+                } else {
+                    require(binding is TypeBinding.Struct)
+                    return binding.declaration
+                }
             }
         }
         return null

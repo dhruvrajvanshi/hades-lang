@@ -63,6 +63,15 @@ class Checker(
                     instanceType.callee
                 }
             }
+            is TypeBinding.Enum -> {
+                val instanceType = typeOfEnumInstance(binding.declaration)
+                if (binding.declaration.typeParams == null) {
+                    instanceType
+                } else {
+                    require(instanceType is Type.Application)
+                    instanceType.callee
+                }
+            }
             is TypeBinding.TypeParam -> Type.ParamRef(binding.binder)
         }
     }
@@ -159,6 +168,17 @@ class Checker(
         return typeOfBinder(declaration.binder)
     }
 
+    private fun typeOfEnumInstance(declaration: Declaration.Enum): Type {
+        val name = ctx.resolver.qualifiedEnumName(declaration)
+        val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
+        val constructor = Type.Constructor(declaration.name, name, typeParams)
+        return if (typeParams != null) {
+            Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
+        } else {
+            constructor
+        }
+    }
+
     fun typeOfStructInstance(declaration: Declaration.Struct): Type {
         val constructorType = typeOfStructConstructor(declaration)
         require(constructorType is Type.Function)
@@ -180,7 +200,21 @@ class Checker(
         is Declaration.ConstDefinition -> checkConstDef(declaration)
         is Declaration.Interface -> checkInterfaceDeclaration(declaration)
         is Declaration.Implementation -> checkImplementationDeclaration(declaration)
-        is Declaration.Enum -> TODO()
+        is Declaration.Enum -> checkEnumDeclaration(declaration)
+    }
+
+    private fun checkEnumDeclaration(declaration: Declaration.Enum) {
+        val variantNames = mutableListOf<Name>()
+        for (case in declaration.cases) {
+            for (param in case.params) {
+                inferAnnotation(param)
+            }
+            if (case.name.identifier.name in variantNames) {
+                error(case.name, Diagnostic.Kind.DuplicateVariantName)
+            } else {
+                variantNames.add(case.name.identifier.name)
+            }
+        }
     }
 
     private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {
@@ -462,11 +496,144 @@ class Checker(
                 checkExpression(lhsType, expression.falseBranch)
                 lhsType
             }
-            is Expression.TypeApplication -> TODO()
-            is Expression.Match -> TODO()
+            is Expression.TypeApplication -> inferTypeApplicationExpression(expression)
+            is Expression.Match -> inferMatchExpression(expression)
         }
         expressionTypes[expression] = ty
         return ty
+    }
+
+    private fun inferMatchExpression(expression: Expression.Match): Type {
+        val valueType = inferExpression(expression.value)
+        var typeArgs = listOf<Type>()
+        val typeConstructor = when (valueType) {
+            is Type.Constructor -> {
+                valueType
+            }
+            is Type.Application -> {
+                typeArgs = valueType.args
+                valueType.callee
+            }
+            else -> {
+                error(expression.value, Diagnostic.Kind.ExpectedEnumType)
+                null
+            }
+        }
+        if (typeConstructor == null)  {
+            for (arm in expression.arms) {
+                inferExpression(arm.expression)
+            }
+            return Type.Error
+        }
+        val decl = ctx.resolver.resolveDeclaration(typeConstructor.name)
+        if (decl !is Declaration.Enum) {
+            error(expression.value, Diagnostic.Kind.ExpectedEnumType)
+            return Type.Error
+        }
+
+        val typeParams = decl.typeParams ?: listOf()
+        val subst = typeParams.zip(typeArgs).map {
+            it.first.binder.location to it.second
+        }.toMap()
+
+        val variantSet = decl.cases.map { it.name.identifier.name }
+        val matchedVariants = mutableSetOf<Name>()
+        var elseEncountered = false
+        var armType: Type? = null
+
+        for (arm in expression.arms) {
+            val pattern = arm.pattern
+            val armExpression = arm.expression
+            if (elseEncountered) {
+                error(pattern, Diagnostic.Kind.UnreachablePattern)
+            }
+            exhaustive(when (pattern) {
+                is Pattern.DotName -> {
+                    if (pattern.identifier.name !in variantSet) {
+                        error(pattern, Diagnostic.Kind.UnboundPattern)
+                    }
+
+                    if (pattern.identifier.name in matchedVariants) {
+                        error(pattern, Diagnostic.Kind.UnreachablePattern)
+                    }
+
+
+                    val case = decl.cases.find { it.name.identifier.name == pattern.identifier.name }
+
+                    if (case != null) {
+                        if (pattern.params.size != case.params.size) {
+                            error(pattern, Diagnostic.Kind.PatternParamMismatch)
+                        }
+                        case.params.zip(pattern.params).forEach { (paramType, pattern) ->
+                            if (pattern is Pattern.Name) {
+                                binderTypes[pattern.binder] = inferAnnotation(paramType).applySubstitution(subst)
+                            }
+                        }
+                    }
+
+                    for (param in pattern.params) {
+                        if (param !is Pattern.Name && param !is Pattern.Else) {
+                            error(pattern, Diagnostic.Kind.NestedPatternsNotAllowed)
+                        }
+                    }
+
+                    if (armType != null) {
+                        checkExpression(armType, armExpression)
+                    } else {
+                        armType = inferExpression(armExpression)
+                    }
+                    matchedVariants.add(pattern.identifier.name)
+                }
+                is Pattern.Name -> {
+                    binderTypes[pattern.binder] = valueType
+                    if (armType != null)  {
+                        checkExpression(armType, armExpression)
+                    } else {
+                        armType = inferExpression(armExpression)
+                    }
+                    elseEncountered = true
+                }
+                is Pattern.Else -> elseEncountered = true
+            })
+            if (elseEncountered) {
+                matchedVariants.addAll(variantSet)
+            }
+        }
+
+        if (!matchedVariants.containsAll(variantSet)) {
+            error(expression.location, Diagnostic.Kind.NonExhaustivePatterns)
+        }
+
+        return armType ?: Type.Error
+    }
+
+    private fun inferTypeApplicationExpression(expression: Expression.TypeApplication): Type {
+        val lhsType = inferExpression(expression.lhs)
+        val typeParams = if (lhsType is Type.Constructor && lhsType.params != null) {
+            lhsType.params
+        } else {
+            listOf()
+        }
+        if (lhsType !is Type.Constructor) {
+            error(expression, Diagnostic.Kind.TooFewTypeArgs)
+            return Type.Error
+        }
+        if (expression.args.size > typeParams.size) {
+            error(expression, Diagnostic.Kind.TooManyTypeArgs)
+            return Type.Error
+        }
+
+        if (expression.args.size < typeParams.size) {
+            error(expression, Diagnostic.Kind.TooManyTypeArgs)
+            return Type.Error
+        }
+
+        val typeArgs = expression.args.map { inferAnnotation(it) }
+
+        return Type.Application(
+                lhsType,
+                typeArgs
+        )
     }
 
     private fun checkLValue(expression: Expression) {
@@ -1025,6 +1192,42 @@ class Checker(
         is ValueBinding.GlobalConst -> {
             declareGlobalConst(binding.declaration)
             requireNotNull(binderTypes[binding.declaration.name])
+        }
+        is ValueBinding.EnumCaseConstructor -> {
+            typeOfEnumConstructor(binding.declaration, binding.case)
+        }
+        is ValueBinding.Pattern -> requireNotNull(binderTypes[binding.pattern.binder])
+    }
+
+    private fun typeOfEnumConstructor(
+            declaration: Declaration.Enum,
+            case: Declaration.Enum.Case
+    ): Type {
+        if (case.params.isEmpty()) {
+            val typeParams = declaration.typeParams?.map {
+                require(it.bound == null)
+                Type.Param(it.binder)
+            }
+            return Type.Constructor(
+                    binder = declaration.name,
+                    name = ctx.resolver.qualifiedEnumName(declaration),
+                    params = typeParams
+            )
+        } else {
+            val instanceType = typeOfEnumInstance(declaration)
+            val typeParams = declaration.typeParams?.map {
+                require(it.bound == null)
+                Type.Param(it.binder)
+            }
+            val from = case.params.map { inferAnnotation(it) }
+            return Type.Function(
+                    receiver = null,
+                    constraints = emptyList(),
+                    typeParams = typeParams,
+                    from = from,
+                    to = instanceType
+
+            )
         }
     }
 

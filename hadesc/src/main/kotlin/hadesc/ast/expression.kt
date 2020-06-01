@@ -104,7 +104,10 @@ sealed class Expression : HasLocation {
         data class Arm(
                 val pattern: Pattern,
                 val expression: Expression
-        )
+        ) : HasLocation {
+            override val location: SourceLocation
+                get() = SourceLocation.between(pattern, expression)
+        }
     }
 }
 

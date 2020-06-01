@@ -47,11 +47,19 @@ data class Diagnostic(
         object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
         object TooManyTypeArgs : Diagnostic.Kind(Severity.ERROR)
+        object TooFewTypeArgs : Diagnostic.Kind(Severity.ERROR)
         object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
         object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
         object NoImplementationFound : Diagnostic.Kind(Severity.ERROR)
         object PatternExpected : Diagnostic.Kind(Severity.ERROR)
+        object ExpectedEnumType : Diagnostic.Kind(Severity.ERROR)
+        object NestedPatternsNotAllowed : Diagnostic.Kind(Severity.ERROR)
+        object UnreachablePattern : Diagnostic.Kind(Severity.WARNING)
+        object UnboundPattern : Diagnostic.Kind(Severity.ERROR)
+        object NonExhaustivePatterns : Diagnostic.Kind(Severity.ERROR)
+        object PatternParamMismatch : Diagnostic.Kind(Severity.ERROR)
+        object DuplicateVariantName : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -82,6 +90,14 @@ data class Diagnostic(
             UnboundThisType -> "This type not allowed here"
             NoImplementationFound -> "No implementation found"
             PatternExpected -> "Pattern expected"
+            TooFewTypeArgs -> "Too few type arguments"
+            ExpectedEnumType -> "Expected an enum type"
+            NestedPatternsNotAllowed -> "Nested patterns not allowed"
+            UnreachablePattern -> "Unreachable pattern"
+            UnboundPattern -> "Unbound pattern"
+            NonExhaustivePatterns -> "Non exhaustive patterns"
+            PatternParamMismatch -> "Pattern param length mismatch"
+            DuplicateVariantName -> "Duplicate variant name"
         }
 
     }

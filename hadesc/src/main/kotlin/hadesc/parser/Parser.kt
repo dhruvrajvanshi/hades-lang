@@ -625,15 +625,16 @@ class Parser(
         val pattern = parsePattern()
         expect(tt.ARROW)
         val expression = parseExpression()
-        return Expression.Match.Arm(
+        val arm = Expression.Match.Arm(
                 pattern, expression
         )
+        ctx.resolver.onParseMatchArm(arm)
+        return arm
     }
 
     private fun parsePattern(): Pattern = when (currentToken.kind) {
         tt.ID -> {
-            val ident = parseIdentifier()
-            Pattern.Name(ident)
+            Pattern.Name(parseBinder())
         }
         tt.DOT -> {
             advance()
@@ -646,6 +647,9 @@ class Parser(
                 }
             }
             Pattern.DotName(name, params)
+        }
+        tt.ELSE -> {
+            Pattern.Else(advance().location)
         }
         else -> {
             val location = advance().location

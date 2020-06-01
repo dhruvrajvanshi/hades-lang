@@ -675,6 +675,8 @@ class IRGen(private val ctx: Context) {
             is ValueBinding.GlobalConst -> {
                 lowerConstDeclaration(binding.declaration).name
             }
+            is ValueBinding.EnumCaseConstructor -> TODO()
+            is ValueBinding.Pattern -> TODO()
         }
         return builder.buildVariable(ty, node.location, name)
 
