@@ -22,6 +22,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val llvmCtx = llvm.Context()
     private val llvmModule = llvm.Module(ctx.options.main.toString(), llvmCtx)
     private val builder = Builder(llvmCtx)
+    private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
 
     fun generate() {
         var defIndex = -1
@@ -33,6 +34,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
+    }
+
+    private fun sizeOfType(type: llvm.Type): Long {
+        return LLVM.LLVMABISizeOfType(dataLayout, type.ref)
     }
 
     private fun lowerDefinition(definition: IRDefinition): Unit {
@@ -140,6 +145,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRBr -> lowerBr(instruction)
         is IRJump -> lowerJump(instruction)
         is IRBinOp -> lowerBinOp(instruction)
+        is IRSwitch -> TODO()
     }
 
     private fun lowerBinOp(statement: IRBinOp) {
@@ -449,6 +455,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Application -> requireUnreachable()
         Type.Size -> sizeTy
         is Type.ThisRef -> requireUnreachable()
+        is Type.UntaggedUnion -> TODO()
     }
 
     private var nextLiteralIndex = 0

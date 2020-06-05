@@ -168,7 +168,7 @@ class Checker(
         return typeOfBinder(declaration.binder)
     }
 
-    private fun typeOfEnumInstance(declaration: Declaration.Enum): Type {
+    public fun typeOfEnumInstance(declaration: Declaration.Enum): Type {
         val name = ctx.resolver.qualifiedEnumName(declaration)
         val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
         val constructor = Type.Constructor(declaration.name, name, typeParams)
@@ -1050,6 +1050,7 @@ class Checker(
         }
         is Type.Constructor -> type
         is Type.ThisRef -> type
+        is Type.UntaggedUnion -> Type.UntaggedUnion(type.members.map { applyInstantiations(it) })
     }
 
     private fun applyInstantiations(expression: Expression) {

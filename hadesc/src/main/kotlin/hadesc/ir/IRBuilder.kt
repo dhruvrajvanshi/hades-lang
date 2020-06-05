@@ -130,4 +130,8 @@ class IRBuilder {
     fun buildJump(location: SourceLocation, name: IRLocalName): IRInstruction {
         return addStatement(IRJump(location, name))
     }
+
+    fun buildSwitch(location: SourceLocation, onValue: IRValue, cases: List<IRLocalName>): IRInstruction {
+        return addStatement(IRSwitch(location, onValue, cases))
+    }
 }

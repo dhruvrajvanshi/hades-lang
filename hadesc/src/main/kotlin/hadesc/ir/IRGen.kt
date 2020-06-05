@@ -66,7 +66,94 @@ class IRGen(private val ctx: Context) {
         is Declaration.Implementation -> {
             lowerImplementation(declaration)
         }
-        is Declaration.Enum -> TODO()
+        is Declaration.Enum -> lowerEnumDecl(declaration)
+    }
+
+    private val isEnumDeclLowered = mutableSetOf<SourceLocation>()
+    private val enumDataTypes = mutableMapOf<SourceLocation, Type>()
+    private fun lowerEnumDecl(declaration: Declaration.Enum) {
+        if (declaration.location in isEnumDeclLowered) {
+            return
+        }
+        val instanceType = ctx.checker.typeOfEnumInstance(declaration)
+        val enumName = ctx.resolver.qualifiedEnumName(declaration)
+        val typeParams = declaration.typeParams?.map { lowerTypeParam(it) }
+        val caseTypes = mutableListOf<Type>()
+        declaration.cases.forEachIndexed { index, case ->
+            val dataName = IRGlobalName(enumName.append(case.name.identifier.name).append(ctx.makeName("Data")))
+            val constructorName = IRGlobalName(enumName.append(case.name.identifier.name))
+            val caseInstanceType = if (typeParams == null) {
+                Type.Constructor(
+                        case.name,
+                        dataName.name,
+                        params = null
+                )
+            } else {
+                Type.Application(
+                        Type.Constructor(case.name, dataName.name, params = typeParams.map { Type.Param(it.binder) }),
+                        typeParams.map { Type.ParamRef(it.binder) }
+                )
+            }
+            if (case.params.isEmpty()) {
+                module.addConstDef(dataName, caseInstanceType, IRCIntConstant(Type.CInt, case.name.location, 0))
+            } else {
+                val constructorType = Type.Function(
+                        typeParams = typeParams?.map { Type.Param(it.binder) },
+                        from = case.params.map { ctx.checker.annotationToType(it) },
+                        to = caseInstanceType,
+                        receiver = null
+                )
+                val fields = case.params.mapIndexed { paramIndex, annotation ->
+                    ctx.makeName(paramIndex.toString()) to ctx.checker.annotationToType(annotation)
+                }.toMap()
+                module.addStructDef(
+                        constructorType,
+                        caseInstanceType,
+                        dataName,
+                        typeParams,
+                        fields
+                )
+
+                val constructorFn = module.addGlobalFunctionDef(
+                    location = case.name.location,
+                    name = constructorName,
+                    type = constructorType.copy(to = instanceType),
+                    typeParams = typeParams,
+                    constraints = listOf(),
+                    receiverType = null,
+                    entryBlock = IRBlock(IRLocalName(ctx.makeName("entry"))),
+                    params = case.params.mapIndexed { paramIndex, caseParam ->
+                        IRParam(
+                                type = ctx.checker.annotationToType(caseParam),
+                                location = caseParam.location,
+                                functionName = constructorName,
+                                index = paramIndex,
+                                name = IRLocalName(ctx.makeName(paramIndex.toString()))
+                        )
+                    }
+                )
+            }
+            caseTypes.add(caseInstanceType)
+        }
+        val constructorType = Type.Function(
+                receiver = null,
+                typeParams = typeParams?.map { Type.Param(it.binder) },
+                to = instanceType,
+                from = listOf(Type.CInt, Type.UntaggedUnion(caseTypes))
+        )
+        val dataType = Type.UntaggedUnion(caseTypes)
+        val fields = mapOf(
+                ctx.makeName("tag") to Type.CInt,
+                ctx.makeName("data") to dataType
+        )
+        enumDataTypes[declaration.location] = dataType
+        module.addStructDef(
+                constructorType,
+                instanceType,
+                IRGlobalName(enumName),
+                typeParams,
+                fields
+        )
     }
 
     private fun lowerInterfaceDecl(declaration: Declaration.Interface) {
@@ -283,7 +370,6 @@ class IRGen(private val ctx: Context) {
                     )
                 }
             )
-            currentFunction = function
             definitions.add(function)
             function
         }
@@ -300,7 +386,8 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef, prefix: QualifiedName? = null): IRFunctionDef {
         val function = getFunctionDef(def, prefix)
-        function.entryBlock = lowerBlock(def.body)
+        currentFunction = function
+        function.entryBlock = lowerBlock(def.body, function.entryBlock)
         val ty = function.type
 
         if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
@@ -374,10 +461,96 @@ class IRGen(private val ctx: Context) {
             is Expression.Load -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
-            is Expression.TypeApplication -> TODO()
-            is Expression.Match -> TODO()
+            is Expression.TypeApplication -> lowerTypeApplication(expression)
+            is Expression.Match -> lowerMatchExpression(expression)
         }
         return lowered
+    }
+
+    private fun lowerMatchExpression(expression: Expression.Match): IRValue {
+        val value = lowerExpression(expression.value)
+        val valueType = value.type
+        val (constructorType, typeArgs) = if (valueType is Type.Application) {
+            valueType.callee to valueType.args
+        } else if (valueType is Type.Constructor) {
+            valueType to listOf()
+        } else {
+            requireUnreachable()
+        }
+        val enumDeclaration = ctx.resolver.resolveDeclaration(constructorType.name)
+        require(enumDeclaration is Declaration.Enum)
+
+        val resultPtrName = makeLocalName()
+
+        builder.buildAlloca(valueType, resultPtrName)
+        val resultPtr = IRVariable(type = Type.RawPtr(valueType), name = resultPtrName, location = expression.value.location)
+
+
+        val tag = builder.buildGetStructField(Type.CInt, expression.value.location, value, ctx.makeName("tag"), 0)
+        val data = builder.buildGetStructField(
+                enumDataType(enumDeclaration),
+                expression.value.location,
+                value,
+                ctx.makeName("data"),
+                1
+        )
+
+        val branches = enumDeclaration.cases.mapIndexed { index, case ->
+            index to buildBlock()
+        }.toMap()
+
+
+        builder.buildSwitch(
+                expression.location,
+                tag,
+                branches.entries.sortedBy { it.key }.map { it.value.name }
+        )
+
+        for (arm in expression.arms) {
+            exhaustive(when (arm.pattern) {
+                is Pattern.DotName -> {
+                    val tagValue = enumDeclaration.cases.indexOfFirst { it.name.identifier.name == arm.pattern.identifier.name }
+                    val case = enumDeclaration.cases.find { it.name.identifier.name == arm.pattern.identifier.name }
+                    require(tagValue > -1)
+                    require(case != null)
+                    val block = requireNotNull(branches[tagValue])
+
+                    builder.withinBlock(block) {
+                        arm.pattern.params.forEachIndexed { fieldIndex, pattern ->
+                            require(pattern is Pattern.Name)
+                            val name = IRLocalName(pattern.binder.identifier.name)
+                            val fieldType = TODO()
+                            val ptr = builder.buildVariable(Type.RawPtr(fieldType), pattern.location, name)
+                            builder.buildAlloca(fieldType, name)
+                            patternVars[pattern.location] = name
+                            val value = builder.buildGetStructField(
+                                    fieldType,
+                                    pattern.location,
+                                    data,
+                                    field = null,
+                                    index = fieldIndex
+                            )
+                            builder.buildStore(ptr, value)
+                        }
+                        val armValue = lowerExpression(arm.expression)
+                        builder.buildStore(resultPtr, armValue)
+                    }
+                }
+                is Pattern.Name -> TODO()
+                is Pattern.Else -> TODO()
+                else -> requireUnreachable()
+            })
+        }
+        TODO()
+    }
+
+    private fun enumDataType(enumDeclaration: Declaration.Enum): Type {
+        lowerEnumDecl(enumDeclaration)
+        return requireNotNull(enumDataTypes[enumDeclaration.location])
+    }
+
+    private fun lowerTypeApplication(expression: Expression.TypeApplication): IRValue {
+        return lowerExpression(expression.lhs)
     }
 
     private fun lowerPointerCast(expression: Expression.PointerCast): IRValue {
@@ -641,6 +814,7 @@ class IRGen(private val ctx: Context) {
         return lowerBindingRef(ctx.checker.typeOfExpression(variable), variable, ctx.resolver.resolve(variable.name))
     }
 
+    private val patternVars = mutableMapOf<SourceLocation, IRLocalName>()
     private fun lowerBindingRef(ty: Type, node: HasLocation, binding: ValueBinding?): IRValue {
         val name: IRName = when (binding) {
             null -> requireUnreachable()
@@ -675,11 +849,21 @@ class IRGen(private val ctx: Context) {
             is ValueBinding.GlobalConst -> {
                 lowerConstDeclaration(binding.declaration).name
             }
-            is ValueBinding.EnumCaseConstructor -> TODO()
-            is ValueBinding.Pattern -> TODO()
+            is ValueBinding.EnumCaseConstructor -> {
+                lowerEnumCaseConstructorBinding(binding)
+            }
+            is ValueBinding.Pattern -> {
+                requireNotNull(patternVars[binding.pattern.location])
+            }
         }
         return builder.buildVariable(ty, node.location, name)
 
+    }
+
+    private fun lowerEnumCaseConstructorBinding(binding: ValueBinding.EnumCaseConstructor): IRName {
+        val enumName = globalBinderName(binding.declaration.name)
+        val caseName = binding.case.name.identifier.name
+        return IRGlobalName(enumName.name.append(caseName))
     }
 
     private fun lowerCall(expression: Expression.Call): IRValue {

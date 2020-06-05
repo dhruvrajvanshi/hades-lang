@@ -112,6 +112,7 @@ class SpecializeGenerics(
                     is IRBr -> visitBranch(statement)
                     is IRJump -> visitJump(statement)
                     is IRBinOp -> visitBinOp(statement)
+                    is IRSwitch -> requireUnreachable()
                 }
             )
         }
@@ -476,6 +477,7 @@ class SpecializeGenerics(
             }
             Type.Size -> type
             is Type.ThisRef -> requireUnreachable()
+            is Type.UntaggedUnion -> Type.UntaggedUnion(type.members.map { lowerType(it) })
         }
     }
 }

@@ -20,6 +20,11 @@ interface TypeTransformer {
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> lowerTypeApplication(type)
         is Type.ThisRef -> lowerThisRefType(type)
+        is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
+    }
+
+    fun lowerUntaggedUnionType(type: Type.UntaggedUnion): Type {
+        return Type.UntaggedUnion(type.members.map { lowerType(it) })
     }
 
     fun lowerFunctionType(type: Type.Function): Type = Type.Function(

@@ -212,6 +212,15 @@ interface TransformationPass: TypeTransformer {
         is IRNot -> lowerNotInstruction(instruction)
         is IRBr -> lowerBrInstruction(instruction)
         is IRJump -> lowerJumpInstruction(instruction)
+        is IRSwitch -> lowerSwitchInstruction(instruction)
+    }
+
+    fun lowerSwitchInstruction(instruction: IRSwitch) {
+        builder.buildSwitch(
+                instruction.location,
+                lowerValue(instruction.onValue),
+                instruction.cases.map { lowerLocalName(it) }
+        )
     }
 
     fun lowerRetVoidInstruction(instruction: IRInstruction) {

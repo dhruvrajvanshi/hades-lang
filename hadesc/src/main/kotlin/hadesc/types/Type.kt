@@ -47,6 +47,7 @@ sealed class Type {
 
     data class Application(val callee: Constructor, val args: List<Type>) : Type()
     data class ThisRef(val location: SourceLocation) : Type()
+    data class UntaggedUnion(val members: List<Type>) : Type()
 
 
     fun prettyPrint(): String = when (this) {
@@ -70,6 +71,7 @@ sealed class Type {
         is Constructor -> name.mangle()
         Size -> "Size"
         is ThisRef -> "This"
+        is UntaggedUnion -> members.joinToString(" | ") { it.prettyPrint() }
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
@@ -106,6 +108,9 @@ sealed class Type {
             }
             is Constructor -> this
             is ThisRef -> thisType?.recurse() ?: this
+            is UntaggedUnion -> Type.UntaggedUnion(
+                    members.map { it.recurse() }
+            )
         }
     }
 

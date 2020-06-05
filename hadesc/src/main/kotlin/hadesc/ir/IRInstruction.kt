@@ -26,6 +26,7 @@ sealed class IRInstruction {
         is IRBr -> "br ${condition.prettyPrint()} then:${ifTrue.prettyPrint()} else:${ifFalse.prettyPrint()}"
         is IRJump -> "jmp ${label.prettyPrint()}"
         is IRBinOp -> "${name.prettyPrint()}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()} ${rhs.prettyPrint()}"
+        is IRSwitch -> "switch (${onValue.prettyPrint()}, ${cases.joinToString(", ") { it.prettyPrint() }})"
     }
 }
 
@@ -86,4 +87,10 @@ data class IRBr(
 data class IRJump(
         val location: SourceLocation,
         val label: IRLocalName
+) : IRInstruction()
+
+data class IRSwitch(
+    val location: SourceLocation,
+    val onValue: IRValue,
+    val cases: List<IRLocalName>
 ) : IRInstruction()
