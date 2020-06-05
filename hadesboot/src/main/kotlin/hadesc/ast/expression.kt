@@ -109,6 +109,13 @@ sealed class Expression : HasLocation {
                 get() = SourceLocation.between(pattern, expression)
         }
     }
+
+    data class New(
+        override val location: SourceLocation,
+        val qualifiedPath: QualifiedPath,
+        val typeArgs: List<TypeAnnotation>?,
+        val args: List<Arg>
+    ) : Expression()
 }
 
 data class Arg(

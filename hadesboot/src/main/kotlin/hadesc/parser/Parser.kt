@@ -613,6 +613,27 @@ class Parser(
                         arms
                 )
             }
+            tt.NEW -> {
+                val start = advance()
+                val path = parseQualifiedPath()
+                val typeArgs = if (at(tt.LSQB)) {
+                    advance()
+                    val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                        parseTypeAnnotation()
+                    }
+                    expect(tt.RSQB)
+                    args
+                } else null
+                expect(tt.LPAREN)
+                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) { parseArg() }
+                val stop = expect(tt.RPAREN)
+                Expression.New(
+                        makeLocation(start, stop),
+                        path,
+                        typeArgs,
+                        args
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)

@@ -25,7 +25,7 @@ class Checker(
     private val expressionTypes = MutableNodeMap<Expression, Type>()
     private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
     private val returnTypeStack = Stack<Type>()
-    private val typeArguments = MutableNodeMap<Expression, List<Type>>()
+    private val typeArguments = mutableMapOf<SourceLocation, List<Type>>()
 
     private val genericInstantiations = mutableMapOf<Long, Type>()
     private var _nextGenericInstance = 0L
@@ -186,7 +186,7 @@ class Checker(
     }
 
     fun getTypeArgs(call: Expression): List<Type>? {
-        return typeArguments[call]
+        return typeArguments[call.location]
     }
 
     fun checkDeclaration(declaration: Declaration) = when (declaration) {
@@ -498,6 +498,7 @@ class Checker(
             }
             is Expression.TypeApplication -> inferTypeApplicationExpression(expression)
             is Expression.Match -> inferMatchExpression(expression)
+            is Expression.New -> inferNewExpression(expression)
         }
         expressionTypes[expression] = ty
         return ty
@@ -906,15 +907,33 @@ class Checker(
         return Type.GenericInstance(binder, _nextGenericInstance)
     }
 
-    private val implBindings = MutableNodeMap<Expression.Call, List<ImplementationBinding>>()
-    private fun inferCall(expression: Expression.Call, expectedReturnType: Type? = null): Type {
-        val calleeType = inferExpression(expression.callee, expression.typeArgs)
+    private fun inferCall(expression: Expression.Call): Type {
+        return inferCallOrNew(
+                calleeType = inferExpression(expression.callee),
+                typeArgs = expression.typeArgs,
+                args = expression.args,
+                callee = expression.callee,
+                calleeLocation = expression.callee.location,
+                expressionLocation = expression.location
+        )
+    }
+
+    private val implBindings = mutableMapOf<SourceLocation, List<ImplementationBinding>>()
+    private fun inferCallOrNew(
+            calleeType: Type,
+            expressionLocation: SourceLocation,
+            callee: Expression?,
+            calleeLocation: SourceLocation,
+            typeArgs: List<TypeAnnotation>?,
+            args: List<Arg>,
+            expectedReturnType: Type? = null
+    ): Type {
         val functionType = if (calleeType is Type.Function) {
             calleeType
         } else if (calleeType is Type.RawPtr && calleeType.to is Type.Function) {
             calleeType.to
         } else {
-            error(expression.location, Diagnostic.Kind.TypeNotCallable(calleeType))
+            error(expressionLocation, Diagnostic.Kind.TypeNotCallable(calleeType))
             Type.Error
         }
         if (functionType is Type.Function) {
@@ -922,43 +941,43 @@ class Checker(
             functionType.typeParams?.forEach {
                 substitution[it.binder.location] = makeGenericInstance(it.binder)
             }
-            if (functionType.typeParams != null && expression.typeArgs != null) {
-                functionType.typeParams.zip(expression.typeArgs).forEach { (typeParam, typeArg) ->
+            if (functionType.typeParams != null && typeArgs != null) {
+                functionType.typeParams.zip(typeArgs).forEach { (typeParam, typeArg) ->
                     substitution[typeParam.binder.location] = inferAnnotation(typeArg)
                 }
-                if (expression.typeArgs.size > functionType.typeParams.size) {
-                    error(expression.location, Diagnostic.Kind.TooManyTypeArgs)
+                if (typeArgs.size > functionType.typeParams.size) {
+                    error(expressionLocation, Diagnostic.Kind.TooManyTypeArgs)
                 }
             }
-            val len = min(functionType.from.size, expression.args.size)
+            val len = min(functionType.from.size, args.size)
             val to = functionType.to.applySubstitution(substitution)
             if (expectedReturnType != null) {
-                checkAssignability(expression.location, source = to, destination = expectedReturnType)
+                checkAssignability(expressionLocation, source = to, destination = expectedReturnType)
             }
             if (functionType.receiver != null) {
-                require(expression.callee is Expression.Property)
+                require(callee is Expression.Property)
                 val expected = functionType.receiver.applySubstitution(substitution)
-                val found = expression.callee.lhs
+                val found = callee.lhs
                 checkExpression(expected, found)
             }
             for (index in 0 until len) {
                 val expected = functionType.from[index].applySubstitution(substitution)
-                val found = expression.args[index].expression
+                val found = args[index].expression
                 checkExpression(expected, found)
             }
 
-            if (functionType.from.size > expression.args.size) {
-                error(expression, Diagnostic.Kind.MissingArgs(required = functionType.from.size))
-            } else if (functionType.from.size < expression.args.size) {
-                error(expression, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
-                for (index in len + 1 until expression.args.size) {
-                    inferExpression(expression.args[index].expression)
+            if (functionType.from.size > args.size) {
+                error(expressionLocation, Diagnostic.Kind.MissingArgs(required = functionType.from.size))
+            } else if (functionType.from.size < args.size) {
+                error(expressionLocation, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
+                for (index in len + 1 until args.size) {
+                    inferExpression(args[index].expression)
                 }
             }
-            if (expression.callee is Expression.Property) {
-                applyInstantiations(expression.callee)
+            if (callee is Expression.Property) {
+                applyInstantiations(callee)
             }
-            for (arg in expression.args) {
+            for (arg in args) {
                 applyInstantiations(arg.expression)
             }
 
@@ -970,8 +989,8 @@ class Checker(
                 else generic
                 typeArgs.add(
                         if (instance == null) {
-                            error(expression.args.firstOrNull()
-                                    ?: expression, Diagnostic.Kind.UninferrableTypeParam(it.binder))
+                            error(args.firstOrNull()
+                                    ?: expressionLocation, Diagnostic.Kind.UninferrableTypeParam(it.binder))
                             Type.Error
                         } else {
                             instance
@@ -988,34 +1007,61 @@ class Checker(
                     val interfaceTypeArgs = constraint.args.map { it.applySubstitution(substitution) }
                     val implBinding = getInterfaceImplementation(
                             forType,
-                            expression,
+                            expressionLocation,
                             constraint.interfaceName,
                             interfaceTypeArgs
                     )
                     if (implBinding == null) {
-                        error(expression, Diagnostic.Kind.NoImplementationFound)
+                        error(expressionLocation, Diagnostic.Kind.NoImplementationFound)
                     } else {
                         constraintBindings.add(implBinding)
                     }
                 }
             }
-            implBindings[expression] = constraintBindings
+            implBindings[expressionLocation] = constraintBindings
             if (functionType.typeParams != null) {
-                typeArguments[expression] = typeArgs
-                typeArguments[expression.callee] = typeArgs
+                typeArguments[expressionLocation] = typeArgs
+                typeArguments[calleeLocation] = typeArgs
             }
             return applyInstantiations(to)
         } else {
-            for (arg in expression.args) {
+            for (arg in args) {
                 inferExpression(arg.expression)
             }
             if (functionType != Type.Error) {
-                error(expression, Diagnostic.Kind.TypeNotCallable(functionType))
+                error(expressionLocation, Diagnostic.Kind.TypeNotCallable(functionType))
             }
             return Type.Error
         }
     }
 
+
+    private fun inferNewExpression(expression: Expression.New): Type {
+
+        val calleeDecl = ctx.resolver.resolveDeclaration(expression.qualifiedPath)
+        if (calleeDecl !is Declaration.Struct) {
+            error(expression.qualifiedPath.location, Diagnostic.Kind.InvalidNewExpression)
+            for (arg in expression.args) {
+                inferExpression(arg.expression)
+            }
+            expression.typeArgs?.forEach {
+                inferAnnotation(it)
+            }
+            return Type.Error
+        }
+        val calleeType = typeOfStructConstructor(calleeDecl)
+        val callType = inferCallOrNew(
+                expressionLocation = expression.location,
+                calleeLocation = expression.qualifiedPath.location,
+                callee = null,
+                args = expression.args,
+                typeArgs = expression.typeArgs,
+                expectedReturnType = null,
+                calleeType = calleeType
+        )
+
+        return Type.RawPtr(callType)
+    }
 
     private fun applyInstantiations(type: Type): Type = when (type) {
         Type.Error,
@@ -1326,7 +1372,7 @@ class Checker(
     }
 
     fun getConstraintBindings(expression: Expression.Call): List<ImplementationBinding> {
-        return requireNotNull(implBindings[expression])
+        return requireNotNull(implBindings[expression.location])
     }
 }
 

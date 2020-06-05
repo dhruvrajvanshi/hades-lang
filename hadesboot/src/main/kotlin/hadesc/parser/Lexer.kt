@@ -35,7 +35,8 @@ val KEYWORDS = mapOf(
     "This" to tt.THIS_TYPE,
     "for" to tt.FOR,
     "match" to tt.MATCH,
-    "enum" to tt.ENUM
+    "enum" to tt.ENUM,
+    "new" to tt.NEW
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

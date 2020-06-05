@@ -60,6 +60,7 @@ data class Diagnostic(
         object NonExhaustivePatterns : Diagnostic.Kind(Severity.ERROR)
         object PatternParamMismatch : Diagnostic.Kind(Severity.ERROR)
         object DuplicateVariantName : Diagnostic.Kind(Severity.ERROR)
+        object InvalidNewExpression : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -98,6 +99,7 @@ data class Diagnostic(
             NonExhaustivePatterns -> "Non exhaustive patterns"
             PatternParamMismatch -> "Pattern param length mismatch"
             DuplicateVariantName -> "Duplicate variant name"
+            InvalidNewExpression -> "Invalid new target; Expected a struct declaration"
         }
 
     }
