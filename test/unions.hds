@@ -1,0 +1,10 @@
+
+import submodule.test_utils as u;
+
+def main(): Void {
+    val x: union[CInt, Bool] = 1;
+    val x_int = *pointer_cast[CInt](&x);
+    val x_bool = *pointer_cast[Bool](&x);
+    u.print_int(x_int);
+    u.print_bool(x_bool);
+}

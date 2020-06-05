@@ -71,7 +71,7 @@ sealed class Type {
         is Constructor -> name.mangle()
         Size -> "Size"
         is ThisRef -> "This"
-        is UntaggedUnion -> members.joinToString(" | ") { it.prettyPrint() }
+        is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {

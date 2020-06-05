@@ -137,6 +137,11 @@ class Checker(
                 )
             }
             is TypeAnnotation.This -> resolveThisType(annotation)
+            is TypeAnnotation.Union -> {
+                Type.UntaggedUnion(
+                        annotation.args.map { inferAnnotation(it) }
+                )
+            }
         }
         annotationTypes[annotation] = type
         if (!allowIncomplete && type is Type.Constructor && type.params != null) {
@@ -1198,6 +1203,18 @@ class Checker(
 
 
             isEqual
+        }
+        destination is Type.UntaggedUnion && source is Type.UntaggedUnion -> {
+            source.members.size == destination.members.size
+                    && source.members.zip(destination.members).all { (sourceMember, destinationMember) ->
+                isAssignableTo(source = sourceMember, destination = destinationMember)
+            }
+        }
+        destination is Type.UntaggedUnion -> {
+
+            destination.members.any { destinationMember ->
+                isAssignableTo(destination = destinationMember, source = source)
+            }
         }
         else -> {
             false

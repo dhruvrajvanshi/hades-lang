@@ -33,6 +33,7 @@ data class Token(
         MATCH,
         ENUM,
         NEW,
+        UNION,
 
         NOT,
         AND,

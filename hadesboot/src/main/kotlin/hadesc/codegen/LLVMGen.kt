@@ -465,7 +465,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Application -> requireUnreachable()
         Type.Size -> sizeTy
         is Type.ThisRef -> requireUnreachable()
-        is Type.UntaggedUnion -> TODO()
+        is Type.UntaggedUnion -> {
+            val maxSizedType = type.members
+                    .map { lowerType(it) }
+                    .maxBy { sizeOfType(it) }
+            requireNotNull(maxSizedType)
+        }
     }
 
     private var nextLiteralIndex = 0

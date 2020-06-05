@@ -856,6 +856,18 @@ class Parser(
                         to
                 )
             }
+            tt.UNION -> {
+                val start = advance()
+                expect(tt.LSQB)
+                val args = parseSeperatedList(tt.COMMA, terminator = tt.RSQB) {
+                    parseTypeAnnotation()
+                }
+                val stop = expect(tt.RSQB)
+                TypeAnnotation.Union(
+                        makeLocation(start, stop),
+                        args
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.TypeAnnotationExpected)
