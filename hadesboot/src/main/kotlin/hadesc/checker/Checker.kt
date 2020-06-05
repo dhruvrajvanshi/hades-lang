@@ -30,10 +30,10 @@ class Checker(
     private val genericInstantiations = mutableMapOf<Long, Type>()
     private var _nextGenericInstance = 0L
 
-    fun typeOfExpression(expression: Expression): Type = expressionTypes.computeIfAbsent(expression) {
+    fun typeOfExpression(expression: Expression): Type {
         val decl = ctx.resolver.getDeclarationContaining(expression)
         checkDeclaration(decl)
-        requireNotNull(expressionTypes[expression])
+        return requireNotNull(expressionTypes[expression])
     }
 
     private fun resolveQualifiedTypeVariable(node: HasLocation, path: QualifiedPath): Type? {
@@ -1234,11 +1234,10 @@ class Checker(
 
     private fun inferBinding(binding: Binding) = when (binding) {
         is Binding.GlobalFunction -> {
-            typeOfFunctionSignature(binding.declaration.signature)
-            Type.RawPtr(requireNotNull(binderTypes[binding.declaration.name]))
+            Type.RawPtr(typeOfFunctionSignature(binding.declaration.signature))
         }
         is Binding.ExternFunction -> {
-            declareExternFunctionDef(binding.declaration)
+            typeOfExternFunctionDef(binding.declaration)
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is Binding.FunctionParam -> {
@@ -1304,12 +1303,13 @@ class Checker(
     }
 
     private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
-        declareExternFunctionDef(declaration)
+        typeOfExternFunctionDef(declaration)
     }
 
-    private fun declareExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
-        if (binderTypes[declaration.binder] != null) {
-            return
+    private fun typeOfExternFunctionDef(declaration: Declaration.ExternFunctionDef): Type {
+        val cached = binderTypes[declaration.binder]
+        if (cached != null) {
+            return cached
         }
         val paramTypes = declaration.paramTypes.map { inferAnnotation(it) }
         val returnType = inferAnnotation(declaration.returnType)
@@ -1321,6 +1321,7 @@ class Checker(
                 constraints = listOf()
         )
         bindValue(declaration.binder, type)
+        return type
     }
 
     private fun bindValue(binder: Binder, type: Type) {
@@ -1346,7 +1347,6 @@ class Checker(
         bindValue(declaration.name, rhsType)
     }
 
-    private val structFieldTypes = MutableNodeMap<Declaration.Struct, Map<Name, Type>>()
     private fun declareStruct(declaration: Declaration.Struct) {
         if (binderTypes[declaration.binder] != null) {
             return
