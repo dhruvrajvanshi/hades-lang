@@ -19,4 +19,10 @@ void print_byte_string(char* message) {
 void print_size(size_t size) {
     printf("%zu\n", size);
 }
-
+const char* bool_to_string(bool value) {
+    if (value) {
+        return "true";
+    } else {
+        return "false";
+    }
+}

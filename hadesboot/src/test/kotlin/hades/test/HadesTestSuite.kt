@@ -17,9 +17,11 @@ class HadesTestSuite {
     @OptIn(ExperimentalStdlibApi::class)
     @TestFactory
     fun `should run test suite`(): List<DynamicNode> {
-        val directory = File("suite")
+        val directory = File("test")
+        assert(directory.exists())
+        assert(directory.isDirectory)
         val utilsCLib = Paths.get(directory.toString(), "submodule", "test_utils.c")
-        val outputDirectory = Path.of("suite_build").toFile()
+        val outputDirectory = Path.of("test_build").toFile()
         if (outputDirectory.exists()) {
             outputDirectory.deleteRecursively()
         }
