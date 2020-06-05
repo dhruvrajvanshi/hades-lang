@@ -1,8 +1,0 @@
-import submodule.printable_interface as pi;
-
-def main(): Void {
-    val x = if (true) 1 else 2;
-    x.print();
-    val y = if (false) 1 else 2;
-    y.print();
-}
