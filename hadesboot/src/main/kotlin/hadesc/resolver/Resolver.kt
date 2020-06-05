@@ -404,23 +404,6 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    fun interfacesInScope(node: HasLocation): Sequence<Declaration.Interface> = sequence {
-        val sourceFile = sourceFileOf(node)
-        yieldAll(interfacesInSourceFile(sourceFile))
-        for (file in directlyImportedSourceFiles(sourceFile)) {
-            yieldAll(interfacesInSourceFile(file))
-        }
-
-    }
-
-    private fun interfacesInSourceFile(sourceFile: SourceFile): Sequence<Declaration.Interface> = sequence {
-        for (decl in sourceFile.declarations) {
-            if (decl is Declaration.Interface) {
-                yield(decl as Declaration.Interface)
-            }
-        }
-    }
-
     private fun directlyImportedSourceFiles(sourceFile: SourceFile): Sequence<SourceFile> = sequence {
         for (declaration in sourceFile.declarations) {
             if (declaration is Declaration.ImportAs) {
@@ -429,7 +412,7 @@ class Resolver(private val ctx: Context) {
         }
     }
 
-    fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence<Declaration.FunctionDef> {
+    fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence {
         for (scope in getScopeStack(node)) {
             if (scope is ScopeNode.FunctionDef && isPossibleExtensionSignature(scope.declaration.signature, name)) {
                 yield(scope.declaration)
