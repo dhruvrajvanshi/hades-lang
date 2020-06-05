@@ -65,7 +65,8 @@ class IRModule {
             typeParams: List<IRTypeParam>?,
             fields: Map<Name, Type>
     ): IRStructDef {
-        val value = IRStructDef(this, constructorType, instanceType, name, typeParams, fields)
+        val value = IRStructDef(
+                this, constructorType, instanceType, name, typeParams, fields)
         add(value)
         return value
 
