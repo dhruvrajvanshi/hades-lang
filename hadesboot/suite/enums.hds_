@@ -1,0 +1,35 @@
+import submodule.printable_interface as p;
+import libc as c;
+
+def main(): Void {
+    val opt = Optional.Some(10);
+    get_int_value(opt).print();
+    get_int_value(Optional.Some(20)).print();
+    get_int_value(Optional.None[CInt]).print();
+
+    val opt_message = Optional.Some[*Byte](b"message");
+    val opt_message_none = Optional.None[*Byte];
+
+    c.puts(get_string_value(opt_message));
+    c.puts(get_string_value(opt_message_none));
+}
+
+def get_string_value(value: Optional[*Byte]): *Byte {
+    return match value {
+        .Some(message) -> message,
+        .None -> b"None"
+    };
+}
+
+def get_int_value(value: Optional[CInt]): CInt {
+    return match value {
+        .Some(x) -> x,
+        .None -> 0
+    };
+}
+
+enum Optional[T] {
+    Some(T);
+    None;
+}
+

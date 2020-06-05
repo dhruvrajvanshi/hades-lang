@@ -1,0 +1,31 @@
+import libc as c;
+
+def main(): Void {
+    if true {
+        c.puts(b"if true without else");
+    }
+
+    val tr = true;
+    if tr {
+        val v = b"if true with inner variable";
+        c.puts(v);
+    }
+
+    if false {
+        c.puts(b"should not be printed");
+    }
+
+    if false {
+        c.puts(b"should not be printed");
+    } else {
+        c.puts(b"if false with empty body");
+    }
+
+    if not true {
+        c.puts(b"If not true");
+    }
+
+    if not false {
+        c.puts(b"If not false");
+    }
+}

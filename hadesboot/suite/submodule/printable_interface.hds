@@ -1,0 +1,11 @@
+import submodule.test_utils as utils;
+
+implement Printable for CInt {
+    def print(this: CInt): Void {
+        utils.print_int(this);
+    }
+}
+
+interface Printable {
+    def print(this: This): Void;
+}

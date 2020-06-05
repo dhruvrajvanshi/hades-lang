@@ -1,0 +1,31 @@
+import libc as c;
+
+def main(): Void {
+    val pair: Pair[*Byte, *Byte] = Pair(b"first", b"second");
+    c.puts(pair.first);
+    c.puts(pair.second);
+
+    c.puts(make_pair(true, b"fourth").second);
+
+}
+
+def make_nested_pair[A, B, C, D](first: A, second: B, pair: Pair[C, D]): Pair[Pair[A, B], Pair[C, D]] {
+    return Pair(Pair(first, second), pair);
+}
+
+def make_pair[T, U](first: T, second: U): Pair[T, U] {
+
+    val copy = Pair(first, second);
+    val copy_of_copy = copy;
+    c.puts(
+        make_nested_pair(false, b"second", Pair(b"third", true))
+            .second
+            .first);
+    return copy_of_copy;
+}
+
+struct Pair[T, U] {
+    val first: T;
+    val second: U;
+}
+

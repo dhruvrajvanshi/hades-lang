@@ -1,0 +1,5 @@
+import libc as libc;
+
+def print(message: *Byte): Void {
+    libc.puts(message);
+}

@@ -1,0 +1,30 @@
+import libc as c;
+
+def to_string(this: Bool): *Byte {
+    return b"true";
+}
+
+def main(): Void {
+    c.puts(true.to_string());
+    c.puts(Pair(b"first", true).get_first());
+    c.puts(Pair(b"first", b"second").get_second());
+    c.puts(Pair(b"third", false).get_first_delegated());
+}
+
+struct Pair[First, Second] {
+    val first: First;
+    val second: Second;
+}
+
+def get_first[T, U](this: Pair[T, U]): T {
+    return this.first;
+}
+
+def get_second[T, U](this: Pair[T, U]): U  {
+    return this.second;
+}
+
+def get_first_delegated[T, U](this: Pair[T, U]): T {
+    return this.get_first();
+}
+

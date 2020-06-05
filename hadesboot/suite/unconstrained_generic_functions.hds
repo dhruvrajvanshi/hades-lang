@@ -1,0 +1,34 @@
+import libc as c;
+
+def main(): Void {
+    c.puts(id(b"id"));
+    c.puts(first(b"first", true));
+    c.puts(second(false, b"second"));
+    c.puts(second(true, StringPair(b"third", b"fourth")).first);
+    fourth(true);
+}
+
+def id[T](value: T): T {
+    val copy: T = value;
+    return copy;
+}
+
+def first[A, B](first: A, second: B): A {
+    return first;
+}
+
+def second[A, B](first: A, second: B): B {
+    return second;
+}
+
+def fourth[T](value: T): T {
+    c.puts(id(b"fourth"));
+    val copy = id(value);
+    c.puts(id(StringPair(b"fifth", b"sixth")).first);
+    return value;
+}
+
+struct StringPair {
+    val first: *Byte;
+    val second: *Byte;
+}
