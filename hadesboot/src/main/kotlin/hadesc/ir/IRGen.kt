@@ -11,7 +11,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import hadesc.resolver.ValueBinding
+import hadesc.resolver.Binding
 import hadesc.types.Type
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -697,7 +697,7 @@ class IRGen(private val ctx: Context) {
 
     private fun resolveLocalVariablePointer(name: Identifier): IRValue {
         val binding = ctx.resolver.resolve(name)
-        require(binding is ValueBinding.ValBinding)
+        require(binding is Binding.ValBinding)
         val ptrName = requireNotNull(valPointers[binding.statement.location])
         return IRVariable(
                 type = lowerLocalBinder(binding.statement.binder).second,
@@ -927,24 +927,24 @@ class IRGen(private val ctx: Context) {
     }
 
     private val patternVars = mutableMapOf<SourceLocation, IRLocalName>()
-    private fun lowerBindingRef(ty: Type, node: HasLocation, binding: ValueBinding?): IRValue {
+    private fun lowerBindingRef(ty: Type, node: HasLocation, binding: Binding?): IRValue {
         val name: IRName = when (binding) {
             null -> requireUnreachable()
-            is ValueBinding.GlobalFunction -> {
+            is Binding.GlobalFunction -> {
                 val def = getFunctionDef(binding.declaration)
                 def.name
             }
-            is ValueBinding.ExternFunction -> {
+            is Binding.ExternFunction -> {
                 val def = lowerExternFunctionDef(binding.declaration)
                 def.name
             }
-            is ValueBinding.FunctionParam -> {
+            is Binding.FunctionParam -> {
                 val index = binding.index
                 assert(index > -1)
                 val indexWithThis = if (binding.declaration.thisParam != null) index + 1 else index
                 getFunctionDef(binding.declaration).params[indexWithThis].name
             }
-            is ValueBinding.ValBinding -> {
+            is Binding.ValBinding -> {
                 val ptr = getValBinding(binding.statement)
                 val derefName = makeLocalName()
                 builder.buildLoad(
@@ -954,17 +954,17 @@ class IRGen(private val ctx: Context) {
                 )
                 derefName
             }
-            is ValueBinding.Struct -> {
+            is Binding.Struct -> {
                 val structDecl = lowerStructDeclaration(binding.declaration)
                 structDecl.globalName
             }
-            is ValueBinding.GlobalConst -> {
+            is Binding.GlobalConst -> {
                 lowerConstDeclaration(binding.declaration).name
             }
-            is ValueBinding.EnumCaseConstructor -> {
+            is Binding.EnumCaseConstructor -> {
                 lowerEnumCaseConstructorBinding(binding)
             }
-            is ValueBinding.Pattern -> {
+            is Binding.Pattern -> {
                 requireNotNull(patternVars[binding.pattern.location])
             }
         }
@@ -972,7 +972,7 @@ class IRGen(private val ctx: Context) {
 
     }
 
-    private fun lowerEnumCaseConstructorBinding(binding: ValueBinding.EnumCaseConstructor): IRName {
+    private fun lowerEnumCaseConstructorBinding(binding: Binding.EnumCaseConstructor): IRName {
         val enumName = globalBinderName(binding.declaration.name)
         val caseName = binding.case.name.identifier.name
         return IRGlobalName(enumName.name.append(caseName))

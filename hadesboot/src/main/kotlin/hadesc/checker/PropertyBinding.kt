@@ -1,14 +1,14 @@
 package hadesc.checker
 
 import hadesc.ast.Declaration
-import hadesc.resolver.ValueBinding
+import hadesc.resolver.Binding
 import hadesc.types.Type
 
 sealed class PropertyBinding {
     abstract val type: Type
     data class Global(
             override val type: Type,
-            val binding: ValueBinding
+            val binding: Binding
     ): PropertyBinding()
     data class StructField(
             override val type: Type,

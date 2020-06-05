@@ -10,8 +10,8 @@ import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
+import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
-import hadesc.resolver.ValueBinding
 import hadesc.types.Type
 import java.util.*
 import kotlin.math.min
@@ -376,7 +376,7 @@ class Checker(
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
         val binding = ctx.resolver.resolve(statement.name)
         return when (binding) {
-            is ValueBinding.ValBinding -> {
+            is Binding.ValBinding -> {
                 if (!binding.statement.isMutable) {
                     error(statement.name, Diagnostic.Kind.AssignmentToImmutableVariable)
                 }
@@ -657,7 +657,7 @@ class Checker(
             }
             if (name != null) {
                 val binding = ctx.resolver.resolve(name)
-                if (binding !is ValueBinding.ValBinding) {
+                if (binding !is Binding.ValBinding) {
                     error(expression, Diagnostic.Kind.NotAnAddressableValue)
                 }
             }
@@ -1232,35 +1232,35 @@ class Checker(
         }
     }
 
-    private fun inferBinding(binding: ValueBinding) = when (binding) {
-        is ValueBinding.GlobalFunction -> {
+    private fun inferBinding(binding: Binding) = when (binding) {
+        is Binding.GlobalFunction -> {
             typeOfFunctionSignature(binding.declaration.signature)
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.name]))
         }
-        is ValueBinding.ExternFunction -> {
+        is Binding.ExternFunction -> {
             declareExternFunctionDef(binding.declaration)
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
-        is ValueBinding.FunctionParam -> {
+        is Binding.FunctionParam -> {
             typeOfFunctionSignature(binding.declaration.signature)
             requireNotNull(binderTypes[binding.param.binder])
         }
-        is ValueBinding.ValBinding -> {
+        is Binding.ValBinding -> {
             checkValStatement(binding.statement)
             requireNotNull(binderTypes[binding.statement.binder])
         }
-        is ValueBinding.Struct -> {
+        is Binding.Struct -> {
             declareStruct(binding.declaration)
             Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
-        is ValueBinding.GlobalConst -> {
+        is Binding.GlobalConst -> {
             declareGlobalConst(binding.declaration)
             requireNotNull(binderTypes[binding.declaration.name])
         }
-        is ValueBinding.EnumCaseConstructor -> {
+        is Binding.EnumCaseConstructor -> {
             typeOfEnumConstructor(binding.declaration, binding.case)
         }
-        is ValueBinding.Pattern -> requireNotNull(binderTypes[binding.pattern.binder])
+        is Binding.Pattern -> requireNotNull(binderTypes[binding.pattern.binder])
     }
 
     private fun typeOfEnumConstructor(
