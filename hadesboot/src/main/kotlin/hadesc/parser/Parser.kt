@@ -8,6 +8,7 @@ import hadesc.location.HasLocation
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 
 internal typealias tt = Token.Kind
@@ -24,15 +25,15 @@ private val byteStringEscapes = mapOf(
 )
 
 private val OPERATORS = listOf(
-        setOf(tt.AND, tt.OR),
-        setOf(
+        listOf(tt.AND, tt.OR),
+        listOf(
                 tt.LESS_THAN,
                 tt.LESS_THAN_EQUAL,
                 tt.GREATER_THAN_EQUAL,
                 tt.GREATER_THAN),
-        setOf(tt.EQEQ, tt.BANG_EQ),
-        setOf(tt.PLUS, tt.MINUS),
-        setOf(tt.STAR)
+        listOf(tt.EQEQ, tt.BANG_EQ),
+        listOf(tt.PLUS, tt.MINUS),
+        listOf(tt.STAR)
 )
 
 typealias op = BinaryOperator
@@ -68,13 +69,13 @@ class Parser(
     private val tokenBuffer = TokenBuffer(maxLookahead = 3, lexer = Lexer(file))
     private val currentToken get() = tokenBuffer.currentToken
 
-    fun parseSourceFile(): SourceFile {
+    fun parseSourceFile(): SourceFile = profile("Parsing $file") {
         val declarations = parseDeclarations()
         val start = Position(1, 1)
         val location = SourceLocation(file, start, currentToken.location.stop)
         val sourceFile = SourceFile(location, moduleName, declarations)
         ctx.resolver.onParseSourceFile(sourceFile)
-        return sourceFile
+        sourceFile
     }
 
     private fun parseDeclarations(): List<Declaration> = buildList<Declaration> {

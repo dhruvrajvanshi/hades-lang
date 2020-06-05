@@ -9,6 +9,7 @@ import hadesc.exhaustive
 import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
@@ -194,18 +195,24 @@ class Checker(
         return typeArguments[call.location]
     }
 
-    fun checkDeclaration(declaration: Declaration) = when (declaration) {
-        is Declaration.Error -> {
+    private val checkedDecls = mutableSetOf<SourcePath>()
+    fun checkDeclaration(declaration: Declaration) {
+        if (declaration.location.file in checkedDecls) {
+            return
         }
-        is Declaration.ImportAs -> {
+        when (declaration) {
+            is Declaration.Error -> {
+            }
+            is Declaration.ImportAs -> {
+            }
+            is Declaration.FunctionDef -> checkFunctionDef(declaration)
+            is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
+            is Declaration.Struct -> checkStructDef(declaration)
+            is Declaration.ConstDefinition -> checkConstDef(declaration)
+            is Declaration.Interface -> checkInterfaceDeclaration(declaration)
+            is Declaration.Implementation -> checkImplementationDeclaration(declaration)
+            is Declaration.Enum -> checkEnumDeclaration(declaration)
         }
-        is Declaration.FunctionDef -> checkFunctionDef(declaration)
-        is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
-        is Declaration.Struct -> checkStructDef(declaration)
-        is Declaration.ConstDefinition -> checkConstDef(declaration)
-        is Declaration.Interface -> checkInterfaceDeclaration(declaration)
-        is Declaration.Implementation -> checkImplementationDeclaration(declaration)
-        is Declaration.Enum -> checkEnumDeclaration(declaration)
     }
 
     private fun checkEnumDeclaration(declaration: Declaration.Enum) {

@@ -6,6 +6,7 @@ import hadesc.exhaustive
 import hadesc.ir.*
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.profile
 import hadesc.types.Type
 import java.util.concurrent.LinkedBlockingQueue
 
@@ -20,7 +21,7 @@ class SpecializeGenerics(
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Map<SourceLocation, Type>? = null
 
-    fun run(): IRModule {
+    fun run(): IRModule = profile("SpecializeGenerics::run") {
         for (definition in oldModule) {
             exhaustive(
                 when (definition) {

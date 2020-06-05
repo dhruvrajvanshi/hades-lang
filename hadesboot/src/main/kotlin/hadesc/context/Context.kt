@@ -15,6 +15,7 @@ import hadesc.ir.passes.SpecializeGenerics
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.parser.Parser
+import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import java.nio.file.Path
@@ -28,7 +29,7 @@ class Context(
 
     val diagnosticReporter = DiagnosticReporter()
 
-    fun build() {
+    fun build() = profile("Context::build") {
         forEachSourceFile {
             for (declaration in it.declarations) {
                 checker.checkDeclaration(declaration)

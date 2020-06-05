@@ -10,6 +10,7 @@ import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -22,12 +23,12 @@ class IRGen(private val ctx: Context) {
     private val builder = IRBuilder()
     private var currentFunction: IRFunctionDef? = null
 
-    fun generate(): IRModule {
+    fun generate(): IRModule = profile("IRGen::generate") {
         ctx.forEachSourceFile { lowerSourceFile(it) }
         return module
     }
 
-    private fun lowerSourceFile(sourceFile: SourceFile) {
+    private fun lowerSourceFile(sourceFile: SourceFile) = profile("IRGen::lowerSourceFile(${sourceFile.location.file})") {
         // this is only required because there may be circular
         // dependencies between source files
         if (loweredSourceFileSet.contains(sourceFile.location.file)) {

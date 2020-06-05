@@ -7,6 +7,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
 import hadesc.logging.logger
+import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import llvm.*
@@ -24,17 +25,20 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val builder = Builder(llvmCtx)
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
 
-    fun generate() {
-        var defIndex = -1
-        for (it in irModule) {
-            defIndex++
-            logger().debug("Lowering definition $defIndex of ${irModule.size}")
-            lowerDefinition(it)
-        }
-        logger().info(LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
+    fun generate() = profile("LLVM::generate") {
+        lower()
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
+    }
+
+    private fun lower() = profile("LLVM::lower") {
+        var defIndex = -1
+        for (it in irModule) {
+            defIndex++
+//            logger().debug("Lowering definition $defIndex of ${irModule.size}")
+            lowerDefinition(it)
+        }
     }
 
     private fun sizeOfType(type: llvm.Type): Long {
@@ -42,7 +46,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerDefinition(definition: IRDefinition): Unit {
-        logger().debug("LLVMGen::lowerDefinition")
+//        logger().debug("LLVMGen::lowerDefinition")
         return when (definition) {
             is IRFunctionDef -> lowerFunctionDef(definition)
             is IRStructDef -> lowerStructDef(definition)
@@ -55,7 +59,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val loweredGlobals = mutableMapOf<IRGlobalName, Value>()
     private fun lowerConstDef(definition: IRConstDef) {
-        logger().debug("LLVMGen::lowerConstDef(${definition.name.prettyPrint()})")
+//        logger().debug("LLVMGen::lowerConstDef(${definition.name.prettyPrint()})")
         val name = lowerName(definition.name)
         if (loweredGlobals[definition.name] == null) {
             val global = llvmModule.addGlobal(name, lowerType(definition.type))
@@ -72,7 +76,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerStructDef(definition: IRStructDef) {
-        logger().debug("LLVMGen::lowerStructDef(${definition.globalName.prettyPrint()})")
+//        logger().debug("LLVMGen::lowerStructDef(${definition.globalName.prettyPrint()})")
         val fn = getStructConstructor(definition)
         withinBlock(fn.createBlock("entry", llvmCtx)) {
             val instanceType = lowerType(definition.instanceType)
@@ -95,7 +99,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
-        logger().debug("LLVMGen::lowerFunctionDef(${definition.name.prettyPrint()})")
+//        logger().debug("LLVMGen::lowerFunctionDef(${definition.name.prettyPrint()})")
         val fn = getDeclaration(definition)
         currentFunction = fn
         definition.params.forEachIndexed { index, param ->
@@ -492,7 +496,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return llvm.PointerType(to)
     }
 
-    private fun linkWithRuntime() {
+    private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
         log.info("Linking using gcc")
         val commandParts = mutableListOf(
             "gcc",
@@ -507,9 +511,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (outputFile.exists()) {
             outputFile.delete()
         }
-        log.info(commandParts.joinToString(" "))
+        log.debug(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
-        log.debug(builder.command().joinToString(","))
         val process = builder
             .inheritIO()
             .start()
