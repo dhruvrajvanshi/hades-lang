@@ -1,8 +1,8 @@
 package hadesc.parser
 
 import hadesc.ast.*
-import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.ide.HIDEContext
 import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.Position
@@ -62,7 +62,7 @@ object SyntaxError : Error()
 
 @OptIn(ExperimentalStdlibApi::class)
 class Parser(
-        private val ctx: Context,
+        private val ctx: HIDEContext,
         private val moduleName: QualifiedName,
         val file: SourcePath
 ) {
@@ -74,7 +74,7 @@ class Parser(
         val start = Position(1, 1)
         val location = SourceLocation(file, start, currentToken.location.stop)
         val sourceFile = SourceFile(location, moduleName, declarations)
-        ctx.resolver.onParseSourceFile(sourceFile)
+//        ctx.resolver.onParseSourceFile(sourceFile)
         sourceFile
     }
 
@@ -102,7 +102,7 @@ class Parser(
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
-        ctx.resolver.onParseDeclaration(decl)
+//        ctx.resolver.onParseDeclaration(decl)
         return decl
     }
 
@@ -366,7 +366,7 @@ class Parser(
         val members = parseBlockMembers()
         val stop = expect(tt.RBRACE)
         val result = Block(makeLocation(start, stop), members)
-        ctx.resolver.onParseBlock(result)
+//        ctx.resolver.onParseBlock(result)
         return result
     }
 
@@ -650,7 +650,7 @@ class Parser(
         val arm = Expression.Match.Arm(
                 pattern, expression
         )
-        ctx.resolver.onParseMatchArm(arm)
+//        ctx.resolver.onParseMatchArm(arm)
         return arm
     }
 
@@ -878,7 +878,7 @@ class Parser(
     }
 
     private fun <T> syntaxError(location: SourceLocation, kind: Diagnostic.Kind): T {
-        ctx.diagnosticReporter.report(location, kind)
+//        ctx.diagnosticReporter.report(location, kind)
         throw SyntaxError
     }
 

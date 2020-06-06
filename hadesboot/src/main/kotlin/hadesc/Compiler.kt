@@ -1,12 +1,17 @@
 package hadesc
 
-import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import java.nio.file.Path
 import kotlin.streams.toList
 
-sealed class Options {
+data class Options(
+    val directories: List<Path>,
+    val output: Path,
+    val main: Path,
+    val runtime: Path,
+    val cFlags: List<String>
+) {
 
     companion object {
 
@@ -23,7 +28,7 @@ sealed class Options {
             directories.forEach {
                 assert(it.toFile().exists())
             }
-            return BuildOptions(
+            return Options(
                 directories = directories,
                 output = output,
                 main = main,
@@ -51,14 +56,6 @@ sealed class Options {
     }
 }
 
-data class BuildOptions(
-    val directories: List<Path>,
-    val output: Path,
-    val main: Path,
-    val runtime: Path,
-    val cFlags: List<String>
-) : Options()
-
 class Compiler(
     args: Array<String>
 ) {
@@ -67,16 +64,14 @@ class Compiler(
 
     fun run(): List<Diagnostic> {
         log.debug("CompilerOptions: $options")
-        return when (options) {
-            is BuildOptions ->
-                build(options)
-        }
+        return build(options)
     }
 
-    private fun build(options: BuildOptions): List<Diagnostic> {
-        val ctx = Context(options)
-        log.debug("Building")
-        ctx.build()
-        return ctx.diagnosticReporter.errors
+    private fun build(options: Options): List<Diagnostic> {
+//        val ctx = Context(options)
+//        log.debug("Building")
+//        ctx.build()
+//        return ctx.diagnosticReporter.errors
+        TODO()
     }
 }

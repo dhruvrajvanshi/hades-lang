@@ -30,6 +30,12 @@ dependencies {
 }
 
 test {
+    jvmArgs += ["-XX:+FlightRecorder"]
+
+    def jfrOptions = [
+            filename : "${project.buildDir}/profile.jfr",
+    ]
+    jvmArgs += ["-XX:StartFlightRecording=${jfrOptions.collect { k, v -> "$k=$v".toString() }.join(',')}"]
     workingDir = new File("..")
     useJUnitPlatform()
     afterTest { descriptor, result ->

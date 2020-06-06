@@ -1,6 +1,8 @@
 package hades.test
 
-import hadesc.Compiler
+import hadesc.Options
+import hadesc.ide.HIDEContext
+import hadesc.ide.queries.HQBuild
 import hadesc.logging.logger
 import org.apache.commons.lang3.SystemUtils
 import org.junit.jupiter.api.DynamicNode
@@ -27,6 +29,7 @@ class HadesTestSuite {
         }
         outputDirectory.mkdirs()
         val files = directory.listFiles() ?: arrayOf()
+        val ctx = HIDEContext()
         return buildList {
             for (file in files) {
                 if (file.extension == "hds") {
@@ -48,49 +51,47 @@ class HadesTestSuite {
                             else
                                 file.nameWithoutExtension
                         )
-                        val compiler = Compiler(
-                            arrayOf(
+                        val options = Options.fromArgs(arrayOf(
                                 "--output", outputPath.toString(),
                                 "--directories", "stdlib", directory.toString(),
                                 "--main", file.toString(),
                                 "--runtime", "runtime.c",
                                 "--cflags", utilsCLib.toString()
-                            )
-                        )
-                        val diagnostics = compiler.run()
-                        if (expectedStdoutFile.exists()) {
-                            assert(File(outputPath.toUri()).exists()) {
-                                "Expected $outputPath to be present after compilation"
-                            }
-                            val actualStdoutFile =
-                                Path.of(outputDirectory.toString(), file.nameWithoutExtension + ".stdout")
-                                    .toFile()
-
-                            val process = ProcessBuilder(outputPath.toString())
-                                .redirectError(ProcessBuilder.Redirect.INHERIT)
-                                .redirectOutput(actualStdoutFile)
-                                .start()
-                            process.waitFor(1, TimeUnit.SECONDS)
-                            assert(process.exitValue() == 0)
-                            val expectedLines = expectedStdoutFile.readLines()
-                            val actualLines = actualStdoutFile.readLines()
-                            assertEquals(
-                                expectedLines, actualLines,
-                                "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
-                            )
-                        } else {
-                            assert(expectedErrorsFile.exists())
-                            val expectedErrors = expectedErrorsFile.readLines()
-                            val actualErrors = diagnostics
-                                    .sortedBy { it.sourceLocation.start }
-                                    .map {
-                                        "${it.sourceLocation.file.path}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
-                                    }
-                            assertEquals(
-                                expectedErrors,
-                                actualErrors
-                            )
-                        }
+                        ))
+                        val module = ctx.rootQuery(HQBuild(options))
+//                        if (expectedStdoutFile.exists()) {
+//                            assert(File(outputPath.toUri()).exists()) {
+//                                "Expected $outputPath to be present after compilation"
+//                            }
+//                            val actualStdoutFile =
+//                                Path.of(outputDirectory.toString(), file.nameWithoutExtension + ".stdout")
+//                                    .toFile()
+//
+//                            val process = ProcessBuilder(outputPath.toString())
+//                                .redirectError(ProcessBuilder.Redirect.INHERIT)
+//                                .redirectOutput(actualStdoutFile)
+//                                .start()
+//                            process.waitFor(1, TimeUnit.SECONDS)
+//                            assert(process.exitValue() == 0)
+//                            val expectedLines = expectedStdoutFile.readLines()
+//                            val actualLines = actualStdoutFile.readLines()
+//                            assertEquals(
+//                                expectedLines, actualLines,
+//                                "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
+//                            )
+//                        } else {
+//                            assert(expectedErrorsFile.exists())
+//                            val expectedErrors = expectedErrorsFile.readLines()
+//                            val actualErrors = diagnostics
+//                                    .sortedBy { it.sourceLocation.start }
+//                                    .map {
+//                                        "${it.sourceLocation.file.path}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
+//                                    }
+//                            assertEquals(
+//                                expectedErrors,
+//                                actualErrors
+//                            )
+//                        }
 
                     })
                 }
