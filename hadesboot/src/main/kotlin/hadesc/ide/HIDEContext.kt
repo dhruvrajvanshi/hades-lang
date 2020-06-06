@@ -2,7 +2,6 @@ package hadesc.ide
 
 import hadesc.Name
 import hadesc.ide.queries.HIDEQuery
-import kotlin.reflect.KClass
 
 class HIDEContext {
     val ctx = this
@@ -11,6 +10,7 @@ class HIDEContext {
         return q.run(ctx)
     }
 
+    private val cache = mutableMapOf<HIDEQuery<*>, Any>()
     /**
      * Run [query] query for the purpose of calculating [dependentQuery] result.
      * Adds an edge between [dependentQuery] and [query] so that we can automatically
@@ -18,7 +18,9 @@ class HIDEContext {
      */
     fun <DependencyValue, DependentQuery : HIDEQuery<*>, DependencyQuery : HIDEQuery<DependencyValue>>
             query(dependentQuery: DependentQuery, query: DependencyQuery): DependencyValue {
-        return rootQuery(query)
+        return cache.getOrPut(query) {
+            query.run(this) as Any
+        } as DependencyValue
     }
 
     fun makeName(text: String): Name = Name(text)
@@ -27,10 +29,5 @@ class HIDEContext {
     fun makeUniqueName(): Name {
         _nameIndex++
         return makeName("$_nameIndex")
-    }
-
-    private val classCaches = mutableMapOf<Pair<KClass<*>, String>, MutableMap<*, *>>()
-    fun <K, V> getCache(clazz: KClass<*>, name: String): MutableMap<K, V> {
-        return classCaches.getOrPut(clazz to name) { mutableMapOf<Any, Any>() } as MutableMap<K, V>
     }
 }

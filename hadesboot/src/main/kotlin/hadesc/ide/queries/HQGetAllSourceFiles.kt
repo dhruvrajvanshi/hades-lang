@@ -1,13 +1,11 @@
 package hadesc.ide.queries
 
-import hadesc.Name
 import hadesc.Options
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.ide.HIDEContext
 import hadesc.location.SourcePath
-import hadesc.parser.Parser
 import hadesc.qualifiedname.QualifiedName
 import java.nio.file.Path
 
@@ -29,8 +27,7 @@ private class HQGetAllSourceFilesImpl(
         private val ctx: HIDEContext,
         private val thisQuery: HQGetAllSourceFiles
 ) {
-    private val allFilesCache = ctx.getCache<HQGetAllSourceFiles, AllSourceFiles>(this::class, "allFilesCache")
-    fun run(): AllSourceFiles = allFilesCache.getOrPut(thisQuery) {
+    fun run(): AllSourceFiles {
         val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
         fun visitSourceFile(sourceFile: SourceFile) {
             if (collectedFiles.containsKey(sourceFile.location.file)) {

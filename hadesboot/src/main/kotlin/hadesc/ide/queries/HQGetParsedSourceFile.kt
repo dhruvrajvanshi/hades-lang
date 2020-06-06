@@ -20,10 +20,6 @@ class HQGetParsedSourceFileImpl(
         private val ctx: HIDEContext,
         private val query: HQGetParsedSourceFile
 ) {
-
-    private val parsedSourceFiles = ctx.getCache<SourcePath, SourceFile>(this::class, "parsedSourceFiles")
     fun run(): SourceFile =
-            parsedSourceFiles.getOrPut(query.path) {
-                Parser(ctx, query.moduleName, query.path).parseSourceFile()
-            }
+        Parser(ctx, query.moduleName, query.path).parseSourceFile()
 }
