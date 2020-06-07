@@ -74,6 +74,7 @@ class HadesTestSuite {
                             assert(process.exitValue() == 0)
                             val expectedLines = expectedStdoutFile.readLines()
                             val actualLines = actualStdoutFile.readLines()
+                            print(actualStdoutFile.readText())
                             assertEquals(
                                 expectedLines, actualLines,
                                 "Contents of $expectedStdoutFile and $actualStdoutFile don't match"

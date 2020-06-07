@@ -1,0 +1,4 @@
+
+def id[T](value: T): T {
+    return value;
+}

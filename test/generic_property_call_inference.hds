@@ -1,0 +1,6 @@
+import submodule.id as id;
+import submodule.test_utils as u;
+
+def main(): Void {
+    u.print_int(id.id(10));
+}
