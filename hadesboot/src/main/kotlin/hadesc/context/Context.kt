@@ -62,7 +62,7 @@ class Context(
 
     fun makeName(text: String): Name = Name(text)
 
-    fun resolveSourceFile(modulePath: QualifiedPath): SourceFile {
+    fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
         return resolveSourceFile(qualifiedPathToName(modulePath))
     }
 
@@ -70,7 +70,7 @@ class Context(
         return QualifiedName(modulePath.identifiers.map { it.name })
     }
 
-    fun resolveSourceFile(moduleName: QualifiedName): SourceFile {
+    fun resolveSourceFile(moduleName: QualifiedName): SourceFile? {
         if (moduleName.size == 0) {
             return sourceFile(moduleName, SourcePath(options.main))
         }
@@ -92,7 +92,10 @@ class Context(
     }
 
     fun forEachSourceFile(action: (SourceFile) -> Unit) {
-        fun visitSourceFile(sourceFile: SourceFile) {
+        fun visitSourceFile(sourceFile: SourceFile?) {
+            if (sourceFile == null) {
+                return
+            }
             if (collectedFiles.containsKey(sourceFile.location.file)) {
                 return
             }

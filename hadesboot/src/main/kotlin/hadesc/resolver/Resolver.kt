@@ -342,7 +342,11 @@ class Resolver(private val ctx: Context) {
                             is Declaration.Error -> null
                             is Declaration.ImportAs -> if (declaration.asName.identifier.name == expression.lhs.name.name) {
                                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                                findInSourceFile(expression.property.name, sourceFile)
+                                if (sourceFile != null) {
+                                    findInSourceFile(expression.property.name, sourceFile)
+                                } else {
+                                    null
+                                }
                             } else {
                                 null
                             }
@@ -409,7 +413,10 @@ class Resolver(private val ctx: Context) {
     private fun directlyImportedSourceFiles(sourceFile: SourceFile): Sequence<SourceFile> = sequence {
         for (declaration in sourceFile.declarations) {
             if (declaration is Declaration.ImportAs) {
-                yield(ctx.resolveSourceFile(declaration.modulePath))
+                val file = ctx.resolveSourceFile(declaration.modulePath)
+                if (file != null) {
+                    yield(file as SourceFile)
+                }
             }
         }
     }
@@ -425,7 +432,10 @@ class Resolver(private val ctx: Context) {
                         yield(definition as Declaration.FunctionDef)
                     }
                     if (definition is Declaration.ImportAs) {
-                        yieldAll(extensionsInSourceFile(ctx.resolveSourceFile(definition.modulePath)))
+                        val file = ctx.resolveSourceFile(definition.modulePath)
+                        if (file != null) {
+                            yieldAll(extensionsInSourceFile(file))
+                        }
                     }
                 }
             }
@@ -440,7 +450,7 @@ class Resolver(private val ctx: Context) {
         val sourceFile = sourceFileOf(path)
         for (decl in sourceFile.declarations) {
             if (decl is Declaration.ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
-                val importedSourceFile = ctx.resolveSourceFile(decl.modulePath)
+                val importedSourceFile = ctx.resolveSourceFile(decl.modulePath) ?: return null
                 val binding = findTypeInSourceFile(path.identifiers.last(), importedSourceFile)
                 return if (binding == null) {
                     null
@@ -456,7 +466,7 @@ class Resolver(private val ctx: Context) {
     fun resolveDeclaration(qualifiedName: QualifiedName): Declaration? {
         val modulePath = QualifiedName(qualifiedName.names.dropLast(1))
         val declName = qualifiedName.names.last()
-        val sourceFile = ctx.resolveSourceFile(modulePath)
+        val sourceFile = ctx.resolveSourceFile(modulePath) ?: return null
         for (decl in sourceFile.declarations) {
             val match = exhaustive(when(decl) {
                 is Declaration.Error -> false
@@ -487,7 +497,8 @@ class Resolver(private val ctx: Context) {
             for (declaration in sourceFile.declarations) {
                 if (declaration is Declaration.ImportAs && declaration.asName.identifier.name == moduleName.name) {
                     val name = path.identifiers[1]
-                    return findDeclarationOf(ctx.resolveSourceFile(declaration.modulePath), name)
+                    val file = ctx.resolveSourceFile(declaration.modulePath) ?: return null
+                    return findDeclarationOf(file, name)
                 }
             }
             return null

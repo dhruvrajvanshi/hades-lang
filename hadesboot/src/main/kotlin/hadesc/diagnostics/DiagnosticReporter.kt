@@ -65,6 +65,7 @@ data class Diagnostic(
         object NotAStructField : Diagnostic.Kind(Severity.ERROR)
         object StructFieldNotMutable : Diagnostic.Kind(Severity.ERROR)
         object ValNotMutable : Diagnostic.Kind(Severity.ERROR)
+        object NoSuchModule : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -108,6 +109,7 @@ data class Diagnostic(
             StructFieldNotMutable -> "Struct field not mutable"
             FieldExpected -> "Struct field expected"
             ValNotMutable -> "Not a mutable value"
+            NoSuchModule -> "No such module"
         }
 
     }

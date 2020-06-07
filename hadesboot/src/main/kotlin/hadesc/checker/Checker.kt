@@ -205,6 +205,7 @@ class Checker(
             is Declaration.Error -> {
             }
             is Declaration.ImportAs -> {
+                checkImportAsDeclaration(declaration)
             }
             is Declaration.FunctionDef -> checkFunctionDef(declaration)
             is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
@@ -213,6 +214,13 @@ class Checker(
             is Declaration.Interface -> checkInterfaceDeclaration(declaration)
             is Declaration.Implementation -> checkImplementationDeclaration(declaration)
             is Declaration.Enum -> checkEnumDeclaration(declaration)
+        }
+    }
+
+    private fun checkImportAsDeclaration(declaration: Declaration.ImportAs) {
+        val file = ctx.resolveSourceFile(declaration.modulePath)
+        if (file == null) {
+            error(declaration.modulePath, Diagnostic.Kind.NoSuchModule)
         }
     }
 
