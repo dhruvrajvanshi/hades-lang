@@ -996,7 +996,7 @@ class Checker(
         for (def in extensionDefs) {
             require(def.thisParam != null)
             val thisParamType = inferAnnotation(def.thisParam.annotation)
-            if (isTypeEqual(thisParamType, lhsType)) {
+            if (isAssignableTo(destination = thisParamType, source = lhsType)) {
                 this.extensionDefs[expression] = def
                 return PropertyBinding.GlobalExtensionFunction(typeOfBinder(def.name), def)
             }
