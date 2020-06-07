@@ -1046,7 +1046,11 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
-        TODO()
+        val ptr = lowerExpression(statement.lhs.expression)
+        builder.buildStore(
+            ptr = ptr,
+            value = lowerExpression(statement.value)
+        )
     }
 
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {

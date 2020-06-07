@@ -380,7 +380,25 @@ class Checker(
         }
         is Statement.LocalAssignment -> checkLocalAssignment(statement)
         is Statement.MemberAssignment -> checkMemberAssignment(statement)
-        is Statement.PointerAssignment -> TODO()
+        is Statement.PointerAssignment -> checkPointerAssignment(statement)
+    }
+
+    private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
+        val lhsType = inferExpression(statement.lhs.expression)
+        val rhsType = inferExpression(statement.value)
+        if (lhsType is Type.Error) {
+            return
+        }
+
+        if (lhsType !is Type.Ptr) {
+            error(statement.lhs.expression, Diagnostic.Kind.NotAPointerType(lhsType))
+            return
+        }
+        if (!lhsType.isMutable) {
+            error(statement.lhs.location, Diagnostic.Kind.ValNotMutable)
+        }
+
+        checkAssignability(source = rhsType, destination = lhsType.to, location = statement.value.location)
     }
 
     private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
@@ -388,11 +406,6 @@ class Checker(
         val rhsType = inferExpression(statement.value)
         val field = getStructFieldBinding(statement.lhs)
         if (field !is PropertyBinding.StructField) {
-            error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
-            return
-        }
-
-        if (field.member !is Declaration.Struct.Member.Field) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
             return
         }
@@ -769,8 +782,9 @@ class Checker(
                 if (binding == null || binding !is PropertyBinding.StructField) {
                     null
                 } else {
+                    val isMutable = binding.member.isMutable && lhsType.isMutable
                     PropertyBinding.StructFieldPointer(
-                        Type.Ptr(binding.type),
+                        Type.Ptr(binding.type, isMutable),
                         binding.structDecl,
                         binding.memberIndex
                     )

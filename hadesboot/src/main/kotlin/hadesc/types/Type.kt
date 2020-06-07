@@ -56,7 +56,11 @@ sealed class Type {
         Void -> "Void"
         Bool -> "Bool"
         CInt -> "CInt"
-        is Ptr -> "*${to.prettyPrint()}"
+        is Ptr -> {
+            if (isMutable)
+                "*mut ${to.prettyPrint()}"
+            else "*${to.prettyPrint()}"
+        }
         is Function -> {
             val typeParams = if (this.typeParams != null) {
                 "[${this.typeParams.joinToString(", ") { it.prettyPrint() }}]"
