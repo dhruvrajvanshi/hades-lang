@@ -817,6 +817,9 @@ class IRGen(private val ctx: Context) {
             is PropertyBinding.InterfaceExtensionFunction -> {
                 lowerInterfaceExtensionFunction(expression, binding)
             }
+            is PropertyBinding.StructFieldPointer -> {
+                lowerStructFieldPointerBinding(expression, binding)
+            }
         }
     }
 
@@ -919,6 +922,19 @@ class IRGen(private val ctx: Context) {
                 lhs,
                 expression.property.name,
                 index
+        )
+    }
+
+    private fun lowerStructFieldPointerBinding(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): IRValue {
+        val rhsType = typeOfExpression(expression)
+        val lhs = lowerExpression(expression.lhs)
+        val index = binding.structDecl.members.indexOfFirst { it === binding.member }
+        require(index > -1)
+        return IRGetElementPointer(
+            rhsType,
+            expression.location,
+            lhs,
+            index
         )
     }
 

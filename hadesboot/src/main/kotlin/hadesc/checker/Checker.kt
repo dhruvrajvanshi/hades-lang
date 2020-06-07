@@ -513,11 +513,17 @@ class Checker(
             }
             is Expression.Load -> {
                 val ty = inferExpression(expression.expression)
-                if (ty is Type.RawPtr) {
-                    ty.to
-                } else {
-                    error(expression.expression, Diagnostic.Kind.NotAPointerType(ty))
-                    Type.Error
+                when (ty) {
+                    is Type.RawPtr -> {
+                        ty.to
+                    }
+                    is Type.Error -> {
+                        Type.Error
+                    }
+                    else -> {
+                        error(expression.expression, Diagnostic.Kind.NotAPointerType(ty))
+                        Type.Error
+                    }
                 }
             }
             is Expression.PointerCast -> {
@@ -734,12 +740,28 @@ class Checker(
     }
 
     private fun getStructFieldBinding(expression: Expression.Property): PropertyBinding? {
-        return when (val lhsType = inferExpression(expression.lhs)) {
+        return getStructFieldBindingForType(inferExpression(expression.lhs), expression.property)
+    }
+
+    private fun getStructFieldBindingForType(lhsType: Type, property: Identifier): PropertyBinding? {
+        return when (lhsType) {
             is Type.Application -> {
-                getStructFieldBindingForTypeConstructor(lhsType.callee, lhsType.args, expression.property)
+                getStructFieldBindingForTypeConstructor(lhsType.callee, lhsType.args, property)
             }
             is Type.Constructor -> {
-                getStructFieldBindingForTypeConstructor(lhsType, null, expression.property)
+                getStructFieldBindingForTypeConstructor(lhsType, null, property)
+            }
+            is Type.RawPtr -> {
+                val binding = getStructFieldBindingForType(lhsType.to, property)
+                if (binding == null || binding !is PropertyBinding.StructField) {
+                    null
+                } else {
+                    PropertyBinding.StructFieldPointer(
+                        Type.RawPtr(binding.type),
+                        binding.structDecl,
+                        binding.memberIndex
+                    )
+                }
             }
             else -> null
         }

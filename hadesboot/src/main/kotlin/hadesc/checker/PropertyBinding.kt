@@ -17,6 +17,13 @@ sealed class PropertyBinding {
     ): PropertyBinding() {
         val member get(): Declaration.Struct.Member.Field = structDecl.members[memberIndex] as Declaration.Struct.Member.Field
     }
+    data class StructFieldPointer(
+        override val type: Type.RawPtr,
+        val structDecl: Declaration.Struct,
+        val memberIndex: Int
+    ): PropertyBinding() {
+        val member get(): Declaration.Struct.Member.Field = structDecl.members[memberIndex] as Declaration.Struct.Member.Field
+    }
 
     /**
      * extension function defined at top level
