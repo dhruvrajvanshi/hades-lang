@@ -11,7 +11,7 @@ sealed class Type {
     object Bool : Type()
     object CInt : Type()
     object Size : Type()
-    data class Ptr(val to: Type, val isMutable: Boolean = false) : Type()
+    data class Ptr(val to: Type, val isMutable: Boolean) : Type()
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
             return binder.identifier.name.text
@@ -94,7 +94,7 @@ sealed class Type {
             CInt,
             Size,
             Bool -> this
-            is Ptr -> Ptr(to.recurse())
+            is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
                 receiver = receiver?.recurse(),
                 typeParams = this.typeParams,

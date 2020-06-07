@@ -57,7 +57,7 @@ interface TypeTransformer {
 
     fun lowerVoidType(type: Type): Type = type
 
-    fun lowerRawPtrType(type: Type.Ptr): Type = Type.Ptr(lowerType(type.to))
+    fun lowerRawPtrType(type: Type.Ptr): Type = Type.Ptr(lowerType(type.to), isMutable = type.isMutable)
 
     fun lowerByteType(type: Type): Type = type
 }

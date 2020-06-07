@@ -107,7 +107,7 @@ class Checker(
                     }
                 }
             }
-            is TypeAnnotation.Ptr -> Type.Ptr(inferAnnotation(annotation.to))
+            is TypeAnnotation.Ptr -> Type.Ptr(inferAnnotation(annotation.to), isMutable = false)
             is TypeAnnotation.MutPtr -> Type.Ptr(inferAnnotation(annotation.to), isMutable = true)
             is TypeAnnotation.Application -> {
                 val callee = inferAnnotation(annotation.callee, allowIncomplete = true)
@@ -496,12 +496,12 @@ class Checker(
             is Expression.Var -> inferVar(expression)
             is Expression.Call -> inferCall(expression)
             is Expression.Property -> inferProperty(expression, typeArgs)
-            is Expression.ByteString -> Type.Ptr(Type.Byte)
+            is Expression.ByteString -> Type.Ptr(Type.Byte, isMutable = false)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.This -> inferThis(expression)
             is Expression.NullPtr -> {
                 error(expression, kind = Diagnostic.Kind.AmbiguousExpression)
-                Type.Ptr(Type.Error)
+                Type.Ptr(Type.Error, isMutable = false)
             }
             is Expression.IntLiteral -> Type.CInt
             is Expression.Not -> {
@@ -554,7 +554,7 @@ class Checker(
             is Expression.AddressOf -> {
                 val ty = inferExpression(expression.expression)
                 checkLValue(expression.expression)
-                Type.Ptr(ty)
+                Type.Ptr(ty, false)
             }
             is Expression.AddressOfMut -> {
                 val ty = inferExpression(expression.expression)
@@ -582,7 +582,8 @@ class Checker(
                 if (argTy !is Type.Ptr) {
                     error(expression, Diagnostic.Kind.NotAPointerType(argTy))
                 }
-                Type.Ptr(toPtrOfType)
+                val isMutable = argTy is Type.Ptr && argTy.isMutable
+                Type.Ptr(toPtrOfType, isMutable = isMutable)
             }
             is Expression.If -> {
                 checkExpression(Type.Bool, expression.condition)
@@ -1190,7 +1191,7 @@ class Checker(
         Type.Size,
         is Type.ParamRef,
         Type.Bool -> type
-        is Type.Ptr -> Type.Ptr(type.to)
+        is Type.Ptr -> Type.Ptr(type.to, isMutable = type.isMutable)
         is Type.Function -> Type.Function(
                 receiver = if (type.receiver != null) applyInstantiations(type.receiver) else null,
                 typeParams = type.typeParams,
@@ -1354,11 +1355,11 @@ class Checker(
 
     private fun inferBinding(binding: Binding) = when (binding) {
         is Binding.GlobalFunction -> {
-            Type.Ptr(typeOfFunctionSignature(binding.declaration.signature))
+            Type.Ptr(typeOfFunctionSignature(binding.declaration.signature), isMutable = false)
         }
         is Binding.ExternFunction -> {
             typeOfExternFunctionDef(binding.declaration)
-            Type.Ptr(requireNotNull(binderTypes[binding.declaration.binder]))
+            Type.Ptr(requireNotNull(binderTypes[binding.declaration.binder]), isMutable = false)
         }
         is Binding.FunctionParam -> {
             typeOfFunctionSignature(binding.declaration.signature)
@@ -1370,7 +1371,7 @@ class Checker(
         }
         is Binding.Struct -> {
             declareStruct(binding.declaration)
-            Type.Ptr(requireNotNull(binderTypes[binding.declaration.binder]))
+            Type.Ptr(requireNotNull(binderTypes[binding.declaration.binder]), isMutable = false)
         }
         is Binding.GlobalConst -> {
             declareGlobalConst(binding.declaration)
