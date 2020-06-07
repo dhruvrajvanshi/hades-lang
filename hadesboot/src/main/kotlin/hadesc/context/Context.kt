@@ -84,7 +84,7 @@ class Context(
         }
         val moduleNameStr = moduleName.names.joinToString(".") { it.text }
         if (paths.size == 0) {
-            TODO("No such file $moduleNameStr")
+            return null
         } else if (paths.size > 1) {
             TODO("$moduleNameStr has conflicting files $paths")
         }

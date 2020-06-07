@@ -250,7 +250,7 @@ class Checker(
         for (member in declaration.members) {
             exhaustive(when(member) {
                 is Declaration.Implementation.Member.FunctionDef -> {
-                    checkFunctionDef(member.functionDef)
+                    checkDeclaration(member.functionDef)
                 }
             })
         }
@@ -372,23 +372,30 @@ class Checker(
         }
     }
 
-    private fun checkStatement(statement: Statement): Unit = when (statement) {
-        is Statement.Return -> {
-            if (returnTypeStack.isEmpty()) {
-                requireUnreachable()
-            } else {
-                val returnType = returnTypeStack.peek()
-                checkExpression(returnType, statement.value)
+    private val checkedStatements = MutableNodeMap<Statement, Statement>()
+    private fun checkStatement(statement: Statement): Unit {
+        if (checkedStatements[statement] != null) {
+            return
+        }
+        checkedStatements[statement] = statement
+        exhaustive(when (statement) {
+            is Statement.Return -> {
+                if (returnTypeStack.isEmpty()) {
+                    requireUnreachable()
+                } else {
+                    val returnType = returnTypeStack.peek()
+                    checkExpression(returnType, statement.value)
+                }
             }
-        }
-        is Statement.Val -> checkValStatement(statement)
-        is Statement.While -> checkWhileStatement(statement)
-        is Statement.If -> checkIfStatement(statement)
-        is Statement.Error -> {
-        }
-        is Statement.LocalAssignment -> checkLocalAssignment(statement)
-        is Statement.MemberAssignment -> checkMemberAssignment(statement)
-        is Statement.PointerAssignment -> checkPointerAssignment(statement)
+            is Statement.Val -> checkValStatement(statement)
+            is Statement.While -> checkWhileStatement(statement)
+            is Statement.If -> checkIfStatement(statement)
+            is Statement.Error -> {
+            }
+            is Statement.LocalAssignment -> checkLocalAssignment(statement)
+            is Statement.MemberAssignment -> checkMemberAssignment(statement)
+            is Statement.PointerAssignment -> checkPointerAssignment(statement)
+        })
     }
 
     private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
@@ -1042,6 +1049,8 @@ class Checker(
             calleeType
         } else if (calleeType is Type.Ptr && calleeType.to is Type.Function) {
             calleeType.to
+        } else if (calleeType is Type.Error) {
+            Type.Error
         } else {
             error(expressionLocation, Diagnostic.Kind.TypeNotCallable(calleeType))
             Type.Error
@@ -1170,7 +1179,7 @@ class Checker(
                 calleeType = calleeType
         )
 
-        return Type.Ptr(callType)
+        return Type.Ptr(callType, isMutable = true)
     }
 
     private fun applyInstantiations(type: Type): Type = when (type) {
@@ -1223,8 +1232,10 @@ class Checker(
             expressionTypes[expression] = Type.Size
         }
         else -> {
-            val exprType = inferExpression(expression, null)
-            checkAssignability(expression.location, destination = expected, source = exprType)
+            if (expressionTypes[expression] == null) {
+                val exprType = inferExpression(expression, null)
+                checkAssignability(expression.location, destination = expected, source = exprType)
+            } else Unit
         }
     }
 
