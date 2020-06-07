@@ -627,7 +627,10 @@ class Parser(
             }
             tt.STAR -> {
                 val start = advance()
-                val expression = parseExpression()
+                // *x.y + z
+                // should be parsed as (*(x.y)) + z
+                // that's why this is parsePrimaryExpression() not parseExpression()
+                val expression = parsePrimaryExpression()
                 Expression.Load(makeLocation(start, expression), expression)
             }
             tt.POINTER_CAST -> {

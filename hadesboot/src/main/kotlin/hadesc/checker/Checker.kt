@@ -400,7 +400,6 @@ class Checker(
 
     private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
         val lhsType = inferExpression(statement.lhs.expression)
-        val rhsType = inferExpression(statement.value)
         if (lhsType is Type.Error) {
             return
         }
@@ -413,7 +412,7 @@ class Checker(
             error(statement.lhs.location, Diagnostic.Kind.ValNotMutable)
         }
 
-        checkAssignability(source = rhsType, destination = lhsType.to, location = statement.value.location)
+        checkExpression(lhsType.to, statement.value)
     }
 
     private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
@@ -1195,7 +1194,7 @@ class Checker(
         Type.Size,
         is Type.ParamRef,
         Type.Bool -> type
-        is Type.Ptr -> Type.Ptr(type.to, isMutable = type.isMutable)
+        is Type.Ptr -> Type.Ptr(applyInstantiations(type.to), isMutable = type.isMutable)
         is Type.Function -> Type.Function(
                 receiver = if (type.receiver != null) applyInstantiations(type.receiver) else null,
                 typeParams = type.typeParams,
@@ -1235,6 +1234,28 @@ class Checker(
         }
         expression is Expression.IntLiteral && expected is Type.Size -> {
             expressionTypes[expression] = Type.Size
+        }
+        expression is Expression.PointerCast -> {
+            val toPtrOfType = inferAnnotation(expression.toType)
+            val argTy = inferExpression(expression.arg)
+            val exprTy = Type.Ptr(toPtrOfType, isMutable = true)
+            if (argTy !is Type.Ptr) {
+                error(expression, Diagnostic.Kind.NotAPointerType(argTy))
+                expressionTypes[expression] = exprTy
+            } else {
+                if (expected !is Type.Ptr) {
+                    error(expression, Diagnostic.Kind.TypeNotAssignable(destination = expected, source = Type.Ptr(argTy, isMutable = false)))
+                    expressionTypes[expression] = exprTy
+                } else {
+                    if (expected.isMutable && !argTy.isMutable) {
+                        error(expression, Diagnostic.Kind.TypeNotAssignable(
+                            destination = expected,
+                            source = Type.Ptr(argTy, false)))
+                    }
+                    expressionTypes[expression] = exprTy.copy(isMutable = expected.isMutable)
+                }
+            }
+
         }
         else -> {
             val exprType = inferExpression(expression, null)

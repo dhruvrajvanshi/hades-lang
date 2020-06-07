@@ -8,7 +8,15 @@ def unsafe_allocate_unitialized[T](): *T {
     return pointer_cast[T](libc.malloc(size_of[T]));
 }
 
-extern def __hds_pointer_add(*Void, Size): *Void = __hds_pointer_add;
+extern def __hds_pointer_add(*Void, Size): *mut Void = __hds_pointer_add;
+
+def mut_pointer_add[T](ptr: *mut T, size: Size): *mut T {
+    return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](ptr), size));
+}
+
+def pointer_add[T](ptr: *T, size: Size): *T {
+    return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](ptr), size));
+}
 
 def offset[T](this: *T, index: Size): *T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](this), index * size_of[T]));
