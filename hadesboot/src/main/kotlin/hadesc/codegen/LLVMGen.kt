@@ -454,7 +454,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             )
         }
         is Type.Constructor ->  {
-            structTypes.computeIfAbsent(type.name) {
+            structTypes.getOrPut(type.name) {
                 val binding = irModule.resolveGlobal(type.name)
                 require(binding is IRBinding.StructDef)
                 val memberTypes = binding.def.fields
