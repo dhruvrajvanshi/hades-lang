@@ -513,15 +513,30 @@ class Checker(
                     Type.Bool
                 } else {
                     val lhsType = inferExpression(expression.lhs)
-                    val rule = BIN_OP_RULES[expression.operator to lhsType]
-                    if (rule == null) {
-                        inferExpression(expression.rhs)
-                        error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
-                        Type.Error
+
+                    if (lhsType is Type.Ptr) {
+                        if (expression.operator == BinaryOperator.PLUS
+                            || expression.operator == BinaryOperator.MINUS
+                            || expression.operator == BinaryOperator.MINUS
+                        ) {
+                            checkExpression(Type.Size, expression.rhs)
+                            lhsType
+                        }
+                        else {
+                            inferExpression(expression.rhs)
+                            Type.Error
+                        }
                     } else {
-                        val (rhsTy, retTy) = rule
-                        checkExpression(rhsTy, expression.rhs)
-                        retTy
+                        val rule = BIN_OP_RULES[expression.operator to lhsType]
+                        if (rule == null) {
+                            inferExpression(expression.rhs)
+                            error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+                            Type.Error
+                        } else {
+                            val (rhsTy, retTy) = rule
+                            checkExpression(rhsTy, expression.rhs)
+                            retTy
+                        }
                     }
                 }
             }
@@ -1435,6 +1450,7 @@ class Checker(
             }
             is Type.Bool -> {
             }
+            is Type.Ptr -> {}
             else -> error(declaration.initializer, Diagnostic.Kind.NotAConst)
         }
         bindValue(declaration.name, rhsType)

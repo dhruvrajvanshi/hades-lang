@@ -962,8 +962,7 @@ class IRGen(private val ctx: Context) {
             is Binding.FunctionParam -> {
                 val index = binding.index
                 assert(index > -1)
-                val indexWithThis = if (binding.declaration.thisParam != null) index + 1 else index
-                getFunctionDef(binding.declaration).params[indexWithThis].name
+                getFunctionDef(binding.declaration).params[index].name
             }
             is Binding.ValBinding -> {
                 val ptr = getValBinding(binding.statement)
