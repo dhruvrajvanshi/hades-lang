@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'org.jetbrains.kotlin.jvm' version '1.3.71'
+    id "com.github.johnrengelman.shadow" version "5.2.0"
 }
 
 def logbackVersion = "1.2.3"
@@ -57,4 +58,8 @@ compileTestKotlin {
 application {
     mainClassName = 'hadesc.MainKt'
 }
-
+jar {
+    manifest {
+        attributes "Main-Class": "hadesc.MainKt"
+    }
+}
