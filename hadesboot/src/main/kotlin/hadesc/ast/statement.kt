@@ -42,5 +42,11 @@ sealed class Statement : HasLocation {
         val value: Expression
     ) : Statement()
 
+    data class PointerAssignment(
+        override val location: SourceLocation,
+        val lhs: Expression,
+        val value: Expression
+    ) : Statement()
+
     data class Error(override val location: SourceLocation) : Statement()
 }

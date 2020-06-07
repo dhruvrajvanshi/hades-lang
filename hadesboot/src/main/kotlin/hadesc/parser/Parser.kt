@@ -392,8 +392,22 @@ class Parser(
             isStatementPredicted() -> Block.Member.Statement(parseStatement())
             else -> {
                 val expr = parseExpression()
-                expect(tt.SEMICOLON)
-                Block.Member.Expression(expr)
+                if (expr is Expression.Load && at(Token.Kind.EQ)) {
+                    advance()
+                    val rhs = parseExpression()
+                    expect(tt.SEMICOLON)
+                    val statement = Statement.PointerAssignment(
+                        makeLocation(expr, rhs),
+                        expr,
+                        rhs
+                    )
+                    Block.Member.Statement(
+                        statement
+                    )
+                } else {
+                    expect(tt.SEMICOLON)
+                    Block.Member.Expression(expr)
+                }
             }
         }
     }

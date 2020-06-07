@@ -380,6 +380,7 @@ class Checker(
         }
         is Statement.LocalAssignment -> checkLocalAssignment(statement)
         is Statement.MemberAssignment -> checkMemberAssignment(statement)
+        is Statement.PointerAssignment -> TODO()
     }
 
     private fun checkMemberAssignment(statement: Statement.MemberAssignment) {

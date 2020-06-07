@@ -1026,6 +1026,7 @@ class IRGen(private val ctx: Context) {
         is Statement.LocalAssignment -> lowerLocalAssignment(statement)
         is Statement.Error -> requireUnreachable()
         is Statement.MemberAssignment -> lowerMemberAssignment(statement)
+        is Statement.PointerAssignment -> lowerPointerAssignment(statement)
     }
 
     private fun lowerMemberAssignment(statement: Statement.MemberAssignment) {
@@ -1042,6 +1043,10 @@ class IRGen(private val ctx: Context) {
             ptr = valuePtr
         )
         builder.buildStore(ptr = memberPtr, value = lowerExpression(statement.value))
+    }
+
+    private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
+        TODO()
     }
 
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
