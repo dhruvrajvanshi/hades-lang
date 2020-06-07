@@ -523,6 +523,7 @@ class IRGen(private val ctx: Context) {
             is Expression.TypeApplication -> lowerTypeApplication(expression)
             is Expression.Match -> lowerMatchExpression(expression)
             is Expression.New -> lowerNewExpression(expression)
+            is Expression.AddressOfMut -> TODO()
         }
         return lowered
     }

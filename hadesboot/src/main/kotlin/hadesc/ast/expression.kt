@@ -72,6 +72,11 @@ sealed class Expression : HasLocation {
         val expression: Expression
     ) : Expression()
 
+    data class AddressOfMut(
+        override val location: SourceLocation,
+        val expression: Expression
+    ) : Expression()
+
     data class Load(
         override val location: SourceLocation,
         val expression: Expression

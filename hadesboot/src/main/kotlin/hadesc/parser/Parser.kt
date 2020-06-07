@@ -600,8 +600,16 @@ class Parser(
             }
             tt.AMPERSAND -> {
                 val start = advance()
+                val isMut = if (at(tt.MUT)) {
+                    advance()
+                    true
+                } else false
                 val expression = parsePrimaryExpression()
-                Expression.AddressOf(makeLocation(start, expression), expression)
+                if (isMut) {
+                    Expression.AddressOfMut(makeLocation(start, expression), expression)
+                } else {
+                    Expression.AddressOf(makeLocation(start, expression), expression)
+                }
             }
             tt.STAR -> {
                 val start = advance()
@@ -875,11 +883,22 @@ class Parser(
             }
             tt.STAR -> {
                 val start = advance()
+                val isMutable = if (at(tt.MUT)) {
+                    advance()
+                    true
+                } else false
                 val to = parseTypeAnnotation()
-                TypeAnnotation.Ptr(
+                if (isMutable) {
+                    TypeAnnotation.MutPtr(
                         makeLocation(start, to),
                         to
-                )
+                    )
+                } else {
+                    TypeAnnotation.Ptr(
+                        makeLocation(start, to),
+                        to
+                    )
+                }
             }
             tt.LPAREN -> {
                 val start = advance()

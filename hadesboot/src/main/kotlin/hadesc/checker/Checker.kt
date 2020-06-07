@@ -109,6 +109,7 @@ class Checker(
                 }
             }
             is TypeAnnotation.Ptr -> Type.RawPtr(inferAnnotation(annotation.to))
+            is TypeAnnotation.MutPtr -> TODO()
             is TypeAnnotation.Application -> {
                 val callee = inferAnnotation(annotation.callee, allowIncomplete = true)
                 val args = annotation.args.map { inferAnnotation(it) }
@@ -543,6 +544,7 @@ class Checker(
             is Expression.TypeApplication -> inferTypeApplicationExpression(expression)
             is Expression.Match -> inferMatchExpression(expression)
             is Expression.New -> inferNewExpression(expression)
+            is Expression.AddressOfMut -> TODO()
         }
         expressionTypes[expression] = ty
         return ty
