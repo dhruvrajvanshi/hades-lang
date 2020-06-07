@@ -43,7 +43,11 @@ sealed class Type {
 
     data class ParamRef(val name: Binder) : Type()
 
-    data class GenericInstance(val name: Binder, val id: Long) : Type()
+    data class GenericInstance(
+        val name: Binder,
+        val id: Long,
+        val callLocation: SourceLocation
+    ) : Type()
 
     data class Application(val callee: Constructor, val args: List<Type>) : Type()
     data class ThisRef(val location: SourceLocation) : Type()

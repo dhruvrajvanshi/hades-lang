@@ -996,7 +996,7 @@ class Checker(
             if (typeParams != null) {
                 val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
                 typeParams.forEach {
-                    substitution[it.binder.location] = makeGenericInstance(it.binder)
+                    substitution[it.binder.location] = makeGenericInstance(it.binder, expression.location)
                 }
                 val functionType = typeOfBinder(def.name)
 
@@ -1012,9 +1012,9 @@ class Checker(
     }
 
 
-    private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
+    private fun makeGenericInstance(binder: Binder, callLocation: SourceLocation): Type.GenericInstance {
         _nextGenericInstance++
-        return Type.GenericInstance(binder, _nextGenericInstance)
+        return Type.GenericInstance(binder, _nextGenericInstance, callLocation)
     }
 
     private fun inferCall(expression: Expression.Call): Type {
@@ -1049,7 +1049,7 @@ class Checker(
         if (functionType is Type.Function) {
             val substitution = mutableMapOf<SourceLocation, Type>()
             functionType.typeParams?.forEach {
-                substitution[it.binder.location] = makeGenericInstance(it.binder)
+                substitution[it.binder.location] = makeGenericInstance(it.binder, expressionLocation)
             }
             if (functionType.typeParams != null && typeArgs != null) {
                 functionType.typeParams.zip(typeArgs).forEach { (typeParam, typeArg) ->

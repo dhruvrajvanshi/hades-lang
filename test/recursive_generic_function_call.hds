@@ -1,0 +1,20 @@
+import submodule.test_utils as u;
+struct Buffer[T] {
+    val m_pointer: *T;
+    val m_size: Size;
+}
+
+def main(): Void {
+    val x = 10;
+    val buf = Buffer(&x, 1);
+    u.print_int(buf.get(0));
+}
+
+def get_ptr[T](this: Buffer[T], index: Size): *T {
+    return this.m_pointer + index;
+}
+
+def get[T](this: Buffer[T], index: Size): T {
+    return *this.get_ptr(index);
+}
+
