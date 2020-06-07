@@ -774,7 +774,11 @@ class Checker(
         return inferAnnotation(thisParam.annotation)
     }
 
-    fun getPropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>? = null): PropertyBinding? {
+    private val propertyBindings = MutableNodeMap<Expression.Property, PropertyBinding?>()
+    fun getPropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?) = propertyBindings.computeIfAbsent(expression) {
+        computePropertyBinding(expression, typeArgs)
+    }
+    private fun computePropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): PropertyBinding? {
         val globalBinding = ctx.resolver.resolveModuleProperty(expression)
         if (globalBinding != null) {
             return PropertyBinding.Global(inferBinding(globalBinding), globalBinding)
@@ -1233,10 +1237,8 @@ class Checker(
             expressionTypes[expression] = Type.Size
         }
         else -> {
-            if (expressionTypes[expression] == null) {
-                val exprType = inferExpression(expression, null)
-                checkAssignability(expression.location, destination = expected, source = exprType)
-            } else Unit
+            val exprType = inferExpression(expression, null)
+            checkAssignability(expression.location, destination = expected, source = exprType)
         }
     }
 

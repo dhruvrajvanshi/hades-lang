@@ -1,0 +1,7 @@
+
+def main(): Void {
+    val mut x = 10;
+    val x_mut_ptr: *mut CInt = &mut x;
+    val x_ptr: *CInt = &mut x;
+    val x_ptr2: *CInt = &x;
+}

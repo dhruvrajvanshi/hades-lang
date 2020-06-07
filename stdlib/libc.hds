@@ -1,6 +1,7 @@
 
 extern def puts(*Byte): Void = puts;
 extern def exit(CInt): Void = exit;
-extern def malloc(Size): *Void = malloc;
-extern def free(*Void): Void = free;
+extern def malloc(Size): *mut Void = malloc;
+extern def free(*mut Void): Void = free;
+extern def strlen(*Byte): Size = strlen;
 

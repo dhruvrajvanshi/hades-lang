@@ -1,6 +1,6 @@
 import libc as libc;
 
-def free[T](ptr: *T): Void {
+def free[T](ptr: *mut T): Void {
     libc.free(pointer_cast[Void](ptr));
 }
 

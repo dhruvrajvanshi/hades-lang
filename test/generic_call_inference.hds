@@ -1,0 +1,10 @@
+
+def main(): Void {
+    val x = Pair(true, b"fourth").second;
+}
+
+
+struct Pair[T, U] {
+    val first: T;
+    val second: U;
+}

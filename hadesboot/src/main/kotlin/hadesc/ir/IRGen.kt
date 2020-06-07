@@ -810,7 +810,7 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerProperty(expression: Expression.Property): IRValue {
-        return when (val binding = requireNotNull(ctx.checker.getPropertyBinding(expression))) {
+        return when (val binding = requireNotNull(ctx.checker.getPropertyBinding(expression, null))) {
             is PropertyBinding.Global -> lowerBindingRef(typeOfExpression(expression), expression, binding.binding)
             is PropertyBinding.StructField -> {
                 lowerStructFieldBinding(expression, binding)
@@ -1031,7 +1031,7 @@ class IRGen(private val ctx: Context) {
         require(statement.lhs.lhs is Expression.Var)
         val valuePtr = resolveLocalVariablePointer(statement.lhs.lhs.name)
         val lhsType = typeOfExpression(statement.lhs)
-        val propertyBinding = ctx.checker.getPropertyBinding(statement.lhs)
+        val propertyBinding = ctx.checker.getPropertyBinding(statement.lhs, null)
         require(propertyBinding is PropertyBinding.StructField)
         val offset = propertyBinding.memberIndex
         val memberPtr = IRGetElementPointer(
