@@ -1,13 +1,46 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 extern void hades_main();
+int __hds_termimate();
+
+#ifdef DEBUG
+static size_t __hds_allocated;
+#endif
 
 int main() {
+#ifdef DEBUG
+    __hds_allocated = 0;
+#endif
     hades_main();
-    return 0;
+    return __hds_termimate();
 }
 
 void* __hds_pointer_add(void* ptr, size_t size) {
     return ptr + size;
 }
 
+int __hds_termimate() {
+#ifdef DEBUG
+    if (__hds_allocated != 0) {
+        puts("Memory leak detected");
+        return 1;
+    }
+#endif
+    return 0;
+}
+
+
+void* __hds_malloc(size_t size) {
+#ifdef DEBUG
+    __hds_allocated++;
+#endif
+    return malloc(size);
+}
+
+void __hds_free(void* ptr) {
+#ifdef DEBUG
+    __hds_allocated--;
+#endif
+    return free(ptr);
+}

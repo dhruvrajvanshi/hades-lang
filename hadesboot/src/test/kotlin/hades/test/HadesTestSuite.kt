@@ -54,7 +54,7 @@ class HadesTestSuite {
                                 "--directories", "stdlib", directory.toString(),
                                 "--main", file.toString(),
                                 "--runtime", "runtime.c",
-                                "--cflags", utilsCLib.toString()
+                                "--cflags", utilsCLib.toString(), "-D", "DEBUG"
                             )
                         )
                         val diagnostics = compiler.run()
@@ -71,10 +71,12 @@ class HadesTestSuite {
                                 .redirectOutput(actualStdoutFile)
                                 .start()
                             process.waitFor(1, TimeUnit.SECONDS)
-                            assert(process.exitValue() == 0)
+                            print(actualStdoutFile.readText())
+                            assert(process.exitValue() == 0) {
+                                "Test program exited with non-zero exit code"
+                            }
                             val expectedLines = expectedStdoutFile.readLines()
                             val actualLines = actualStdoutFile.readLines()
-                            print(actualStdoutFile.readText())
                             assertEquals(
                                 expectedLines, actualLines,
                                 "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
