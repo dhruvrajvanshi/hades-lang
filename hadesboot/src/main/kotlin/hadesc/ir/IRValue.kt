@@ -19,7 +19,7 @@ sealed class IRValue : HasLocation {
         is IRByteString -> "b\"${value.decodeToString()}\""
         is IRVariable -> name.prettyPrint()
         is IRGetStructField -> "${lhs.prettyPrint()}.${rhs?.text ?: index}"
-        is IRCIntConstant -> value.toString()
+        is IRCIntConstant -> "${type.prettyPrint()} $value"
         is IRNullPtr -> "nullptr"
         is IRMethodRef -> "${thisArg.prettyPrint()}::${method.prettyPrint()}"
         is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"

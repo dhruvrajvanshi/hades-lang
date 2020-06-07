@@ -1254,9 +1254,10 @@ class Checker(
             true
         }
         source is Type.Ptr && destination is Type.Ptr -> {
-            isAssignableTo(source.to, destination.to) ||
+            isAssignableTo(source.to, destination.to) && (
                 !destination.isMutable ||
                 source.isMutable
+            )
         }
         source is Type.Constructor && destination is Type.Constructor && source.name == destination.name -> {
             true

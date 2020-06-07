@@ -1,0 +1,9 @@
+
+extern def __hds_pointer_add(*Void, Size): *Void = __hds_pointer_add;
+
+def offset[T](this: *T, index: Size): *T {
+    return pointer_cast[T](__hds_pointer_add(this, index * size_of[T]));
+}
+
+def main(): Void {}
+

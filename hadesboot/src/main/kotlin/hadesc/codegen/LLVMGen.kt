@@ -2,6 +2,7 @@ package hadesc.codegen
 
 import dev.supergrecko.kllvm.ir.instructions.IntPredicate
 import dev.supergrecko.kllvm.ir.instructions.Opcode
+import dev.supergrecko.kllvm.ir.types.IntType
 import dev.supergrecko.kllvm.ir.values.constants.ConstantStruct
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
@@ -295,7 +296,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerCIntValue(value: IRCIntConstant): Value {
-        return ConstantInt(value = value.value.toLong(), type = cIntTy, signExtend = false)
+        return ConstantInt(value = value.value.toLong(), type = lowerType(value.type) as IntType, signExtend = false)
     }
 
     private fun lowerNullPtr(value: IRNullPtr): Value {
