@@ -1,0 +1,14 @@
+
+def main(): Void {
+    val x = Box(10);
+    x.value = 30;
+    val m = MutBox(30);
+    m.value = true;
+    m.value = 3;
+}
+struct MutBox[T] {
+    val mut value: T;
+}
+struct Box[T] {
+    val value: T;
+}

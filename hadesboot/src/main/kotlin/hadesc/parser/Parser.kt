@@ -66,7 +66,7 @@ class Parser(
         private val moduleName: QualifiedName,
         val file: SourcePath
 ) {
-    private val tokenBuffer = TokenBuffer(maxLookahead = 3, lexer = Lexer(file))
+    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file))
     private val currentToken get() = tokenBuffer.currentToken
 
     fun parseSourceFile(): SourceFile = profile("Parsing $file") {
@@ -269,12 +269,19 @@ class Parser(
 
     private fun parseValStructMember(): Declaration.Struct.Member {
         expect(tt.VAL)
+        val isMutable = if (at(tt.MUT)) {
+            advance()
+            true
+        } else {
+            false
+        }
         val binder = parseBinder()
         expect(tt.COLON)
         val annotation = parseTypeAnnotation()
         expect(tt.SEMICOLON)
         return Declaration.Struct.Member.Field(
                 binder,
+                isMutable,
                 annotation
         )
     }
@@ -395,6 +402,14 @@ class Parser(
         return currentToken.kind in statementPredictors
                 // LocalAssignment
                 || (currentToken.kind == TokenKind.ID && tokenBuffer.peek(1).kind == TokenKind.EQ)
+                || isPropertyAssignmentPredicted()
+    }
+
+    private fun isPropertyAssignmentPredicted(): Boolean {
+        return currentToken.kind == TokenKind.ID &&
+                tokenBuffer.peek(1).kind == TokenKind.DOT &&
+                tokenBuffer.peek(2).kind == TokenKind.ID &&
+                tokenBuffer.peek(3).kind == TokenKind.EQ
     }
 
     private fun parseStatement(): Statement {
@@ -403,11 +418,34 @@ class Parser(
             tt.VAL -> parseValStatement()
             tt.WHILE -> parseWhileStatement()
             tt.IF -> parseIfStatement()
-            tt.ID -> parseLocalAssignment()
+            tt.ID -> {
+                if (tokenBuffer.peek(1).kind == tt.DOT) {
+                    parseMemberAssignment()
+                } else {
+                    parseLocalAssignment()
+                }
+            }
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.StatementExpected)
             }
         }
+    }
+
+    private fun parseMemberAssignment(): Statement {
+        val lhs = parseExpression()
+        expect(tt.EQ)
+        val rhs = parseExpression()
+        expect(tt.SEMICOLON)
+
+        if (lhs !is Expression.Property) {
+            return syntaxError(lhs.location, Diagnostic.Kind.NotAStructField)
+        }
+        return Statement.MemberAssignment(
+            makeLocation(lhs, rhs),
+            lhs,
+            rhs
+        )
+
     }
 
     private fun parseLocalAssignment(): Statement {

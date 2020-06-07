@@ -46,9 +46,9 @@ sealed class Declaration : HasLocation {
     ) : Declaration() {
 
         sealed class Member {
-            object Error : Member()
             data class Field(
                 val binder: Binder,
+                val isMutable: Boolean,
                 val typeAnnotation: TypeAnnotation
             ) : Member()
         }

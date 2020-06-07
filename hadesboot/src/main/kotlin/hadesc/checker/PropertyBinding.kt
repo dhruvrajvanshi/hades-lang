@@ -13,8 +13,10 @@ sealed class PropertyBinding {
     data class StructField(
             override val type: Type,
             val structDecl: Declaration.Struct,
-            val member: Declaration.Struct.Member
-    ): PropertyBinding()
+            val memberIndex: Int
+    ): PropertyBinding() {
+        val member get(): Declaration.Struct.Member.Field = structDecl.members[memberIndex] as Declaration.Struct.Member.Field
+    }
 
     /**
      * extension function defined at top level

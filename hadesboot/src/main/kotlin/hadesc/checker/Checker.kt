@@ -378,6 +378,32 @@ class Checker(
         is Statement.Error -> {
         }
         is Statement.LocalAssignment -> checkLocalAssignment(statement)
+        is Statement.MemberAssignment -> checkMemberAssignment(statement)
+    }
+
+    private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
+        val lhsType = inferExpression(statement.lhs)
+        val rhsType = inferExpression(statement.value)
+        val field = getStructFieldBinding(statement.lhs)
+        if (field !is PropertyBinding.StructField) {
+            error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
+            return
+        }
+
+        if (field.member !is Declaration.Struct.Member.Field) {
+            error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
+            return
+        }
+
+        if (!field.member.isMutable) {
+            error(statement.lhs.property, Diagnostic.Kind.StructFieldNotMutable)
+            return
+        }
+
+        if (!isAssignableTo(destination = lhsType, source = rhsType)) {
+            error(statement.value, Diagnostic.Kind.TypeNotAssignable(source = rhsType, destination = lhsType))
+        }
+
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
@@ -871,7 +897,7 @@ class Checker(
                 PropertyBinding.StructField(
                         type = fieldType.applySubstitution(substitution),
                         structDecl = binding.declaration,
-                        member = field
+                        memberIndex = binding.declaration.members.indexOfFirst { it === field }
                 )
             }
             else -> {
@@ -1361,8 +1387,6 @@ class Checker(
         val fieldTypes = mutableMapOf<Name, Type>()
         for (member in declaration.members) {
             exhaustive(when (member) {
-                Declaration.Struct.Member.Error -> {
-                }
                 is Declaration.Struct.Member.Field -> {
                     val ty = inferAnnotation(member.typeAnnotation)
                     require(fieldTypes[member.binder.identifier.name] == null)

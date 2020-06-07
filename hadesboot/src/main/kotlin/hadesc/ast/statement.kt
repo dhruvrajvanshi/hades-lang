@@ -36,5 +36,11 @@ sealed class Statement : HasLocation {
         val value: Expression
     ) : Statement()
 
+    data class MemberAssignment(
+        override val location: SourceLocation,
+        val lhs: Expression.Property,
+        val value: Expression
+    ) : Statement()
+
     data class Error(override val location: SourceLocation) : Statement()
 }

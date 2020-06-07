@@ -319,7 +319,6 @@ class IRGen(private val ctx: Context) {
         }
         val fields = declaration.members.map {
             when (it) {
-                Declaration.Struct.Member.Error -> requireUnreachable()
                 is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
             }
         }.toMap()
@@ -1005,7 +1004,25 @@ class IRGen(private val ctx: Context) {
         is Statement.If -> lowerIfStatement(statement)
         is Statement.LocalAssignment -> lowerLocalAssignment(statement)
         is Statement.Error -> requireUnreachable()
+        is Statement.MemberAssignment -> lowerMemberAssignment(statement)
     }
+
+    private fun lowerMemberAssignment(statement: Statement.MemberAssignment) {
+        require(statement.lhs.lhs is Expression.Var)
+        val valuePtr = resolveLocalVariablePointer(statement.lhs.lhs.name)
+        val lhsType = typeOfExpression(statement.lhs)
+        val propertyBinding = ctx.checker.getPropertyBinding(statement.lhs)
+        require(propertyBinding is PropertyBinding.StructField)
+        val offset = propertyBinding.memberIndex
+        val memberPtr = IRGetElementPointer(
+            Type.RawPtr(lhsType),
+            location = statement.lhs.location,
+            offset = offset,
+            ptr = valuePtr
+        )
+        builder.buildStore(ptr = memberPtr, value = lowerExpression(statement.value))
+    }
+
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
         builder.buildStore(ptr = resolveLocalVariablePointer(statement.name), value = lowerExpression(statement.value))
     }
