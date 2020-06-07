@@ -9,7 +9,6 @@ import hadesc.exhaustive
 import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
-import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
@@ -196,11 +195,12 @@ class Checker(
         return typeArguments[call.location]
     }
 
-    private val checkedDecls = mutableSetOf<SourcePath>()
+    private val checkedDecls = mutableSetOf<SourceLocation>()
     fun checkDeclaration(declaration: Declaration) {
-        if (declaration.location.file in checkedDecls) {
+        if (declaration.location in checkedDecls) {
             return
         }
+        checkedDecls.add(declaration.location)
         when (declaration) {
             is Declaration.Error -> {
             }
@@ -372,12 +372,12 @@ class Checker(
         }
     }
 
-    private val checkedStatements = MutableNodeMap<Statement, Statement>()
+    private val checkedStatements = mutableSetOf<SourceLocation>()
     private fun checkStatement(statement: Statement): Unit {
-        if (checkedStatements[statement] != null) {
+        if (statement.location in checkedStatements) {
             return
         }
-        checkedStatements[statement] = statement
+        checkedStatements.add(statement.location)
         exhaustive(when (statement) {
             is Statement.Return -> {
                 if (returnTypeStack.isEmpty()) {
