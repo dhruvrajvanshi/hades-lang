@@ -13,7 +13,7 @@ interface TypeTransformer {
         Type.Bool -> lowerBoolType(type)
         Type.CInt -> lowerCIntType(type)
         Type.Size -> lowerSizeType(type)
-        is Type.RawPtr -> lowerRawPtrType(type)
+        is Type.Ptr -> lowerRawPtrType(type)
         is Type.Function -> lowerFunctionType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
         is Type.ParamRef -> lowerParamRefType(type)
@@ -57,7 +57,7 @@ interface TypeTransformer {
 
     fun lowerVoidType(type: Type): Type = type
 
-    fun lowerRawPtrType(type: Type.RawPtr): Type = Type.RawPtr(lowerType(type.to))
+    fun lowerRawPtrType(type: Type.Ptr): Type = Type.Ptr(lowerType(type.to))
 
     fun lowerByteType(type: Type): Type = type
 }

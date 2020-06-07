@@ -448,8 +448,8 @@ class SpecializeGenerics(
             Type.Bool -> {
                 type
             }
-            is Type.RawPtr -> {
-                Type.RawPtr(lowerType(type.to))
+            is Type.Ptr -> {
+                Type.Ptr(lowerType(type.to))
             }
             is Type.Function -> {
                 Type.Function(

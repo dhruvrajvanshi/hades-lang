@@ -438,7 +438,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Void -> voidTy
         is Type.Bool -> boolTy
         Type.CInt -> cIntTy
-        is Type.RawPtr -> ptrTy(lowerType(type.to))
+        is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
             require(type.constraints.isEmpty()) {
                 "Found type constraints in LLVMGen phase"

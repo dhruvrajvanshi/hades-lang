@@ -64,6 +64,7 @@ data class Diagnostic(
         object InvalidNewExpression : Diagnostic.Kind(Severity.ERROR)
         object NotAStructField : Diagnostic.Kind(Severity.ERROR)
         object StructFieldNotMutable : Diagnostic.Kind(Severity.ERROR)
+        object ValNotMutable : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -106,6 +107,7 @@ data class Diagnostic(
             NotAStructField -> "Not a struct field"
             StructFieldNotMutable -> "Struct field not mutable"
             FieldExpected -> "Struct field expected"
+            ValNotMutable -> "Not a mutable value"
         }
 
     }

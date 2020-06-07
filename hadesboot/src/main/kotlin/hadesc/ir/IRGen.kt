@@ -178,7 +178,7 @@ class IRGen(private val ctx: Context) {
                     val fnType = ctx.checker.typeOfFunctionSignature(it.signature).applySubstitution(mapOf(), thisType)
                     require(fnType is Type.Function)
                     it.signature.name.identifier.name to
-                            Type.RawPtr(fnType)
+                            Type.Ptr(fnType)
                 }
             })
         }.toMap()
@@ -270,7 +270,7 @@ class IRGen(private val ctx: Context) {
                 require(implFuncDef is Declaration.Implementation.Member.FunctionDef)
                 val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = name.name)
                 add(builder.buildVariable(
-                        ty = Type.RawPtr(functionDef.type),
+                        ty = Type.Ptr(functionDef.type),
                         location = implFuncDef.functionDef.location,
                         name = functionDef.name
 
@@ -389,7 +389,7 @@ class IRGen(private val ctx: Context) {
 
     private fun structInitializerType(constructorType: Type.Function, instanceType: Type): Type.Function {
         return constructorType.copy(
-                from = listOf(Type.RawPtr(instanceType)) + constructorType.from,
+                from = listOf(Type.Ptr(instanceType)) + constructorType.from,
                 to = Type.Void
         )
     }
@@ -517,13 +517,13 @@ class IRGen(private val ctx: Context) {
                     location = expression.location,
                     ofType = ctx.checker.annotationToType(expression.type))
             is Expression.AddressOf -> lowerAddressOf(expression)
+            is Expression.AddressOfMut -> lowerAddressOfMut(expression)
             is Expression.Load -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
             is Expression.TypeApplication -> lowerTypeApplication(expression)
             is Expression.Match -> lowerMatchExpression(expression)
             is Expression.New -> lowerNewExpression(expression)
-            is Expression.AddressOfMut -> TODO()
         }
         return lowered
     }
@@ -534,7 +534,7 @@ class IRGen(private val ctx: Context) {
         val structDef = lowerStructDeclaration(constructorDecl)
 
         val type = typeOfExpression(expression)
-        require(type is Type.RawPtr)
+        require(type is Type.Ptr)
         val thisPtrName = makeLocalName()
         val allocUninitializedName = IRGlobalName(QualifiedName(listOf(
                 ctx.makeName("memory"),
@@ -596,7 +596,7 @@ class IRGen(private val ctx: Context) {
         val resultPtrName = makeLocalName()
 
         builder.buildAlloca(valueType, resultPtrName)
-        val resultPtr = IRVariable(type = Type.RawPtr(valueType), name = resultPtrName, location = expression.value.location)
+        val resultPtr = IRVariable(type = Type.Ptr(valueType), name = resultPtrName, location = expression.value.location)
 
 
         val tag = builder.buildGetStructField(Type.CInt, expression.value.location, value, ctx.makeName("tag"), 0)
@@ -633,7 +633,7 @@ class IRGen(private val ctx: Context) {
                             require(pattern is Pattern.Name)
                             val name = IRLocalName(pattern.binder.identifier.name)
                             val fieldType = TODO()
-                            val ptr = builder.buildVariable(Type.RawPtr(fieldType), pattern.location, name)
+                            val ptr = builder.buildVariable(Type.Ptr(fieldType), pattern.location, name)
                             builder.buildAlloca(fieldType, name)
                             patternVars[pattern.location] = name
                             val value = builder.buildGetStructField(
@@ -670,7 +670,7 @@ class IRGen(private val ctx: Context) {
         val toPointerOfType = ctx.checker.annotationToType(expression.toType)
 
         return IRPointerCast(
-            type = Type.RawPtr(toPointerOfType),
+            type = Type.Ptr(toPointerOfType),
             location = expression.location,
             toPointerOfType = toPointerOfType,
             arg = lowerExpression(expression.arg)
@@ -682,7 +682,7 @@ class IRGen(private val ctx: Context) {
         val ptr = lowerExpression(expression.expression)
         val name = makeLocalName()
         val ty = typeOfExpression(expression.expression)
-        require(ty is Type.RawPtr)
+        require(ty is Type.Ptr)
         builder.buildLoad(name, ty.to, ptr)
         return IRVariable(
                 type = ty.to,
@@ -692,6 +692,10 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerAddressOf(expression: Expression.AddressOf): IRValue {
+        require(expression.expression is Expression.Var)
+        return resolveLocalVariablePointer(expression.expression.name)
+    }
+    private fun lowerAddressOfMut(expression: Expression.AddressOfMut): IRValue {
         require(expression.expression is Expression.Var)
         return resolveLocalVariablePointer(expression.expression.name)
     }
@@ -721,7 +725,7 @@ class IRGen(private val ctx: Context) {
      */
     private fun lowerShortCircuitingOperator(expression: Expression.BinaryOperation): IRValue {
         val conditionName = makeLocalName()
-        val conditionPtr = IRVariable(Type.RawPtr(Type.Bool), expression.lhs.location, conditionName)
+        val conditionPtr = IRVariable(Type.Ptr(Type.Bool), expression.lhs.location, conditionName)
         val lhsName = makeLocalName()
         val lhs = IRVariable(Type.Bool, expression.location, lhsName)
         val done = buildBlock()
@@ -855,7 +859,7 @@ class IRGen(private val ctx: Context) {
             is Declaration.Interface.Member.FunctionSignature -> {
                 val fnType = ctx.checker.typeOfFunctionSignature(member.signature).applySubstitution(substitution, thisType)
                 require(fnType is Type.Function)
-                Type.RawPtr(fnType)
+                Type.Ptr(fnType)
             }
         }
     }
@@ -967,7 +971,7 @@ class IRGen(private val ctx: Context) {
                 builder.buildLoad(
                     derefName,
                     ty,
-                    builder.buildVariable(ty = Type.RawPtr(ty), location = node.location, name = ptr)
+                    builder.buildVariable(ty = Type.Ptr(ty), location = node.location, name = ptr)
                 )
                 derefName
             }
@@ -1032,7 +1036,7 @@ class IRGen(private val ctx: Context) {
         require(propertyBinding is PropertyBinding.StructField)
         val offset = propertyBinding.memberIndex
         val memberPtr = IRGetElementPointer(
-            Type.RawPtr(lhsType),
+            Type.Ptr(lhsType),
             location = statement.lhs.location,
             offset = offset,
             ptr = valuePtr
@@ -1197,8 +1201,8 @@ class IRGen(private val ctx: Context) {
         return IRGlobalName(sourceFile.moduleName.append(name.identifier.name))
     }
 
-    private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.RawPtr> {
-        val ty = Type.RawPtr(ctx.checker.typeOfBinder(name))
+    private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.Ptr> {
+        val ty = Type.Ptr(ctx.checker.typeOfBinder(name))
         return IRLocalName(name.identifier.name) to ty
     }
 

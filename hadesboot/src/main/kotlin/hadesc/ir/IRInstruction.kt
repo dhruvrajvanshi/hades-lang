@@ -19,7 +19,7 @@ sealed class IRInstruction {
             val args = "(${this.args.joinToString(", ") { it.prettyPrint() }})"
             "${name.prettyPrint()}: ${type.prettyPrint()} = call ${type.prettyPrint()} ${callee.prettyPrint()}${typeArgs}${args}"
         }
-        is IRAlloca -> "${name.prettyPrint()}: ${Type.RawPtr(type).prettyPrint()} = alloca ${type.prettyPrint()}"
+        is IRAlloca -> "${name.prettyPrint()}: ${Type.Ptr(type).prettyPrint()} = alloca ${type.prettyPrint()}"
         is IRStore -> "store ${ptr.prettyPrint()} ${value.prettyPrint()}"
         is IRLoad -> "${name.prettyPrint()}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
         is IRNot -> "${name.prettyPrint()}: ${type.prettyPrint()} = not ${arg.prettyPrint()}"

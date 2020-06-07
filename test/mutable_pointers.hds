@@ -4,6 +4,9 @@ def main(): Void {
     val mut x = 30;
     val x_ptr: *mut CInt = &mut x;
     val x_const_ptr: *CInt = x_ptr;
+
+    *x = 10;
     u.print_int(*x_ptr);
     u.print_int(*x_const_ptr);
+    u.print_int(x);
 }

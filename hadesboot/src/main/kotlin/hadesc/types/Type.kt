@@ -11,7 +11,7 @@ sealed class Type {
     object Bool : Type()
     object CInt : Type()
     object Size : Type()
-    data class RawPtr(val to: Type) : Type()
+    data class Ptr(val to: Type, val isMutable: Boolean = false) : Type()
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
             return binder.identifier.name.text
@@ -56,7 +56,7 @@ sealed class Type {
         Void -> "Void"
         Bool -> "Bool"
         CInt -> "CInt"
-        is RawPtr -> "*${to.prettyPrint()}"
+        is Ptr -> "*${to.prettyPrint()}"
         is Function -> {
             val typeParams = if (this.typeParams != null) {
                 "[${this.typeParams.joinToString(", ") { it.prettyPrint() }}]"
@@ -86,7 +86,7 @@ sealed class Type {
             CInt,
             Size,
             Bool -> this
-            is RawPtr -> RawPtr(to.recurse())
+            is Ptr -> Ptr(to.recurse())
             is Function -> Function(
                 receiver = receiver?.recurse(),
                 typeParams = this.typeParams,

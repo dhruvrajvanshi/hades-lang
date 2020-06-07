@@ -108,8 +108,8 @@ class Checker(
                     }
                 }
             }
-            is TypeAnnotation.Ptr -> Type.RawPtr(inferAnnotation(annotation.to))
-            is TypeAnnotation.MutPtr -> TODO()
+            is TypeAnnotation.Ptr -> Type.Ptr(inferAnnotation(annotation.to))
+            is TypeAnnotation.MutPtr -> Type.Ptr(inferAnnotation(annotation.to), isMutable = true)
             is TypeAnnotation.Application -> {
                 val callee = inferAnnotation(annotation.callee, allowIncomplete = true)
                 val args = annotation.args.map { inferAnnotation(it) }
@@ -467,12 +467,12 @@ class Checker(
             is Expression.Var -> inferVar(expression)
             is Expression.Call -> inferCall(expression)
             is Expression.Property -> inferProperty(expression, typeArgs)
-            is Expression.ByteString -> Type.RawPtr(Type.Byte)
+            is Expression.ByteString -> Type.Ptr(Type.Byte)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.This -> inferThis(expression)
             is Expression.NullPtr -> {
                 error(expression, kind = Diagnostic.Kind.AmbiguousExpression)
-                Type.RawPtr(Type.Error)
+                Type.Ptr(Type.Error)
             }
             is Expression.IntLiteral -> Type.CInt
             is Expression.Not -> {
@@ -510,12 +510,17 @@ class Checker(
             is Expression.AddressOf -> {
                 val ty = inferExpression(expression.expression)
                 checkLValue(expression.expression)
-                Type.RawPtr(ty)
+                Type.Ptr(ty)
+            }
+            is Expression.AddressOfMut -> {
+                val ty = inferExpression(expression.expression)
+                checkLValue(expression.expression, mutable = true)
+                Type.Ptr(ty, isMutable = true)
             }
             is Expression.Load -> {
                 val ty = inferExpression(expression.expression)
                 when (ty) {
-                    is Type.RawPtr -> {
+                    is Type.Ptr -> {
                         ty.to
                     }
                     is Type.Error -> {
@@ -530,10 +535,10 @@ class Checker(
             is Expression.PointerCast -> {
                 val toPtrOfType = inferAnnotation(expression.toType)
                 val argTy = inferExpression(expression.arg)
-                if (argTy !is Type.RawPtr) {
+                if (argTy !is Type.Ptr) {
                     error(expression, Diagnostic.Kind.NotAPointerType(argTy))
                 }
-                Type.RawPtr(toPtrOfType)
+                Type.Ptr(toPtrOfType)
             }
             is Expression.If -> {
                 checkExpression(Type.Bool, expression.condition)
@@ -544,7 +549,6 @@ class Checker(
             is Expression.TypeApplication -> inferTypeApplicationExpression(expression)
             is Expression.Match -> inferMatchExpression(expression)
             is Expression.New -> inferNewExpression(expression)
-            is Expression.AddressOfMut -> TODO()
         }
         expressionTypes[expression] = ty
         return ty
@@ -683,7 +687,7 @@ class Checker(
         )
     }
 
-    private fun checkLValue(expression: Expression) {
+    private fun checkLValue(expression: Expression, mutable: Boolean = false) {
 
         if (expression !is Expression.Var &&
                 !(expression is Expression.Property && expression.lhs is Expression.Var)) {
@@ -700,13 +704,19 @@ class Checker(
                 val binding = ctx.resolver.resolve(name)
                 if (binding !is Binding.ValBinding) {
                     error(expression, Diagnostic.Kind.NotAnAddressableValue)
+                    return
+                }
+
+                if (mutable && !binding.statement.isMutable) {
+                    error(expression, Diagnostic.Kind.ValNotMutable)
+                    return
                 }
             }
         }
     }
 
     private fun doesTypeAllowEqualityComparison(type: Type): Boolean {
-        return type is Type.Bool || type is Type.CInt || type is Type.Byte || type is Type.RawPtr
+        return type is Type.Bool || type is Type.CInt || type is Type.Byte || type is Type.Ptr
                 || type is Type.Size
     }
 
@@ -753,13 +763,13 @@ class Checker(
             is Type.Constructor -> {
                 getStructFieldBindingForTypeConstructor(lhsType, null, property)
             }
-            is Type.RawPtr -> {
+            is Type.Ptr -> {
                 val binding = getStructFieldBindingForType(lhsType.to, property)
                 if (binding == null || binding !is PropertyBinding.StructField) {
                     null
                 } else {
                     PropertyBinding.StructFieldPointer(
-                        Type.RawPtr(binding.type),
+                        Type.Ptr(binding.type),
                         binding.structDecl,
                         binding.memberIndex
                     )
@@ -992,7 +1002,7 @@ class Checker(
     ): Type {
         val functionType = if (calleeType is Type.Function) {
             calleeType
-        } else if (calleeType is Type.RawPtr && calleeType.to is Type.Function) {
+        } else if (calleeType is Type.Ptr && calleeType.to is Type.Function) {
             calleeType.to
         } else {
             error(expressionLocation, Diagnostic.Kind.TypeNotCallable(calleeType))
@@ -1122,7 +1132,7 @@ class Checker(
                 calleeType = calleeType
         )
 
-        return Type.RawPtr(callType)
+        return Type.Ptr(callType)
     }
 
     private fun applyInstantiations(type: Type): Type = when (type) {
@@ -1133,7 +1143,7 @@ class Checker(
         Type.Size,
         is Type.ParamRef,
         Type.Bool -> type
-        is Type.RawPtr -> Type.RawPtr(type.to)
+        is Type.Ptr -> Type.Ptr(type.to)
         is Type.Function -> Type.Function(
                 receiver = if (type.receiver != null) applyInstantiations(type.receiver) else null,
                 typeParams = type.typeParams,
@@ -1168,7 +1178,7 @@ class Checker(
     }
 
     private fun checkExpression(expected: Type, expression: Expression): Unit = when {
-        expression is Expression.NullPtr && expected is Type.RawPtr -> {
+        expression is Expression.NullPtr && expected is Type.Ptr -> {
             expressionTypes[expression] = expected
         }
         expression is Expression.IntLiteral && expected is Type.Size -> {
@@ -1205,8 +1215,11 @@ class Checker(
                 && source.name.location == destination.name.location -> {
             true
         }
-        source is Type.RawPtr && destination is Type.RawPtr ->
-            isAssignableTo(source.to, destination.to)
+        source is Type.Ptr && destination is Type.Ptr -> {
+            isAssignableTo(source.to, destination.to) ||
+                !destination.isMutable ||
+                source.isMutable
+        }
         source is Type.Constructor && destination is Type.Constructor && source.name == destination.name -> {
             true
         }
@@ -1291,11 +1304,11 @@ class Checker(
 
     private fun inferBinding(binding: Binding) = when (binding) {
         is Binding.GlobalFunction -> {
-            Type.RawPtr(typeOfFunctionSignature(binding.declaration.signature))
+            Type.Ptr(typeOfFunctionSignature(binding.declaration.signature))
         }
         is Binding.ExternFunction -> {
             typeOfExternFunctionDef(binding.declaration)
-            Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
+            Type.Ptr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is Binding.FunctionParam -> {
             typeOfFunctionSignature(binding.declaration.signature)
@@ -1307,7 +1320,7 @@ class Checker(
         }
         is Binding.Struct -> {
             declareStruct(binding.declaration)
-            Type.RawPtr(requireNotNull(binderTypes[binding.declaration.binder]))
+            Type.Ptr(requireNotNull(binderTypes[binding.declaration.binder]))
         }
         is Binding.GlobalConst -> {
             declareGlobalConst(binding.declaration)
