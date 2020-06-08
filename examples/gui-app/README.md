@@ -15,7 +15,7 @@ windows but should probably work using cygwin)
 
 From project root
 ```
-./gradlew :hadesc:run --args="--main ../examples/gui-app/glfw_app.hds --directories std ../bindings --runtime runtime.c --output ../app --cflags -lGL -lglfw -g"
+./gradlew :hadesboot:run --args="--main ../examples/gui-app/glfw_app.hds --directories ../stdlib ../bindings --runtime ../runtime.c --output ../app --cflags -lGL -lglfw -g"
 ```
 
 This will create an `app` executable in the root directory.

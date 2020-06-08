@@ -10,8 +10,8 @@ extern def window_should_close(*Window): Bool = glfwWindowShouldClose;
 extern def window_swap_buffers(*Window): Void = glfwSwapBuffers;
 extern def wait_events(): Void = glfwWaitEvents;
 
-def should_close(this: *Window): Void {
-    window_should_close(this);
+def should_close(this: *Window): Bool {
+    return window_should_close(this);
 }
 
 def swap_buffers(this: *Window): Void {
