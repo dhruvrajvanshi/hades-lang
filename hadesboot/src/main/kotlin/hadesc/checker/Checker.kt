@@ -23,7 +23,6 @@ class Checker(
 
     private val binderTypes = MutableNodeMap<Binder, Type>()
     private val expressionTypes = MutableNodeMap<Expression, Type>()
-    private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
     private val returnTypeStack = Stack<Type>()
     private val typeArguments = mutableMapOf<SourceLocation, List<Type>>()
 
@@ -76,10 +75,8 @@ class Checker(
         }
     }
 
-    fun annotationToType(annotation: TypeAnnotation): Type = annotationTypes.computeIfAbsent(annotation) {
-        val declaration = ctx.resolver.getDeclarationContaining(annotation)
-        checkDeclaration(declaration)
-        requireNotNull(annotationTypes[annotation])
+    fun annotationToType(annotation: TypeAnnotation): Type  {
+        return inferAnnotation(annotation)
     }
 
     fun typeOfBinder(binder: Binder): Type = binderTypes.computeIfAbsent(binder) {
@@ -88,7 +85,8 @@ class Checker(
         requireNotNull(binderTypes[binder])
     }
 
-    private fun inferAnnotation(annotation: TypeAnnotation, allowIncomplete: Boolean = false): Type {
+    private val inferAnnotationCache = MutableNodeMap<TypeAnnotation, Type>()
+    private fun inferAnnotation(annotation: TypeAnnotation, allowIncomplete: Boolean = false): Type = inferAnnotationCache.computeIfAbsent(annotation) {
         val type = when (annotation) {
             is TypeAnnotation.Error -> Type.Error
             is TypeAnnotation.Var -> when (annotation.name.name.text) {
@@ -144,11 +142,10 @@ class Checker(
                 )
             }
         }
-        annotationTypes[annotation] = type
         if (!allowIncomplete && type is Type.Constructor && type.params != null) {
             error(annotation, Diagnostic.Kind.IncompleteType(type.params.size))
         }
-        return type
+        type
     }
 
     private fun resolveThisType(node: HasLocation): Type {
