@@ -242,6 +242,7 @@ class Checker(
 
         val interfaceRef = declaration.interfaceRef
         checkInterfaceRef(interfaceRef)
+        inferAnnotation(declaration.forType)
         val interfaceDef = ctx.resolver.resolveDeclaration(interfaceRef.path)
         if (interfaceDef == null || interfaceDef !is Declaration.Interface) {
             return
