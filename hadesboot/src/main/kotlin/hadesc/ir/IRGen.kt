@@ -537,6 +537,7 @@ class IRGen(private val ctx: Context) {
         require(type is Type.Ptr)
         val thisPtrName = makeLocalName()
         val allocUninitializedName = IRGlobalName(QualifiedName(listOf(
+                ctx.makeName("hades"),
                 ctx.makeName("memory"),
                 ctx.makeName("unsafe_allocate_unitialized")
         )))

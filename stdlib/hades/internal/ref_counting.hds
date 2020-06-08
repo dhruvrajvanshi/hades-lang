@@ -1,6 +1,5 @@
 import libc as c;
-import memory as memory;
-import submodule.test_utils as u;
+import hades.memory as memory;
 
 struct Ref {
     val mut m_count: Size;

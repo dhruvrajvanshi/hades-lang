@@ -107,7 +107,9 @@ class Context(
             }
         }
 
-        visitSourceFile(resolveSourceFile(QualifiedName(listOf(makeName("memory")))))
+        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
+            makeName("hades"),
+            makeName("memory")))))
         visitSourceFile(sourceFile(QualifiedName(), mainPath()))
         collectedFiles.values.forEach(action)
     }

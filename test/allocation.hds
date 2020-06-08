@@ -1,5 +1,5 @@
 import submodule.printable_interface as p;
-import memory as mem;
+import hades.memory as mem;
 
 def main(): Void {
     val ptr = new Box(10);

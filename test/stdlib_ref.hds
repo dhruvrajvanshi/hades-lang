@@ -1,4 +1,4 @@
-import ref_counting as rc;
+import hades.internal.ref_counting as rc;
 import libc as c;
 import submodule.test_utils as u;
 
