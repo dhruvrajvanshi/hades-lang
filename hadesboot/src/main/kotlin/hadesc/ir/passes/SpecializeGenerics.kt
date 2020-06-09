@@ -114,7 +114,6 @@ class SpecializeGenerics(
                     is IRJump -> visitJump(statement)
                     is IRBinOp -> visitBinOp(statement)
                     is IRSwitch -> requireUnreachable()
-                    is IRDefer -> requireUnreachable()
                 }
             )
         }

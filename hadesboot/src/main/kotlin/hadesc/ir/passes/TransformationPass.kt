@@ -223,13 +223,6 @@ interface TransformationPass: TypeTransformer {
         is IRBr -> lowerBrInstruction(instruction)
         is IRJump -> lowerJumpInstruction(instruction)
         is IRSwitch -> lowerSwitchInstruction(instruction)
-        is IRDefer -> lowerDeferInstruction(instruction)
-    }
-
-    fun lowerDeferInstruction(instruction: IRDefer) {
-         builder.defer {
-             lowerInstruction(instruction.instruction)
-         }
     }
 
     fun lowerSwitchInstruction(instruction: IRSwitch) {

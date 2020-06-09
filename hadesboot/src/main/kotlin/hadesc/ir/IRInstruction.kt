@@ -27,7 +27,6 @@ sealed class IRInstruction {
         is IRJump -> "jmp ${label.prettyPrint()}"
         is IRBinOp -> "${name.prettyPrint()}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()} ${rhs.prettyPrint()}"
         is IRSwitch -> "switch (${onValue.prettyPrint()}, ${cases.joinToString(", ") { it.prettyPrint() }})"
-        is IRDefer -> "defer ${instruction.prettyPrint()}"
     }
 }
 
@@ -96,6 +95,3 @@ data class IRSwitch(
     val cases: List<IRLocalName>
 ) : IRInstruction()
 
-data class IRDefer(
-    val instruction: IRInstruction
-) : IRInstruction()

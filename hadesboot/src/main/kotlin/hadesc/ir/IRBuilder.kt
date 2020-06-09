@@ -6,7 +6,6 @@ import hadesc.types.Type
 
 class IRBuilder {
     var position: IRBlock? = null
-    private var defer = false
 
     fun buildRetVoid(): IRReturnVoidInstruction {
         return addStatement(IRReturnVoidInstruction)
@@ -27,7 +26,7 @@ class IRBuilder {
                 "Tried to add statement after terminator"
             }
         }
-        statements.add(if (defer) IRDefer(statement) else statement)
+        statements.add(statement)
         return statement
     }
 
@@ -61,12 +60,6 @@ class IRBuilder {
                 thisArg,
                 method
         )
-    }
-
-    fun defer(f: () -> Unit) {
-        val oldValue = defer
-        f()
-        defer = oldValue
     }
 
     fun buildCall(

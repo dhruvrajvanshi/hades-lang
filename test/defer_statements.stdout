@@ -1,5 +1,17 @@
+main start
+if true start
+if true end
+defer 3
+calling f
+f start
+f end
 defer 5
 defer 4
-defer 3
+f returned
+before nested inner
+nested inner
+inner nested block done
+nested outer
+main end
 defer 2
 defer 1

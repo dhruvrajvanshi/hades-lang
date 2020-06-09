@@ -152,7 +152,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRJump -> lowerJump(instruction)
         is IRBinOp -> lowerBinOp(instruction)
         is IRSwitch -> TODO()
-        is IRDefer -> requireUnreachable()
     }
 
     private fun lowerBinOp(statement: IRBinOp) {

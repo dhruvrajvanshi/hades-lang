@@ -1,23 +1,40 @@
 import libc as c;
 
 def main(): Void {
+    c.puts(b"main start");
     defer c.puts(b"defer 1");
     defer c.puts(b"defer 2");
 
-    if (true) {
-        c.puts(b"defer 3");
+    if true {
+        c.puts(b"if true start");
+        defer c.puts(b"defer 3");
+        c.puts(b"if true end");
     }
 
-    if (false) {
-        c.puts(b"DON'T PRINT");
+    if false {
+        defer c.puts(b"DON'T PRINT");
     }
 
+    c.puts(b"calling f");
     f();
-    c.puts(b"defer 2");
-    c.puts(b"defer 1");
+    c.puts(b"f returned");
+
+
+    if true {
+        defer c.puts(b"nested outer");
+        if true {
+            defer c.puts(b"nested inner");
+            c.puts(b"before nested inner");
+        }
+        c.puts(b"inner nested block done");
+    }
+
+    c.puts(b"main end");
 }
 
 def f(): Void {
+    c.puts(b"f start");
     defer c.puts(b"defer 4");
     defer c.puts(b"defer 5");
+    c.puts(b"f end");
 }

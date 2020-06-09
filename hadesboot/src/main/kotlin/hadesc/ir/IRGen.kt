@@ -1,5 +1,6 @@
 package hadesc.ir
 
+import ch.qos.logback.core.net.QueueFactory
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -15,6 +16,8 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import java.util.*
+import java.util.concurrent.LinkedBlockingQueue
 
 @OptIn(ExperimentalStdlibApi::class)
 class IRGen(private val ctx: Context) {
@@ -463,12 +466,29 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerBlock(body: Block, block: IRBlock = IRBlock(IRLocalName(Name("entry")))): IRBlock {
-        builder.withinBlock(block) {
-            for (member in body.members) {
-                lowerBlockMember(member)
+        scoped {
+            builder.withinBlock(block) {
+                for (member in body.members) {
+                    lowerBlockMember(member)
+                }
             }
         }
         return block
+    }
+
+    private val deferredStacks = Stack<Stack<() -> Unit>>()
+    private fun scoped(f: () -> Unit) {
+        deferredStacks.push(Stack())
+        f()
+        deferredStacks.pop().let {
+            while (it.isNotEmpty()) {
+                it.pop()()
+            }
+        }
+    }
+
+    private fun defer(f: () -> Unit) {
+        deferredStacks.peek().add(f)
     }
 
     private fun lowerBlockMember(member: Block.Member) = when (member) {
@@ -1032,7 +1052,9 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerDeferStatement(statement: Statement.Defer) {
-        builder.defer { lowerBlockMember(statement.blockMember) }
+        defer {
+            lowerBlockMember(statement.blockMember)
+        }
     }
 
     private fun lowerMemberAssignment(statement: Statement.MemberAssignment) {
