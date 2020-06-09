@@ -167,6 +167,7 @@ class Resolver(private val ctx: Context) {
                     is Statement.LocalAssignment -> null
                     is Statement.MemberAssignment -> null
                     is Statement.PointerAssignment -> null
+                    is Statement.Defer -> null
                 }
             }
             if (binding != null) {

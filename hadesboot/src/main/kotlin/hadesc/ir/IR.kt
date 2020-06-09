@@ -43,6 +43,6 @@ class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
 
     operator fun iterator(): Iterator<IRInstruction> = statementSequence().iterator()
 
-    private fun statementSequence() = statements.toList().asSequence()
+    private fun statementSequence() = statements.asSequence()
 }
 

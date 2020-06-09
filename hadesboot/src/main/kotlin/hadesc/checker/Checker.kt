@@ -393,7 +393,22 @@ class Checker(
             is Statement.LocalAssignment -> checkLocalAssignment(statement)
             is Statement.MemberAssignment -> checkMemberAssignment(statement)
             is Statement.PointerAssignment -> checkPointerAssignment(statement)
+            is Statement.Defer -> checkDefer(statement)
         })
+    }
+
+    private fun checkDefer(statement: Statement.Defer) {
+        checkBlockMember(statement.blockMember)
+        when (statement.blockMember) {
+            is Block.Member.Statement -> {
+                when (statement.blockMember.statement) {
+                    is Statement.Val, is Statement.Return -> {
+                        error(statement.location, Diagnostic.Kind.StatementNotAllowedInDefer)
+                    }
+                }
+            }
+            else -> {}
+        }
     }
 
     private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
@@ -837,7 +852,7 @@ class Checker(
         }
     }
 
-    private fun getInterfaceImplementation(type: Type, node: HasLocation, interfaceName: QualifiedName, interfaceArgs: List<Type>): ImplementationBinding? {
+    fun getInterfaceImplementation(type: Type, node: HasLocation, interfaceName: QualifiedName, interfaceArgs: List<Type>): ImplementationBinding? {
         val implementations = getImplementationBindingsForType(type, atNode = node).toList()
         val actualInterfaceDef = ctx.resolver.resolveDeclaration(interfaceName) ?: return null
         if (actualInterfaceDef !is Declaration.Interface) {

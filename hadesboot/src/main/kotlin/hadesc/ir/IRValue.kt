@@ -25,7 +25,7 @@ sealed class IRValue : HasLocation {
         is IRSizeOf -> "size_of[${ofType.prettyPrint()}]"
         is IRPointerCast -> "pointer_cast[${toPointerOfType.prettyPrint()}](${arg.prettyPrint()})"
         is IRAggregate -> "${type.prettyPrint()} { ${values.joinToString(", ") {it.prettyPrint()}} }"
-        is IRGetElementPointer -> "gep $ptr->$offset"
+        is IRGetElementPointer -> "gep(${ptr.prettyPrint()}, $offset)"
     }
 }
 

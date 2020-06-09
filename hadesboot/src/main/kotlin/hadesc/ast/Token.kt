@@ -34,6 +34,7 @@ data class Token(
         ENUM,
         NEW,
         UNION,
+        DEFER,
 
         NOT,
         AND,

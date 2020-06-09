@@ -1,0 +1,23 @@
+import libc as c;
+
+def main(): Void {
+    defer c.puts(b"defer 1");
+    defer c.puts(b"defer 2");
+
+    if (true) {
+        c.puts(b"defer 3");
+    }
+
+    if (false) {
+        c.puts(b"DON'T PRINT");
+    }
+
+    f();
+    c.puts(b"defer 2");
+    c.puts(b"defer 1");
+}
+
+def f(): Void {
+    defer c.puts(b"defer 4");
+    defer c.puts(b"defer 5");
+}

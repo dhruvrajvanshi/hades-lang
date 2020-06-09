@@ -17,7 +17,10 @@ private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
         tt.INTERFACE, tt.IMPLEMENT
 )
-private val statementPredictors = setOf(tt.RETURN, tt.VAL, tt.WHILE, tt.IF)
+private val statementPredictors = setOf(
+    tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
+    tt.DEFER
+)
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
         'n' to '\n',
@@ -439,10 +442,20 @@ class Parser(
                     parseLocalAssignment()
                 }
             }
+            tt.DEFER -> parseDeferStatement()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.StatementExpected)
             }
         }
+    }
+
+    private fun parseDeferStatement(): Statement {
+        val start = expect(tt.DEFER)
+        val member = parseBlockMember()
+        return Statement.Defer(
+            makeLocation(start, member),
+            member
+        )
     }
 
     private fun parseMemberAssignment(): Statement {

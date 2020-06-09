@@ -10,6 +10,7 @@ import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.logging.logger
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
@@ -25,6 +26,7 @@ class IRGen(private val ctx: Context) {
 
     fun generate(): IRModule = profile("IRGen::generate") {
         ctx.forEachSourceFile { lowerSourceFile(it) }
+        logger().info(module.prettyPrint())
         return module
     }
 
@@ -1026,6 +1028,11 @@ class IRGen(private val ctx: Context) {
         is Statement.Error -> requireUnreachable()
         is Statement.MemberAssignment -> lowerMemberAssignment(statement)
         is Statement.PointerAssignment -> lowerPointerAssignment(statement)
+        is Statement.Defer -> lowerDeferStatement(statement)
+    }
+
+    private fun lowerDeferStatement(statement: Statement.Defer) {
+        builder.defer { lowerBlockMember(statement.blockMember) }
     }
 
     private fun lowerMemberAssignment(statement: Statement.MemberAssignment) {

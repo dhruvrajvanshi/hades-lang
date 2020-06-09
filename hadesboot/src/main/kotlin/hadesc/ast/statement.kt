@@ -48,5 +48,10 @@ sealed class Statement : HasLocation {
         val value: Expression
     ) : Statement()
 
+    data class Defer(
+        override val location: SourceLocation,
+        val blockMember: Block.Member
+    ) : Statement()
+
     data class Error(override val location: SourceLocation) : Statement()
 }
