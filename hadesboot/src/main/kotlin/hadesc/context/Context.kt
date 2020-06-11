@@ -125,4 +125,11 @@ class Context(
         _nameIndex++
         return makeName("$_nameIndex")
     }
+
+
+    public val dropInterfaceName = QualifiedName(listOf(
+        makeName("hades"),
+        makeName("drop"),
+        makeName("Drop")
+    ))
 }

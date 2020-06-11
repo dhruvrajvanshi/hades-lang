@@ -1,6 +1,5 @@
 package hadesc.ir
 
-import ch.qos.logback.core.net.QueueFactory
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -17,7 +16,6 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import java.util.*
-import java.util.concurrent.LinkedBlockingQueue
 
 @OptIn(ExperimentalStdlibApi::class)
 class IRGen(private val ctx: Context) {
@@ -226,13 +224,17 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerInterfaceRef(interfaceRef: InterfaceRef): IRInterfaceRef {
-        val decl = requireNotNull(ctx.resolver.resolveDeclaration(interfaceRef.path))
-        require(decl is Declaration.Interface)
-        val name = ctx.resolver.qualifiedInterfaceName(decl)
+        val name = getInterfaceName(interfaceRef)
         return IRInterfaceRef(
-                IRGlobalName(name),
+                name,
                 interfaceRef.typeArgs?.map { ctx.checker.annotationToType(it) } ?: listOf()
         )
+    }
+
+    private fun getInterfaceName(interfaceRef: InterfaceRef): IRGlobalName {
+        val decl = requireNotNull(ctx.resolver.resolveDeclaration(interfaceRef.path))
+        require(decl is Declaration.Interface)
+        return IRGlobalName(ctx.resolver.qualifiedInterfaceName(decl))
     }
 
     private fun typeOfInterfaceInstance(interfaceRef: IRInterfaceRef, thisType: Type): Type {
@@ -274,6 +276,7 @@ class IRGen(private val ctx: Context) {
                 }
                 require(implFuncDef is Declaration.Implementation.Member.FunctionDef)
                 val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = name.name)
+//                require(functionDef.signature.name.name === implMemberFunctionName(interfaceDecl, member).name)
                 add(builder.buildVariable(
                         ty = Type.Ptr(functionDef.type, isMutable = false),
                         location = implFuncDef.functionDef.location,
@@ -292,6 +295,10 @@ class IRGen(private val ctx: Context) {
                 type,
                 initializer = initializer
         )
+    }
+
+    private fun implMemberFunctionName(interfaceDecl: Declaration.Interface, member: Declaration.Interface.Member.FunctionSignature): IRGlobalName {
+        TODO()
     }
 
     private val loweredConstDefs = mutableMapOf<SourceLocation, IRConstDef>()
@@ -451,7 +458,9 @@ class IRGen(private val ctx: Context) {
     private fun lowerGlobalFunctionDef(def: Declaration.FunctionDef, prefix: QualifiedName? = null): IRFunctionDef {
         val function = getFunctionDef(def, prefix)
         currentFunction = function
+        localNameSet.addAll(def.params.map { it.binder.identifier.name })
         function.entryBlock = lowerBlock(def.body, function.entryBlock)
+        localNameSet.clear()
         val ty = function.type
 
         if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
@@ -618,7 +627,7 @@ class IRGen(private val ctx: Context) {
 
         val resultPtrName = makeLocalName()
 
-        builder.buildAlloca(valueType, resultPtrName)
+        alloca(valueType, resultPtrName, expression.value.location)
         val resultPtr = IRVariable(type = Type.Ptr(valueType, isMutable = true), name = resultPtrName, location = expression.value.location)
 
 
@@ -657,7 +666,7 @@ class IRGen(private val ctx: Context) {
                             val name = IRLocalName(pattern.binder.identifier.name)
                             val fieldType = TODO()
                             val ptr = builder.buildVariable(Type.Ptr(fieldType, isMutable = true), pattern.location, name)
-                            builder.buildAlloca(fieldType, name)
+                            alloca(fieldType, name, pattern.location)
                             patternVars[pattern.location] = name
                             val value = builder.buildGetStructField(
                                     fieldType,
@@ -754,7 +763,7 @@ class IRGen(private val ctx: Context) {
         // %condition = alloca Bool
         // store %condition lhs
         // %lhs = load %condition
-        builder.buildAlloca(Type.Bool, conditionName)
+        alloca(Type.Bool, conditionName, expression.lhs.location)
         builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.lhs))
         builder.buildLoad(name = lhsName, ptr = conditionPtr, type = Type.Bool)
 
@@ -811,6 +820,56 @@ class IRGen(private val ctx: Context) {
 
     }
 
+    private fun alloca(type: Type, name: IRLocalName, node: HasLocation) {
+        builder.buildAlloca(type, name)
+//        defer {
+//            buildDestructorCall(type, name, node)
+//        }
+    }
+
+    private fun buildDestructorCall(type: Type, name: IRLocalName, node: HasLocation) {
+        val impl = ctx.checker.getInterfaceImplementation(
+            type,
+            node,
+            ctx.dropInterfaceName,
+            listOf()
+        )
+
+        if (impl == null) {
+            return
+        } else {
+            require(impl is ImplementationBinding.GlobalImpl)
+            val dropMethodFieldOffset = requireNotNull(
+                impl.implDef.members.indexOfFirst {
+                    it is Declaration.Implementation.Member.FunctionDef
+                            && it.functionDef.name.identifier.name == ctx.makeName("drop")
+                }
+            )
+            val implRef = lowerImplBinding(node.location, ImplementationBinding.GlobalImpl(impl.implDef))
+            val methodFieldRef = builder.buildGetStructField(
+                implType(impl.implDef),
+                location = node.location,
+                field = null,
+                index = dropMethodFieldOffset,
+                lhs = implRef
+            )
+            val methodRef = builder.buildMethodRef(
+                methodFieldRef.type,
+                node.location,
+                thisArg = IRVariable(Type.Ptr(type, true), location = node.location, name = name),
+                method = methodFieldRef
+            )
+            builder.buildCall(
+                type = Type.Void,
+                location = node.location,
+                callee = methodRef,
+                args = listOf(),
+                typeArgs = null,
+                name = IRLocalName(ctx.makeUniqueName())
+            )
+        }
+    }
+
     private fun lowerThisExpression(expression: Expression.This): IRValue {
         return builder.buildVariable(
             name = IRLocalName(ctx.makeName("this")),
@@ -842,7 +901,7 @@ class IRGen(private val ctx: Context) {
                 lowerGlobalExtensionFunctionBinding(expression, binding)
             }
             is PropertyBinding.InterfaceExtensionFunction -> {
-                lowerInterfaceExtensionFunction(expression, binding)
+                lowerInterfaceExtensionFunction(lowerExpression(expression.lhs), expression.location, binding)
             }
             is PropertyBinding.StructFieldPointer -> {
                 lowerStructFieldPointerBinding(expression, binding)
@@ -850,15 +909,19 @@ class IRGen(private val ctx: Context) {
         }
     }
 
-    private fun lowerInterfaceExtensionFunction(expression: Expression.Property, binding: PropertyBinding.InterfaceExtensionFunction): IRValue {
-        val implRef = lowerImplBinding(expression.location, binding.implementationBinding)
+    private fun lowerInterfaceExtensionFunction(
+        thisArg: IRValue,
+        node: HasLocation,
+        binding: PropertyBinding.InterfaceExtensionFunction
+    ): IRValue {
+        val implRef = lowerImplBinding(node.location, binding.implementationBinding)
         require(binding.type is Type.Function)
         requireNotNull(binding.type.receiver)
         val memberType = typeOfImplMember(binding.implementationBinding.interfaceRef, binding.memberIndex, binding.type.receiver)
 
         val memberRef = builder.buildGetStructField(
                 ty = memberType,
-                location = expression.location,
+                location = node.location,
                 lhs = implRef,
                 index = binding.memberIndex,
                 field = null
@@ -866,8 +929,8 @@ class IRGen(private val ctx: Context) {
         return builder.buildMethodRef(
                 type = binding.type,
                 method = memberRef,
-                thisArg = lowerExpression(expression.lhs),
-                location = expression.location
+                thisArg = thisArg,
+                location = node.location
         )
     }
 
@@ -1131,7 +1194,7 @@ class IRGen(private val ctx: Context) {
     private fun lowerIfExpression(expr: Expression.If): IRValue {
         val resultPtrName = makeLocalName()
         val type = ctx.checker.typeOfExpression(expr.trueBranch)
-        builder.buildAlloca(type, resultPtrName)
+        alloca(type, resultPtrName, expr)
         val condition = lowerExpression(expr.condition)
         val ifTrue = buildBlock()
         val ifFalse = buildBlock()
@@ -1215,9 +1278,18 @@ class IRGen(private val ctx: Context) {
     }
 
     private val valPointers = mutableMapOf<SourceLocation, IRLocalName>()
+
+    /**
+     * This is the set of defined names in current function.
+     * Useful for shadowing purposes.
+     * We add to this set when a variable/parameter is bound and clear
+     * this set when exiting the function.
+     */
+    private val localNameSet = mutableSetOf<Name>()
     private fun lowerValStatement(statement: Statement.Val) {
         val (name, type) = lowerLocalBinder(statement.binder)
-        builder.buildAlloca(type.to, name)
+        localNameSet.add(name.name)
+        alloca(type.to, name, statement.binder)
         val ptr = builder.buildVariable(type, statement.location, name)
         val rhs = lowerExpression(statement.rhs)
         builder.buildStore(ptr, rhs)
@@ -1240,12 +1312,20 @@ class IRGen(private val ctx: Context) {
 
     private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.Ptr> {
         val ty = Type.Ptr(ctx.checker.typeOfBinder(name), isMutable = true)
-        return IRLocalName(name.identifier.name) to ty
+        return lowerLocalName(name) to ty
     }
 
     private fun lowerParamBinder(name: Binder): Pair<IRLocalName, Type> {
         val ty = ctx.checker.typeOfBinder(name)
-        return IRLocalName(name.identifier.name) to ty
+        return lowerLocalName(name) to ty
+    }
+
+    private val localNameCache = mutableMapOf<SourceLocation, IRLocalName>()
+    private fun lowerLocalName(name: Binder): IRLocalName = localNameCache.getOrPut(name.location) {
+        IRLocalName(if (localNameSet.contains(name.identifier.name))
+            ctx.makeUniqueName()
+        else
+            ctx.makeName(name.identifier.name.text))
     }
 }
 
