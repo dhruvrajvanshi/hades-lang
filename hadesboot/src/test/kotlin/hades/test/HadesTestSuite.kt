@@ -28,7 +28,7 @@ class HadesTestSuite {
         outputDirectory.mkdirs()
         val files = directory.listFiles() ?: arrayOf()
         return buildList {
-            for (file in files) {
+            for (file in files.sortedBy { it.name }) {
                 if (file.extension == "hds") {
                     add(DynamicTest.dynamicTest(file.name) {
                         logger().debug("Running suite file {}", file)
