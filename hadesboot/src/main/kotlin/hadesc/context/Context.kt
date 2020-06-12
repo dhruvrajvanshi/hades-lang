@@ -19,6 +19,7 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import java.nio.file.Path
+import kotlin.system.exitProcess
 
 class Context(
     val options: BuildOptions
@@ -37,7 +38,7 @@ class Context(
         }
 
         if (this.diagnosticReporter.hasErrors) {
-            return
+            exitProcess(1)
         }
         var irModule = IRGen(this).generate()
 
