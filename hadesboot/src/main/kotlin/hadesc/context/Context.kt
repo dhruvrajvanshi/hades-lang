@@ -8,7 +8,7 @@ import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
-import hadesc.irgen.IRGen
+import hadesc.irgen.BlockVisitor
 import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
 import hadesc.ir.passes.SpecializeGenerics
@@ -39,7 +39,7 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        var irModule = IRGen(this).generate()
+        var irModule = BlockVisitor(this).generate()
 
         irModule = ExplicitConstraints(this, irModule).run()
         irModule = ExplicitThis(this, irModule).run()

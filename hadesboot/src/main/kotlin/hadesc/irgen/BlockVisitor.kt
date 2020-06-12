@@ -19,7 +19,7 @@ import hadesc.types.Type
 import java.util.*
 
 @OptIn(ExperimentalStdlibApi::class)
-class IRGen(private val ctx: Context) {
+class BlockVisitor(private val ctx: Context) {
     private val module = IRModule()
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()
