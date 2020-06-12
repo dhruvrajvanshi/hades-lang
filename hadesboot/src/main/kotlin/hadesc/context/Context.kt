@@ -8,7 +8,7 @@ import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
-import hadesc.ir.IRGen
+import hadesc.irgen.IRGen
 import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
 import hadesc.ir.passes.SpecializeGenerics
@@ -19,7 +19,6 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import java.nio.file.Path
-import kotlin.system.exitProcess
 
 class Context(
     val options: BuildOptions

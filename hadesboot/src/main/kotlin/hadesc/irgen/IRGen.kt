@@ -1,4 +1,4 @@
-package hadesc.ir
+package hadesc.irgen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
@@ -7,6 +7,7 @@ import hadesc.checker.ImplementationBinding
 import hadesc.checker.PropertyBinding
 import hadesc.context.Context
 import hadesc.exhaustive
+import hadesc.ir.*
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -433,8 +434,8 @@ class IRGen(private val ctx: Context) {
                                     it.param.binder
                             ),
                             IRInterfaceRef(
-                                name = IRGlobalName(it.interfaceName),
-                                typeArgs = it.args
+                                    name = IRGlobalName(it.interfaceName),
+                                    typeArgs = it.args
                             ),
                             type = typeOfInterfaceInstance(interfaceRefOf(it), Type.ParamRef(it.param.binder)),
                             location = def.signature.location
@@ -521,9 +522,9 @@ class IRGen(private val ctx: Context) {
             is Expression.This -> lowerThisExpression(expression)
             is Expression.NullPtr -> IRNullPtr(typeOfExpression(expression), expression.location)
             is Expression.IntLiteral -> IRCIntConstant(
-                typeOfExpression(expression),
-                expression.location,
-                expression.value
+                    typeOfExpression(expression),
+                    expression.location,
+                    expression.value
             )
             is Expression.Not -> {
                 val ty = typeOfExpression(expression)
@@ -701,10 +702,10 @@ class IRGen(private val ctx: Context) {
     private fun lowerPointerCast(expression: Expression.PointerCast): IRValue {
         val toPointerOfType = ctx.checker.annotationToType(expression.toType)
         return IRPointerCast(
-            type = typeOfExpression(expression),
-            location = expression.location,
-            toPointerOfType = toPointerOfType,
-            arg = lowerExpression(expression.arg)
+                type = typeOfExpression(expression),
+                location = expression.location,
+                toPointerOfType = toPointerOfType,
+                arg = lowerExpression(expression.arg)
         )
 
     }
@@ -910,9 +911,9 @@ class IRGen(private val ctx: Context) {
     }
 
     private fun lowerInterfaceExtensionFunction(
-        thisArg: IRValue,
-        node: HasLocation,
-        binding: PropertyBinding.InterfaceExtensionFunction
+            thisArg: IRValue,
+            node: HasLocation,
+            binding: PropertyBinding.InterfaceExtensionFunction
     ): IRValue {
         val implRef = lowerImplBinding(node.location, binding.implementationBinding)
         require(binding.type is Type.Function)
@@ -1021,10 +1022,10 @@ class IRGen(private val ctx: Context) {
         val index = binding.structDecl.members.indexOfFirst { it === binding.member }
         require(index > -1)
         return IRGetElementPointer(
-            rhsType,
-            expression.location,
-            lhs,
-            index
+                rhsType,
+                expression.location,
+                lhs,
+                index
         )
     }
 
@@ -1128,10 +1129,10 @@ class IRGen(private val ctx: Context) {
         require(propertyBinding is PropertyBinding.StructField)
         val offset = propertyBinding.memberIndex
         val memberPtr = IRGetElementPointer(
-            Type.Ptr(lhsType, isMutable = true),
-            location = statement.lhs.location,
-            offset = offset,
-            ptr = valuePtr
+                Type.Ptr(lhsType, isMutable = true),
+                location = statement.lhs.location,
+                offset = offset,
+                ptr = valuePtr
         )
         builder.buildStore(ptr = memberPtr, value = lowerExpression(statement.value))
     }
