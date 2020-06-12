@@ -822,9 +822,9 @@ class IRGen(private val ctx: Context) {
 
     private fun alloca(type: Type, name: IRLocalName, node: HasLocation) {
         builder.buildAlloca(type, name)
-//        defer {
-//            buildDestructorCall(type, name, node)
-//        }
+        defer {
+            buildDestructorCall(type, name, node)
+        }
     }
 
     private fun buildDestructorCall(type: Type, name: IRLocalName, node: HasLocation) {
