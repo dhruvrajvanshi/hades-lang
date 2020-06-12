@@ -19,10 +19,7 @@ class IRBuilder {
     private fun <S : IRInstruction> addStatement(statement: S): S {
         val statements = requireNotNull(position).statements
         if (statements.isNotEmpty()) {
-            require(statements.last() !is IRReturnInstruction) {
-                "Tried to add statement after terminator"
-            }
-            require(statements.last() !is IRBr) {
+            require(!statements.last().isTerminator()) {
                 "Tried to add statement after terminator"
             }
         }

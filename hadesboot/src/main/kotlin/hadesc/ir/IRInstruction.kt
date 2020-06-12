@@ -28,6 +28,12 @@ sealed class IRInstruction {
         is IRBinOp -> "${name.prettyPrint()}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()} ${rhs.prettyPrint()}"
         is IRSwitch -> "switch (${onValue.prettyPrint()}, ${cases.joinToString(", ") { it.prettyPrint() }})"
     }
+
+    fun isTerminator() = this is IRSwitch
+            || this is IRBr
+            || this is IRJump
+            || this is IRReturnVoidInstruction
+            || this is IRReturnInstruction
 }
 
 class IRReturnInstruction(
