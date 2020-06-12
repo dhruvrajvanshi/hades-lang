@@ -377,7 +377,6 @@ internal class ProgramVisitor(private val ctx: Context) {
                 entryBlock = IRBlock(),
                 constraints = listOf()
         )
-        val oldPosition = builder.position
         builder.withinBlock(fn.entryBlock) {
             val thisParam = fn.params[0]
             val thisPtr = builder.buildVariable(
@@ -393,7 +392,6 @@ internal class ProgramVisitor(private val ctx: Context) {
             }
             builder.buildRetVoid()
         }
-        builder.position = oldPosition
     }
 
     private fun structInitializerName(name: IRGlobalName): IRGlobalName {
@@ -460,13 +458,15 @@ internal class ProgramVisitor(private val ctx: Context) {
         val function = getFunctionDef(def, prefix)
         currentFunction = function
         localNameSet.addAll(def.params.map { it.binder.identifier.name })
-        function.entryBlock = lowerBlock(def.body, function.entryBlock)
-        localNameSet.clear()
         val ty = function.type
+        function.entryBlock = lowerBlock(def.body, function.entryBlock) {
 
-        if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
-            builder.buildRetVoid()
+            if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
+                builder.buildRetVoid()
+            }
         }
+        localNameSet.clear()
+
         return function
     }
 
@@ -475,12 +475,17 @@ internal class ProgramVisitor(private val ctx: Context) {
         return IRParam(name, type, param.location, functionName, index)
     }
 
-    private fun lowerBlock(body: Block, block: IRBlock = IRBlock(IRLocalName(Name("entry")))): IRBlock {
+    private fun lowerBlock(
+            body: Block,
+            block: IRBlock,
+            buildTerminator: () -> Unit = {}
+    ): IRBlock {
         scoped {
             builder.withinBlock(block) {
                 for (member in body.members) {
                     lowerBlockMember(member)
                 }
+                buildTerminator()
             }
         }
         return block
@@ -760,7 +765,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val conditionPtr = IRVariable(Type.Ptr(Type.Bool, isMutable = true), expression.lhs.location, conditionName)
         val lhsName = makeLocalName()
         val lhs = IRVariable(Type.Bool, expression.location, lhsName)
-        val done = buildBlock()
+        val done = forkControlFlow()
         // %condition = alloca Bool
         // store %condition lhs
         // %lhs = load %condition
@@ -812,10 +817,11 @@ internal class ProgramVisitor(private val ctx: Context) {
             }
         }
 
-
-        builder.position = done
         val resultName = makeLocalName()
-        builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
+        builder.withinBlock(done) {
+            builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
+        }
+        joinControlFlow()
 
         return IRVariable(Type.Bool, expression.location, resultName)
 
@@ -1167,7 +1173,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     private fun lowerIfStatement(statement: Statement.If) {
         val ifTrue = buildBlock()
         val ifFalse = buildBlock()
-        val end = buildBlock()
+        val end = forkControlFlow(ifTrue, ifFalse)
 
         builder.buildBranch(
             statement.condition.location,
@@ -1178,18 +1184,31 @@ internal class ProgramVisitor(private val ctx: Context) {
 
         lowerBlock(statement.ifTrue, ifTrue)
         val endLocation = statement.ifFalse?.location ?: statement.ifTrue.location
-        builder.buildJump(endLocation, end.name)
-
-        builder.position = ifFalse
-        if (statement.ifFalse != null) {
-            lowerBlock(statement.ifFalse, ifFalse)
-            builder.position = ifFalse
-            builder.buildJump(endLocation, end.name)
-        } else {
-            builder.position = ifFalse
+        builder.withinBlock(ifTrue) {
             builder.buildJump(endLocation, end.name)
         }
-        builder.position = end
+
+        if (statement.ifFalse != null) {
+            lowerBlock(statement.ifFalse, ifFalse)
+        }
+
+        builder.withinBlock(ifFalse) {
+            builder.buildJump(endLocation, end.name)
+        }
+
+        joinControlFlow()
+    }
+
+    private fun forkControlFlow(vararg forks: IRBlock): IRBlock {
+        val block = buildBlock()
+        joinStack.push(block)
+        return block
+    }
+
+    private val joinStack = Stack<IRBlock>()
+    private fun joinControlFlow() {
+        val block = joinStack.pop()
+        builder.positionAtEnd(block)
     }
 
     private fun lowerIfExpression(expr: Expression.If): IRValue {
@@ -1199,7 +1218,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val condition = lowerExpression(expr.condition)
         val ifTrue = buildBlock()
         val ifFalse = buildBlock()
-        val resultBlock = buildBlock()
+        val resultBlock = forkControlFlow(ifTrue, ifFalse)
         val resultPtr = builder.buildVariable(type, expr.location, resultPtrName)
 
         builder.buildBranch(expr.location, condition, ifTrue.name, ifFalse.name);
@@ -1218,6 +1237,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         builder.withinBlock(resultBlock) {
             builder.buildLoad(resultName, type, resultPtr);
         }
+        joinControlFlow()
         return builder.buildVariable(
                 type,
                 expr.location,
@@ -1239,7 +1259,7 @@ internal class ProgramVisitor(private val ctx: Context) {
      */
     private fun lowerWhileStatement(statement: Statement.While) {
         val whileBody = buildBlock()
-        val whileExit = buildBlock()
+        val whileExit = forkControlFlow()
 
         builder.buildBranch(
             statement.condition.location,
@@ -1249,15 +1269,17 @@ internal class ProgramVisitor(private val ctx: Context) {
         )
 
         lowerBlock(statement.body, whileBody)
+        builder.withinBlock(whileBody) {
+            builder.buildBranch(
+                    statement.condition.location,
+                    lowerExpression(statement.condition),
+                    whileBody.name,
+                    whileExit.name
+            )
+        }
 
-        builder.buildBranch(
-            statement.condition.location,
-            lowerExpression(statement.condition),
-            whileBody.name,
-            whileExit.name
-        )
+        joinControlFlow()
 
-        builder.position = whileExit
     }
 
     private fun buildBlock(): IRBlock {

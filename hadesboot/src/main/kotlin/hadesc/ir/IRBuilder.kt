@@ -109,14 +109,16 @@ class IRBuilder {
         return addStatement(IRBinOp(type, name, lhs, operator, rhs))
     }
 
-    private fun positionAtEnd(block: IRBlock) {
+    fun positionAtEnd(block: IRBlock) {
         this.position = block
     }
 
 
     fun withinBlock(block: IRBlock, function: () -> Unit) {
+        val oldBlock = position
         positionAtEnd(block)
         function()
+        position = oldBlock
     }
 
     fun buildNot(type: Type, location: SourceLocation, name: IRLocalName, value: IRValue): IRNot {
