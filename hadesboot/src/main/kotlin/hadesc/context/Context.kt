@@ -38,7 +38,7 @@ class Context(
         }
 
         if (this.diagnosticReporter.hasErrors) {
-            exitProcess(1)
+            return
         }
         var irModule = IRGen(this).generate()
 
