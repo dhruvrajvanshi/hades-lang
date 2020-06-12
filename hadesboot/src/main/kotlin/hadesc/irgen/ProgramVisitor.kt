@@ -19,7 +19,7 @@ import hadesc.types.Type
 import java.util.*
 
 @OptIn(ExperimentalStdlibApi::class)
-internal class BlockVisitor(private val ctx: Context) {
+internal class ProgramVisitor(private val ctx: Context) {
     private val module = IRModule()
     private val definitions = mutableListOf<IRDefinition>()
     private val loweredSourceFileSet = mutableSetOf<SourcePath>()

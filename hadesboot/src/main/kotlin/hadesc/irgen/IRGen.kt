@@ -5,6 +5,6 @@ import hadesc.ir.IRModule
 
 class IRGen(val ctx: Context) {
     fun generate(): IRModule {
-        return BlockVisitor(ctx).generate()
+        return ProgramVisitor(ctx).generate()
     }
 }
