@@ -102,6 +102,34 @@ def print_second[T](this: *Pair[T, *Byte]): Void {
 }
 ```
 
+Interfaces
+```swift
+
+interface Printable {
+  // interfaces can refer to the type they
+  // are implemented for using the This type
+  def print(this: *This): Void;
+}
+
+// Interfaces are implemented outside the type declaration
+// this means you can make builtin types implement new interfaces
+implement Printable for Bool {
+  def print(this: *Bool): Void {
+    if *this {
+      c.puts(b"true");
+    } else {
+      c.puts(b"false");
+    }
+  }
+}
+
+def main(): Void {
+  val boolean = true;
+  val pointer_to_boolean = &boolean;
+  pointer_to_boolean.print(); // prints true
+}
+
+```
 
 
 
