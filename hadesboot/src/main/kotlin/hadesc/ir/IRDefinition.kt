@@ -103,6 +103,10 @@ class IRFunctionDef(
         blocks.add(block)
     }
 
+    fun getBlock(name: IRLocalName): IRBlock? {
+        return blocks.find { it.name == name }
+    }
+
     override fun prettyPrint(): String {
         return "def ${name.prettyPrint()}(${params.joinToString(",") { it.prettyPrint() }}): ${type.to.prettyPrint()} {" +
                 "${entryBlock.prettyPrint()}\n${blocks.joinToString(""){ it.prettyPrint() }}}"

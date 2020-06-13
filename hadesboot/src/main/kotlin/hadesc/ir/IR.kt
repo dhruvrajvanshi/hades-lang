@@ -44,6 +44,6 @@ class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
     operator fun iterator(): Iterator<IRInstruction> = statementSequence().iterator()
 
     private fun statementSequence() = statements.asSequence()
-    fun hasTerminator(): Boolean = statements.isEmpty() || !statements.last().isTerminator()
+    fun hasTerminator(): Boolean = statements.isNotEmpty() && statements.last().isTerminator()
 }
 

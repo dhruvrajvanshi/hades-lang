@@ -1,0 +1,13 @@
+import libc as c;
+
+def main(): Void {
+    c.puts(b"4");
+    if true {
+        c.puts(b"6");
+        if true {
+            c.puts(b"8");
+        }
+        c.puts(b"10");
+    }
+    c.puts(b"12");
+}

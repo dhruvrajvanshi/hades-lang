@@ -458,12 +458,9 @@ internal class ProgramVisitor(private val ctx: Context) {
         val function = getFunctionDef(def, prefix)
         currentFunction = function
         localNameSet.addAll(def.params.map { it.binder.identifier.name })
-        val ty = function.type
-        function.entryBlock = lowerBlock(def.body, function.entryBlock) {
-
-            if (ctx.checker.isTypeEqual(ty.to, Type.Void)) {
-                builder.buildRetVoid()
-            }
+        function.entryBlock = lowerBlock(def.body, function.entryBlock)
+        if (function.type.to is Type.Void) {
+            terminateFunctionReturnVoid(function.entryBlock)
         }
         localNameSet.clear()
 
@@ -477,15 +474,13 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     private fun lowerBlock(
             body: Block,
-            block: IRBlock,
-            buildTerminator: () -> Unit = {}
+            block: IRBlock
     ): IRBlock {
         scoped {
             builder.withinBlock(block) {
                 for (member in body.members) {
                     lowerBlockMember(member)
                 }
-                buildTerminator()
             }
         }
         return block
@@ -773,7 +768,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.lhs))
         builder.buildLoad(name = lhsName, ptr = conditionPtr, type = Type.Bool)
 
-        when (expression.operator) {
+        val (branch1, branch2) = when (expression.operator) {
             BinaryOperator.AND -> {
                 // br %lhs if_true:.and_rhs if_false:.and_short_circuit
                 // .and_rhs:
@@ -786,11 +781,8 @@ internal class ProgramVisitor(private val ctx: Context) {
                 builder.buildBranch(expression.location, lhs, ifTrue = andRHS.name, ifFalse = andShortCircuit.name)
                 builder.withinBlock(andRHS) {
                     builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
-                    builder.buildJump(expression.lhs.location, done.name)
                 }
-                builder.withinBlock(andShortCircuit) {
-                    builder.buildJump(expression.rhs.location, done.name)
-                }
+                andRHS to andShortCircuit
 
             }
             BinaryOperator.OR -> {
@@ -804,13 +796,11 @@ internal class ProgramVisitor(private val ctx: Context) {
                 val orRHS = buildBlock()
 
                 builder.buildBranch(expression.location, lhs, ifTrue = orShortCircuit.name, ifFalse = orRHS.name)
-                builder.withinBlock(orShortCircuit) {
-                    builder.buildJump(expression.lhs.location, done.name)
-                }
+
                 builder.withinBlock(orRHS) {
                     builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
-                    builder.buildJump(expression.rhs.location, done.name)
                 }
+                orRHS to orShortCircuit
             }
             else -> {
                 requireUnreachable()
@@ -821,7 +811,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         builder.withinBlock(done) {
             builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
         }
-        joinControlFlow()
+        joinControlFlow(expression.location, done, branch1, branch2)
 
         return IRVariable(Type.Bool, expression.location, resultName)
 
@@ -1173,7 +1163,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     private fun lowerIfStatement(statement: Statement.If) {
         val ifTrue = buildBlock()
         val ifFalse = buildBlock()
-        val end = forkControlFlow(ifTrue, ifFalse)
+        val end = forkControlFlow()
 
         builder.buildBranch(
             statement.condition.location,
@@ -1183,32 +1173,87 @@ internal class ProgramVisitor(private val ctx: Context) {
         )
 
         lowerBlock(statement.ifTrue, ifTrue)
-        val endLocation = statement.ifFalse?.location ?: statement.ifTrue.location
-        builder.withinBlock(ifTrue) {
-            builder.buildJump(endLocation, end.name)
-        }
 
         if (statement.ifFalse != null) {
             lowerBlock(statement.ifFalse, ifFalse)
         }
+        joinControlFlow(statement.location, end, ifTrue, ifFalse)
+    }
 
-        builder.withinBlock(ifFalse) {
-            builder.buildJump(endLocation, end.name)
+    private fun forkControlFlow(): IRBlock {
+        return buildBlock()
+    }
+
+    private fun terminateFunctionReturnVoid(entryBlock: IRBlock) {
+        val isVisited = mutableSetOf<IRLocalName>()
+        fun visitBlock(branch: IRBlock) {
+            if (isVisited.contains(branch.name)) {
+                return
+            }
+            isVisited.add(branch.name)
+            if (!branch.hasTerminator()) {
+                builder.withinBlock(branch) {
+                    builder.buildRetVoid()
+                }
+            } else {
+                when (val statement = branch.statements.last()) {
+                    is IRReturnInstruction -> requireUnreachable()
+                    IRReturnVoidInstruction -> requireUnreachable()
+                    is IRSwitch -> requireUnreachable()
+                    is IRBr -> {
+                        val block1 = requireNotNull(currentFunction?.getBlock(statement.ifTrue))
+                        val block2 = requireNotNull(currentFunction?.getBlock(statement.ifFalse))
+                        visitBlock(block1)
+                        visitBlock(block2)
+                    }
+                    is IRJump -> {
+                        val block = requireNotNull(currentFunction?.getBlock(statement.label))
+                        visitBlock(block)
+                    }
+                    else -> {}
+                }
+            }
         }
-
-        joinControlFlow()
+        visitBlock(entryBlock)
     }
+    private fun joinControlFlow(location: SourceLocation, endBlock: IRBlock, vararg branches: IRBlock) {
+        val isVisited = mutableSetOf<IRLocalName>()
+        fun joinBranch(branch: IRBlock) {
+            if (isVisited.contains(branch.name)) {
+                return
+            }
+            isVisited.add(branch.name)
 
-    private fun forkControlFlow(vararg forks: IRBlock): IRBlock {
-        val block = buildBlock()
-        joinStack.push(block)
-        return block
-    }
-
-    private val joinStack = Stack<IRBlock>()
-    private fun joinControlFlow() {
-        val block = joinStack.pop()
-        builder.positionAtEnd(block)
+            if (branch.name == endBlock.name) {
+                return
+            }
+            if (!branch.hasTerminator()) {
+                builder.withinBlock(branch) {
+                    builder.buildJump(location, endBlock.name)
+                }
+            } else {
+                when (val statement = branch.statements.last()) {
+                    is IRReturnInstruction -> requireUnreachable()
+                    IRReturnVoidInstruction -> requireUnreachable()
+                    is IRSwitch -> requireUnreachable()
+                    is IRBr -> {
+                        val block1 = requireNotNull(currentFunction?.getBlock(statement.ifTrue))
+                        val block2 = requireNotNull(currentFunction?.getBlock(statement.ifFalse))
+                        joinBranch(block1)
+                        joinBranch(block2)
+                    }
+                    is IRJump -> {
+                        val block = requireNotNull(currentFunction?.getBlock(statement.label))
+                        joinBranch(block)
+                    }
+                    else -> {}
+                }
+            }
+        }
+        for (branch in branches) {
+            joinBranch(branch)
+        }
+        builder.positionAtEnd(endBlock)
     }
 
     private fun lowerIfExpression(expr: Expression.If): IRValue {
@@ -1218,26 +1263,24 @@ internal class ProgramVisitor(private val ctx: Context) {
         val condition = lowerExpression(expr.condition)
         val ifTrue = buildBlock()
         val ifFalse = buildBlock()
-        val resultBlock = forkControlFlow(ifTrue, ifFalse)
+        val resultBlock = forkControlFlow()
         val resultPtr = builder.buildVariable(type, expr.location, resultPtrName)
 
         builder.buildBranch(expr.location, condition, ifTrue.name, ifFalse.name);
 
         builder.withinBlock(ifTrue) {
             builder.buildStore(ptr = resultPtr, value = lowerExpression(expr.trueBranch))
-            builder.buildJump(expr.trueBranch.location, resultBlock.name)
         }
 
         builder.withinBlock(ifFalse) {
             builder.buildStore(ptr = resultPtr, value = lowerExpression(expr.falseBranch))
-            builder.buildJump(expr.falseBranch.location, resultBlock.name)
         }
 
         val resultName = makeLocalName()
         builder.withinBlock(resultBlock) {
             builder.buildLoad(resultName, type, resultPtr);
         }
-        joinControlFlow()
+        joinControlFlow(expr.location, ifTrue, ifFalse)
         return builder.buildVariable(
                 type,
                 expr.location,
@@ -1278,7 +1321,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             )
         }
 
-        joinControlFlow()
+        joinControlFlow(statement.location, whileExit, whileBody)
 
     }
 
