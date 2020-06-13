@@ -1280,7 +1280,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         builder.withinBlock(resultBlock) {
             builder.buildLoad(resultName, type, resultPtr);
         }
-        joinControlFlow(expr.location, ifTrue, ifFalse)
+        joinControlFlow(expr.location, resultBlock, ifTrue, ifFalse)
         return builder.buildVariable(
                 type,
                 expr.location,
