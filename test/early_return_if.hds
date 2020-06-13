@@ -1,0 +1,17 @@
+import libc as c;
+def main(): Void {
+    f();
+}
+
+def f(): Size {
+    if true {
+        c.puts(b"8");
+        if true {
+            c.puts(b"10");
+            return 10;
+        }
+        c.puts(b"should not print");
+    }
+    c.puts(b"should not print");
+    return 15;
+}

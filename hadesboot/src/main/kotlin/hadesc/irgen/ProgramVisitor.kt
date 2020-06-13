@@ -460,7 +460,9 @@ internal class ProgramVisitor(private val ctx: Context) {
         localNameSet.addAll(def.params.map { it.binder.identifier.name })
         function.entryBlock = lowerBlock(def.body, function.entryBlock)
         if (function.type.to is Type.Void) {
-            terminateFunctionReturnVoid(function.entryBlock)
+            terminateBlock(function.entryBlock) {
+                builder.buildRetVoid()
+            }
         }
         localNameSet.clear()
 
@@ -1184,7 +1186,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         return buildBlock()
     }
 
-    private fun terminateFunctionReturnVoid(entryBlock: IRBlock) {
+    private fun terminateBlock(entryBlock: IRBlock, f: () -> Unit) {
         val isVisited = mutableSetOf<IRLocalName>()
         fun visitBlock(branch: IRBlock) {
             if (isVisited.contains(branch.name)) {
@@ -1193,12 +1195,12 @@ internal class ProgramVisitor(private val ctx: Context) {
             isVisited.add(branch.name)
             if (!branch.hasTerminator()) {
                 builder.withinBlock(branch) {
-                    builder.buildRetVoid()
+                    f()
                 }
             } else {
                 when (val statement = branch.statements.last()) {
-                    is IRReturnInstruction -> requireUnreachable()
-                    IRReturnVoidInstruction -> requireUnreachable()
+                    is IRReturnInstruction -> {}
+                    IRReturnVoidInstruction -> {}
                     is IRSwitch -> requireUnreachable()
                     is IRBr -> {
                         val block1 = requireNotNull(currentFunction?.getBlock(statement.ifTrue))
@@ -1233,9 +1235,9 @@ internal class ProgramVisitor(private val ctx: Context) {
                 }
             } else {
                 when (val statement = branch.statements.last()) {
-                    is IRReturnInstruction -> requireUnreachable()
-                    IRReturnVoidInstruction -> requireUnreachable()
-                    is IRSwitch -> requireUnreachable()
+                    is IRReturnInstruction -> {}
+                    IRReturnVoidInstruction -> {}
+                    is IRSwitch -> TODO()
                     is IRBr -> {
                         val block1 = requireNotNull(currentFunction?.getBlock(statement.ifTrue))
                         val block2 = requireNotNull(currentFunction?.getBlock(statement.ifFalse))
@@ -1312,7 +1314,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         )
 
         lowerBlock(statement.body, whileBody)
-        builder.withinBlock(whileBody) {
+        terminateBlock(whileBody) {
             builder.buildBranch(
                     statement.condition.location,
                     lowerExpression(statement.condition),
@@ -1321,7 +1323,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             )
         }
 
-        joinControlFlow(statement.location, whileExit, whileBody)
+        joinControlFlow(statement.location, whileExit, whileBody, requireNotNull(builder.position))
 
     }
 

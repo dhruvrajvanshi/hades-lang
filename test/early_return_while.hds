@@ -1,0 +1,15 @@
+import libc as c;
+def main(): Size {
+   val mut count = 0;
+   while true {
+       if count > 2 {
+            c.puts(b"returning");
+            return 0;
+       } else {
+            c.puts(b"in loop");
+       }
+       count = count + 1;
+   }
+   c.puts(b"dont print");
+   return 1;
+}
