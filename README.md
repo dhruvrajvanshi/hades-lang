@@ -54,6 +54,16 @@ interpreter witha a garbage collector.
    much).
 
 ## What does it look like?
+
+Hello world
+```python
+import libc as c;
+def main(): Void {
+    c.puts(b"Hello world");
+}
+```
+
+
 Check the suite directory for a few contrived examples used as an automated test suite.
 Proper documentation coming in the future.
 
