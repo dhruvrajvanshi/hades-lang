@@ -819,7 +819,13 @@ internal class ProgramVisitor(private val ctx: Context) {
         builder.withinBlock(done) {
             builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
         }
-        joinControlFlow(expression.location, done, branch1, branch2)
+        terminateBlock(expression.lhs.location, branch1) {
+            builder.buildJump(expression.lhs.location, done.name)
+        }
+        terminateBlock(expression.rhs.location, branch2) {
+            builder.buildJump(expression.rhs.location, done.name)
+        }
+        builder.positionAtEnd(done)
 
         return IRVariable(Type.Bool, expression.location, resultName)
 
@@ -1183,7 +1189,13 @@ internal class ProgramVisitor(private val ctx: Context) {
         if (statement.ifFalse != null) {
             lowerBlock(statement.ifFalse, ifFalse)
         }
-        joinControlFlow(statement.location, end, ifTrue, ifFalse)
+        terminateBlock(statement.ifTrue.location, ifTrue) {
+            builder.buildJump(statement.ifTrue.location, end.name)
+        }
+        terminateBlock(statement.location, ifFalse) {
+            builder.buildJump(statement.location, end.name)
+        }
+        builder.positionAtEnd(end)
     }
 
     private fun forkControlFlow(): IRBlock {
@@ -1245,58 +1257,6 @@ internal class ProgramVisitor(private val ctx: Context) {
         }
         visitBlock(entryBlock)
     }
-    private fun joinControlFlow(location: SourceLocation, endBlock: IRBlock, vararg branches: IRBlock) {
-        val isVisited = mutableSetOf<IRLocalName>()
-        lateinit var scope: IRBlock
-        fun joinBranch(branch: IRBlock) {
-            if (isVisited.contains(branch.name)) {
-                return
-            }
-            isVisited.add(branch.name)
-            if (branch.name == endBlock.name) {
-                return
-            }
-            if (!branch.hasTerminator()) {
-                val deferBlockName = scope.deferBlockName
-                if (deferBlockName != null) {
-                    val deferBlock = getBlock(deferBlockName)
-                    builder.withinBlock(deferBlock) {
-                        builder.buildJump(location, endBlock.name)
-                    }
-                    builder.withinBlock(branch) {
-                        builder.buildJump(location, deferBlockName)
-                    }
-                } else {
-                    builder.withinBlock(branch) {
-                        builder.buildJump(location, endBlock.name)
-                    }
-
-                }
-            } else {
-                when (val statement = branch.statements.last()) {
-                    is IRReturnInstruction -> {}
-                    IRReturnVoidInstruction -> {}
-                    is IRSwitch -> TODO()
-                    is IRBr -> {
-                        val block1 = getBlock(statement.ifTrue)
-                        val block2 = getBlock(statement.ifFalse)
-                        joinBranch(block1)
-                        joinBranch(block2)
-                    }
-                    is IRJump -> {
-                        val block = getBlock(statement.label)
-                        joinBranch(block)
-                    }
-                    else -> {}
-                }
-            }
-        }
-        for (branch in branches) {
-            scope = branch
-            joinBranch(branch)
-        }
-        builder.positionAtEnd(endBlock)
-    }
 
     private fun lowerIfExpression(expr: Expression.If): IRValue {
         val resultPtrName = makeLocalName()
@@ -1322,7 +1282,13 @@ internal class ProgramVisitor(private val ctx: Context) {
         builder.withinBlock(resultBlock) {
             builder.buildLoad(resultName, type, resultPtr)
         }
-        joinControlFlow(expr.location, resultBlock, ifTrue, ifFalse)
+        terminateBlock(expr.trueBranch.location, ifTrue) {
+            builder.buildJump(expr.trueBranch.location, resultBlock.name)
+        }
+        terminateBlock(expr.falseBranch.location, ifFalse) {
+            builder.buildJump(expr.falseBranch.location, resultBlock.name)
+        }
+        builder.positionAtEnd(resultBlock)
         return builder.buildVariable(
                 type,
                 expr.location,
@@ -1363,8 +1329,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             )
         }
 
-        joinControlFlow(statement.location, whileExit, whileBody, requireNotNull(builder.position))
-
+        builder.positionAtEnd(whileExit)
     }
 
     private fun buildBlock(): IRBlock {
