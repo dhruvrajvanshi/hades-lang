@@ -8,7 +8,6 @@ import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
-import hadesc.ir.passes.DeferElimination
 import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
 import hadesc.ir.passes.SpecializeGenerics

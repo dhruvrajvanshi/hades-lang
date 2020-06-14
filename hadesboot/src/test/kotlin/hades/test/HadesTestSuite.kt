@@ -70,7 +70,11 @@ class HadesTestSuite {
                                 .redirectError(ProcessBuilder.Redirect.INHERIT)
                                 .redirectOutput(actualStdoutFile)
                                 .start()
-                            process.waitFor(1, TimeUnit.SECONDS)
+                            val hasExited = process.waitFor(1, TimeUnit.SECONDS)
+                            if (!hasExited) {
+                                process.destroy()
+                            }
+                            assert(hasExited)
                             print(actualStdoutFile.readText())
                             assert(process.exitValue() == 0) {
                                 "Test program exited with non-zero exit code"

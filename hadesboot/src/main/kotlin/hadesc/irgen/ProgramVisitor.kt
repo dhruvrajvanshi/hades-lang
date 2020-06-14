@@ -11,11 +11,11 @@ import hadesc.ir.*
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.logging.logger
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import java.util.*
 
 @OptIn(ExperimentalStdlibApi::class)
 internal class ProgramVisitor(private val ctx: Context) {
@@ -456,10 +456,11 @@ internal class ProgramVisitor(private val ctx: Context) {
         val function = getFunctionDef(def, prefix)
         currentFunction = function
         localNameSet.addAll(def.params.map { it.binder.identifier.name })
-        function.entryBlock = lowerBlock(def.body, function.entryBlock)
-        if (function.type.to is Type.Void) {
-            terminateBlock(def.location, function.entryBlock) {
-                builder.buildRetVoid()
+        function.entryBlock = lowerBlock(def.body, function.entryBlock, cleanupBeforeBlocks = listOf()) {
+            if (function.type.to is Type.Void) {
+                terminateBlock(def.location, function.entryBlock) {
+                    builder.buildRetVoid()
+                }
             }
         }
         localNameSet.clear()
@@ -472,21 +473,90 @@ internal class ProgramVisitor(private val ctx: Context) {
         return IRParam(name, type, param.location, functionName, index)
     }
 
+    private val deferBlockStack = Stack<IRBlock>()
     private fun lowerBlock(
             body: Block,
-            block: IRBlock
+            block: IRBlock,
+            cleanupBeforeBlocks: List<IRBlock>,
+            f: () -> Unit
     ): IRBlock {
+        val deferBlock = IRBlock(IRLocalName(ctx.makeUniqueName()))
+        deferBlockStack.push(deferBlock)
         builder.withinBlock(block) {
             for (member in body.members) {
                 lowerBlockMember(member)
             }
         }
-        val deferBlockName = block.deferBlockName
-        if (deferBlockName != null) {
-            val deferBlock = getBlock(deferBlockName)
-            deferBlock.statements.reverse()
-        }
+        f()
+        cleanupScope(block, cleanupBeforeBlocks)
+        deferBlockStack.pop()
         return block
+    }
+
+    private fun cleanupScope(startingBlock: IRBlock, beforeBlocks: List<IRBlock>) {
+        val beforeBlockNames = beforeBlocks.map { it.name.name }
+        val visitedSet = mutableSetOf<Name>()
+
+        fun visitBlock(currentBlock: IRBlock) {
+
+            fun addDeferStatements(deferBlock: IRBlock) {
+                deferBlock.statements.reversed().forEach {
+                    currentBlock.statements.add(it)
+                }
+            }
+            if (visitedSet.contains(currentBlock.name.name)) {
+                return
+            }
+            visitedSet.add(currentBlock.name.name)
+            require(currentBlock.hasTerminator())
+            when (val statement = currentBlock.statements.last()) {
+                is IRJump -> {
+                    if (statement.label.name in beforeBlockNames) {
+                        currentBlock.statements.removeLast()
+                        addDeferStatements(deferBlockStack.peek())
+                        currentBlock.statements.add(statement)
+                    } else {
+                        visitBlock(getBlock(statement.label))
+                    }
+                }
+                is IRBr -> {
+                    if (
+                            statement.ifTrue.name !in beforeBlockNames
+                            && statement.ifFalse.name !in beforeBlockNames
+                    ) {
+                        visitBlock(getBlock(statement.ifTrue))
+                        visitBlock(getBlock(statement.ifFalse))
+                    } else {
+                        require(
+                                statement.ifTrue.name == startingBlock.name.name
+                                        || statement.ifFalse.name == startingBlock.name.name
+                        )
+                        currentBlock.statements.removeLast()
+
+                        addDeferStatements(deferBlockStack.peek())
+
+                        currentBlock.statements.add(statement)
+                    }
+
+                }
+                is IRReturnVoidInstruction -> {
+                    currentBlock.statements.removeLast()
+
+                    addDeferStatements(deferBlockStack.peek())
+
+                    currentBlock.statements.add(statement)
+                }
+                is IRReturnInstruction -> {
+                    currentBlock.statements.removeLast()
+
+                    addDeferStatements(deferBlockStack.peek())
+
+                    currentBlock.statements.add(statement)
+                }
+                else -> requireUnreachable()
+            }
+        }
+        visitBlock(startingBlock)
     }
 
     private fun getBlock(name: IRLocalName): IRBlock {
@@ -494,17 +564,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun defer(f: () -> Unit) {
-        val currentBlock = requireNotNull(builder.position)
-        val existingDeferBlockName = currentBlock.deferBlockName
-        val deferBlock = if (existingDeferBlockName == null) {
-            val deferBlock = buildBlock()
-            currentBlock.deferBlockName = deferBlock.name
-            deferBlock
-        } else {
-            requireNotNull(currentFunction?.getBlock(existingDeferBlockName))
-        }
-
-        builder.withinBlock(deferBlock) {
+        builder.withinBlock(deferBlockStack.peek()) {
             f()
         }
     }
@@ -1184,17 +1244,24 @@ internal class ProgramVisitor(private val ctx: Context) {
             ifFalse = ifFalse.name
         )
 
-        lowerBlock(statement.ifTrue, ifTrue)
+        lowerBlock(statement.ifTrue, ifTrue, cleanupBeforeBlocks = listOf(end)) {
+            terminateBlock(statement.ifTrue.location, ifTrue) {
+                builder.buildJump(statement.ifTrue.location, end.name)
+            }
+        }
 
         if (statement.ifFalse != null) {
-            lowerBlock(statement.ifFalse, ifFalse)
+            lowerBlock(statement.ifFalse, ifFalse, cleanupBeforeBlocks = listOf(end)) {
+                terminateBlock(statement.location, ifFalse) {
+                    builder.buildJump(statement.location, end.name)
+                }
+            }
+        } else {
+            builder.withinBlock(ifFalse) {
+                builder.buildJump(statement.location, end.name)
+            }
         }
-        terminateBlock(statement.ifTrue.location, ifTrue) {
-            builder.buildJump(statement.ifTrue.location, end.name)
-        }
-        terminateBlock(statement.location, ifFalse) {
-            builder.buildJump(statement.location, end.name)
-        }
+
         builder.positionAtEnd(end)
     }
 
@@ -1202,7 +1269,10 @@ internal class ProgramVisitor(private val ctx: Context) {
         return buildBlock()
     }
 
-    private fun terminateBlock(location: SourceLocation, entryBlock: IRBlock, f: () -> Unit) {
+    private fun terminateCurrentBlock(location: SourceLocation, f: () -> IRInstruction) {
+        terminateBlock(location, requireNotNull(builder.position), f)
+    }
+    private fun terminateBlock(location: SourceLocation, entryBlock: IRBlock, f: () -> IRInstruction) {
         val isVisited = mutableSetOf<IRLocalName>()
         fun visitBlock(branch: IRBlock) {
             if (isVisited.contains(branch.name)) {
@@ -1210,36 +1280,24 @@ internal class ProgramVisitor(private val ctx: Context) {
             }
             isVisited.add(branch.name)
             if (!branch.hasTerminator()) {
-                val deferBlockName = entryBlock.deferBlockName
-                if (deferBlockName != null) {
-                    val deferBlock =  getBlock(deferBlockName)
+//                val deferBlockName = entryBlock.deferBlockName
+//                if (deferBlockName != null) {
+//                    val deferBlock =  getBlock(deferBlockName)
+//                    builder.withinBlock(branch) {
+//                        builder.buildJump(location, deferBlockName)
+//                    }
+//                    builder.withinBlock(deferBlock) {
+//                        f()
+//                    }
+//                } else {
                     builder.withinBlock(branch) {
-                        builder.buildJump(location, deferBlockName)
-                    }
-                    builder.withinBlock(deferBlock) {
                         f()
                     }
-                } else {
-                    builder.withinBlock(branch) {
-                        f()
-                    }
-                }
+//                }
             } else {
                 when (val statement = branch.statements.last()) {
                     is IRReturnInstruction -> {}
-                    IRReturnVoidInstruction -> {
-                        val deferBlockName = entryBlock.deferBlockName
-                        if (deferBlockName != null) {
-                            val deferBlock =  getBlock(deferBlockName)
-                            branch.statements.removeLast()
-                            builder.withinBlock(branch) {
-                                builder.buildJump(location, deferBlockName)
-                            }
-                            builder.withinBlock(deferBlock) {
-                                builder.buildRetVoid()
-                            }
-                        }
-                    }
+                    IRReturnVoidInstruction -> {}
                     is IRSwitch -> requireUnreachable()
                     is IRBr -> {
                         val block1 = getBlock(statement.ifTrue)
@@ -1319,14 +1377,15 @@ internal class ProgramVisitor(private val ctx: Context) {
             whileExit.name
         )
 
-        lowerBlock(statement.body, whileBody)
-        terminateBlock(statement.body.location, whileBody) {
-            builder.buildBranch(
-                    statement.condition.location,
-                    lowerExpression(statement.condition),
-                    whileBody.name,
-                    whileExit.name
-            )
+        lowerBlock(statement.body, whileBody, cleanupBeforeBlocks = listOf(whileExit, whileBody)) {
+            terminateBlock(statement.body.location, whileBody) {
+                builder.buildBranch(
+                        statement.condition.location,
+                        lowerExpression(statement.condition),
+                        whileBody.name,
+                        whileExit.name
+                )
+            }
         }
 
         builder.positionAtEnd(whileExit)
