@@ -16,7 +16,6 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
-import java.util.*
 
 @OptIn(ExperimentalStdlibApi::class)
 internal class ProgramVisitor(private val ctx: Context) {
@@ -28,7 +27,6 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     fun generate(): IRModule = profile("IRGen::generate") {
         ctx.forEachSourceFile { lowerSourceFile(it) }
-        logger().info(module.prettyPrint())
         return module
     }
 
@@ -488,19 +486,33 @@ internal class ProgramVisitor(private val ctx: Context) {
         return block
     }
 
-    private val deferredStacks = Stack<Stack<() -> Unit>>()
+//    private val deferredStacks = Stack<Stack<() -> Unit>>()
     private fun scoped(f: () -> Unit) {
-        deferredStacks.push(Stack())
+//        deferredStacks.push(Stack())
         f()
-        deferredStacks.pop().let {
-            while (it.isNotEmpty()) {
-                it.pop()()
-            }
-        }
+//        deferredStacks.pop().let {
+//            while (it.isNotEmpty()) {
+//                it.pop()()
+//            }
+//        }
     }
 
     private fun defer(f: () -> Unit) {
-        deferredStacks.peek().add(f)
+        val currentBlock = requireNotNull(builder.position)
+        val existingDeferBlockName = currentBlock.deferBlockName
+        val deferBlock = if (existingDeferBlockName == null) {
+            val deferBlock = buildBlock()
+            currentBlock.deferBlockName = deferBlock.name
+            deferBlock
+        } else {
+            requireNotNull(currentFunction?.getBlock(existingDeferBlockName))
+        }
+
+        currentBlock.deferBlockName = deferBlock.name
+
+        builder.withinBlock(deferBlock) {
+            f()
+        }
     }
 
     private fun lowerBlockMember(member: Block.Member) = when (member) {
@@ -821,9 +833,7 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     private fun alloca(type: Type, name: IRLocalName, node: HasLocation) {
         builder.buildAlloca(type, name)
-        defer {
-            buildDestructorCall(type, name, node)
-        }
+        buildDestructorCall(type, name, node)
     }
 
     private fun buildDestructorCall(type: Type, name: IRLocalName, node: HasLocation) {
@@ -836,7 +846,7 @@ internal class ProgramVisitor(private val ctx: Context) {
 
         if (impl == null) {
             return
-        } else {
+        } else defer {
             require(impl is ImplementationBinding.GlobalImpl)
             val dropMethodFieldOffset = requireNotNull(
                 impl.implDef.members.indexOfFirst {
@@ -1225,7 +1235,6 @@ internal class ProgramVisitor(private val ctx: Context) {
                 return
             }
             isVisited.add(branch.name)
-
             if (branch.name == endBlock.name) {
                 return
             }
@@ -1268,7 +1277,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val resultBlock = forkControlFlow()
         val resultPtr = builder.buildVariable(type, expr.location, resultPtrName)
 
-        builder.buildBranch(expr.location, condition, ifTrue.name, ifFalse.name);
+        builder.buildBranch(expr.location, condition, ifTrue.name, ifFalse.name)
 
         builder.withinBlock(ifTrue) {
             builder.buildStore(ptr = resultPtr, value = lowerExpression(expr.trueBranch))
@@ -1280,7 +1289,7 @@ internal class ProgramVisitor(private val ctx: Context) {
 
         val resultName = makeLocalName()
         builder.withinBlock(resultBlock) {
-            builder.buildLoad(resultName, type, resultPtr);
+            builder.buildLoad(resultName, type, resultPtr)
         }
         joinControlFlow(expr.location, resultBlock, ifTrue, ifFalse)
         return builder.buildVariable(
@@ -1328,16 +1337,13 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun buildBlock(): IRBlock {
-        val block = IRBlock(_makeBlockName())
+        val name = IRLocalName(ctx.makeUniqueName())
+        val block = IRBlock(name)
         requireNotNull(currentFunction).appendBlock(block)
         return block
     }
 
     private fun makeLocalName(): IRLocalName {
-        return IRLocalName(ctx.makeUniqueName())
-    }
-
-    private fun _makeBlockName(): IRLocalName {
         return IRLocalName(ctx.makeUniqueName())
     }
 

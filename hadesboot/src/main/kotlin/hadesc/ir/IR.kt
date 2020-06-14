@@ -38,6 +38,7 @@ data class IRTypeParam(
 
 class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
     var statements = mutableListOf<IRInstruction>()
+    var deferBlockName: IRLocalName? = null
     fun prettyPrint(): String =
         "\n${name.prettyPrint()}:\n${statementSequence().joinToString("\n") { "  " + it.prettyPrint() }}\n"
 
