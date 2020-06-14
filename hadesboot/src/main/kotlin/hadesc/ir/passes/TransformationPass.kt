@@ -205,6 +205,7 @@ interface TransformationPass: TypeTransformer {
 
     fun lowerBlock(oldBlock: IRBlock, newBlock: IRBlock): IRBlock {
         builder.position = newBlock
+        newBlock.deferBlockName = oldBlock.deferBlockName
         for (instruction in oldBlock) {
             lowerInstruction(instruction)
         }

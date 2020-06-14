@@ -458,7 +458,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         localNameSet.addAll(def.params.map { it.binder.identifier.name })
         function.entryBlock = lowerBlock(def.body, function.entryBlock)
         if (function.type.to is Type.Void) {
-            terminateBlock(function.entryBlock) {
+            terminateBlock(def.location, function.entryBlock) {
                 builder.buildRetVoid()
             }
         }
@@ -476,12 +476,15 @@ internal class ProgramVisitor(private val ctx: Context) {
             body: Block,
             block: IRBlock
     ): IRBlock {
-        scoped {
-            builder.withinBlock(block) {
-                for (member in body.members) {
-                    lowerBlockMember(member)
-                }
+        builder.withinBlock(block) {
+            for (member in body.members) {
+                lowerBlockMember(member)
             }
+        }
+        val deferBlockName = block.deferBlockName
+        if (deferBlockName != null) {
+            val deferBlock = getBlock(deferBlockName)
+            deferBlock.statements.reverse()
         }
         return block
     }
@@ -500,8 +503,6 @@ internal class ProgramVisitor(private val ctx: Context) {
         } else {
             requireNotNull(currentFunction?.getBlock(existingDeferBlockName))
         }
-
-        currentBlock.deferBlockName = deferBlock.name
 
         builder.withinBlock(deferBlock) {
             f()
@@ -1189,7 +1190,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         return buildBlock()
     }
 
-    private fun terminateBlock(entryBlock: IRBlock, f: () -> Unit) {
+    private fun terminateBlock(location: SourceLocation, entryBlock: IRBlock, f: () -> Unit) {
         val isVisited = mutableSetOf<IRLocalName>()
         fun visitBlock(branch: IRBlock) {
             if (isVisited.contains(branch.name)) {
@@ -1197,13 +1198,36 @@ internal class ProgramVisitor(private val ctx: Context) {
             }
             isVisited.add(branch.name)
             if (!branch.hasTerminator()) {
-                builder.withinBlock(branch) {
-                    f()
+                val deferBlockName = entryBlock.deferBlockName
+                if (deferBlockName != null) {
+                    val deferBlock =  getBlock(deferBlockName)
+                    builder.withinBlock(branch) {
+                        builder.buildJump(location, deferBlockName)
+                    }
+                    builder.withinBlock(deferBlock) {
+                        f()
+                    }
+                } else {
+                    builder.withinBlock(branch) {
+                        f()
+                    }
                 }
             } else {
                 when (val statement = branch.statements.last()) {
                     is IRReturnInstruction -> {}
-                    IRReturnVoidInstruction -> {}
+                    IRReturnVoidInstruction -> {
+                        val deferBlockName = entryBlock.deferBlockName
+                        if (deferBlockName != null) {
+                            val deferBlock =  getBlock(deferBlockName)
+                            branch.statements.removeLast()
+                            builder.withinBlock(branch) {
+                                builder.buildJump(location, deferBlockName)
+                            }
+                            builder.withinBlock(deferBlock) {
+                                builder.buildRetVoid()
+                            }
+                        }
+                    }
                     is IRSwitch -> requireUnreachable()
                     is IRBr -> {
                         val block1 = getBlock(statement.ifTrue)
@@ -1223,6 +1247,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
     private fun joinControlFlow(location: SourceLocation, endBlock: IRBlock, vararg branches: IRBlock) {
         val isVisited = mutableSetOf<IRLocalName>()
+        lateinit var scope: IRBlock
         fun joinBranch(branch: IRBlock) {
             if (isVisited.contains(branch.name)) {
                 return
@@ -1232,8 +1257,20 @@ internal class ProgramVisitor(private val ctx: Context) {
                 return
             }
             if (!branch.hasTerminator()) {
-                builder.withinBlock(branch) {
-                    builder.buildJump(location, endBlock.name)
+                val deferBlockName = scope.deferBlockName
+                if (deferBlockName != null) {
+                    val deferBlock = getBlock(deferBlockName)
+                    builder.withinBlock(deferBlock) {
+                        builder.buildJump(location, endBlock.name)
+                    }
+                    builder.withinBlock(branch) {
+                        builder.buildJump(location, deferBlockName)
+                    }
+                } else {
+                    builder.withinBlock(branch) {
+                        builder.buildJump(location, endBlock.name)
+                    }
+
                 }
             } else {
                 when (val statement = branch.statements.last()) {
@@ -1255,6 +1292,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             }
         }
         for (branch in branches) {
+            scope = branch
             joinBranch(branch)
         }
         builder.positionAtEnd(endBlock)
@@ -1316,7 +1354,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         )
 
         lowerBlock(statement.body, whileBody)
-        terminateBlock(whileBody) {
+        terminateBlock(statement.body.location, whileBody) {
             builder.buildBranch(
                     statement.condition.location,
                     lowerExpression(statement.condition),

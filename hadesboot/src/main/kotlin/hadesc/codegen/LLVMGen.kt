@@ -27,6 +27,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
 
     fun generate() = profile("LLVM::generate") {
+        log.debug(irModule.prettyPrint())
         lower()
         verifyModule()
         writeModuleToFile()

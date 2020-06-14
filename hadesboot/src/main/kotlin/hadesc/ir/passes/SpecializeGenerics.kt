@@ -97,6 +97,7 @@ class SpecializeGenerics(
 
     private fun lowerBlock(oldBlock: IRBlock, newBlock: IRBlock): IRBlock {
         builder.position = newBlock
+        newBlock.deferBlockName = oldBlock.deferBlockName
         for (statement in oldBlock) {
             exhaustive(
                 when (statement) {
