@@ -54,6 +54,85 @@ interpreter witha a garbage collector.
    much).
 
 ## What does it look like?
+
+Hello world
+```python
+import libc as c;
+def main(): Void {
+    c.puts(b"Hello world");
+}
+```
+
+Local variables
+```python
+
+def main(): Void {
+  val x: *Byte = b"Hello world"; # the type annotation can be omitted
+  c.puts(x);
+}
+
+```
+
+A bigger example
+
+```swift
+// A struct has a packed layout like C
+struct Pair[A, B] {
+  val first: A;
+  val second: B;
+}
+
+def main(): Void {
+  if true {
+    val pair = Pair(1, b"text"); // Type arguments to Pair are inferred
+    print_pair_second(pair); // function arguments are passed as value (a copy of pair is sent to print_pair
+    let pair_ptr = &pair; // you can take address of local variables and pass them as pointers
+    pair.print_second(); // this is an extension function call
+  }
+}
+
+def print_pair_second[T](pair: Pair[T, *Byte]): Void {
+  c.puts(pair.second);
+}
+
+// extension methods are defined by having `this` 
+// as the first parameter.
+def print_second[T](this: *Pair[T, *Byte]): Void {
+  c.puts(*this.second); // this.second gives pointer to the second field of the struct. Dereference it using prefix *
+}
+```
+
+Interfaces
+```swift
+
+interface Printable {
+  // interfaces can refer to the type they
+  // are implemented for using the This type
+  def print(this: *This): Void;
+}
+
+// Interfaces are implemented outside the type declaration
+// this means you can make builtin types implement new interfaces
+implement Printable for Bool {
+  def print(this: *Bool): Void {
+    if *this {
+      c.puts(b"true");
+    } else {
+      c.puts(b"false");
+    }
+  }
+}
+
+def main(): Void {
+  val boolean = true;
+  val pointer_to_boolean = &boolean;
+  pointer_to_boolean.print(); // prints true
+}
+
+```
+
+
+
 Check the suite directory for a few contrived examples used as an automated test suite.
 Proper documentation coming in the future.
 
