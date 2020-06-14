@@ -486,15 +486,8 @@ internal class ProgramVisitor(private val ctx: Context) {
         return block
     }
 
-//    private val deferredStacks = Stack<Stack<() -> Unit>>()
-    private fun scoped(f: () -> Unit) {
-//        deferredStacks.push(Stack())
-        f()
-//        deferredStacks.pop().let {
-//            while (it.isNotEmpty()) {
-//                it.pop()()
-//            }
-//        }
+    private fun getBlock(name: IRLocalName): IRBlock {
+        return requireNotNull(currentFunction?.getBlock(name))
     }
 
     private fun defer(f: () -> Unit) {
@@ -1213,13 +1206,13 @@ internal class ProgramVisitor(private val ctx: Context) {
                     IRReturnVoidInstruction -> {}
                     is IRSwitch -> requireUnreachable()
                     is IRBr -> {
-                        val block1 = requireNotNull(currentFunction?.getBlock(statement.ifTrue))
-                        val block2 = requireNotNull(currentFunction?.getBlock(statement.ifFalse))
+                        val block1 = getBlock(statement.ifTrue)
+                        val block2 = getBlock(statement.ifFalse)
                         visitBlock(block1)
                         visitBlock(block2)
                     }
                     is IRJump -> {
-                        val block = requireNotNull(currentFunction?.getBlock(statement.label))
+                        val block = getBlock(statement.label)
                         visitBlock(block)
                     }
                     else -> {}
@@ -1248,13 +1241,13 @@ internal class ProgramVisitor(private val ctx: Context) {
                     IRReturnVoidInstruction -> {}
                     is IRSwitch -> TODO()
                     is IRBr -> {
-                        val block1 = requireNotNull(currentFunction?.getBlock(statement.ifTrue))
-                        val block2 = requireNotNull(currentFunction?.getBlock(statement.ifFalse))
+                        val block1 = getBlock(statement.ifTrue)
+                        val block2 = getBlock(statement.ifFalse)
                         joinBranch(block1)
                         joinBranch(block2)
                     }
                     is IRJump -> {
-                        val block = requireNotNull(currentFunction?.getBlock(statement.label))
+                        val block = getBlock(statement.label)
                         joinBranch(block)
                     }
                     else -> {}
