@@ -20,38 +20,12 @@ def new_from_c(c_string: *Byte): t {
     return t(buffer, length);
 }
 
-def length(this: t): Size {
-    return this.m_length;
+def length(this: *t): Size {
+    return *this.m_length;
 }
 
-def _buffer(this: t): *Byte {
-    return this.m_buffer;
-}
-
-def _byte_at(this: t, offset: Size): Byte {
-    if offset >= this.length() {
-        panic(b"String::_byte_at overflow");
-    }
-    val offset_ptr = this._buffer().offset(offset);
-    return *offset_ptr;
-}
-
-def equals(this: t, that: t): Bool {
-    val lengths_not_match = this.length() != that.length();
-    if lengths_not_match {
-        return false;
-    }
-    if this._buffer() == that._buffer() {
-        return true;
-    }
-    val mut offset: Size = 0;
-    while offset < this.length() {
-        if this._byte_at(offset) != that._byte_at(offset) {
-            return false;
-        }
-        offset = offset + 1;
-    }
-    return true;
+def _buffer(this: *t): *Byte {
+    return *this.m_buffer;
 }
 
 implement Drop.Drop for t {
