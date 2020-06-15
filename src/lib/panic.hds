@@ -1,0 +1,6 @@
+import libc as c;
+
+def panic(message: *Byte): Void {
+    c.puts(message);
+    c.exit(1);
+}

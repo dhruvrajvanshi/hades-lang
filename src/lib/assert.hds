@@ -1,0 +1,8 @@
+import lib.panic as Panic;
+const panic = Panic.panic;
+
+def assert(condition: Bool): Void {
+    if not condition {
+        panic(b"Assertion failed");
+    }
+}

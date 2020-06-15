@@ -1,0 +1,62 @@
+import libc as c;
+import lib.panic as Panic;
+import hades.memory as Memory;
+import hades.drop as Drop;
+const panic = Panic.panic;
+const memcpy = c.memcpy;
+const strlen = c.strlen;
+const malloc = c.malloc;
+const puts = c.puts;
+
+struct t {
+    val m_buffer: *mut Byte;
+    val m_length: Size;
+}
+
+def new_from_c(c_string: *Byte): t {
+    val length = strlen(c_string);
+    val buffer = pointer_cast[Byte](malloc(length + 1));
+    memcpy(buffer, c_string, length + 1);
+    return t(buffer, length);
+}
+
+def length(this: t): Size {
+    return this.m_length;
+}
+
+def _buffer(this: t): *Byte {
+    return this.m_buffer;
+}
+
+def _byte_at(this: t, offset: Size): Byte {
+    if offset >= this.length() {
+        panic(b"String::_byte_at overflow");
+    }
+    val offset_ptr = this._buffer().offset(offset);
+    return *offset_ptr;
+}
+
+def equals(this: t, that: t): Bool {
+    val lengths_not_match = this.length() != that.length();
+    if lengths_not_match {
+        return false;
+    }
+    if this._buffer() == that._buffer() {
+        return true;
+    }
+    val mut offset: Size = 0;
+    while offset < this.length() {
+        if this._byte_at(offset) != that._byte_at(offset) {
+            return false;
+        }
+        offset = offset + 1;
+    }
+    return true;
+}
+
+implement Drop.Drop for t {
+    def drop(this: *mut t): Void {
+        Memory.free(*this.m_buffer);
+    }
+}
+

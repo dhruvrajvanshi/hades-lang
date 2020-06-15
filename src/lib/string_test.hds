@@ -1,0 +1,11 @@
+import lib.assert as Assert;
+import lib.string as String;
+const assert = Assert.assert;
+
+def main(): Void {
+    val a = String.new_from_c(b"test");
+    val b = String.new_from_c(b"test");
+    val c = String.new_from_c(b"test1");
+    assert(a.equals(b));
+    assert(not a.equals(c));
+}
