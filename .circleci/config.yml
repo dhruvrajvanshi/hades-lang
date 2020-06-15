@@ -42,7 +42,7 @@ jobs:
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
       # run tests!
-      - run: ./gradlew test && ./test.sh
+      - run: ./gradlew :hadesboot:test && ./test.sh
       - store_test_results:
           path: ./hadesc/build/test-results
 
