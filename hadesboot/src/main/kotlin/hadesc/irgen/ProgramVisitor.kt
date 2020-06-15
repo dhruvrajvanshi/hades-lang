@@ -456,7 +456,20 @@ internal class ProgramVisitor(private val ctx: Context) {
         val function = getFunctionDef(def, prefix)
         currentFunction = function
         localNameSet.addAll(def.params.map { it.binder.identifier.name })
-        function.entryBlock = lowerBlock(def.body, function.entryBlock, cleanupBeforeBlocks = listOf()) {
+        val prelude = {
+            function.params.forEach {
+                if (getDropImpl(it.type, it.location) != null) {
+                    // if there's a custom drop implementation in scope for the param,
+                    // we stack allocate a copy, store to it from the actual param
+                    // and call drop on it
+                    val ptrName = makeLocalName()
+                    alloca(it.type, ptrName, it.location)
+                    val ptr = builder.buildVariable(ty = Type.Ptr(it.type, isMutable = true), location = it.location, name = ptrName)
+                    builder.buildStore(ptr = ptr, value = builder.buildVariable(ty = it.type, location = it.location, name = it.name))
+                }
+            }
+        }
+        function.entryBlock = lowerBlock(def.body, function.entryBlock, cleanupBeforeBlocks = listOf(), prelude = prelude) {
             if (function.type.to is Type.Void) {
                 terminateBlock(def.location, function.entryBlock) {
                     builder.buildRetVoid()
@@ -478,11 +491,13 @@ internal class ProgramVisitor(private val ctx: Context) {
             body: Block,
             block: IRBlock,
             cleanupBeforeBlocks: List<IRBlock>,
+            prelude: () -> Unit = {},
             f: () -> Unit
     ): IRBlock {
         val deferBlock = IRBlock(IRLocalName(ctx.makeUniqueName()))
         deferBlockStack.push(deferBlock)
         builder.withinBlock(block) {
+            prelude()
             for (member in body.members) {
                 lowerBlockMember(member)
             }
@@ -896,13 +911,16 @@ internal class ProgramVisitor(private val ctx: Context) {
         buildDestructorCall(type, name, node)
     }
 
-    private fun buildDestructorCall(type: Type, name: IRLocalName, node: HasLocation) {
-        val impl = ctx.checker.getInterfaceImplementation(
-            type,
-            node,
-            ctx.dropInterfaceName,
-            listOf()
+    private fun getDropImpl(type: Type, node: HasLocation): ImplementationBinding? {
+        return ctx.checker.getInterfaceImplementation(
+                type,
+                node,
+                ctx.dropInterfaceName,
+                listOf()
         )
+    }
+    private fun buildDestructorCall(type: Type, name: IRLocalName, node: HasLocation) {
+        val impl = getDropImpl(type, node)
 
         if (impl == null) {
             return
