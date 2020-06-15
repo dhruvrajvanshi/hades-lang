@@ -1,0 +1,5 @@
+
+interface Drop {
+    def drop(this: *mut This): Void;
+}
+
