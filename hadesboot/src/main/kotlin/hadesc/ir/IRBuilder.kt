@@ -16,7 +16,7 @@ class IRBuilder {
     }
 
 
-    private fun <S : IRInstruction> addStatement(statement: S): S {
+    fun <S : IRInstruction> addStatement(statement: S): S {
         val statements = requireNotNull(position).statements
         if (statements.isNotEmpty()) {
             require(!statements.last().isTerminator()) {

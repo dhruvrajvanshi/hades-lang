@@ -579,8 +579,20 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun defer(f: () -> Unit) {
-        builder.withinBlock(deferBlockStack.peek()) {
+        // defer blocks have to be in reverse
+        // order but f will contain build calls in order of
+        // execution
+        // so we put instructions in a dummy block
+        // and then add the dummy block statements
+        // to the defer block in reverse order
+        val dummyBlock = IRBlock()
+        builder.withinBlock(dummyBlock) {
             f()
+        }
+        builder.withinBlock(deferBlockStack.peek()) {
+            for (instruction in dummyBlock.statements.reversed()) {
+                builder.addStatement(instruction)
+            }
         }
     }
 
