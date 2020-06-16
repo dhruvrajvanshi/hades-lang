@@ -1,9 +1,5 @@
 package hadesc.codegen
 
-import dev.supergrecko.kllvm.ir.instructions.IntPredicate
-import dev.supergrecko.kllvm.ir.instructions.Opcode
-import dev.supergrecko.kllvm.ir.types.IntType
-import dev.supergrecko.kllvm.ir.values.constants.ConstantStruct
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
@@ -14,16 +10,17 @@ import hadesc.types.Type
 import llvm.*
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
+import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalStdlibApi::class)
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
-    private var currentFunction: FunctionValue? = null
+    private var currentFunction: LLVMValueRef? = null
     private val log = logger()
-    private val llvmCtx = llvm.Context()
-    private val llvmModule = llvm.Module(ctx.options.main.toString(), llvmCtx)
-    private val builder = Builder(llvmCtx)
+    private val llvmCtx = LLVM.LLVMContextCreate()
+    private val llvmModule = LLVM.LLVMModuleCreateWithNameInContext(ctx.options.main.toString(), llvmCtx)
+    private val builder = LLVM.LLVMCreateBuilderInContext(llvmCtx)
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
 
     fun generate() = profile("LLVM::generate") {
@@ -80,7 +77,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerStructDef(definition: IRStructDef) {
 //        logger().debug("LLVMGen::lowerStructDef(${definition.globalName.prettyPrint()})")
         val fn = getStructConstructor(definition)
-        withinBlock(fn.createBlock("entry", llvmCtx)) {
+        withinBlock(fn.createBlock("entry")) {
             val instanceType = lowerType(definition.instanceType)
             val thisPtr = buildAlloca(instanceType, "this")
             var index = -1
@@ -117,7 +114,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun getBlock(blockName: IRLocalName): BasicBlock {
         val fnName = requireNotNull(currentFunction?.getName())
         return blocks.computeIfAbsent(fnName to blockName) {
-            requireNotNull(currentFunction).createBlock(it.second.mangle(), llvmCtx)
+            requireNotNull(currentFunction).createBlock(it.second.mangle())
         }
     }
 
@@ -276,7 +273,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerAggregate(value: IRAggregate): Value {
         return ConstantStruct(
-                lowerType(value.type) as dev.supergrecko.kllvm.ir.types.StructType,
+                lowerType(value.type),
                 value.values.map { lowerExpression(it) }
         )
     }
@@ -297,11 +294,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerCIntValue(value: IRCIntConstant): Value {
-        return ConstantInt(value = value.value.toLong(), type = lowerType(value.type) as IntType, signExtend = false)
+        return ConstantInt(value = value.value.toLong(), type = lowerType(value.type), signExtend = false)
     }
 
     private fun lowerNullPtr(value: IRNullPtr): Value {
-        return (lowerType(value.type) as PointerType).getConstantNullPointer()
+        return lowerType(value.type).getConstantNullPointer()
     }
 
     private fun lowerGetStructField(expression: IRGetStructField): Value {
@@ -404,9 +401,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
 
-    private fun lowerFunctionType(type: Type): FunctionType {
+    private fun lowerFunctionType(type: Type): llvm.Type {
         val lowered = lowerType(type)
-        require(lowered is FunctionType)
         return lowered
     }
 
@@ -425,7 +421,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun FunctionValue.verify() {
+    private fun LLVMValueRef.verify() {
         val validate = LLVM.LLVMVerifyFunction(ref, LLVM.LLVMPrintMessageAction)
         if (validate > 0) {
             log.debug("Bad function: ${this.dumpToString()}")
@@ -433,7 +429,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private val structTypes = mutableMapOf<QualifiedName, StructType>()
+    private val structTypes = mutableMapOf<QualifiedName, llvm.Type>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
         Type.Error -> requireUnreachable()
         Type.Byte -> byteTy

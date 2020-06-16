@@ -91,7 +91,7 @@ class HadesTestSuite {
                             val actualErrors = diagnostics
                                     .sortedBy { it.sourceLocation.start }
                                     .map {
-                                        "${it.sourceLocation.file.path}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
+                                        "${it.sourceLocation.file.path.toString().replace('\\', '/')}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
                                     }
                             assertEquals(
                                 expectedErrors,
