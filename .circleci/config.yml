@@ -24,8 +24,6 @@ jobs:
     steps:
       - run: java -version
       - checkout
-
-      - run: git submodule update --init --recursive
       # Download and cache dependencies
       - restore_cache:
           keys:
