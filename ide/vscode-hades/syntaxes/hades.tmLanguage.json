@@ -82,6 +82,9 @@
 			"patterns": [
 				{
 					"include": "#function-signature"
+				},
+				{
+					"include": "#comments"
 				}
 			]
 		},
@@ -94,6 +97,9 @@
 			"patterns": [
 				{
 					"include": "#function-def"
+				},
+				{
+					"include": "#comments"
 				}
 			]
 		},
@@ -177,6 +183,9 @@
 			"patterns": [
 				{
 					"include": "#keywords"
+				},
+				{
+					"include": "#comments"
 				}
 			]
 		},
@@ -184,6 +193,9 @@
 			"begin": "([{])",
 			"end": "([}])",
 			"patterns": [
+				{
+					"include": "#comments"
+				},
 				{
 					"include": "#statements"
 				},
