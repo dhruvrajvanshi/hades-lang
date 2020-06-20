@@ -40,6 +40,7 @@ sealed class Declaration : HasLocation {
 
     data class Struct(
         override val location: SourceLocation,
+        val decorators: List<Decorator>,
         val binder: Binder,
         val typeParams: List<TypeParam>? = null,
         val members: List<Member>

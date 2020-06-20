@@ -71,6 +71,7 @@ data class Token(
         AMPERSAND,
         LSQB,
         RSQB,
+        AT_SYMBOL,
 
         EQ,
         BANG_EQ,

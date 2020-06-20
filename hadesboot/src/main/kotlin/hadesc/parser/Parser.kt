@@ -15,7 +15,7 @@ internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
-        tt.INTERFACE, tt.IMPLEMENT
+        tt.INTERFACE, tt.IMPLEMENT, tt.AT_SYMBOL
 )
 private val statementPredictors = setOf(
     tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
@@ -95,18 +95,30 @@ class Parser(
         val decl = when (currentToken.kind) {
             tt.IMPORT -> parseDeclarationImportAs()
             tt.DEF -> parseDeclarationFunctionDef()
-            tt.STRUCT -> parseStructDeclaration()
+            tt.STRUCT -> parseStructDeclaration(decorators = listOf())
             tt.EXTERN -> parseExternFunctionDef()
             tt.CONST -> parseConstDef()
             tt.INTERFACE -> parseInterfaceDeclaration()
             tt.IMPLEMENT -> parseImplementationDeclaration()
             tt.ENUM -> parseEnumDeclaration()
+            tt.AT_SYMBOL -> {
+                val decorators = parseDecorators()
+                parseStructDeclaration(decorators)
+            }
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseDecorators(): List<Decorator> = buildList {
+        while (at(tt.AT_SYMBOL)) {
+            val start = advance()
+            val name = parseIdentifier()
+            add(Decorator(makeLocation(start, name), name))
+        }
     }
 
     private fun parseImplementationDeclaration(): Declaration {
@@ -242,7 +254,7 @@ class Parser(
         )
     }
 
-    private fun parseStructDeclaration(): Declaration {
+    private fun parseStructDeclaration(decorators: List<Decorator>): Declaration {
         val start = expect(tt.STRUCT)
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
@@ -257,6 +269,7 @@ class Parser(
 
         return Declaration.Struct(
                 makeLocation(start, stop),
+                decorators,
                 binder,
                 typeParams,
                 members
