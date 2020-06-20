@@ -1466,7 +1466,17 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     private fun globalBinderName(name: Binder): IRGlobalName {
         val sourceFile = ctx.getSourceFileOf(name)
-        return IRGlobalName(sourceFile.moduleName.append(name.identifier.name))
+        val decl = ctx.resolver.getDeclarationContaining(name)
+        val name = if (
+                decl is Declaration.FunctionDef && name.location == decl.signature.name.location
+                && decl.thisParam != null
+        ) {
+            ctx.makeName(
+                    ctx.checker.annotationToType(decl.thisParam.annotation).prettyPrint() + "::" + name.identifier.name.text)
+        } else {
+            name.identifier.name
+        }
+        return IRGlobalName(sourceFile.moduleName.append(name))
     }
 
     private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.Ptr> {
