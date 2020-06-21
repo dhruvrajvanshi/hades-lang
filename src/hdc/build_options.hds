@@ -1,0 +1,44 @@
+import libc as c;
+import lib.panic as Panic;
+import lib.args as Args;
+import lib.string_slice as StringSlice;
+
+const panic = Panic.panic;
+const str = StringSlice.from_static;
+
+struct BuildOptionsImpl {
+    val m_main: StringSlice.t;
+    val m_output: StringSlice.t;
+    val m_runtime: StringSlice.t;
+}
+
+struct t {
+    val m_ptr: *mut BuildOptionsImpl;
+}
+
+const USAGE = b"
+Usage: hdc
+    --main <PATH>
+    --directories <PATH> <PATH> ...
+    --output <PATH>
+    --runtime <PATH>
+    --cflags <OPTIONAL PATH>
+";
+def new_from_args(argc: Size, argv: **Byte): t {
+    if (argc < 2) {
+        panic(USAGE);
+    }
+    val args = Args.from_args(argc, argv);
+    return t(new BuildOptionsImpl(
+        args.one(str(b"--main"), USAGE),
+        args.one(str(b"--output"), USAGE),
+        args.one(str(b"--runtime"), USAGE)
+    ));
+}
+
+
+def dump(this: *t): Void {
+    c.puts(b"BuildOptions {");
+    c.puts(b"}");
+}
+

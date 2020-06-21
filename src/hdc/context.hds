@@ -1,0 +1,28 @@
+import hades.drop as Drop;
+import libc as c;
+import hades.memory as Memory;
+import hdc.build_options as BuildOptions;
+
+const puts = c.puts;
+
+struct ContextImpl {
+    val m_options: BuildOptions.t;
+}
+
+implement Drop.Drop for ContextImpl {
+    def drop(this: *mut ContextImpl): Void {}
+}
+
+struct t {
+    val m_ctx: *mut ContextImpl;
+}
+
+def new_from_args(argc: Size, argv: **Byte): t {
+    return t(new ContextImpl(BuildOptions.new_from_args(argc, argv)));
+}
+
+def drop(this: t): Void {
+    val ctx = *this.m_ctx;
+    Memory.free(this.m_ctx);
+}
+
