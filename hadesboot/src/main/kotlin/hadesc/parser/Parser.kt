@@ -8,7 +8,6 @@ import hadesc.location.HasLocation
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 
 internal typealias tt = Token.Kind
@@ -72,13 +71,13 @@ class Parser(
     private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file))
     private val currentToken get() = tokenBuffer.currentToken
 
-    fun parseSourceFile(): SourceFile = profile("Parsing $file") {
+    fun parseSourceFile(): SourceFile {
         val declarations = parseDeclarations()
         val start = Position(1, 1)
         val location = SourceLocation(file, start, currentToken.location.stop)
         val sourceFile = SourceFile(location, moduleName, declarations)
         ctx.resolver.onParseSourceFile(sourceFile)
-        sourceFile
+        return sourceFile
     }
 
     private fun parseDeclarations(): List<Declaration> = buildList<Declaration> {
@@ -209,12 +208,14 @@ class Parser(
     private fun parseConstDef(): Declaration.ConstDefinition {
         val start = expect(tt.CONST)
         val name = parseBinder()
+        val annotation = parseOptionalAnnotation()
         expect(tt.EQ)
         val rhs = parseExpression()
         expect(tt.SEMICOLON)
         return Declaration.ConstDefinition(
                 makeLocation(start, rhs),
                 name,
+                annotation,
                 rhs
         )
     }

@@ -25,12 +25,12 @@ internal class ProgramVisitor(private val ctx: Context) {
     private val builder = IRBuilder()
     private var currentFunction: IRFunctionDef? = null
 
-    fun generate(): IRModule = profile("IRGen::generate") {
+    fun generate(): IRModule {
         ctx.forEachSourceFile { lowerSourceFile(it) }
         return module
     }
 
-    private fun lowerSourceFile(sourceFile: SourceFile) = profile("IRGen::lowerSourceFile(${sourceFile.location.file})") {
+    private fun lowerSourceFile(sourceFile: SourceFile) {
         // this is only required because there may be circular
         // dependencies between source files
         if (loweredSourceFileSet.contains(sourceFile.location.file)) {

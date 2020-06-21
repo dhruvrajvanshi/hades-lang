@@ -1,0 +1,66 @@
+import lib.string_slice as StringSlice;
+import lib.panic as Panic;
+import hades.memory as memory;
+import lib.error as err;
+const panic = Panic.panic;
+const str = StringSlice.from_static;
+
+struct t {
+    val m_argc: Size;
+    val m_argv: **Byte;
+}
+
+def from_args(argc: Size, argv: **Byte): t {
+    return t(argc, argv);
+}
+
+def index(this: t, index: Size): StringSlice.t {
+    if index >= this.m_argc {
+        panic(b"Args::index overflow");
+    }
+
+    val argv: **Byte = this.m_argv;
+    val offset_ptr: **Byte = argv.offset(index);
+    return str(*offset_ptr);
+}
+
+def one(this: t, flag: StringSlice.t, usage: *Byte): StringSlice.t {
+    val flag_index = this.index_of(flag);
+    val argc = this.m_argc;
+    if flag_index == -1 {
+        panic_missing_flag(flag, usage);
+    }
+    if flag_index == argc - 1 {
+        panic_missing_flag(flag, usage);
+    }
+
+    val flag_value = this.index(flag_index + 1);
+    if flag_value.starts_with(str(b"--")) {
+        panic_missing_flag(flag, usage);
+    }
+    return flag_value;
+}
+
+def panic_missing_flag(flag: StringSlice.t, usage: *Byte): Void {
+    err.print(str(b"Missing flag: "));
+    err.println(flag);
+    err.println(str(usage));
+    panic(b"");
+}
+
+
+def index_of(this: t, item: StringSlice.t): Size {
+    val argc = this.m_argc;
+    val mut current_index: Size = 0;
+    while current_index < argc {
+        val s = this.index(current_index);
+
+        if s.equals(item) {
+            return current_index;
+        }
+
+        current_index = current_index + 1;
+    }
+
+    return -1;
+}

@@ -1,0 +1,14 @@
+import libc as c;
+
+interface Debug {
+    def debug(this: *This, file: *c.File): Void;
+}
+
+extern def debug_size(*c.File, Size): Void = debug_size;
+
+implement Debug for Size {
+    def debug(this: *Size, file: *c.File) {
+        val size = *this;
+        debug_size(file, size);
+    }
+}

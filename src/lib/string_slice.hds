@@ -8,8 +8,13 @@ import lib.string as String;
 const panic = Panic.panic;
 
 struct t {
-    val m_buffer: *Byte;
     val m_length: Size;
+    val m_buffer: *Byte;
+}
+
+def from_static(buffer: *Byte): t {
+    val length = c.strlen(buffer);
+    return t(length, buffer);
 }
 
 def length(this: t): Size {
@@ -46,7 +51,21 @@ def equals(this: t, that: t): Bool {
     return true;
 }
 
-def as_slice(this: *String.t): t {
-    return t(this._buffer(), this.length());
+def starts_with(this: t, other: t): Bool {
+    if other.length() > this.length() {
+        return false;
+    }
+    val mut index: Size = 0;
+    while index < other.length() {
+        if this._byte_at(index) != other._byte_at(index) {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+def as_c_str(this: t): *Byte {
+    return this.m_buffer;
 }
 

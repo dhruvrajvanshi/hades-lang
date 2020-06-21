@@ -27,6 +27,7 @@ sealed class Declaration : HasLocation {
     data class ConstDefinition(
         override val location: SourceLocation,
         val name: Binder,
+        val annotation: TypeAnnotation?,
         val initializer: Expression
     ) : Declaration()
 

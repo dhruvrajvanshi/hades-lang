@@ -1,36 +1,10 @@
-import libc as c;
-import lib.panic as Panic;
-import hades.memory as Memory;
-import hades.drop as Drop;
-const panic = Panic.panic;
-const memcpy = c.memcpy;
-const strlen = c.strlen;
-const malloc = c.malloc;
-const puts = c.puts;
-
+import lib.string_slice as StringSlice;
 struct t {
-    val m_buffer: *mut Byte;
-    val m_length: Size;
+    val m_slice: StringSlice.t;
 }
 
-def new_from_c(c_string: *Byte): t {
-    val length = strlen(c_string);
-    val buffer = pointer_cast[Byte](malloc(length + 1));
-    memcpy(buffer, c_string, length + 1);
-    return t(buffer, length);
-}
 
-def length(this: *t): Size {
-    return *this.m_length;
-}
+def drop(this: t): Void {
 
-def _buffer(this: *t): *Byte {
-    return *this.m_buffer;
-}
-
-implement Drop.Drop for t {
-    def drop(this: *mut t): Void {
-        Memory.free(*this.m_buffer);
-    }
 }
 

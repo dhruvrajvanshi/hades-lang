@@ -423,11 +423,16 @@ class Resolver(private val ctx: Context) {
     }
 
     fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence {
+        val visitedSourceFiles = mutableSetOf<SourcePath>()
         for (scope in getScopeStack(node)) {
             if (scope is ScopeNode.FunctionDef && isPossibleExtensionSignature(scope.declaration.signature, name)) {
                 yield(scope.declaration)
             }
             fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<Declaration.FunctionDef> = sequence {
+                if (visitedSourceFiles.contains(sourceFile.location.file)) {
+                    return@sequence
+                }
+                visitedSourceFiles.add(sourceFile.location.file)
                 for (definition in sourceFile.declarations) {
                     if (definition is Declaration.FunctionDef && isPossibleExtensionSignature(definition.signature, name)) {
                         yield(definition as Declaration.FunctionDef)

@@ -1493,12 +1493,18 @@ class Checker(
         if (binderTypes[declaration.name] != null) {
             return
         }
-        val rhsType = inferExpression(declaration.initializer)
+        val typeAnnotation = declaration.annotation
+        val rhsType = if (typeAnnotation != null) {
+            val expected = inferAnnotation(typeAnnotation)
+            checkExpression(expected, declaration.initializer)
+            expected
+        } else {
+            inferExpression(declaration.initializer)
+        }
         when (rhsType) {
-            is Type.CInt -> {
-            }
-            is Type.Bool -> {
-            }
+            is Type.CInt -> {}
+            is Type.Bool -> {}
+            is Type.Size -> {}
             is Type.Ptr -> {}
             else -> error(declaration.initializer, Diagnostic.Kind.NotAConst)
         }

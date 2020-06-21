@@ -6,3 +6,10 @@ extern def free(*mut Void): Void = __hds_free;
 extern def strlen(*Byte): Size = strlen;
 extern def memcpy(*Byte, *Byte, Size): Void = memcpy;
 extern def strlen(*Byte): Size = strlen;
+/// we don't have variadics right now
+/// there isn't a better way to type this
+extern def fprintf(*File, *Byte, *Byte): Size = fprintf;
+extern def printf(*Byte, *Byte): Size = printf;
+
+struct File {}
+

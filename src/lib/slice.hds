@@ -1,0 +1,7 @@
+
+
+struct t[T] {
+    val m_buffer: *mut T;
+    val m_size: Size;
+}
+

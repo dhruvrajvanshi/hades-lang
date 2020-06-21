@@ -24,7 +24,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
 
     fun generate() = profile("LLVM::generate") {
-        log.debug(irModule.prettyPrint())
         lower()
         verifyModule()
         writeModuleToFile()
@@ -498,9 +497,13 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         log.info("Linking using gcc")
         val commandParts = mutableListOf(
             "gcc",
-            "-no-pie",
-            "-o", ctx.options.output.toString()
+            "-no-pie"
         )
+        if (ctx.options.debugSymbols) {
+            commandParts.add("-g")
+        }
+        commandParts.add("-o")
+        commandParts.add(ctx.options.output.toString())
         commandParts.add(ctx.options.runtime.toString())
         commandParts.add(objectFilePath)
         commandParts.addAll(ctx.options.cFlags)

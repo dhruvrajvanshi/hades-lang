@@ -1,0 +1,26 @@
+import lib.string_slice as StringSlice;
+import libc as c;
+
+def print(slice: StringSlice.t): Void {
+    c.fprintf(stdout(), b"%s", slice.as_c_str());
+}
+
+def println(slice: StringSlice.t): Void {
+    c.fprintf(stdout(), b"%s\n", slice.as_c_str());
+}
+
+extern def dump_size(*c.File, Size): Void = dump_size;
+extern def dump_void_ptr(*c.File, *Void): Void = dump_void_ptr;
+extern def get_stderr(): *c.File = get_stderr;
+extern def get_stdout(): *c.File = get_stdout;
+
+def stderr(): *c.File {
+    return get_stderr();
+}
+def stdout(): *c.File {
+    return get_stdout();
+}
+
+def dump_ptr[T](ptr: *T): Void {
+    dump_void_ptr(stderr(), pointer_cast[Void](ptr));
+}
