@@ -20,6 +20,7 @@ sealed class Options {
             } else {
                 emptyList()
             }
+            val cSources = args.getList("--c-sources").map { Path.of(it) }
             val debugSymbols = args.contains("-g")
             directories.forEach {
                 assert(it.toFile().exists())
@@ -30,7 +31,8 @@ sealed class Options {
                 main = main,
                 runtime = runtime,
                 cFlags = cFlags,
-                debugSymbols = debugSymbols
+                debugSymbols = debugSymbols,
+                cSources = cSources
             )
         }
 
@@ -59,7 +61,8 @@ data class BuildOptions(
     val main: Path,
     val runtime: Path,
     val cFlags: List<String>,
-    val debugSymbols: Boolean
+    val debugSymbols: Boolean,
+    val cSources: List<Path>
 ) : Options()
 
 class Compiler(
