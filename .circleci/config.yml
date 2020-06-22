@@ -40,17 +40,10 @@ jobs:
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
       # run tests!
-      - run: ./gradlew :hadesboot:test && ./test.sh
+      - run: ./gradlew :hadesboot:test
+      - run: ./test.sh
       - store_test_results:
-          path: ./hadesc/build/test-results
+          path: ./hadesboot/build/test-results
 
-      - run:
-          name: Save test results
-          command: |
-            mkdir -p ~/test-results/junit/
-            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} ~/test-results/junit/ \;
-          when: always
-      - store_test_results:
-          path: ~/test-results
       - store_artifacts:
-          path: ~/test-results/junit
+          path: ./hadesboot/build/tests/test
