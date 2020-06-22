@@ -11,5 +11,24 @@ extern def strlen(*Byte): Size = strlen;
 extern def fprintf(*File, *Byte, *Byte): Size = fprintf;
 extern def printf(*Byte, *Byte): Size = printf;
 
+struct Dir {}
+struct dirent {
+    val d_name: *Byte;
+}
 struct File {}
+
+extern def opendir(*Byte): *Dir = opendir;
+extern def closedir(*Dir): Void = closedir;
+extern def readdir(*Dir): *dirent = readdir;
+
+extern def hdc_dirent_name(*dirent): *Byte = hdc_dirent_name;
+extern def hdc_dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;
+
+def name(this: *dirent): *Byte {
+    return hdc_dirent_name(this);
+}
+
+def is_directory(this: *dirent): Bool {
+    return hdc_dirent_is_directory(this);
+}
 
