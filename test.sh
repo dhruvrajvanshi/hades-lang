@@ -8,7 +8,7 @@ HADESBOOT="./hadesboot/build/install/hadesboot/bin/hadesboot"
 HDFLAGS="--runtime runtime.c --directories stdlib src"
 
 TEST_FILES=(
-  src/lib/string_test
+  # src/lib/string_test
 )
 DIRECTORIES=(
   src/lib
