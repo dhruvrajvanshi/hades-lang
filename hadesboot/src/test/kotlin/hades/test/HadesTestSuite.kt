@@ -54,6 +54,7 @@ class HadesTestSuite {
                                 "--directories", "stdlib", directory.toString(),
                                 "--main", file.toString(),
                                 "--runtime", "runtime.c",
+                                "--c-sources", "stdlib/libc.c",
                                 "--cflags", utilsCLib.toString(), "-D", "DEBUG"
                             )
                         )
