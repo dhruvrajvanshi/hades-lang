@@ -1,0 +1,43 @@
+import lib.slice as Slice;
+import lib.io as IO;
+import lib.error as err;
+import libc as c;
+import lib.string_slice as StringSlice;
+
+const str = StringSlice.from_c;
+
+struct t {
+    val m_content_length: Size;
+}
+
+def content_length(this: t): Size {
+    return this.m_content_length;
+}
+
+const CR: Byte = 13;
+const LF: Byte = 10;
+
+const CONTENT_LENGTH_HEADER = b"Content-Length:";
+def parse(stream: IO.Stream): t {
+    val BUFFER_SIZE: Size = 100;
+    val mut slice = Slice.alloc[Byte](BUFFER_SIZE);
+    val slice_ptr = &mut slice;
+    defer slice.free();
+    val mut content_length: Size = 0;
+
+    val mut line_slice = StringSlice.from_static(b"");
+    val content_length_header = str(CONTENT_LENGTH_HEADER);
+    while not line_slice.starts_with(str(b"\r\n")) {
+        val size = read_line(stream, slice_ptr);
+        line_slice = StringSlice.from_c(slice.buffer());
+        if line_slice.starts_with_ignore_case(content_length_header) {
+            val length_string = line_slice.drop_first(content_length_header.length());
+            content_length = length_string.parse_size(10);
+        }
+    }
+    return t(content_length);
+}
+
+def read_line(stream: IO.Stream, slice: *mut Slice.t[Byte]): Size {
+    return stream.read_line(slice);
+}

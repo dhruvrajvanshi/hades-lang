@@ -2,15 +2,15 @@ import libc as c;
 import lib.error as err;
 import lib.slice as Slice;
 import lib.io as IO;
+import hades.memory as Memory;
+import liblsp.header as LSPHeader;
 
 def main(): Size {
-    val BUFFER_SIZE: Size = 10;
     val stdin = IO.Stream(err.stdin());
-    val buffer = Slice.alloc[Byte](BUFFER_SIZE);
-    defer buffer.drop();
+
     while true {
-        val num_bytes_read = stdin.read(buffer, buffer.size());
-        err.print(num_bytes_read);
+        val header = LSPHeader.parse(stdin);
+        val size = header.content_length;
         c.sleep(1);
     }
 

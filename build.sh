@@ -4,10 +4,10 @@ set -e
 ./gradlew install
 
 HADESBOOT_FLAGS="\
-  --directories stdlib src \
+  --directories stdlib src bindings \
   --runtime runtime.c \
   --cflags -D DEBUG \
-  --c-sources  src/lib/error.c stdlib/libc.c \
+  --c-sources  src/lib/error.c stdlib/libc.c cJSON/cJSON.c \
   -g \
 "
 
