@@ -4,8 +4,10 @@ import lib.panic as Panic;
 import hades.memory as Memory;
 import hades.drop as Drop;
 import lib.string as String;
+import lib.assert as Assert;
 
 const panic = Panic.panic;
+const assert = Assert.assert;
 
 struct t {
     val m_length: Size;
@@ -13,9 +15,14 @@ struct t {
 }
 
 def from_static(buffer: *Byte): t {
+    return from_c(buffer);
+}
+
+def from_c(buffer: *Byte): t {
     val length = c.strlen(buffer);
     return t(length, buffer);
 }
+
 
 def length(this: t): Size {
     return this.m_length;
@@ -65,7 +72,22 @@ def starts_with(this: t, other: t): Bool {
     return true;
 }
 
+def starts_with_ignore_case(this: t, other: t): Bool {
+    // FIXME: Actually ignore case here
+    return this.starts_with(other);
+}
+
 def as_c_str(this: t): *Byte {
     return this.m_buffer;
+}
+
+def parse_size(this: t, base: CInt): Size {
+    return c.strtoul(this.as_c_str(), nullptr, base);
+}
+
+def drop_first(this: t, count: Size): t {
+    assert(this.length() >= count);
+    assert(count >= 0);
+    return t(this.length() - count, this.as_c_str().offset(count));
 }
 
