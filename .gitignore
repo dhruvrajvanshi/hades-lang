@@ -7,3 +7,5 @@ build
 hdc.object
 hdc
 .vscode
+/run_suite
+/run_suite.object
