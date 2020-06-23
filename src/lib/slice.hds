@@ -1,15 +1,19 @@
 import libc as c;
 
 struct t[T] {
-    val m_buffer: *mut T;
-    val m_size: Size;
+    val mut m_buffer: *mut T;
+    val mut m_size: Size;
 }
 
 def size[T](this: t[T]): Size {
     return this.m_size;
 }
 
-def buffer[T](this: t[T]): *mut T {
+def buffer[T](this: t[T]): *T {
+    return this.m_buffer;
+}
+
+def buffer_mut[T](this: t[T]): *mut T {
     return this.m_buffer;
 }
 
@@ -17,7 +21,15 @@ def alloc[T](size: Size): t[T] {
     return t[T](pointer_cast[T](c.malloc(size * size_of[T])), size);
 }
 
-def drop[T](this: t[T]): Void {
-    c.free(pointer_cast[Void](this.buffer()));
+def free[T](this: t[T]): Void {
+    c.free(pointer_cast[Void](this.buffer_mut()));
 }
+
+def buffer_ptr_mut[T](this: *mut t[T]): *mut *mut T {
+    return this.m_buffer;
+}
+def size_ptr_mut[T](this: *mut t[T]): *mut Size {
+    return this.m_size;
+}
+
 
