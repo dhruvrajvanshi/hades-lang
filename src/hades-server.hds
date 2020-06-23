@@ -4,13 +4,28 @@ import lib.slice as Slice;
 import lib.io as IO;
 import hades.memory as Memory;
 import liblsp.header as LSPHeader;
+import cjson as cJSON;
 
 def main(): Size {
     val stdin = IO.Stream(err.stdin());
+    val hooks = cJSON.InitHooks(c.malloc, c.free);
+    cJSON.init_hooks(&hooks);
 
     while true {
         val header = LSPHeader.parse(stdin);
-        val size = header.content_length;
+        val size = header.content_length();
+        val slice = Slice.alloc[Byte](size);
+        defer slice.free();
+
+        stdin.read(slice, size);
+
+        val message_json = cJSON.parse(slice.buffer());
+        val message_str = cJSON.print(message_json);
+        defer Memory.free(message_str);
+
+        val message_str_imm: *Byte = message_str;
+        err.println(message_str_imm);
+
         c.sleep(1);
     }
 

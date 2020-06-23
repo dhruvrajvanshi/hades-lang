@@ -1,0 +1,8 @@
+
+struct Object {
+}
+struct t {
+    val m_tag: Size;
+    val m_data: union[Bool, CInt, *Byte, *Object];
+}
+

@@ -1,0 +1,21 @@
+
+struct t {
+    val next: *t;
+    val prev: *t;
+    val child: *t;
+    val type: CInt;
+    val valuestring: *Byte;
+    val valueint: CInt;
+    val valuedouble: CInt; // we don't have floats/doubles yet :')
+    val string: *Byte;
+}
+
+struct InitHooks {
+    val malloc_fn: *(Size) -> *Void;
+    val free_fn: *(*mut Void) -> Void;
+}
+
+extern def init_hooks(*InitHooks): Void = cJSON_InitHooks;
+extern def parse(*Byte): *mut t = cJSON_Parse;
+extern def print(*t): *mut Byte = cJSON_Print;
+
