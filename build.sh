@@ -2,5 +2,14 @@
 set -e
 
 ./gradlew install
-hadesboot/build/install/hadesboot/bin/hadesboot --output hdc --directories stdlib src --runtime runtime.c -g  --main src/main.hds --cflags "-D DEBUG"\
-  --c-sources  src/lib/error.c
+
+HADESBOOT_FLAGS="\
+  --directories stdlib src \
+  --runtime runtime.c \
+  --cflags -D DEBUG \
+  --c-sources  src/lib/error.c stdlib/libc.c \
+  -g \
+"
+
+# hadesboot/build/install/hadesboot/bin/hadesboot $HADESBOOT_FLAGS --output hdc --main src/main.hds
+hadesboot/build/install/hadesboot/bin/hadesboot $HADESBOOT_FLAGS --output hades-server --main src/hades-server.hds

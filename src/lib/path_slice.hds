@@ -4,7 +4,3 @@ struct t {
     val m_slice: StringSlice.t;
 }
 
-
-def drop(this: t): Void {
-}
-

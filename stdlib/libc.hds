@@ -10,6 +10,7 @@ extern def strlen(*Byte): Size = strlen;
 /// there isn't a better way to type this
 extern def fprintf(*File, *Byte, *Byte): Size = fprintf;
 extern def printf(*Byte, *Byte): Size = printf;
+extern def sleep(Size): Size = sleep;
 
 struct Dir {}
 struct dirent {
@@ -31,4 +32,6 @@ def name(this: *dirent): *Byte {
 def is_directory(this: *dirent): Bool {
     return hdc_dirent_is_directory(this);
 }
+
+extern def fread(*Void, Size, Size, *File): Size = fread;
 

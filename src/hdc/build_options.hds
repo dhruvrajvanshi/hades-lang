@@ -2,14 +2,17 @@ import libc as c;
 import lib.panic as Panic;
 import lib.args as Args;
 import lib.string_slice as StringSlice;
+import lib.path as Path;
+import lib.slice as Slice;
+import hades.memory as memory;
 
 const panic = Panic.panic;
 const str = StringSlice.from_static;
 
 struct BuildOptionsImpl {
-    val m_main: StringSlice.t;
-    val m_output: StringSlice.t;
-    val m_runtime: StringSlice.t;
+    val m_main: Path.t;
+    val m_output: Path.t;
+    val m_runtime: Path.t;
 }
 
 struct t {
@@ -30,15 +33,14 @@ def new_from_args(argc: Size, argv: **Byte): t {
     }
     val args = Args.from_args(argc, argv);
     return t(new BuildOptionsImpl(
-        args.one(str(b"--main"), USAGE),
-        args.one(str(b"--output"), USAGE),
-        args.one(str(b"--runtime"), USAGE)
+        Path.t(args.one(str(b"--main"), USAGE)),
+        Path.t(args.one(str(b"--output"), USAGE)),
+        Path.t(args.one(str(b"--runtime"), USAGE))
     ));
 }
 
-
-def dump(this: *t): Void {
-    c.puts(b"BuildOptions {");
-    c.puts(b"}");
+def drop(this: t): Void {
+    val mut ptr: *mut BuildOptionsImpl = this.m_ptr;
+    memory.free(ptr);
 }
 

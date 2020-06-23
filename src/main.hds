@@ -3,4 +3,5 @@ import hdc.context as Context;
 
 def main(argc: Size, argv: **Byte): Void {
     val ctx = Context.new_from_args(argc, argv);
+    defer ctx.drop();
 }

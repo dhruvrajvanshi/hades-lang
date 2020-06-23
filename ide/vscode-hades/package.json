@@ -9,17 +9,35 @@
     "categories": [
         "Programming Languages"
     ],
+    "activationEvents": [
+        "onLanguage:hades"
+    ],
+    "main": "client/extension.js",
     "contributes": {
-        "languages": [{
-            "id": "hades",
-            "aliases": ["Hades", "hades"],
-            "extensions": ["hds"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "hades",
-            "scopeName": "hades",
-            "path": "./syntaxes/hades.tmLanguage.json"
-        }]
+        "languages": [
+            {
+                "id": "hades",
+                "aliases": [
+                    "Hades",
+                    "hades"
+                ],
+                "extensions": [
+                    "hds"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "hades",
+                "scopeName": "hades",
+                "path": "./syntaxes/hades.tmLanguage.json"
+            }
+        ]
+    },
+    "dependencies": {
+        "@types/node": "^14.0.13",
+        "@types/vscode": "^1.46.0",
+        "vscode-languageclient": "^6.1.3"
     }
 }

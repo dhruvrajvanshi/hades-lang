@@ -16,3 +16,7 @@ FILE* get_stderr() {
 FILE* get_stdout() {
     return stdout;
 }
+
+FILE* get_stdin() {
+    return stdin;
+}

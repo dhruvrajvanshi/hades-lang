@@ -23,6 +23,7 @@ def new_from_args(argc: Size, argv: **Byte): t {
 
 def drop(this: t): Void {
     val ctx = *this.m_ctx;
+    ctx.m_options.drop();
     Memory.free(this.m_ctx);
 }
 
