@@ -450,14 +450,17 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             )
         }
         is Type.Constructor ->  {
-            structTypes.getOrPut(type.name) {
+            if (type.name !in structTypes) {
                 val binding = irModule.resolveGlobal(type.name)
                 require(binding is IRBinding.StructDef)
                 val memberTypes = binding.def.fields
                 val name = type.name.mangle()
                 val structTy = StructType(name, llvmCtx)
+                structTypes[type.name] = structTy
                 structTy.setBody(memberTypes.values.map { lowerType(it) }, packed = false)
                 structTy
+            } else {
+                requireNotNull(structTypes.get(type.name))
             }
         }
         is Type.ParamRef ->

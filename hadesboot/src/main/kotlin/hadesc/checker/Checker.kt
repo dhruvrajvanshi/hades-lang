@@ -82,6 +82,9 @@ class Checker(
     fun typeOfBinder(binder: Binder): Type = binderTypes.computeIfAbsent(binder) {
         val decl = ctx.resolver.getDeclarationContaining(binder)
         checkDeclaration(decl)
+        if (binderTypes[binder] == null)  {
+            println(binder)
+        }
         requireNotNull(binderTypes[binder])
     }
 
@@ -182,10 +185,16 @@ class Checker(
         }
     }
 
-    fun typeOfStructInstance(declaration: Declaration.Struct): Type {
-        val constructorType = typeOfStructConstructor(declaration)
-        require(constructorType is Type.Function)
-        return constructorType.to
+    private val typeOfStructInstnceCache = MutableNodeMap<Declaration.Struct, Type>()
+    fun typeOfStructInstance(declaration: Declaration.Struct): Type = typeOfStructInstnceCache.computeIfAbsent(declaration) {
+        val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
+        val name = ctx.resolver.qualifiedStructName(declaration)
+        val constructor = Type.Constructor(declaration.binder, name, typeParams)
+        if (typeParams != null) {
+            Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
+        } else {
+            constructor
+        }
     }
 
     fun getTypeArgs(call: Expression): List<Type>? {
@@ -1519,6 +1528,7 @@ class Checker(
         if (binderTypes[declaration.binder] != null) {
             return
         }
+        val instanceType = typeOfStructInstance(declaration)
         val fieldTypes = mutableMapOf<Name, Type>()
         for (member in declaration.members) {
             exhaustive(when (member) {
@@ -1530,14 +1540,7 @@ class Checker(
                 }
             })
         }
-        val name = ctx.resolver.qualifiedStructName(declaration)
-        val typeParams = declaration.typeParams?.map { Type.Param(it.binder) }
-        val constructor = Type.Constructor(declaration.binder, name, typeParams)
-        val instanceType = if (typeParams != null) {
-            Type.Application(constructor, typeParams.map { Type.ParamRef(it.binder) })
-        } else {
-            constructor
-        }
+
         val constructorParamTypes = fieldTypes.values.toList()
         val constructorType = Type.Function(
                 from = constructorParamTypes,
