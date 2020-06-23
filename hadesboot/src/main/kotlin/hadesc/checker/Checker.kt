@@ -1248,6 +1248,9 @@ class Checker(
         expression is Expression.IntLiteral && expected is Type.Size -> {
             expressionTypes[expression] = Type.Size
         }
+        expression is Expression.IntLiteral && expected is Type.Byte -> {
+            expressionTypes[expression] = Type.Byte
+        }
         expression is Expression.PointerCast -> {
             val toPtrOfType = inferAnnotation(expression.toType)
             val argTy = inferExpression(expression.arg)
@@ -1506,6 +1509,7 @@ class Checker(
             is Type.Bool -> {}
             is Type.Size -> {}
             is Type.Ptr -> {}
+            is Type.Byte -> {}
             else -> error(declaration.initializer, Diagnostic.Kind.NotAConst)
         }
         bindValue(declaration.name, rhsType)
