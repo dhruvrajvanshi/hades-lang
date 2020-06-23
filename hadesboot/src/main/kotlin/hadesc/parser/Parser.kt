@@ -23,7 +23,8 @@ private val statementPredictors = setOf(
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
 private val byteStringEscapes = mapOf(
         'n' to '\n',
-        '0' to '\u0000'
+        '0' to '\u0000',
+        'r' to '\r'
 )
 
 private val OPERATORS = listOf(
