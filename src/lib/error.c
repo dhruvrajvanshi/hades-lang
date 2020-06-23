@@ -6,7 +6,11 @@ void dump_size(FILE* file, int value) {
 }
 
 void dump_void_ptr(FILE* file, void* ptr) {
-    fprintf(file, "%x",  ptr);
+    fprintf(file, "%x\n",  ptr);
+}
+
+void fdump_char(FILE* file, char c) {
+    fprintf(file, "%d\n",  c);
 }
 
 FILE* get_stderr() {

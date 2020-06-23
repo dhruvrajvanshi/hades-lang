@@ -49,3 +49,8 @@ def stdin(): *c.File {
 def dump_ptr[T](ptr: *T): Void {
     dump_void_ptr(stderr(), pointer_cast[Void](ptr));
 }
+
+extern def fdump_char(*c.File, Byte): Void = fdump_char;
+def dump_char(c: Byte): Void {
+    fdump_char(stderr(), c);
+}
