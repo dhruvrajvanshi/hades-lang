@@ -8,8 +8,16 @@ struct Stream {
     val m_file: *c.File;
 }
 
+def file(this: Stream): *c.File {
+    return this.m_file;
+}
+
 def read(this: Stream, buffer: Slice.t[Byte], max_number_of_bytes: Size): Size {
     assert(max_number_of_bytes <= buffer.size());
     return c.fread(pointer_cast[Void](buffer.buffer()), 1, max_number_of_bytes, this.m_file);
+}
+
+def read_line(this: Stream, buffer: *mut Slice.t[Byte]): Size {
+    return c.getline(buffer.buffer_ptr_mut(), buffer.size_ptr_mut(), this.file());
 }
 
