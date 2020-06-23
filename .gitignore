@@ -2,3 +2,7 @@
 .gradle
 test_build
 build
+hades-server
+hades-server.object
+hdc.object
+hdc
