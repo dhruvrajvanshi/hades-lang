@@ -450,7 +450,7 @@ class SpecializeGenerics(
                 type
             }
             is Type.Ptr -> {
-                Type.Ptr(lowerType(type.to), isMutable = type.isMutable)
+                Type.Ptr(lowerType(type.to), isMutable = false)
             }
             is Type.Function -> {
                 Type.Function(

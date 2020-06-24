@@ -23,8 +23,7 @@ def main(): Size {
         val message_str = cJSON.print(message_json);
         defer Memory.free(message_str);
 
-        val message_str_imm: *Byte = message_str;
-        err.println(message_str_imm);
+        err.println(message_str);
 
         c.sleep(1);
     }

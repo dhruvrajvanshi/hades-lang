@@ -460,7 +460,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 structTy.setBody(memberTypes.values.map { lowerType(it) }, packed = false)
                 structTy
             } else {
-                requireNotNull(structTypes.get(type.name))
+                requireNotNull(structTypes[type.name])
             }
         }
         is Type.ParamRef ->
