@@ -23,6 +23,10 @@ def from_c(buffer: *Byte): t {
     return t(length, buffer);
 }
 
+def to_string_slice(this: *Byte): t {
+    return from_c(this);
+}
+
 
 def length(this: t): Size {
     return this.m_length;
@@ -56,6 +60,10 @@ def equals(this: t, that: t): Bool {
         offset = offset + 1;
     }
     return true;
+}
+
+def equals(this: *Byte, that: *Byte): Bool {
+    return c.strcmp(this, that);
 }
 
 def starts_with(this: t, other: t): Bool {

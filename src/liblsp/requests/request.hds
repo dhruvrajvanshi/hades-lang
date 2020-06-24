@@ -1,0 +1,53 @@
+import liblsp.requests.initialize as Initialize;
+import lib.string_slice as StringSlice;
+import lib.error as err;
+import libc as c;
+import cjson as CJson;
+import lib.assert as Assert;
+import liblsp.json_extensions as json_extensions;
+const assert = Assert.assert_with_message;
+
+struct t {
+    val m_id: CInt;
+    val m_method: StringSlice.t;
+    val m_tag: Size;
+    val m_payload: union[Bool, Initialize.t];
+}
+
+const TAG_INVALID: Size = -1;
+const TAG_INITIALIZE: Size = 0;
+
+def from_json(from: *CJson.t): t {
+    assert(from.is_object(), b"liblsp.requests.request::from_json: expected a json object");
+    val method = from.get(b"method").to_string_slice();
+    val id = from.get(b"id");
+    assert(CJson.IsNumber(id), b"liblsp.requests.request::from_json: expected a id key");
+    val mut payload: union[Bool, Initialize.t] = false;
+    val mut tag = TAG_INVALID;
+    if method.equals(b"initialize".to_string_slice()) {
+        payload = Initialize.from_json(from.get(b"params"));
+        tag = TAG_INITIALIZE;
+    }
+    return t(id.as_int(), method, tag, payload);
+}
+
+implement err.Printable for t {
+    def print(this: t, file: *c.File): Void {
+        b"LSPRequest {\n".print(file);
+        b"  id: ".print(file);
+        this.m_id.print(file);
+        b",\n".print(file);
+        b"  method: ".print(file);
+        this.m_method.print(file);
+        b",\n".print(file);
+        b"  params: ".print(file);
+
+        if this.m_tag == TAG_INITIALIZE {
+            val payload = this.m_payload;
+            val init = *pointer_cast[Initialize.t](&payload);
+            init.print(file);
+        }
+
+        b"\n}\n".print(file);
+    }
+}

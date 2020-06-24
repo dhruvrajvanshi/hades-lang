@@ -5,6 +5,7 @@ import lib.io as IO;
 import hades.memory as Memory;
 import liblsp.header as LSPHeader;
 import cjson as cJSON;
+import liblsp.requests.request as LSPRequest;
 
 def main(): Size {
     val stdin = IO.Stream(err.stdin());
@@ -24,6 +25,9 @@ def main(): Size {
         defer Memory.free(message_str);
 
         err.println(message_str);
+
+        val request = LSPRequest.from_json(message_json);
+        err.println(request);
 
         c.sleep(1);
     }

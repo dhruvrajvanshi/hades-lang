@@ -5,6 +5,10 @@ void dump_size(FILE* file, int value) {
     fprintf(file, "%d", value);
 }
 
+void dump_int(FILE* file, int value) {
+    fprintf(file, "%d", value);
+}
+
 void dump_void_ptr(FILE* file, void* ptr) {
     fprintf(file, "%x\n",  ptr);
 }

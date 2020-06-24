@@ -6,3 +6,9 @@ def assert(condition: Bool): Void {
         panic(b"Assertion failed");
     }
 }
+
+def assert_with_message(condition: Bool, message: *Byte): Void {
+    if not condition {
+        panic(message);
+    }
+}

@@ -1,13 +1,21 @@
-
+const type_Invalid = 0;
+const type_False   = 1;
+const Type_True    = 2;
+const Type_NULL    = 4;
+const Type_Number  = 8;
+const Type_String  = 16;
+const Type_Array   = 32;
+const Type_Object  = 64;
+const Type_Raw     = 128;
 struct t {
-    val next: *t;
-    val prev: *t;
-    val child: *t;
-    val type: CInt;
-    val valuestring: *Byte;
-    val valueint: CInt;
-    val valuedouble: CInt; // we don't have floats/doubles yet :')
-    val string: *Byte;
+    val m_next: *t;
+    val m_prev: *t;
+    val m_child: *t;
+    val m_type: CInt;
+    val m_valuestring: *Byte;
+    val m_valueint: CInt;
+    val m_valuedouble: CInt; // we don't have floats/doubles yet :')
+    val m_string: *Byte;
 }
 
 struct InitHooks {
@@ -18,4 +26,21 @@ struct InitHooks {
 extern def init_hooks(*InitHooks): Void = cJSON_InitHooks;
 extern def parse(*Byte): *mut t = cJSON_Parse;
 extern def print(*t): *mut Byte = cJSON_Print;
+
+extern def GetObjectItem(*t, *Byte): *t = cJSON_GetObjectItem;
+extern def IsInvalid(*t): Bool = cJSON_IsInvalid;
+extern def IsFalse(*t): Bool = cJSON_IsFalse;
+extern def IsTrue(*t): Bool = cJSON_IsTrue;
+extern def IsBool(*t): Bool = cJSON_IsBool;
+extern def IsNull(*t): Bool = cJSON_IsNull;
+extern def IsNumber(*t): Bool = cJSON_IsNumber;
+extern def IsString(*t): Bool = cJSON_IsString;
+extern def IsArray(*t): Bool = cJSON_IsArray;
+extern def IsObject(*t): Bool = cJSON_IsObject;
+extern def IsRaw(*t): Bool = cJSON_IsRaw;
+extern def GetStringValue(*t): *Byte = cJSON_GetStringValue;
+
+def as_int(this: *t): CInt {
+    return *this.m_valueint;
+}
 

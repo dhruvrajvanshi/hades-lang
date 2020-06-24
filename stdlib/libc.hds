@@ -4,6 +4,7 @@ extern def exit(CInt): Void = exit;
 extern def malloc(Size): *mut Void = __hds_malloc;
 extern def free(*mut Void): Void = __hds_free;
 extern def strlen(*Byte): Size = strlen;
+extern def strcmp(*Byte, *Byte): Bool = strcmp;
 extern def memcpy(*Byte, *Byte, Size): Void = memcpy;
 extern def strlen(*Byte): Size = strlen;
 /// we don't have variadics right now
