@@ -25,7 +25,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     fun generate() = profile("LLVM::generate") {
         lower()
-        verifyModule()
+//        verifyModule()
         writeModuleToFile()
         linkWithRuntime()
     }
@@ -411,12 +411,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun verifyModule() {
         // TODO: Handle this in a better way
-        val buffer = ByteArray(100)
-        val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMPrintMessageAction, buffer)
+        val buffer = ByteArray(1000)
+        val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMAbortProcessAction, buffer)
         require(error == 0) {
-            log.error("Invalid llvm module: ${llvmModule.getSourceFileName()}\n")
             log.error(LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
-            "Invalid LLVM module"
+            log.error("Invalid llvm module: ${llvmModule.getSourceFileName()}\n")
+            "Invalid LLVM module ${String(buffer.sliceArray(0..error))}"
         }
     }
 
