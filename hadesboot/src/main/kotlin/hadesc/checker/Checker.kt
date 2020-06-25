@@ -1142,7 +1142,7 @@ class Checker(
                                     ?: expressionLocation, Diagnostic.Kind.UninferrableTypeParam(it.binder))
                             Type.Error
                         } else {
-                            instance
+                            applyInstantiations(instance)
                         }
                 )
             }
@@ -1236,7 +1236,11 @@ class Checker(
                 }
         )
         is Type.GenericInstance -> {
-            genericInstantiations[type.id] ?: type
+            val instance = genericInstantiations[type.id]
+            if (instance != null) {
+                applyInstantiations(instance)
+            }
+            else type
         }
         is Type.Application -> {
             Type.Application(
