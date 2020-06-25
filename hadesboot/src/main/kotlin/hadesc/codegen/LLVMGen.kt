@@ -25,7 +25,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     fun generate() = profile("LLVM::generate") {
         lower()
-//        verifyModule()
+        verifyModule()
         writeModuleToFile()
         linkWithRuntime()
     }
@@ -107,6 +107,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         for (block in definition.blocks) {
             lowerBlock(block)
         }
+        fn.verify()
     }
 
     private val blocks = mutableMapOf<Pair<String, IRLocalName>, BasicBlock>()
@@ -506,7 +507,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         log.info("Linking using gcc")
         val commandParts = mutableListOf(
             "gcc",
-            "-no-pie"
+            "-O2",
+            "-no-pie",
+            "-flto"
         )
         if (ctx.options.debugSymbols) {
             commandParts.add("-g")
@@ -560,6 +563,17 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
 
         val pass = LLVM.LLVMCreatePassManager()
+        LLVM.LLVMAddConstantPropagationPass(pass)
+        LLVM.LLVMAddFunctionInliningPass(pass)
+        LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
+        LLVM.LLVMAddAggressiveDCEPass(pass)
+        LLVM.LLVMAddFunctionInliningPass(pass)
+        LLVM.LLVMAddGlobalDCEPass(pass)
+        LLVM.LLVMAddGlobalOptimizerPass(pass)
+        LLVM.LLVMRunPassManager(pass, llvmModule.ref)
+
+        LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
+
         LLVM.LLVMTargetMachineEmitToFile(
             targetMachine,
             llvmModule.ref,
@@ -567,7 +581,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             LLVM.LLVMObjectFile,
             BytePointer("Message")
         )
-        LLVM.LLVMRunPassManager(pass, llvmModule.ref)
 
         LLVM.LLVMDisposePassManager(pass)
         LLVM.LLVMDisposeTargetMachine(targetMachine)
