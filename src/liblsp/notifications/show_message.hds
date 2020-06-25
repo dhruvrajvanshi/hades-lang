@@ -1,0 +1,23 @@
+import cjson as cjson;
+import liblsp.json_extensions as J;
+
+struct t {
+    val m_type: Size;
+    val m_message: *Byte;
+}
+
+def type(this: t): Size {
+    return this.m_type;
+}
+def message(this: t): *Byte {
+    return this.m_message;
+}
+
+implement J.JsonEncodable for t {
+    def encode_json(this: t): *mut cjson.t {
+        return J.create_object()
+            .add(b"type", this.type().encode_json())
+            .add(b"message", this.message().encode_json());
+    }
+}
+

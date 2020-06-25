@@ -1,0 +1,5 @@
+
+const ERROR: Size = 1;
+const WARNING: Size = 2;
+const INFO: Size = 3;
+const LOG: Size = 4;

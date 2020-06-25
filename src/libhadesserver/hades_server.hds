@@ -10,6 +10,9 @@ import liblsp.requests.request as LSPRequest;
 import liblsp.responses.response as LSPResponse;
 import liblsp.responses.initialize_result as LSPInitializeResult;
 import liblsp.requests.initialize as LSPInitialize;
+import liblsp.notifications.notification as LSPNotification;
+import liblsp.notifications.show_message as LSPShowMessage;
+import liblsp.message_type as LSPMessageType;
 import liblsp.header as LSPHeader;
 import liblsp.server_capabilities as LSPServerCapabilities;
 import liblsp.json_extensions as J;
@@ -67,17 +70,33 @@ def handle_initialize_request(this: t, id: Int, request: LSPInitialize.t): Void 
     val capabilities = LSPServerCapabilities.t(true);
     val response = LSPResponse.t(id, LSPResponse.TAG_INITIALIZE_RESULT, LSPInitializeResult.t(capabilities));
     this.respond(response);
+    this.notify(LSPNotification.t(
+        LSPNotification.TAG_SHOW_MESSAGE,
+        LSPNotification.METHOD_SHOW_MESSAGE,
+        LSPShowMessage.t(LSPMessageType.INFO, b"Here's a notification")
+    ));
 }
 
 def respond(this: t, response: LSPResponse.t): Void {
     write_lsp_response(response, this.stdout());
-    err.print(b"Responding: ");
-    val json = response.to_json(); defer json.free();
-    err.println(json);
+}
+
+def notify(this: t, notification: LSPNotification.t): Void {
+    write_lsp_notification(notification, this.stdout());
 }
 
 def write_lsp_response(response: LSPResponse.t, stream: IO.Stream): Void {
     val json = response.to_json(); defer json.free();
+    val c_string = json.to_c_string(); defer Memory.free(c_string);
+    val content_length = c.strlen(c_string);
+    stream.write_c_string(b"Content-Length: ");
+    content_length.print(stream.file());
+    stream.write_c_string(b"\r\n\r\n");
+    stream.write_c_string(c_string);
+    stream.flush();
+}
+def write_lsp_notification(response: LSPNotification.t, stream: IO.Stream): Void {
+    val json = response.encode_json(); defer json.free();
     val c_string = json.to_c_string(); defer Memory.free(c_string);
     val content_length = c.strlen(c_string);
     stream.write_c_string(b"Content-Length: ");

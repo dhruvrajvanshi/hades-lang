@@ -1,0 +1,39 @@
+import liblsp.notifications.show_message as ShowMessage;
+import liblsp.json_extensions as J;
+import cjson as cjson;
+
+struct t {
+    val m_tag: Size;
+    val m_method: *Byte;
+    val m_params: union[ShowMessage.t];
+}
+
+def method(this: t): *Byte {
+    return this.m_method;
+}
+
+def tag(this: t): Size {
+    return this.m_tag;
+}
+
+def params[T](this: t): T {
+    val params = this.m_params;
+    return *pointer_cast[T](&params);
+}
+
+const TAG_UNKNOWN: Size = -1;
+const TAG_SHOW_MESSAGE: Size = 1;
+const METHOD_SHOW_MESSAGE = b"window/showMessage";
+
+implement J.JsonEncodable for t {
+    def encode_json(this: t): *mut cjson.t {
+        val mut params: *mut cjson.t = nullptr;
+        if this.tag() == TAG_SHOW_MESSAGE {
+            params = this.params[ShowMessage.t]().encode_json();
+        }
+        return J.create_object()
+            .add(b"method", this.method())
+            .add(b"params", params);
+    }
+}
+

@@ -4,6 +4,7 @@ import lib.string_slice as StringSlice;
 import lib.error as err;
 import libc as c;
 import hades.memory as Memory;
+import hades.primitives.size as size;
 const assert = Assert.assert_with_message;
 
 def get(this: *cj.t, key: *Byte): *cj.t {
@@ -43,9 +44,9 @@ def create_string(value: *Byte): *mut cj.t {
     return cj.CreateString(value);
 }
 
-def add(this: *mut cj.t, key: *Byte, value: *mut cj.t): *mut cj.t {
+def add[Value: JsonEncodable](this: *mut cj.t, key: *Byte, value: Value): *mut cj.t {
     assert(this.is_object(), b"json_extensions::add_key: Expected an object");
-    val added = cj.AddItemToObject(this, key, value);
+    val added = cj.AddItemToObject(this, key, value.encode_json());
     assert(added, b"json_extensions::add_key: Unable to add item to object");
     return this;
 }
@@ -67,6 +68,34 @@ implement err.Printable for *cj.t {
         val str = this.to_formatted_c_string(); defer Memory.free(str);
 
         str.print(file);
+    }
+}
+
+interface JsonEncodable {
+    def encode_json(this: This): *mut cj.t;
+}
+
+implement JsonEncodable for *mut cj.t {
+    def encode_json(this: *mut cj.t): *mut cj.t {
+        return this;
+    }
+}
+
+implement JsonEncodable for *Byte {
+    def encode_json(this: *Byte): *mut cj.t {
+        return create_string(this);
+    }
+}
+
+implement JsonEncodable for Bool {
+    def encode_json(this: Bool): *mut cj.t {
+        return create_bool(this);
+    }
+}
+
+implement JsonEncodable for Size {
+    def encode_json(this: Size): *mut cj.t {
+        return create_number(this.to_double());
     }
 }
 
