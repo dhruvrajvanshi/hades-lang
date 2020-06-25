@@ -97,6 +97,7 @@ class Checker(
                 "Bool" -> Type.Bool
                 "Byte" -> Type.Byte
                 "CInt" -> Type.CInt
+                "Double" -> Type.Double
                 "Size" -> Type.Size
                 else -> {
                     val typeBinding = resolveTypeVariable(annotation.name)
@@ -1214,6 +1215,7 @@ class Checker(
         Type.Void,
         Type.CInt,
         Type.Size,
+        Type.Double,
         is Type.ParamRef,
         Type.Bool -> type
         is Type.Ptr -> Type.Ptr(applyInstantiations(type.to), isMutable = type.isMutable)
@@ -1303,6 +1305,7 @@ class Checker(
         source is Type.Bool && destination is Type.Bool -> {
             true
         }
+        source is Type.Double && destination is Type.Double -> true
         source is Type.Byte && destination is Type.Byte -> {
             true
         }

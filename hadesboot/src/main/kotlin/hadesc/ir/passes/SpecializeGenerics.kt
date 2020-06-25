@@ -446,6 +446,7 @@ class SpecializeGenerics(
             Type.Byte,
             Type.Void,
             Type.CInt,
+            Type.Double,
             Type.Bool -> {
                 type
             }

@@ -435,6 +435,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Void -> voidTy
         is Type.Bool -> boolTy
         Type.CInt -> cIntTy
+        Type.Double -> doubleTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
             require(type.constraints.isEmpty()) {
@@ -488,6 +489,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val voidTy = llvm.VoidType(llvmCtx)
     private val boolTy = llvm.IntType(1, llvmCtx)
     private val cIntTy = llvm.IntType(32, llvmCtx)
+    private val doubleTy = LLVM.LLVMDoubleTypeInContext(llvmCtx)
     private val trueValue = llvm.ConstantInt(boolTy, 1, false)
     private val falseValue = llvm.ConstantInt(boolTy, 0, false)
     private val sizeTy = llvm.IntType(64, llvmCtx) // FIXME: This isn't portable

@@ -13,6 +13,7 @@ interface TypeTransformer {
         Type.Bool -> lowerBoolType(type)
         Type.CInt -> lowerCIntType(type)
         Type.Size -> lowerSizeType(type)
+        Type.Double -> lowerDoubleType(type)
         is Type.Ptr -> lowerRawPtrType(type)
         is Type.Function -> lowerFunctionType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
@@ -21,6 +22,10 @@ interface TypeTransformer {
         is Type.Application -> lowerTypeApplication(type)
         is Type.ThisRef -> lowerThisRefType(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
+    }
+
+    fun lowerDoubleType(type: Type): Type {
+        return type
     }
 
     fun lowerUntaggedUnionType(type: Type.UntaggedUnion): Type {

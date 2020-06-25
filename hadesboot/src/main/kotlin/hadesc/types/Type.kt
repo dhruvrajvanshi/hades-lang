@@ -10,6 +10,7 @@ sealed class Type {
     object Void : Type()
     object Bool : Type()
     object CInt : Type()
+    object Double : Type()
     object Size : Type()
     data class Ptr(val to: Type, val isMutable: Boolean) : Type()
     data class Param(val binder: Binder) {
@@ -60,6 +61,7 @@ sealed class Type {
         Void -> "Void"
         Bool -> "Bool"
         CInt -> "CInt"
+        Double -> "Double"
         is Ptr -> {
             if (isMutable)
                 "*mut ${to.prettyPrint()}"
@@ -93,6 +95,7 @@ sealed class Type {
             Void,
             CInt,
             Size,
+            Double,
             Bool -> this
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
