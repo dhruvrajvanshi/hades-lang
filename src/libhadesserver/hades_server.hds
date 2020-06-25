@@ -78,25 +78,15 @@ def handle_initialize_request(this: t, id: Int, request: LSPInitialize.t): Void 
 }
 
 def respond(this: t, response: LSPResponse.t): Void {
-    write_lsp_response(response, this.stdout());
+    write_lsp_message(response, this.stdout());
 }
 
 def notify(this: t, notification: LSPNotification.t): Void {
-    write_lsp_notification(notification, this.stdout());
+    write_lsp_message(notification, this.stdout());
 }
 
-def write_lsp_response(response: LSPResponse.t, stream: IO.Stream): Void {
-    val json = response.to_json(); defer json.free();
-    val c_string = json.to_c_string(); defer Memory.free(c_string);
-    val content_length = c.strlen(c_string);
-    stream.write_c_string(b"Content-Length: ");
-    content_length.print(stream.file());
-    stream.write_c_string(b"\r\n\r\n");
-    stream.write_c_string(c_string);
-    stream.flush();
-}
-def write_lsp_notification(response: LSPNotification.t, stream: IO.Stream): Void {
-    val json = response.encode_json(); defer json.free();
+def write_lsp_message[Message: J.JsonEncodable](message: Message, stream: IO.Stream): Void {
+    val json = message.encode_json(); defer json.free();
     val c_string = json.to_c_string(); defer Memory.free(c_string);
     val content_length = c.strlen(c_string);
     stream.write_c_string(b"Content-Length: ");

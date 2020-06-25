@@ -11,7 +11,7 @@ def capabilities(this: t): ServerCapabilities.t {
 
 def to_json(this: t): *mut cjson.t {
     return J.create_object()
-        .add(b"capabilities", this.capabilities().to_json());
+        .add(b"capabilities", this.capabilities().encode_json());
 }
 
 

@@ -16,8 +16,8 @@ def message(this: t): *Byte {
 implement J.JsonEncodable for t {
     def encode_json(this: t): *mut cjson.t {
         return J.create_object()
-            .add(b"type", this.type().encode_json())
-            .add(b"message", this.message().encode_json());
+            .add(b"type", this.type())
+            .add(b"message", this.message());
     }
 }
 

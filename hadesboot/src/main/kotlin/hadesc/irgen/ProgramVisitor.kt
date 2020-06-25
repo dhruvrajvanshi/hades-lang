@@ -273,6 +273,9 @@ internal class ProgramVisitor(private val ctx: Context) {
                             it.functionDef.name.identifier.name == member.signature.name.identifier.name
                     }
                 }
+                require(implFuncDef != null) {
+                    "${declaration.location}: Member not found in impl ${member.signature.name.identifier.name.text}"
+                }
                 require(implFuncDef is Declaration.Implementation.Member.FunctionDef)
                 val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = name.name)
 //                require(functionDef.signature.name.name === implMemberFunctionName(interfaceDecl, member).name)

@@ -10,11 +10,14 @@ def hover_provider(this: t): Bool {
     return this.m_hover_provider;
 }
 
-def to_json(this: t): *mut cjson.t {
-    return J.create_object()
-        .add(b"hoverProvider", J.create_bool(this.hover_provider()))
-        .add(b"definitionProvider", J.create_bool(true))
-        .add(b"textDocumentSync", J.create_object()
-            .add(b"openClose", J.create_bool(true))
-            .add(b"change", J.create_number((100).to_double())));
+implement J.JsonEncodable for t {
+    def encode_json(this: t): *mut cjson.t {
+        return J.create_object()
+            .add(b"hoverProvider", this.hover_provider())
+            .add(b"definitionProvider", true)
+            .add(b"textDocumentSync", J.create_object()
+                .add(b"openClose", true)
+                .add(b"change", J.create_number((100).to_double())));
+    }
 }
+

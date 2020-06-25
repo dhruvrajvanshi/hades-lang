@@ -28,20 +28,23 @@ def result[T](this: t): T {
     return *pointer_cast[T](&result);
 }
 
-def to_json(this: t): *mut cjson.t {
-    val mut result_json: *mut cjson.t = nullptr;
-    if (this.tag() == TAG_INITIALIZE_RESULT) {
-        result_json = this.result[InitializeResult.t]().to_json();
+implement J.JsonEncodable for t {
+    def encode_json(this: t): *mut cjson.t {
+        val mut result_json: *mut cjson.t = nullptr;
+        if (this.tag() == TAG_INITIALIZE_RESULT) {
+            result_json = this.result[InitializeResult.t]().to_json();
+        }
+        return J.create_object()
+            .add(b"id", this.id())
+            .add(b"jsonrpc", b"2.0")
+            .add(b"result", result_json);
     }
-    return J.create_object()
-        .add(b"id", J.create_number(this.id().to_double()))
-        .add(b"jsonrpc", J.create_string(b"2.0"))
-        .add(b"result", result_json);
 }
+
 
 implement err.Printable for t {
     def print(this: t, file: *c.File): Void {
-        val json = this.to_json(); defer json.free();
+        val json = this.encode_json(); defer json.free();
         json.print(file);
     }
 }

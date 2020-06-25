@@ -5,6 +5,7 @@ import lib.error as err;
 import libc as c;
 import hades.memory as Memory;
 import hades.primitives.size as size;
+import hades.primitives.int as int;
 const assert = Assert.assert_with_message;
 
 def get(this: *cj.t, key: *Byte): *cj.t {
@@ -95,6 +96,11 @@ implement JsonEncodable for Bool {
 
 implement JsonEncodable for Size {
     def encode_json(this: Size): *mut cj.t {
+        return create_number(this.to_double());
+    }
+}
+implement JsonEncodable for Int {
+    def encode_json(this: Int): *mut cj.t {
         return create_number(this.to_double());
     }
 }
