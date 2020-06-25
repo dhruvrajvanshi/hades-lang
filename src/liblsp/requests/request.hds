@@ -30,6 +30,17 @@ def from_json(from: *CJson.t): t {
     }
     return t(id.as_int(), method, tag, payload);
 }
+def tag(this: t): Size {
+    return this.m_tag;
+}
+
+def payload[T](this: t): T {
+    val payload = this.m_payload;
+    return *pointer_cast[T](&payload);
+}
+def is_initialize(this: t): Bool {
+    return this.tag() == TAG_INITIALIZE;
+}
 
 implement err.Printable for t {
     def print(this: t, file: *c.File): Void {

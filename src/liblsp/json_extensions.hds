@@ -21,3 +21,21 @@ def as_c_string(this: *cj.t): *Byte {
 def to_string_slice(this: *cj.t): StringSlice.t {
     return this.as_c_string().to_string_slice();
 }
+
+def create_object(): *mut cj.t {
+    val obj = cj.CreateObject();
+    assert(obj != nullptr, b"Couldn't create cJSON object");
+    return obj;
+}
+
+def add(this: *mut cj.t, key: *Byte, value: *cj.t): *mut cj.t {
+    assert(this.is_object(), b"json_extensions::add_key: Expected an object");
+    val added = cj.AddItemToObject(this, key, value);
+    assert(added, b"json_extensions::add_key: Unable to add item to object");
+    return this;
+}
+
+def free(this: *mut cj.t): Void {
+    cj.Delete(this);
+}
+

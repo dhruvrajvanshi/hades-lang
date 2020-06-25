@@ -2,35 +2,20 @@ import libc as c;
 import lib.error as err;
 import lib.slice as Slice;
 import lib.io as IO;
+import liblsp.json_extensions as json_extensions;
 import hades.memory as Memory;
 import liblsp.header as LSPHeader;
 import cjson as cJSON;
-import liblsp.requests.request as LSPRequest;
+import libhadesserver.hades_server as HadesServer;
 
 def main(): Size {
-    val stdin = IO.Stream(err.stdin());
     val hooks = cJSON.InitHooks(c.malloc, c.free);
     cJSON.init_hooks(&hooks);
+    val server = HadesServer.create();
+    defer server.free();
 
-    while true {
-        val header = LSPHeader.parse(stdin);
-        val size = header.content_length();
-        val slice = Slice.alloc[Byte](size);
-        defer slice.free();
-
-        stdin.read(slice, size);
-
-        val message_json = cJSON.parse(slice.buffer());
-        val message_str = cJSON.print(message_json);
-        defer Memory.free(message_str);
-
-        err.println(message_str);
-
-        val request = LSPRequest.from_json(message_json);
-        err.println(request);
-
-        c.sleep(1);
-    }
+    server.listen();
 
     return 0;
 }
+

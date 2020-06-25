@@ -1,0 +1,58 @@
+import hades.memory as Memory;
+import lib.error as err;
+import cjson as cJSON;
+import libc as c;
+import lib.io as IO;
+import lib.slice as Slice;
+import liblsp.requests.request as LSPRequest;
+import liblsp.requests.initialize as LSPInitialize;
+import liblsp.header as LSPHeader;
+
+struct HadesServerImpl {
+    val m_initialized: Bool;
+    val m_stdin: IO.Stream;
+}
+struct t {
+    val m_ptr: *mut HadesServerImpl;
+}
+def create(): t {
+    return t(new HadesServerImpl(false, IO.Stream(err.stdin())));
+}
+
+def free(this: t): Void {
+    return Memory.free(this.m_ptr);
+}
+def stdin(this: t): IO.Stream {
+    return *this.m_ptr.m_stdin;
+}
+def listen(this: t): Void {
+    while true {
+        val header = LSPHeader.parse(this.stdin());
+        val size = header.content_length();
+        val slice = Slice.alloc[Byte](size);
+        defer slice.free();
+
+        this.stdin().read(slice, size);
+
+        val message_json = cJSON.parse(slice.buffer());
+        defer message_json.free();
+
+        val request = LSPRequest.from_json(message_json);
+        this.handle_request(request);
+
+        c.sleep(1);
+    }
+}
+
+def handle_request(this: t, request: LSPRequest.t): Void {
+    err.print(b"received request: ");
+    err.println(request);
+    if request.is_initialize() {
+        this.handle_initialize_request(request.payload[LSPInitialize.t]());
+    }
+}
+
+def handle_initialize_request(this: t, request: LSPInitialize.t): Void {
+    err.println(b"HadesServer::handle_initialize_request");
+}
+
