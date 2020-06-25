@@ -14,6 +14,7 @@ import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Type
 import java.util.*
+import kotlin.math.exp
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -517,7 +518,7 @@ class Checker(
         val ty = when (expression) {
             is Expression.Error -> Type.Error
             is Expression.Var -> inferVar(expression)
-            is Expression.Call -> inferCall(expression)
+            is Expression.Call -> inferCall(expression, expectedReturnType = null)
             is Expression.Property -> inferProperty(expression, typeArgs)
             is Expression.ByteString -> Type.Ptr(Type.Byte, isMutable = false)
             is Expression.BoolLiteral -> Type.Bool
@@ -1052,14 +1053,15 @@ class Checker(
         return Type.GenericInstance(binder, _nextGenericInstance, callLocation)
     }
 
-    private fun inferCall(expression: Expression.Call): Type {
+    private fun inferCall(expression: Expression.Call, expectedReturnType: Type?): Type {
         return inferCallOrNew(
                 calleeType = inferExpression(expression.callee),
                 typeArgs = expression.typeArgs,
                 args = expression.args,
                 callee = expression.callee,
                 calleeLocation = expression.callee.location,
-                expressionLocation = expression.location
+                expressionLocation = expression.location,
+                expectedReturnType = expectedReturnType
         )
     }
 
@@ -1262,6 +1264,10 @@ class Checker(
         }
         expression is Expression.IntLiteral && expected is Type.Byte -> {
             expressionTypes[expression] = Type.Byte
+        }
+        expression is Expression.Call -> {
+            val ty = inferCall(expression, expectedReturnType = expected)
+            expressionTypes[expression] = ty
         }
         expression is Expression.PointerCast -> {
             val toPtrOfType = inferAnnotation(expression.toType)
