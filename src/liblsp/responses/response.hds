@@ -1,0 +1,28 @@
+import hades.primitives.int as hds_int;
+import lib.string_slice as StringSlice;
+import liblsp.json_extensions as J;
+import lib.error as err;
+import libc as c;
+import cjson as cjson;
+
+struct t {
+    val m_id: Int;
+}
+
+def id(this: t): Int {
+    return this.m_id;
+}
+
+def to_json(this: t): *mut cjson.t {
+    return J.create_object()
+        .add(b"id", J.create_number(this.id().to_double()));
+}
+
+implement err.Printable for t {
+    def print(this: t, file: *c.File): Void {
+        val json = this.to_json();
+        defer json.free();
+        json.print(file);
+    }
+}
+

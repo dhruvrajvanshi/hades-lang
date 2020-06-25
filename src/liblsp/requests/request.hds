@@ -8,7 +8,7 @@ import liblsp.json_extensions as json_extensions;
 const assert = Assert.assert_with_message;
 
 struct t {
-    val m_id: CInt;
+    val m_id: Int;
     val m_method: StringSlice.t;
     val m_tag: Size;
     val m_payload: union[Bool, Initialize.t];
@@ -16,6 +16,14 @@ struct t {
 
 const TAG_INVALID: Size = -1;
 const TAG_INITIALIZE: Size = 0;
+
+def tag(this: t): Size {
+    return this.m_tag;
+}
+
+def id(this: t): Int {
+    return this.m_id;
+}
 
 def from_json(from: *CJson.t): t {
     assert(from.is_object(), b"liblsp.requests.request::from_json: expected a json object");
@@ -29,9 +37,6 @@ def from_json(from: *CJson.t): t {
         tag = TAG_INITIALIZE;
     }
     return t(id.as_int(), method, tag, payload);
-}
-def tag(this: t): Size {
-    return this.m_tag;
 }
 
 def payload[T](this: t): T {

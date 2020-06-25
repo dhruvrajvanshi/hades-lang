@@ -44,3 +44,10 @@ void __hds_free(void* ptr) {
 #endif
     return free(ptr);
 }
+
+double hds_int_to_double(int value) {
+    return (double) value;
+}
+double hds_size_to_double(size_t value) {
+    return (double) value;
+}

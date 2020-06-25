@@ -13,6 +13,8 @@ extern def fprintf(*File, *Byte, *Byte): Size = fprintf;
 extern def printf(*Byte, *Byte): Size = printf;
 extern def sleep(Size): Size = sleep;
 
+extern def fputs(*Byte, *File): Void = fputs;
+
 struct Dir {}
 struct dirent {
     val d_name: *Byte;

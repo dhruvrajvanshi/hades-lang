@@ -24,8 +24,9 @@ struct InitHooks {
 }
 
 extern def init_hooks(*InitHooks): Void = cJSON_InitHooks;
-extern def parse(*Byte): *mut t = cJSON_Parse;
-extern def print(*t): *mut Byte = cJSON_Print;
+extern def Parse(*Byte): *mut t = cJSON_Parse;
+extern def Print(*t): *mut Byte = cJSON_Print;
+extern def PrintUnformatted(*t): *mut Byte = cJSON_PrintUnformatted;
 
 extern def GetObjectItem(*t, *Byte): *t = cJSON_GetObjectItem;
 extern def IsInvalid(*t): Bool = cJSON_IsInvalid;

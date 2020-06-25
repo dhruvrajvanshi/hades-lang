@@ -21,9 +21,15 @@ implement Printable for Size {
     }
 }
 
-implement Printable for CInt {
-    def print(this: CInt, file: *c.File): Void {
+implement Printable for Int {
+    def print(this: Int, file: *c.File): Void {
         dump_int(file, this);
+    }
+}
+
+implement Printable for Double {
+    def print(this: Double, file: *c.File): Void {
+        dump_double(file, this);
     }
 }
 
@@ -37,6 +43,7 @@ def println[T: Printable](value: T): Void {
 }
 
 extern def dump_size(*c.File, Size): Void = dump_size;
+extern def dump_double(*c.File, Double): Void = dump_double;
 extern def dump_int(*c.File, CInt): Void = dump_int;
 extern def dump_void_ptr(*c.File, *Void): Void = dump_void_ptr;
 extern def get_stderr(): *c.File = get_stderr;

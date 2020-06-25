@@ -1,6 +1,9 @@
 import cjson as cj;
 import lib.assert as Assert;
 import lib.string_slice as StringSlice;
+import lib.error as err;
+import libc as c;
+import hades.memory as Memory;
 const assert = Assert.assert_with_message;
 
 def get(this: *cj.t, key: *Byte): *cj.t {
@@ -28,6 +31,10 @@ def create_object(): *mut cj.t {
     return obj;
 }
 
+def create_number(value: Double): *mut cj.t {
+    return cj.CreateNumber(value);
+}
+
 def add(this: *mut cj.t, key: *Byte, value: *cj.t): *mut cj.t {
     assert(this.is_object(), b"json_extensions::add_key: Expected an object");
     val added = cj.AddItemToObject(this, key, value);
@@ -38,4 +45,21 @@ def add(this: *mut cj.t, key: *Byte, value: *cj.t): *mut cj.t {
 def free(this: *mut cj.t): Void {
     cj.Delete(this);
 }
+
+def to_formatted_c_string(this: *cj.t): *mut Byte {
+    return cj.Print(this);
+}
+
+def to_c_string(this: *cj.t): *mut Byte {
+    return cj.PrintUnformatted(this);
+}
+
+implement err.Printable for *cj.t {
+    def print(this: *cj.t, file: *c.File): Void {
+        val str = this.to_formatted_c_string(); defer Memory.free(str);
+
+        str.print(file);
+    }
+}
+
 

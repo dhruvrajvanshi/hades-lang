@@ -1,0 +1,6 @@
+
+def to_double(this: Int): Double {
+    return hds_int_to_double(this);
+}
+
+extern def hds_int_to_double(Int): Double = hds_int_to_double;

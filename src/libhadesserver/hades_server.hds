@@ -5,18 +5,22 @@ import libc as c;
 import lib.io as IO;
 import lib.slice as Slice;
 import liblsp.requests.request as LSPRequest;
+import liblsp.responses.response as LSPResponse;
 import liblsp.requests.initialize as LSPInitialize;
 import liblsp.header as LSPHeader;
 
 struct HadesServerImpl {
-    val m_initialized: Bool;
     val m_stdin: IO.Stream;
+    val m_stdout: IO.Stream;
 }
 struct t {
     val m_ptr: *mut HadesServerImpl;
 }
 def create(): t {
-    return t(new HadesServerImpl(false, IO.Stream(err.stdin())));
+    return t(new HadesServerImpl(
+        IO.Stream(err.stdin()),
+        IO.Stream(err.stdout())
+    ));
 }
 
 def free(this: t): Void {
@@ -24,6 +28,9 @@ def free(this: t): Void {
 }
 def stdin(this: t): IO.Stream {
     return *this.m_ptr.m_stdin;
+}
+def stdout(this: t): IO.Stream {
+    return *this.m_ptr.m_stdout;
 }
 def listen(this: t): Void {
     while true {
@@ -34,13 +41,11 @@ def listen(this: t): Void {
 
         this.stdin().read(slice, size);
 
-        val message_json = cJSON.parse(slice.buffer());
+        val message_json = cJSON.Parse(slice.buffer());
         defer message_json.free();
 
         val request = LSPRequest.from_json(message_json);
         this.handle_request(request);
-
-        c.sleep(1);
     }
 }
 
@@ -48,11 +53,19 @@ def handle_request(this: t, request: LSPRequest.t): Void {
     err.print(b"received request: ");
     err.println(request);
     if request.is_initialize() {
-        this.handle_initialize_request(request.payload[LSPInitialize.t]());
+        this.handle_initialize_request(request.id(), request.payload[LSPInitialize.t]());
     }
 }
 
-def handle_initialize_request(this: t, request: LSPInitialize.t): Void {
+def handle_initialize_request(this: t, id: Int, request: LSPInitialize.t): Void {
     err.println(b"HadesServer::handle_initialize_request");
+    val response = LSPResponse.t(id);
+    this.respond(response);
+}
+
+def respond(this: t, response: LSPResponse.t): Void {
+    val json = response.to_json(); defer json.free();
+    val c_string = json.to_c_string(); defer Memory.free(c_string);
+    this.stdout().write_c_string(c_string);
 }
 

@@ -21,3 +21,7 @@ def read_line(this: Stream, buffer: *mut Slice.t[Byte]): Size {
     return c.getline(buffer.buffer_ptr_mut(), buffer.size_ptr_mut(), this.file());
 }
 
+def write_c_string(this: Stream, c_str: *Byte): Void {
+    return c.fputs(c_str, this.m_file);
+}
+
