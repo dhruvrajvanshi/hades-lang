@@ -245,7 +245,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerReturnStatement(statement: IRReturnInstruction) {
-        builder.buildRet(lowerExpression(statement.value))
+        if (statement.value.type == Type.Void) {
+            builder.buildRetVoid()
+        } else {
+            builder.buildRet(lowerExpression(statement.value))
+        }
     }
 
     private fun lowerExpression(value: IRValue): Value = when (value) {
