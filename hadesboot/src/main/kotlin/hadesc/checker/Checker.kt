@@ -97,6 +97,7 @@ class Checker(
                 "Bool" -> Type.Bool
                 "Byte" -> Type.Byte
                 "CInt" -> Type.CInt
+                "Int" -> Type.CInt
                 "Double" -> Type.Double
                 "Size" -> Type.Size
                 else -> {

@@ -60,7 +60,7 @@ sealed class Type {
         Byte -> "Byte"
         Void -> "Void"
         Bool -> "Bool"
-        CInt -> "CInt"
+        CInt -> "Int"
         Double -> "Double"
         is Ptr -> {
             if (isMutable)
