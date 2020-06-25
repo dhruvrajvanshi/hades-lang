@@ -4,24 +4,44 @@ import liblsp.json_extensions as J;
 import lib.error as err;
 import libc as c;
 import cjson as cjson;
+import liblsp.responses.initialize_result as InitializeResult;
 
 struct t {
     val m_id: Int;
+    val m_tag: Size;
+    val m_result: union[InitializeResult.t];
 }
+
+const TAG_UNKNOWN: Size = -1;
+const TAG_INITIALIZE_RESULT: Size = 0;
 
 def id(this: t): Int {
     return this.m_id;
 }
 
+def tag(this: t): Size {
+    return this.m_tag;
+}
+
+def result[T](this: t): T {
+    val result = this.m_result;
+    return *pointer_cast[T](&result);
+}
+
 def to_json(this: t): *mut cjson.t {
+    val mut result_json: *mut cjson.t = nullptr;
+    if (this.tag() == TAG_INITIALIZE_RESULT) {
+        result_json = this.result[InitializeResult.t]().to_json();
+    }
     return J.create_object()
-        .add(b"id", J.create_number(this.id().to_double()));
+        .add(b"id", J.create_number(this.id().to_double()))
+        .add(b"jsonrpc", J.create_string(b"2.0"))
+        .add(b"result", result_json);
 }
 
 implement err.Printable for t {
     def print(this: t, file: *c.File): Void {
-        val json = this.to_json();
-        defer json.free();
+        val json = this.to_json(); defer json.free();
         json.print(file);
     }
 }

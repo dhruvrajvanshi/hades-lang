@@ -5,11 +5,6 @@ interface Printable {
     def print(this: This, file: *c.File): Void;
 }
 
-implement Printable for StringSlice.t {
-    def print(this: StringSlice.t, file: *c.File): Void {
-        c.fprintf(file, b"%s", this.as_c_str());
-    }
-}
 implement Printable for *Byte {
     def print(this: *Byte, file: *c.File): Void {
         c.fprintf(file, b"%s", this);

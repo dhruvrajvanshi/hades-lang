@@ -4,10 +4,15 @@ import cjson as cJSON;
 import libc as c;
 import lib.io as IO;
 import lib.slice as Slice;
+import lib.string_slice as StringSlice;
+
 import liblsp.requests.request as LSPRequest;
 import liblsp.responses.response as LSPResponse;
+import liblsp.responses.initialize_result as LSPInitializeResult;
 import liblsp.requests.initialize as LSPInitialize;
 import liblsp.header as LSPHeader;
+import liblsp.server_capabilities as LSPServerCapabilities;
+import liblsp.json_extensions as J;
 
 struct HadesServerImpl {
     val m_stdin: IO.Stream;
@@ -43,6 +48,9 @@ def listen(this: t): Void {
 
         val message_json = cJSON.Parse(slice.buffer());
         defer message_json.free();
+        
+        err.print(b"Received request: ");
+        err.println(message_json);
 
         val request = LSPRequest.from_json(message_json);
         this.handle_request(request);
@@ -50,22 +58,32 @@ def listen(this: t): Void {
 }
 
 def handle_request(this: t, request: LSPRequest.t): Void {
-    err.print(b"received request: ");
-    err.println(request);
     if request.is_initialize() {
         this.handle_initialize_request(request.id(), request.payload[LSPInitialize.t]());
     }
 }
 
 def handle_initialize_request(this: t, id: Int, request: LSPInitialize.t): Void {
-    err.println(b"HadesServer::handle_initialize_request");
-    val response = LSPResponse.t(id);
+    val capabilities = LSPServerCapabilities.t(true);
+    val response = LSPResponse.t(id, LSPResponse.TAG_INITIALIZE_RESULT, LSPInitializeResult.t(capabilities));
     this.respond(response);
 }
 
 def respond(this: t, response: LSPResponse.t): Void {
+    write_lsp_response(response, this.stdout());
+    err.print(b"Responding: ");
+    val json = response.to_json(); defer json.free();
+    err.println(json);
+}
+
+def write_lsp_response(response: LSPResponse.t, stream: IO.Stream): Void {
     val json = response.to_json(); defer json.free();
     val c_string = json.to_c_string(); defer Memory.free(c_string);
-    this.stdout().write_c_string(c_string);
+    val content_length = c.strlen(c_string);
+    stream.write_c_string(b"Content-Length: ");
+    content_length.print(stream.file());
+    stream.write_c_string(b"\r\n\r\n");
+    stream.write_c_string(c_string);
+    stream.flush();
 }
 

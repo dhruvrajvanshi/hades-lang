@@ -31,11 +31,19 @@ def create_object(): *mut cj.t {
     return obj;
 }
 
+def create_bool(value: Bool): *mut cj.t {
+    return cj.CreateBool(value);
+}
+
 def create_number(value: Double): *mut cj.t {
     return cj.CreateNumber(value);
 }
 
-def add(this: *mut cj.t, key: *Byte, value: *cj.t): *mut cj.t {
+def create_string(value: *Byte): *mut cj.t {
+    return cj.CreateString(value);
+}
+
+def add(this: *mut cj.t, key: *Byte, value: *mut cj.t): *mut cj.t {
     assert(this.is_object(), b"json_extensions::add_key: Expected an object");
     val added = cj.AddItemToObject(this, key, value);
     assert(added, b"json_extensions::add_key: Unable to add item to object");

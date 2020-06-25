@@ -120,8 +120,13 @@ data class Diagnostic(
 class DiagnosticReporter {
     var hasErrors = false
     private val fileLines = mutableMapOf<SourcePath, List<String>>()
-    public val errors = mutableListOf<Diagnostic>()
+    val errors = mutableListOf<Diagnostic>()
+    private val hasErrorAtLocation = mutableSetOf<SourceLocation>()
     fun report(location: SourceLocation, kind: Diagnostic.Kind) {
+        if (location in hasErrorAtLocation) {
+            return
+        }
+        hasErrorAtLocation.add(location)
         if (kind.severity == Diagnostic.Severity.ERROR) {
             hasErrors = true
         }

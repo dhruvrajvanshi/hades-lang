@@ -5,6 +5,7 @@ import hades.memory as Memory;
 import hades.drop as Drop;
 import lib.string as String;
 import lib.assert as Assert;
+import lib.error as err;
 
 const panic = Panic.panic;
 const assert = Assert.assert;
@@ -97,5 +98,11 @@ def drop_first(this: t, count: Size): t {
     assert(this.length() >= count);
     assert(count >= 0);
     return t(this.length() - count, this.as_c_str().offset(count));
+}
+
+implement err.Printable for t {
+    def print(this: t, file: *c.File): Void {
+        this.m_buffer.print(file);
+    }
 }
 

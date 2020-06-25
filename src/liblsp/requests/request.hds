@@ -25,18 +25,25 @@ def id(this: t): Int {
     return this.m_id;
 }
 
+def method(this: t): StringSlice.t {
+    return this.m_method;
+}
+
 def from_json(from: *CJson.t): t {
     assert(from.is_object(), b"liblsp.requests.request::from_json: expected a json object");
     val method = from.get(b"method").to_string_slice();
     val id = from.get(b"id");
-    assert(CJson.IsNumber(id), b"liblsp.requests.request::from_json: expected a id key");
     val mut payload: union[Bool, Initialize.t] = false;
     val mut tag = TAG_INVALID;
     if method.equals(b"initialize".to_string_slice()) {
         payload = Initialize.from_json(from.get(b"params"));
         tag = TAG_INITIALIZE;
     }
-    return t(id.as_int(), method, tag, payload);
+    val mut id_int = -1;
+    if id != nullptr {
+        id_int = id.as_int();
+    }
+    return t(id_int, method, tag, payload);
 }
 
 def payload[T](this: t): T {

@@ -5,7 +5,9 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind
+  TransportKind,
+  ErrorAction,
+  CloseAction
 } from 'vscode-languageclient';
 
 let client: LanguageClient;

@@ -25,3 +25,7 @@ def write_c_string(this: Stream, c_str: *Byte): Void {
     return c.fputs(c_str, this.m_file);
 }
 
+def flush(this: Stream): Void {
+    return c.fflush(this.file());
+}
+

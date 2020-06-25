@@ -44,7 +44,10 @@ extern def GetStringValue(*t): *Byte = cJSON_GetStringValue;
 extern def CreateObject(): *mut t = cJSON_CreateObject;
 extern def CreateString(*Byte): *mut t = cJSON_CreateString;
 extern def CreateNumber(Double): *mut t = cJSON_CreateNumber;
+extern def CreateBool(Bool): *mut t = cJSON_CreateBool;
+
 extern def AddItemToObject(*mut t, *Byte, *t): Bool = cJSON_AddItemToObject;
+
 extern def Delete(*mut t): Void = cJSON_Delete;
 
 def as_int(this: *t): CInt {

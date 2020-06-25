@@ -12,6 +12,7 @@ extern def strlen(*Byte): Size = strlen;
 extern def fprintf(*File, *Byte, *Byte): Size = fprintf;
 extern def printf(*Byte, *Byte): Size = printf;
 extern def sleep(Size): Size = sleep;
+extern def fflush(*File): Void = fflush;
 
 extern def fputs(*Byte, *File): Void = fputs;
 
