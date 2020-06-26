@@ -6,7 +6,7 @@ import hadesc.location.SourceLocation
 sealed class Statement : HasLocation {
     data class Return(
         override val location: SourceLocation,
-        val value: Expression
+        val value: Expression?
     ) : Statement()
 
     data class Val(

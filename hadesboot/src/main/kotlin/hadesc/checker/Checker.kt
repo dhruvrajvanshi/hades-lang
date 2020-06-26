@@ -428,7 +428,13 @@ class Checker(
                     requireUnreachable()
                 } else {
                     val returnType = returnTypeStack.peek()
-                    checkExpression(returnType, statement.value)
+                    if (statement.value != null) {
+                        checkExpression(returnType, statement.value)
+                    } else {
+                        if (!isAssignableTo(source = Type.Void, destination = returnType)) {
+                            error(statement, Diagnostic.Kind.MissingReturnValue)
+                        } else {}
+                    }
                 }
             }
             is Statement.Val -> checkValStatement(statement)

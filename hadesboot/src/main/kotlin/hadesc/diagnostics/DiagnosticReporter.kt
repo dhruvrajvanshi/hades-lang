@@ -67,6 +67,7 @@ data class Diagnostic(
         object ValNotMutable : Diagnostic.Kind(Severity.ERROR)
         object NoSuchModule : Diagnostic.Kind(Severity.ERROR)
         object StatementNotAllowedInDefer : Diagnostic.Kind(Severity.ERROR)
+        object MissingReturnValue : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -112,6 +113,7 @@ data class Diagnostic(
             ValNotMutable -> "Not a mutable value"
             NoSuchModule -> "No such module"
             StatementNotAllowedInDefer -> "Illegal defer statement"
+            MissingReturnValue -> "Missing return value"
         }
 
     }

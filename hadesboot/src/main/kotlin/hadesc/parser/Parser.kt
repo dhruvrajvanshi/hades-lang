@@ -552,10 +552,12 @@ class Parser(
 
     private fun parseReturnStatement(): Statement {
         val start = expect(tt.RETURN)
-        val value = parseExpression()
+        val value = if (at(tt.SEMICOLON))
+            null
+        else parseExpression()
         expect(tt.SEMICOLON)
         return Statement.Return(
-                makeLocation(start, value),
+                makeLocation(start, value ?: start),
                 value
         )
     }
