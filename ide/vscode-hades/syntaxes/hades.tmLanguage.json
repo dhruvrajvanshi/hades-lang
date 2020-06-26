@@ -43,6 +43,9 @@
 				},
 				{
 					"include": "#implementation-def"
+				},
+				{
+					"include": "#type-alias"
 				}
 			]
 		},
@@ -102,6 +105,14 @@
 					"include": "#comments"
 				}
 			]
+		},
+		"type-alias": {
+			"begin": "\\b(type)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "(?<=[;])",
+			"beginCaptures": {
+				"1": { "name": "keyword" },
+				"2": { "name": "entity.name.type" }
+			}
 		},
 		"function-def": {
 			"begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
