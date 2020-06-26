@@ -40,6 +40,7 @@ extern def IsArray(*t): Bool = cJSON_IsArray;
 extern def IsObject(*t): Bool = cJSON_IsObject;
 extern def IsRaw(*t): Bool = cJSON_IsRaw;
 extern def GetStringValue(*t): *Byte = cJSON_GetStringValue;
+extern def GetNumberValue(*t): Double = cJSON_GetNumberValue;
 
 extern def CreateObject(): *mut t = cJSON_CreateObject;
 extern def CreateString(*Byte): *mut t = cJSON_CreateString;
@@ -50,7 +51,7 @@ extern def AddItemToObject(*mut t, *Byte, *t): Bool = cJSON_AddItemToObject;
 
 extern def Delete(*mut t): Void = cJSON_Delete;
 
-def as_int(this: *t): CInt {
+def as_int(this: *t): Int {
     return *this.m_valueint;
 }
 

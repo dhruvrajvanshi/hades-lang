@@ -3,7 +3,6 @@ import libc as c;
 import lib.panic as Panic;
 import hades.memory as Memory;
 import hades.drop as Drop;
-import lib.string as String;
 import lib.assert as Assert;
 import lib.error as err;
 
@@ -25,6 +24,10 @@ def from_c(buffer: *Byte): t {
 }
 
 def to_string_slice(this: *Byte): t {
+    return from_c(this);
+}
+
+def as_string_slice(this: *Byte): t {
     return from_c(this);
 }
 

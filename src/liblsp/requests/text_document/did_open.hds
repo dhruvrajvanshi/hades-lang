@@ -1,0 +1,26 @@
+import lib.uri as URI;
+import liblsp.json_extensions as J;
+import cjson as cjson;
+
+struct t {
+    val m_uri: URI.t;
+    val m_text: *Byte;
+    val m_version: Size;
+}
+
+def uri(this: t): URI.t {
+    return this.m_uri;
+}
+
+def text(this: t): *Byte {
+    return this.m_text;
+}
+
+def from_json(json: *cjson.t): t {
+    val document = json.get(b"textDocument");
+    return t(
+        document.get(b"uri").as_c_string().as_uri(),
+        document.get(b"text").as_c_string(),
+        document.get(b"version").as_size()
+    );
+}

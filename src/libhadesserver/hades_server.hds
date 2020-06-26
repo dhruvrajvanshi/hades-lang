@@ -8,19 +8,23 @@ import lib.slice as Slice;
 import lib.string_slice as StringSlice;
 
 import liblsp.requests.request as LSPRequest;
+import liblsp.requests.initialize as LSPInitialize;
+import liblsp.requests.text_document.did_open as LSPTextDocumentDidOpen;
+
 import liblsp.responses.response as LSPResponse;
 import liblsp.responses.initialize_result as LSPInitializeResult;
-import liblsp.requests.initialize as LSPInitialize;
 import liblsp.notifications.notification as LSPNotification;
 import liblsp.notifications.show_message as LSPShowMessage;
 import liblsp.message_type as LSPMessageType;
 import liblsp.header as LSPHeader;
 import liblsp.server_capabilities as LSPServerCapabilities;
 import liblsp.json_extensions as J;
+import hdc.context as Context;
 
 struct HadesServerImpl {
     val m_stdin: IO.Stream;
     val m_stdout: IO.Stream;
+    val m_ctx: Context.t;
 }
 struct t {
     val m_ptr: *mut HadesServerImpl;
@@ -28,11 +32,13 @@ struct t {
 def create(): t {
     return t(new HadesServerImpl(
         IO.Stream(err.stdin()),
-        IO.Stream(err.stdout())
+        IO.Stream(err.stdout()),
+        Context.create()
     ));
 }
 
 def free(this: t): Void {
+    this.ctx().free();
     return Memory.free(this.m_ptr);
 }
 def stdin(this: t): IO.Stream {
@@ -40,6 +46,9 @@ def stdin(this: t): IO.Stream {
 }
 def stdout(this: t): IO.Stream {
     return *this.m_ptr.m_stdout;
+}
+def ctx(this: t): Context.t {
+    return *this.m_ptr.m_ctx;
 }
 def listen(this: t): Void {
     while true {
@@ -54,7 +63,7 @@ def listen(this: t): Void {
         defer message_json.free();
         
         err.print(b"Received request: ");
-        err.println(message_json);
+        err.println(message_json.get(b"method"));
 
         val request = LSPRequest.from_json(message_json);
         this.handle_request(request);
@@ -64,6 +73,11 @@ def listen(this: t): Void {
 def handle_request(this: t, request: LSPRequest.t): Void {
     if request.is_initialize() {
         this.handle_initialize_request(request.id(), request.params());
+        return;
+    }
+    if request.is_text_document_did_open() {
+        this.handle_text_document_did_open(request.params());
+        return;
     }
 }
 
@@ -71,11 +85,10 @@ def handle_initialize_request(this: t, id: Int, request: LSPInitialize.t): Void 
     val capabilities = LSPServerCapabilities.t(true);
     val response = LSPResponse.t(id, LSPResponse.TAG_INITIALIZE_RESULT, Cast.cast(LSPInitializeResult.t(capabilities)));
     this.respond(response);
-    this.notify(LSPNotification.t(
-        LSPNotification.TAG_SHOW_MESSAGE,
-        LSPNotification.METHOD_SHOW_MESSAGE,
-        Cast.cast(LSPShowMessage.t(LSPMessageType.INFO, b"Here's a notification"))
-    ));
+}
+
+def handle_text_document_did_open(this: t, request: LSPTextDocumentDidOpen.t): Void {
+    this.ctx().set_source_text(request.uri(), request.text());
 }
 
 def respond(this: t, response: LSPResponse.t): Void {

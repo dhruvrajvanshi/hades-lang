@@ -1,16 +1,11 @@
-import hades.drop as Drop;
 import libc as c;
 import hades.memory as Memory;
-import hdc.build_options as BuildOptions;
+import lib.uri as URI;
 
 const puts = c.puts;
 
 struct ContextImpl {
-    val m_options: BuildOptions.t;
-}
-
-implement Drop.Drop for ContextImpl {
-    def drop(this: *mut ContextImpl): Void {}
+    val dummy: Size;
 }
 
 struct t {
@@ -18,12 +13,17 @@ struct t {
 }
 
 def new_from_args(argc: Size, argv: **Byte): t {
-    return t(new ContextImpl(BuildOptions.new_from_args(argc, argv)));
+    return t(new ContextImpl(0));
 }
 
-def drop(this: t): Void {
-    val ctx = *this.m_ctx;
-    ctx.m_options.drop();
+def create(): t {
+    return t(new ContextImpl(0));
+}
+
+def free(this: t): Void {
     Memory.free(this.m_ctx);
 }
 
+def set_source_text(this: t, uri: URI.t, text: *Byte): Void {
+
+}

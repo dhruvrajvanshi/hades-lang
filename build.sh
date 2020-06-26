@@ -6,7 +6,7 @@ set -e
 HADESBOOT_FLAGS="\
   --directories stdlib src bindings \
   --runtime runtime.c \
-  --cflags -D DEBUG \
+  --cflags -D DEBUG -lm \
   --c-sources  src/lib/error.c stdlib/libc.c cJSON/cJSON.c \
   -g \
 "

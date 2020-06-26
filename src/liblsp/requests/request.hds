@@ -6,9 +6,18 @@ import cjson as CJson;
 import lib.assert as Assert;
 import liblsp.json_extensions as json_extensions;
 import lib.cast as Cast;
+import liblsp.requests.text_document.did_open as TextDocumentDidOpen;
 const assert = Assert.assert_with_message;
 
 type Params = union[Bool, Initialize.t];
+
+const METHOD_INITIALIZE = b"initialize";
+const METHOD_TEXT_DOCUMENT_DID_OPEN = b"textDocument/didOpen";
+
+
+const TAG_INVALID: Size = -1;
+const TAG_INITIALIZE: Size = 0;
+const TAG_TEXT_DOCUMENT_DID_OPEN: Size = 1;
 
 struct t {
     val m_id: Int;
@@ -17,8 +26,6 @@ struct t {
     val m_params: Params;
 }
 
-const TAG_INVALID: Size = -1;
-const TAG_INITIALIZE: Size = 0;
 
 def tag(this: t): Size {
     return this.m_tag;
@@ -38,9 +45,13 @@ def from_json(from: *CJson.t): t {
     val id = from.get(b"id");
     val mut params: Params = Cast.cast(true);
     val mut tag = TAG_INVALID;
-    if method.equals(b"initialize".to_string_slice()) {
+    if method.equals(METHOD_INITIALIZE.to_string_slice()) {
         params = Cast.cast(Initialize.from_json(from.get(b"params")));
         tag = TAG_INITIALIZE;
+    }
+    if method.equals(METHOD_TEXT_DOCUMENT_DID_OPEN.to_string_slice()) {
+        params = Cast.cast(TextDocumentDidOpen.from_json(from.get(b"params")));
+        tag = TAG_TEXT_DOCUMENT_DID_OPEN;
     }
     val mut id_int = -1;
     if id != nullptr {
@@ -55,6 +66,10 @@ def params[T](this: t): T {
 
 def is_initialize(this: t): Bool {
     return this.tag() == TAG_INITIALIZE;
+}
+
+def is_text_document_did_open(this: t): Bool {
+    return this.tag() == TAG_TEXT_DOCUMENT_DID_OPEN;
 }
 
 implement err.Printable for t {

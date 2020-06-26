@@ -1,12 +1,14 @@
 
 extern def puts(*Byte): Void = puts;
 extern def exit(CInt): Void = exit;
-extern def malloc(Size): *mut Void = __hds_malloc;
-extern def free(*mut Void): Void = __hds_free;
+extern def malloc(Size): *mut Void = malloc;
+extern def free(*mut Void): Void = free;
 extern def strlen(*Byte): Size = strlen;
 extern def strcmp(*Byte, *Byte): Bool = strcmp;
 extern def memcpy(*Byte, *Byte, Size): Void = memcpy;
 extern def strlen(*Byte): Size = strlen;
+extern def memcmp(*Void, *Void, Size): Int = memcmp;
+extern def floor(Double): Double = floor;
 /// we don't have variadics right now
 /// there isn't a better way to type this
 extern def fprintf(*File, *Byte, *Byte): Size = fprintf;

@@ -6,6 +6,7 @@ import libc as c;
 import hades.memory as Memory;
 import hades.primitives.size as size;
 import hades.primitives.int as int;
+import lib.cast as Cast;
 const assert = Assert.assert_with_message;
 
 def get(this: *cj.t, key: *Byte): *cj.t {
@@ -19,12 +20,25 @@ def is_object(this: *cj.t): Bool {
 def is_string(this: *cj.t): Bool {
     return cj.IsString(this);
 }
+def is_number(this: *cj.t): Bool {
+    return cj.IsNumber(this);
+}
 def as_c_string(this: *cj.t): *Byte {
     assert(this.is_string(), b"json_extensions::as_c_string: Expected a string value");
     return cj.GetStringValue(this);
 }
 def to_string_slice(this: *cj.t): StringSlice.t {
     return this.as_c_string().to_string_slice();
+}
+
+def as_size(this: *cj.t): Size {
+    assert(this.is_number(), b"json_extensions::expected a number");
+    return Cast.cast(c.floor(this.as_double()));
+}
+
+def as_double(this: *cj.t): Double {
+    assert(this.is_number(), b"json_extensions::expected a number");
+    return cj.GetNumberValue(this);
 }
 
 def create_object(): *mut cj.t {

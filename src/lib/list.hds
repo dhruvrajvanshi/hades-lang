@@ -1,0 +1,11 @@
+
+struct t {
+    val head: *Node;    
+}
+
+struct Node[T] {
+    val m_next: *Node;
+    val m_value: T;
+}
+
+
