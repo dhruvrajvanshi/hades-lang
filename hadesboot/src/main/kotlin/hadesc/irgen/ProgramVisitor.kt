@@ -11,7 +11,6 @@ import hadesc.ir.*
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -507,12 +506,12 @@ internal class ProgramVisitor(private val ctx: Context) {
             }
         }
         f()
-        cleanupScope(block, cleanupBeforeBlocks)
+        cleanupScope(body, block, cleanupBeforeBlocks)
         deferBlockStack.pop()
         return block
     }
 
-    private fun cleanupScope(startingBlock: IRBlock, beforeBlocks: List<IRBlock>) {
+    private fun cleanupScope(node: HasLocation, startingBlock: IRBlock, beforeBlocks: List<IRBlock>) {
         val beforeBlockNames = beforeBlocks.map { it.name.name }
         val visitedSet = mutableSetOf<Name>()
 
@@ -527,7 +526,9 @@ internal class ProgramVisitor(private val ctx: Context) {
                 return
             }
             visitedSet.add(currentBlock.name.name)
-            require(currentBlock.hasTerminator())
+            require(currentBlock.hasTerminator()) {
+                "${node.location}: Unterminated block found"
+            }
             when (val statement = currentBlock.statements.last()) {
                 is IRJump -> {
                     if (statement.label.name in beforeBlockNames) {
@@ -1437,7 +1438,11 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerReturnStatement(statement: Statement.Return) {
-        builder.buildReturn(lowerExpression(statement.value))
+        if (statement.value != null) {
+            builder.buildReturn(lowerExpression(statement.value))
+        } else {
+            builder.buildRetVoid()
+        }
     }
 
     private val valPointers = mutableMapOf<SourceLocation, IRLocalName>()
