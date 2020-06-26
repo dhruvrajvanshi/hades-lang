@@ -2,9 +2,14 @@
 import submodule.test_utils as u;
 
 def main(): Void {
-    val x: union[CInt, Bool] = 1;
-    val x_int = *pointer_cast[CInt](&x);
-    val x_bool = *pointer_cast[Bool](&x);
+    val x: union[CInt, Bool] = cast(1);
+    val x_int: Int = cast(x);
+    val x_bool: Bool = cast(x);
     u.print_int(x_int);
     u.print_bool(x_bool);
+}
+
+def cast[T, U](value: T): U {
+    val copy = value;
+    return *pointer_cast[U](&copy);
 }

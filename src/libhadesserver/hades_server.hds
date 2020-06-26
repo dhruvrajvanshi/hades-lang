@@ -1,5 +1,6 @@
 import hades.memory as Memory;
 import lib.error as err;
+import lib.cast as Cast;
 import cjson as cJSON;
 import libc as c;
 import lib.io as IO;
@@ -68,12 +69,12 @@ def handle_request(this: t, request: LSPRequest.t): Void {
 
 def handle_initialize_request(this: t, id: Int, request: LSPInitialize.t): Void {
     val capabilities = LSPServerCapabilities.t(true);
-    val response = LSPResponse.t(id, LSPResponse.TAG_INITIALIZE_RESULT, LSPInitializeResult.t(capabilities));
+    val response = LSPResponse.t(id, LSPResponse.TAG_INITIALIZE_RESULT, Cast.cast(LSPInitializeResult.t(capabilities)));
     this.respond(response);
     this.notify(LSPNotification.t(
         LSPNotification.TAG_SHOW_MESSAGE,
         LSPNotification.METHOD_SHOW_MESSAGE,
-        LSPShowMessage.t(LSPMessageType.INFO, b"Here's a notification")
+        Cast.cast(LSPShowMessage.t(LSPMessageType.INFO, b"Here's a notification"))
     ));
 }
 

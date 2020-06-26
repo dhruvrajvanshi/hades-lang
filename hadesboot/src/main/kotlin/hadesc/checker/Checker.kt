@@ -1431,12 +1431,6 @@ class Checker(
                 isAssignableTo(source = sourceMember, destination = destinationMember)
             }
         }
-        destination is Type.UntaggedUnion -> {
-
-            destination.members.any { destinationMember ->
-                isAssignableTo(destination = destinationMember, source = source)
-            }
-        }
         else -> {
             false
         }

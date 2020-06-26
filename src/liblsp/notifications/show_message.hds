@@ -6,7 +6,7 @@ struct t {
     val m_message: *Byte;
 }
 
-def type(this: t): Size {
+def get_type(this: t): Size {
     return this.m_type;
 }
 def message(this: t): *Byte {
@@ -16,7 +16,7 @@ def message(this: t): *Byte {
 implement J.JsonEncodable for t {
     def encode_json(this: t): *mut cjson.t {
         return J.create_object()
-            .add(b"type", this.type())
+            .add(b"type", this.get_type())
             .add(b"message", this.message());
     }
 }

@@ -1,6 +1,7 @@
 import liblsp.notifications.show_message as ShowMessage;
 import liblsp.json_extensions as J;
 import cjson as cjson;
+import lib.cast as Cast;
 
 struct t {
     val m_tag: Size;
@@ -18,7 +19,7 @@ def tag(this: t): Size {
 
 def params[T](this: t): T {
     val params = this.m_params;
-    return *pointer_cast[T](&params);
+    return Cast.cast(this.m_params);
 }
 
 const TAG_UNKNOWN: Size = -1;

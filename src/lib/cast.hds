@@ -1,0 +1,5 @@
+
+def cast[T, U](value: T): U {
+    val copy = value;
+    return *pointer_cast[U](&copy);
+}

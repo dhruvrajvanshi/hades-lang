@@ -2,6 +2,7 @@ import hades.primitives.int as hds_int;
 import lib.string_slice as StringSlice;
 import liblsp.json_extensions as J;
 import lib.error as err;
+import lib.cast as Cast;
 import libc as c;
 import cjson as cjson;
 import liblsp.responses.initialize_result as InitializeResult;
@@ -24,8 +25,7 @@ def tag(this: t): Size {
 }
 
 def result[T](this: t): T {
-    val result = this.m_result;
-    return *pointer_cast[T](&result);
+    return Cast.cast(this.m_result);
 }
 
 implement J.JsonEncodable for t {
