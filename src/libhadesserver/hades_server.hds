@@ -63,7 +63,7 @@ def listen(this: t): Void {
 
 def handle_request(this: t, request: LSPRequest.t): Void {
     if request.is_initialize() {
-        this.handle_initialize_request(request.id(), request.payload[LSPInitialize.t]());
+        this.handle_initialize_request(request.id(), request.params());
     }
 }
 

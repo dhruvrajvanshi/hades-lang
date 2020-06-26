@@ -7,10 +7,11 @@ import libc as c;
 import cjson as cjson;
 import liblsp.responses.initialize_result as InitializeResult;
 
+type Result = union[InitializeResult.t];
 struct t {
     val m_id: Int;
     val m_tag: Size;
-    val m_result: union[InitializeResult.t];
+    val m_result: Result;
 }
 
 const TAG_UNKNOWN: Size = -1;

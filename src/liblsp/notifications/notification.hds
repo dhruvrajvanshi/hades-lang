@@ -3,10 +3,11 @@ import liblsp.json_extensions as J;
 import cjson as cjson;
 import lib.cast as Cast;
 
+type Params = union[ShowMessage.t];
 struct t {
     val m_tag: Size;
     val m_method: *Byte;
-    val m_params: union[ShowMessage.t];
+    val m_params: Params;
 }
 
 def method(this: t): *Byte {

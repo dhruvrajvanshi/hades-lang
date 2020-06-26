@@ -8,11 +8,13 @@ import liblsp.json_extensions as json_extensions;
 import lib.cast as Cast;
 const assert = Assert.assert_with_message;
 
+type Params = union[Bool, Initialize.t];
+
 struct t {
     val m_id: Int;
     val m_method: StringSlice.t;
     val m_tag: Size;
-    val m_payload: union[Bool, Initialize.t];
+    val m_params: Params;
 }
 
 const TAG_INVALID: Size = -1;
@@ -34,23 +36,23 @@ def from_json(from: *CJson.t): t {
     assert(from.is_object(), b"liblsp.requests.request::from_json: expected a json object");
     val method = from.get(b"method").to_string_slice();
     val id = from.get(b"id");
-    val mut payload: union[Bool, Initialize.t] = Cast.cast(true);
+    val mut params: Params = Cast.cast(true);
     val mut tag = TAG_INVALID;
     if method.equals(b"initialize".to_string_slice()) {
-        payload = Cast.cast(Initialize.from_json(from.get(b"params")));
+        params = Cast.cast(Initialize.from_json(from.get(b"params")));
         tag = TAG_INITIALIZE;
     }
     val mut id_int = -1;
     if id != nullptr {
         id_int = id.as_int();
     }
-    return t(id_int, method, tag, payload);
+    return t(id_int, method, tag, params);
 }
 
-def payload[T](this: t): T {
-    val payload = this.m_payload;
-    return *pointer_cast[T](&payload);
+def params[T](this: t): T {
+    return Cast.cast(this.m_params);
 }
+
 def is_initialize(this: t): Bool {
     return this.tag() == TAG_INITIALIZE;
 }
@@ -67,9 +69,8 @@ implement err.Printable for t {
         b"  params: ".print(file);
 
         if this.m_tag == TAG_INITIALIZE {
-            val payload = this.m_payload;
-            val init = *pointer_cast[Initialize.t](&payload);
-            init.print(file);
+            val params = this.params[Initialize.t]();
+            params.print(file);
         }
 
         b"\n}\n".print(file);
