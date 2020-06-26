@@ -14,7 +14,6 @@ import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Type
 import java.util.*
-import kotlin.math.exp
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -37,18 +36,34 @@ class Checker(
     }
 
     private fun resolveQualifiedTypeVariable(node: HasLocation, path: QualifiedPath): Type? {
-        val struct = ctx.resolver.resolveQualifiedStructDef(path)
-        if (struct == null) {
+        val declaration = ctx.resolver.resolveQualifiedTypeDeclaration(path)
+        if (declaration == null) {
             error(node.location, Diagnostic.Kind.UnboundType(path.identifiers.last().name))
             return null
         }
-        val instanceType = typeOfStructInstance(struct)
-        return if (struct.typeParams == null) {
-            instanceType
+
+        return if (declaration is Declaration.Struct) {
+            val instanceType = typeOfStructInstance(declaration)
+            if (declaration.typeParams == null) {
+                instanceType
+            } else {
+                require(instanceType is Type.Application)
+                instanceType.callee
+            }
+        } else if (declaration is Declaration.TypeAlias) {
+            if (declaration.typeParams == null) {
+                inferAnnotation(declaration.rhs)
+            } else {
+                Type.TypeFunction(
+                        declaration.typeParams.map { inferTypeParam(it) },
+                        inferAnnotation(declaration.rhs)
+                )
+            }
         } else {
-            require(instanceType is Type.Application)
-            instanceType.callee
+            error(node.location, Diagnostic.Kind.UnboundType(path.identifiers.last().name))
+            null
         }
+
     }
 
     private fun resolveTypeVariable(name: Identifier): Type? {
@@ -73,6 +88,16 @@ class Checker(
                 }
             }
             is TypeBinding.TypeParam -> Type.ParamRef(binding.binder)
+            is TypeBinding.TypeAlias -> {
+                if (binding.declaration.typeParams != null) {
+                    Type.TypeFunction(
+                            binding.declaration.typeParams.map { inferTypeParam(it) },
+                            inferAnnotation(binding.declaration.rhs)
+                    )
+                } else {
+                    inferAnnotation(binding.declaration.rhs)
+                }
+            }
         }
     }
 
@@ -117,11 +142,20 @@ class Checker(
                 val callee = inferAnnotation(annotation.callee, allowIncomplete = true)
                 val args = annotation.args.map { inferAnnotation(it) }
                 checkTypeApplication(annotation, callee, args)
-                require(callee is Type.Constructor)
-                Type.Application(
-                        callee,
-                        args
-                )
+                if (callee is Type.Constructor) {
+                    Type.Application(
+                            callee,
+                            args
+                    )
+                } else if (callee is Type.TypeFunction) {
+                    val substitution = callee.params.zip(args).map {
+                        it.first.binder.location to it.second
+                    }.toMap()
+
+                    callee.body.applySubstitution(substitution)
+                } else {
+                    requireUnreachable()
+                }
             }
             is TypeAnnotation.Qualified -> {
                 val typeBinding = resolveQualifiedTypeVariable(annotation, annotation.qualifiedPath)
@@ -1251,6 +1285,10 @@ class Checker(
         is Type.Constructor -> type
         is Type.ThisRef -> type
         is Type.UntaggedUnion -> Type.UntaggedUnion(type.members.map { applyInstantiations(it) })
+        is Type.TypeFunction -> Type.TypeFunction(
+                type.params,
+                applyInstantiations(type.body)
+        )
     }
 
     private fun applyInstantiations(expression: Expression) {

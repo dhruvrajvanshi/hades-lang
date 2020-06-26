@@ -70,6 +70,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             lowerImplementation(declaration)
         }
         is Declaration.Enum -> lowerEnumDecl(declaration)
+        is Declaration.TypeAlias -> {}
     }
 
     private val isEnumDeclLowered = mutableSetOf<SourceLocation>()

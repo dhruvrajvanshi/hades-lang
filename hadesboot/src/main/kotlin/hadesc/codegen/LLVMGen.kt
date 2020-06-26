@@ -481,6 +481,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                     .maxBy { sizeOfType(it) }
             requireNotNull(maxSizedType)
         }
+        is Type.TypeFunction -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0

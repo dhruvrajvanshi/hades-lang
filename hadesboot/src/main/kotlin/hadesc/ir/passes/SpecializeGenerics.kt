@@ -487,6 +487,7 @@ class SpecializeGenerics(
             Type.Size -> type
             is Type.ThisRef -> requireUnreachable()
             is Type.UntaggedUnion -> Type.UntaggedUnion(type.members.map { lowerType(it) })
+            is Type.TypeFunction -> requireUnreachable()
         }
     }
 }

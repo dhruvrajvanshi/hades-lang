@@ -22,6 +22,7 @@ interface TypeTransformer {
         is Type.Application -> lowerTypeApplication(type)
         is Type.ThisRef -> lowerThisRefType(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
+        is Type.TypeFunction -> requireUnreachable()
     }
 
     fun lowerDoubleType(type: Type): Type {

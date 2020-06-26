@@ -38,7 +38,8 @@ val KEYWORDS = mapOf(
     "enum" to tt.ENUM,
     "new" to tt.NEW,
     "union" to tt.UNION,
-    "defer" to tt.DEFER
+    "defer" to tt.DEFER,
+    "type" to tt.TYPE
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

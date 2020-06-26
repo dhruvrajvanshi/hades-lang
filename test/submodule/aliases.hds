@@ -1,0 +1,5 @@
+
+type int = Int;
+
+type MutPtr[T] = *mut T;
+

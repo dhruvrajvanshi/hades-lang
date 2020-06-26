@@ -35,6 +35,7 @@ data class Token(
         NEW,
         UNION,
         DEFER,
+        TYPE,
 
         NOT,
         AND,

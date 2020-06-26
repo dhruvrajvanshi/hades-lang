@@ -87,6 +87,12 @@ class Resolver(private val ctx: Context) {
             if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
         }
         is ScopeNode.MatchArm -> null
+        is ScopeNode.TypeAlias -> {
+            val param = scopeNode.declaration.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }
+            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -105,6 +111,8 @@ class Resolver(private val ctx: Context) {
                 TypeBinding.Struct(declaration)
             } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
                 TypeBinding.Enum(declaration)
+            } else if (declaration is Declaration.TypeAlias && declaration.name.identifier.name == ident.name) {
+                TypeBinding.TypeAlias(declaration)
             } else {
                 null
             }
@@ -123,6 +131,7 @@ class Resolver(private val ctx: Context) {
         is ScopeNode.Interface -> null
         is ScopeNode.Enum -> null
         is ScopeNode.MatchArm -> findInMatchArm(ident, scope)
+        is ScopeNode.TypeAlias -> null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeNode.MatchArm): Binding? {
@@ -213,6 +222,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Interface -> null
                 is Declaration.Implementation -> null
                 is Declaration.Enum -> null
+                is Declaration.TypeAlias -> null
             }
             if (binding != null) {
                 return binding
@@ -296,6 +306,9 @@ class Resolver(private val ctx: Context) {
             is Declaration.Enum -> {
                 addScopeNode(declaration.location.file, ScopeNode.Enum(declaration))
             }
+            is Declaration.TypeAlias -> {
+                addScopeNode(declaration.location.file, ScopeNode.TypeAlias(declaration))
+            }
             else -> {}
         }
     }
@@ -374,6 +387,7 @@ class Resolver(private val ctx: Context) {
                                     null
                                 }
                             }
+                            is Declaration.TypeAlias -> null
                         }
                         if (binding != null) {
                             break
@@ -384,6 +398,7 @@ class Resolver(private val ctx: Context) {
                 is ScopeNode.Interface -> null
                 is ScopeNode.Enum -> null
                 is ScopeNode.MatchArm -> null
+                is ScopeNode.TypeAlias -> null
             }
             if (binding != null) {
                 return binding
@@ -451,7 +466,7 @@ class Resolver(private val ctx: Context) {
         }
     }
 
-    fun resolveQualifiedStructDef(path: QualifiedPath): Declaration.Struct? {
+    fun resolveQualifiedTypeDeclaration(path: QualifiedPath): Declaration? {
         require(path.identifiers.size == 2)
         val sourceFile = sourceFileOf(path)
         for (decl in sourceFile.declarations) {
@@ -460,9 +475,12 @@ class Resolver(private val ctx: Context) {
                 val binding = findTypeInSourceFile(path.identifiers.last(), importedSourceFile)
                 return if (binding == null) {
                     null
-                } else {
-                    require(binding is TypeBinding.Struct)
+                } else if (binding is TypeBinding.Struct) {
                     return binding.declaration
+                } else if (binding is TypeBinding.TypeAlias) {
+                    return binding.declaration
+                } else {
+                    return null
                 }
             }
         }
@@ -484,6 +502,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Interface -> decl.name.identifier.name == declName
                 is Declaration.Implementation -> false
                 is Declaration.Enum -> decl.name.identifier.name == declName
+                is Declaration.TypeAlias -> decl.name.identifier.name == declName
             })
             if (match) {
                 return decl
@@ -540,6 +559,11 @@ class Resolver(private val ctx: Context) {
                 }
                 is Declaration.Implementation -> null
                 is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.TypeAlias -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
                     null

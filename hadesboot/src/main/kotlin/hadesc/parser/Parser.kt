@@ -14,7 +14,8 @@ internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
-        tt.INTERFACE, tt.IMPLEMENT, tt.AT_SYMBOL
+        tt.INTERFACE, tt.IMPLEMENT, tt.AT_SYMBOL,
+        tt.TYPE
 )
 private val statementPredictors = setOf(
     tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
@@ -101,6 +102,7 @@ class Parser(
             tt.INTERFACE -> parseInterfaceDeclaration()
             tt.IMPLEMENT -> parseImplementationDeclaration()
             tt.ENUM -> parseEnumDeclaration()
+            tt.TYPE -> parseTypeAliasDeclaration()
             tt.AT_SYMBOL -> {
                 val decorators = parseDecorators()
                 parseStructDeclaration(decorators)
@@ -219,6 +221,23 @@ class Parser(
                 annotation,
                 rhs
         )
+    }
+
+    private fun parseTypeAliasDeclaration(): Declaration {
+        val start = expect(tt.TYPE)
+        val binder = parseBinder()
+        val params = parseOptionalTypeParams()
+        expect(tt.EQ)
+        val body = parseTypeAnnotation()
+        expect(tt.SEMICOLON)
+
+        return Declaration.TypeAlias(
+                makeLocation(start, body),
+                binder,
+                params,
+                body
+        )
+
     }
 
     private fun parseEnumDeclaration(): Declaration {

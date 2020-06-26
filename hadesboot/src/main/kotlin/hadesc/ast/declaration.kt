@@ -91,6 +91,13 @@ sealed class Declaration : HasLocation {
             val params: List<TypeAnnotation>
         )
     }
+
+    data class TypeAlias(
+            override val location: SourceLocation,
+            val name: Binder,
+            val typeParams: List<TypeParam>?,
+            val rhs: TypeAnnotation
+    ) : Declaration()
 }
 
 

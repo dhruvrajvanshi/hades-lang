@@ -1,6 +1,7 @@
 package hadesc.types
 
 import hadesc.ast.Binder
+import hadesc.ast.TypeParam
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
@@ -44,6 +45,8 @@ sealed class Type {
 
     data class ParamRef(val name: Binder) : Type()
 
+    data class TypeFunction(val params: List<Param>, val body: Type): Type()
+
     data class GenericInstance(
         val name: Binder,
         val id: Long,
@@ -82,6 +85,7 @@ sealed class Type {
         Size -> "Size"
         is ThisRef -> "This"
         is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
+        is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
@@ -119,8 +123,12 @@ sealed class Type {
             }
             is Constructor -> this
             is ThisRef -> thisType?.recurse() ?: this
-            is UntaggedUnion -> Type.UntaggedUnion(
+            is UntaggedUnion -> UntaggedUnion(
                     members.map { it.recurse() }
+            )
+            is TypeFunction -> TypeFunction(
+                    params,
+                    body.recurse()
             )
         }
     }
