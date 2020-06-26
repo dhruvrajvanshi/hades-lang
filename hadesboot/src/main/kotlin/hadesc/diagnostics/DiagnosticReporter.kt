@@ -68,6 +68,7 @@ data class Diagnostic(
         object NoSuchModule : Diagnostic.Kind(Severity.ERROR)
         object StatementNotAllowedInDefer : Diagnostic.Kind(Severity.ERROR)
         object MissingReturnValue : Diagnostic.Kind(Severity.ERROR)
+        object InvalidTypeApplication : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -114,6 +115,7 @@ data class Diagnostic(
             NoSuchModule -> "No such module"
             StatementNotAllowedInDefer -> "Illegal defer statement"
             MissingReturnValue -> "Missing return value"
+            InvalidTypeApplication -> "Invalid type application"
         }
 
     }

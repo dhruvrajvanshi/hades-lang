@@ -154,7 +154,8 @@ class Checker(
 
                     callee.body.applySubstitution(substitution)
                 } else {
-                    requireUnreachable()
+                    error(annotation, Diagnostic.Kind.InvalidTypeApplication)
+                    Type.Error
                 }
             }
             is TypeAnnotation.Qualified -> {

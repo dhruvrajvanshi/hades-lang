@@ -274,24 +274,25 @@ class SpecializeGenerics(
     }
 
     private val queuedSpecializaionSet = mutableSetOf<IRGlobalName>()
-    private fun enqueueStructSpecialization(def: IRStructDef, typeArgs: List<Type>): Pair<IRGlobalName, Type.Function> {
-        val (name, constructorType) = getSpecializedStructConstructorType(def, typeArgs)
+    private fun enqueueStructSpecialization(def: IRStructDef, typeArgs: List<Type>): Pair<IRGlobalName, Type.Constructor> {
+        val (name, instanceType) = getSpecializedStructInstanceType(def, typeArgs)
         // ensure that we don't generate same specializations multiple times
         if (queuedSpecializaionSet.contains(name)) {
-            return name to constructorType
+            return name to instanceType
         }
         specializationQueue.put(SpecializationRequest.Struct(def, typeArgs.map { lowerType(it) }))
         queuedSpecializaionSet.add(name)
-        return name to constructorType
+        return name to instanceType
     }
 
     private fun specializeStruct(def: IRStructDef, typeArgs: List<Type>) {
         val (name, constructorType) = getSpecializedStructConstructorType(def, typeArgs)
         requireNotNull(def.typeParams)
         require(def.typeParams.size == typeArgs.size)
-        val substitution = makeSubstitution(def.typeParams, typeArgs)
-        // this is only called from top level of the module so it is guaranteed that the types already lowered
-        val fieldTypes = def.fields.mapValues { it.value.applySubstitution(substitution) }
+        require(def.fields.size == constructorType.from.size)
+        val fieldTypes = def.fields.entries.zip(constructorType.from) { field, type ->
+            field.key to type
+        }.toMap()
         module.addStructDef(
             constructorType = constructorType,
             name = name,
@@ -301,22 +302,27 @@ class SpecializeGenerics(
         )
     }
 
-    private fun getSpecializedStructConstructorType(
+    private fun getSpecializedStructInstanceType(
         def: IRStructDef,
         typeArgs: List<Type>
-    ): Pair<IRGlobalName, Type.Function> {
+    ): Pair<IRGlobalName, Type.Constructor> {
         requireNotNull(def.typeParams)
         val loweredArgs = typeArgs.map { lowerType(it) }
         val name = specializationName(def.globalName, loweredArgs)
         require(def.typeParams.size == typeArgs.size)
+        return name to Type.Constructor(binder = null, name = name.name, params = null)
+    }
+
+    private fun getSpecializedStructConstructorType(def: IRStructDef, typeArgs: List<Type>): Pair<IRGlobalName, Type.Function> {
+        val (name, instanceType) = getSpecializedStructInstanceType(def, typeArgs)
+        requireNotNull(def.typeParams)
         val substitution = makeSubstitution(def.typeParams, typeArgs)
         val fieldTypes = def.fields.mapValues { lowerType(it.value.applySubstitution(substitution)) }
-        val instanceType = Type.Constructor(binder = null, name = name.name, params = null)
         return name to Type.Function(
-            typeParams = null,
-            from = fieldTypes.map { it.value }.toList(),
-            to = instanceType,
-            receiver = null
+                typeParams = null,
+                from = fieldTypes.map { it.value }.toList(),
+                to = instanceType,
+                receiver = null
         )
     }
 
@@ -472,8 +478,7 @@ class SpecializeGenerics(
                     require(binding is IRBinding.StructDef) {
                         "Binding $binding does not define a generic type"
                     }
-                    val constructorType = enqueueStructSpecialization(binding.def, typeArgs).second
-                    constructorType.to
+                    enqueueStructSpecialization(binding.def, typeArgs).second
                 }
             }
             is Type.ParamRef -> {
