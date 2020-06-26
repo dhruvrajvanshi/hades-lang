@@ -17,7 +17,7 @@ implement J.JsonEncodable for t {
             .add(b"definitionProvider", true)
             .add(b"textDocumentSync", J.create_object()
                 .add(b"openClose", true)
-                .add(b"change", J.create_number((100).to_double())));
+                .add(b"change", 2));
     }
 }
 
