@@ -66,7 +66,13 @@ class SpecializeGenerics(
         if (definition.typeParams != null) {
             return
         }
-        module.add(definition)
+        module.addStructDef(
+                constructorType = lowerType(definition.constructorType) as Type.Function,
+                name = definition.globalName,
+                typeParams = null,
+                instanceType = lowerType(definition.instanceType),
+                fields = definition.fields.mapValues { lowerType(it.value) }
+        )
     }
 
     private fun visitFunctionDef(definition: IRFunctionDef) {
@@ -291,7 +297,7 @@ class SpecializeGenerics(
         require(def.typeParams.size == typeArgs.size)
         require(def.fields.size == constructorType.from.size)
         val fieldTypes = def.fields.entries.zip(constructorType.from) { field, type ->
-            field.key to type
+            field.key to lowerType(type)
         }.toMap()
         module.addStructDef(
             constructorType = constructorType,
@@ -316,8 +322,11 @@ class SpecializeGenerics(
     private fun getSpecializedStructConstructorType(def: IRStructDef, typeArgs: List<Type>): Pair<IRGlobalName, Type.Function> {
         val (name, instanceType) = getSpecializedStructInstanceType(def, typeArgs)
         requireNotNull(def.typeParams)
-        val substitution = makeSubstitution(def.typeParams, typeArgs)
+        val substitution = makeSubstitution(def.typeParams, typeArgs.map { lowerType(it) })
         val fieldTypes = def.fields.mapValues { lowerType(it.value.applySubstitution(substitution)) }
+        for (fieldType in fieldTypes) {
+            require(fieldType.value !is Type.Application)
+        }
         return name to Type.Function(
                 typeParams = null,
                 from = fieldTypes.map { it.value }.toList(),
