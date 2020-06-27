@@ -24,7 +24,6 @@ def create(): t {
 }
 
 def free(this: t): Void {
-    (*this.m_ctx.m_uri_to_source_text).free();
     Memory.free(this.m_ctx);
 }
 
