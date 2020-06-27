@@ -1340,6 +1340,12 @@ class Checker(
             }
 
         }
+        expression is Expression.If -> {
+            checkExpression(Type.Bool, expression.condition)
+            checkExpression(expected, expression.trueBranch)
+            checkExpression(expected, expression.falseBranch)
+            expressionTypes[expression] = expected
+        }
         else -> {
             val exprType = inferExpression(expression, null)
             checkAssignability(expression.location, destination = expected, source = exprType)
