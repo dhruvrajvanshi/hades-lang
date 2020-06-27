@@ -1,3 +1,4 @@
+import lib.assert as Assert;
 
 def cast[T, U](value: T): U {
     val copy = value;

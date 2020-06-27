@@ -1,11 +1,14 @@
 import libc as c;
 import hades.memory as Memory;
 import lib.uri as URI;
+import hdc.source_text as SourceText;
+import libcollection.list_map as ListMap;
+import lib.error as err;
 
 const puts = c.puts;
 
 struct ContextImpl {
-    val dummy: Size;
+    val m_uri_to_source_text: ListMap.t[URI.t, SourceText.t];
 }
 
 struct t {
@@ -13,17 +16,18 @@ struct t {
 }
 
 def new_from_args(argc: Size, argv: **Byte): t {
-    return t(new ContextImpl(0));
+    return t(new ContextImpl(ListMap.empty()));
 }
 
 def create(): t {
-    return t(new ContextImpl(0));
+    return t(new ContextImpl(ListMap.empty()));
 }
 
 def free(this: t): Void {
+    (*this.m_ctx.m_uri_to_source_text).free();
     Memory.free(this.m_ctx);
 }
 
 def set_source_text(this: t, uri: URI.t, text: *Byte): Void {
-
+    val source_text = SourceText.from_c_string(text); defer source_text.free();
 }

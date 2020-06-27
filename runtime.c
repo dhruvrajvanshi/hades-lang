@@ -51,3 +51,7 @@ double hds_int_to_double(int value) {
 double hds_size_to_double(size_t value) {
     return (double) value;
 }
+
+size_t hds_double_to_size(double value) {
+    return (size_t) value;
+}

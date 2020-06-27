@@ -48,6 +48,10 @@ def _buffer(this: t): *Byte {
     return this.m_buffer;
 }
 
+def as_c_string(this: t): *Byte {
+    return this.m_buffer;
+}
+
 def equals(this: t, that: t): Bool {
     val lengths_not_match = this.length() != that.length();
     if lengths_not_match {
@@ -98,8 +102,8 @@ def parse_size(this: t, base: CInt): Size {
 }
 
 def drop_first(this: t, count: Size): t {
-    assert(this.length() >= count);
-    assert(count >= 0);
+    assert(this.length() >= count, b"string_slice.drop_first");
+    assert(count >= 0, b"string_slice.drop_first");
     return t(this.length() - count, this.as_c_str().offset(count));
 }
 

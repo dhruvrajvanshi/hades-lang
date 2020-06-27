@@ -1,0 +1,61 @@
+import lib.panic as Panic;
+import lib.error as err;
+const panic = Panic.panic;
+
+struct Node[T] {
+    val mut m_next: *mut Node[T];
+    val m_data: T;
+}
+
+struct ListImpl[T] {
+    val mut m_head: *mut Node[T];
+    val mut m_tail: *mut Node[T];
+    val mut m_length: Size;
+}
+
+struct t[T] {
+    val m_ptr: *mut ListImpl[T];
+}
+
+def empty[T](): t[T] {
+    return t(new ListImpl[T](nullptr, nullptr, 0));
+}
+
+def length[T](this: t[T]): Size {
+    return *this.m_ptr.m_length;
+}
+
+
+def append[T](this: t[T], item: T): Void {
+    val _this = *this.m_ptr;
+    if this.length() == 0 {
+
+        val new_length: Size = 1;
+        _this.m_length = new_length;
+        _this.m_head = new Node(nullptr, item);
+        _this.m_tail = _this.m_head;
+    } else {
+        val new_node = new Node(nullptr, item);
+        _this.m_length = _this.m_length + 1;
+        val old_tail = _this.m_tail;
+        _this.m_tail = new_node;
+        *old_tail.m_next = new_node;
+    }
+    *this.m_ptr = _this;
+}
+
+def err_print[T: err.Printable](this: t[T]): Void {
+
+    val _this = *this.m_ptr;
+    err.print(b"[ ");
+    val mut current = _this.m_head;
+
+    while current != nullptr {
+        err.print(*current.m_data);
+        err.print(b",\n");
+        current = *current.m_next;
+    }
+
+    err.println(b" ]");
+}
+

@@ -13,7 +13,7 @@ def file(this: Stream): *c.File {
 }
 
 def read(this: Stream, buffer: Slice.t[Byte], max_number_of_bytes: Size): Size {
-    assert(max_number_of_bytes <= buffer.size());
+    assert(max_number_of_bytes <= buffer.size(), b"io.read");
     return c.fread(pointer_cast[Void](buffer.buffer()), 1, max_number_of_bytes, this.m_file);
 }
 

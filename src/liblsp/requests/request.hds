@@ -7,9 +7,9 @@ import lib.assert as Assert;
 import liblsp.json_extensions as json_extensions;
 import lib.cast as Cast;
 import liblsp.requests.text_document.did_open as TextDocumentDidOpen;
-const assert = Assert.assert_with_message;
+const assert = Assert.assert;
 
-type Params = union[Bool, Initialize.t];
+type Params = union[Bool, Initialize.t, TextDocumentDidOpen.t];
 
 const METHOD_INITIALIZE = b"initialize";
 const METHOD_TEXT_DOCUMENT_DID_OPEN = b"textDocument/didOpen";
@@ -81,10 +81,19 @@ implement err.Printable for t {
         b"  method: ".print(file);
         this.m_method.print(file);
         b",\n".print(file);
+
+        b"  tag: ".print(file);
+        this.m_tag.print(file);
+        b",\n".print(file);
+
         b"  params: ".print(file);
 
         if this.m_tag == TAG_INITIALIZE {
             val params = this.params[Initialize.t]();
+            params.print(file);
+        }
+        if this.m_tag == TAG_TEXT_DOCUMENT_DID_OPEN {
+            val params = this.params[TextDocumentDidOpen.t]();
             params.print(file);
         }
 

@@ -1,0 +1,5 @@
+
+struct t[First, Second] {
+    val m_first: First;
+    val m_second: Second;
+}

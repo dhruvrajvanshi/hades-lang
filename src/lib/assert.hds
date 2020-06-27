@@ -1,13 +1,7 @@
 import lib.panic as Panic;
 const panic = Panic.panic;
 
-def assert(condition: Bool): Void {
-    if not condition {
-        panic(b"Assertion failed");
-    }
-}
-
-def assert_with_message(condition: Bool, message: *Byte): Void {
+def assert(condition: Bool, message: *Byte): Void {
     if not condition {
         panic(message);
     }

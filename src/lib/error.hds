@@ -5,6 +5,11 @@ interface Printable {
     def print(this: This, file: *c.File): Void;
 }
 
+implement Printable for StringSlice.t {
+    def print(this: StringSlice.t, file: *c.File): Void {
+        this.as_c_string().print(file);
+    }
+}
 implement Printable for *Byte {
     def print(this: *Byte, file: *c.File): Void {
         c.fprintf(file, b"%s", this);
@@ -30,6 +35,10 @@ implement Printable for Double {
 
 def print[T: Printable](value: T): Void {
     value.print(stderr());
+}
+
+def print_pointer[T](ptr: *T): Void {
+    dump_void_ptr(stderr(), pointer_cast[Void](ptr));
 }
 
 def println[T: Printable](value: T): Void {
