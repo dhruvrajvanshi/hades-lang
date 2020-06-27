@@ -993,15 +993,59 @@ class Checker(
         return null
     }
 
+    private fun doesTypeSatisfyBound(type: Type, bound: InterfaceRef, atNode: HasLocation): Boolean {
+        val impls = getImplementationBindingsForType(type, atNode)
+        val boundInterfaceDecl = ctx.resolver.resolveDeclaration(bound.path)
+        return impls.any { impl ->
+            val implInterfaceDecl = ctx.resolver.resolveDeclaration(impl.interfaceRef.path)
+            if (boundInterfaceDecl is Declaration.Interface && implInterfaceDecl is Declaration.Interface) {
+                require(boundInterfaceDecl.typeParams == null) {
+                    TODO()
+                }
+                boundInterfaceDecl === implInterfaceDecl
+            } else {
+                false
+            }
+        }
+    }
+
     private fun getImplementationBindingsForType(lhsType: Type, atNode: HasLocation): Collection<ImplementationBinding> = sequence {
         for (implementation in ctx.resolver.implementationsInScope(atNode)) {
             val interfaceDecl = ctx.resolver.resolveDeclaration(implementation.interfaceRef.path)
             if (interfaceDecl !is Declaration.Interface) {
                 continue
             }
-            val forType = inferAnnotation(implementation.forType)
+
+            val subst = implementation.typeParams
+                    ?.map {
+                        it.binder.location to makeGenericInstance(it.binder)
+                    }
+                    ?.toMap()
+                    ?: emptyMap()
+            val forType = if (implementation.typeParams == null) {
+                inferAnnotation(implementation.forType)
+            } else {
+
+                inferAnnotation(implementation.forType).applySubstitution(subst)
+            }
             if (isAssignableTo(source = lhsType, destination = forType)) {
-                yield(ImplementationBinding.GlobalImpl(implementation))
+                if (implementation.typeParams == null) {
+                    yield(ImplementationBinding.GlobalImpl(implementation))
+                } else {
+                    val typeParamBoundsSatisfied = { it: TypeParam ->
+                        val instance = subst[it.location]
+
+                        it.bound == null
+                            || instance != null && doesTypeSatisfyBound(
+                                applyInstantiations(instance),
+                                it.bound,
+                                atNode
+                            )
+                    }
+                    if (implementation.typeParams.all(typeParamBoundsSatisfied))  {
+                        yield(ImplementationBinding.GlobalImpl(implementation))
+                    }
+                }
             }
         }
         if (lhsType is Type.ParamRef) {
@@ -1009,13 +1053,22 @@ class Checker(
             require(typeBinding is TypeBinding.TypeParam)
             val bound = typeBinding.bound
             if (bound != null) {
-                val functionDef = requireNotNull(ctx.resolver.getEnclosingFunction(lhsType.name))
-                val typeParamIndex = functionDef.typeParams?.indexOfFirst {
-                    it.binder.location == lhsType.name.location
-                }
-                require(typeParamIndex != null && typeParamIndex > -1)
+                val functionDef = ctx.resolver.getEnclosingFunction(lhsType.name)
+                if (functionDef != null) {
+                    val typeParamIndex = functionDef.typeParams?.indexOfFirst {
+                        it.binder.location == lhsType.name.location
+                    }
+                    require(typeParamIndex != null && typeParamIndex > -1)
 
-                yield(ImplementationBinding.TypeBound(bound, functionDef, typeParamIndex))
+                    yield(ImplementationBinding.TypeBound(bound, functionDef, typeParamIndex))
+                } else {
+                    val implDef = requireNotNull(ctx.resolver.getEnclosingImplementationDef(lhsType.name))
+                    val typeParamIndex = implDef.typeParams?.indexOfFirst {
+                        it.binder.location == lhsType.name.location
+                    }
+                    require(typeParamIndex != null && typeParamIndex > -1)
+                    yield(ImplementationBinding.ImplParamTypeBound(bound, implDef, typeParamIndex))
+                }
             }
 
         }
@@ -1073,7 +1126,7 @@ class Checker(
             if (typeParams != null) {
                 val substitution = mutableMapOf<SourceLocation, Type.GenericInstance>()
                 typeParams.forEach {
-                    substitution[it.binder.location] = makeGenericInstance(it.binder, expression.location)
+                    substitution[it.binder.location] = makeGenericInstance(it.binder)
                 }
                 val functionType = typeOfBinder(def.name)
 
@@ -1089,9 +1142,9 @@ class Checker(
     }
 
 
-    private fun makeGenericInstance(binder: Binder, callLocation: SourceLocation): Type.GenericInstance {
+    private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
         _nextGenericInstance++
-        return Type.GenericInstance(binder, _nextGenericInstance, callLocation)
+        return Type.GenericInstance(binder, _nextGenericInstance)
     }
 
     private fun inferCall(expression: Expression.Call, expectedReturnType: Type?): Type {
@@ -1129,7 +1182,7 @@ class Checker(
         if (functionType is Type.Function) {
             val substitution = mutableMapOf<SourceLocation, Type>()
             functionType.typeParams?.forEach {
-                substitution[it.binder.location] = makeGenericInstance(it.binder, expressionLocation)
+                substitution[it.binder.location] = makeGenericInstance(it.binder)
             }
             if (functionType.typeParams != null && typeArgs != null) {
                 functionType.typeParams.zip(typeArgs).forEach { (typeParam, typeArg) ->

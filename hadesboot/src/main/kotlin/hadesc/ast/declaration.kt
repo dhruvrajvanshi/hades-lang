@@ -70,10 +70,11 @@ sealed class Declaration : HasLocation {
     }
 
     data class Implementation(
-        override val location: SourceLocation,
-        val interfaceRef: InterfaceRef,
-        val forType: TypeAnnotation,
-        val members: List<Member>
+            override val location: SourceLocation,
+            val typeParams: List<TypeParam>?,
+            val interfaceRef: InterfaceRef,
+            val forType: TypeAnnotation,
+            val members: List<Member>
     ) : Declaration() {
         sealed class Member {
             data class FunctionDef(val functionDef: Declaration.FunctionDef): Member()

@@ -49,8 +49,7 @@ sealed class Type {
 
     data class GenericInstance(
         val name: Binder,
-        val id: Long,
-        val callLocation: SourceLocation
+        val id: Long
     ) : Type()
 
     data class Application(val callee: Constructor, val args: List<Type>) : Type()

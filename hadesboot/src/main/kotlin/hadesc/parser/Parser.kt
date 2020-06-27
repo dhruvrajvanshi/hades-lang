@@ -125,6 +125,7 @@ class Parser(
 
     private fun parseImplementationDeclaration(): Declaration {
         val start = expect(tt.IMPLEMENT)
+        val params = parseOptionalTypeParams()
         val interfaceRef = parseInterfaceRef()
         expect(tt.FOR)
         val forType = parseTypeAnnotation()
@@ -138,6 +139,7 @@ class Parser(
         return Declaration.Implementation(
                 makeLocation(start, stop),
                 interfaceRef = interfaceRef,
+                typeParams = params,
                 forType = forType,
                 members = members
         )

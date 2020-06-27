@@ -261,10 +261,25 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerImplementation(declaration: Declaration.Implementation) {
+        require(declaration.typeParams == null)
         val type = implType(declaration)
         val name = implName(declaration)
         val interfaceDecl = resolveInterfaceDecl(declaration.interfaceRef)
-        val values = buildList {
+        val values = lowerImplMembers(name, declaration, interfaceDecl)
+        val initializer = IRAggregate(
+                type = type,
+                location = declaration.location,
+                values = values
+        )
+        module.addConstDef(
+                name,
+                type,
+                initializer = initializer
+        )
+    }
+
+    private fun lowerImplMembers(implName: IRGlobalName, declaration: Declaration.Implementation, interfaceDecl: Declaration.Interface): List<IRValue> {
+        return buildList {
             for (member in interfaceDecl.members) {
                 require(member is Declaration.Interface.Member.FunctionSignature)
                 val implFuncDef = declaration.members.find {
@@ -277,7 +292,7 @@ internal class ProgramVisitor(private val ctx: Context) {
                     "${declaration.location}: Member not found in impl ${member.signature.name.identifier.name.text}"
                 }
                 require(implFuncDef is Declaration.Implementation.Member.FunctionDef)
-                val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = name.name)
+                val functionDef = lowerGlobalFunctionDef(implFuncDef.functionDef, prefix = implName.name)
 //                require(functionDef.signature.name.name === implMemberFunctionName(interfaceDecl, member).name)
                 add(builder.buildVariable(
                         ty = Type.Ptr(functionDef.type, isMutable = false),
@@ -287,16 +302,6 @@ internal class ProgramVisitor(private val ctx: Context) {
                 ))
             }
         }
-        val initializer = IRAggregate(
-                type = type,
-                location = declaration.location,
-                values = values
-        )
-        module.addConstDef(
-                name,
-                type,
-                initializer = initializer
-        )
     }
 
     private fun implMemberFunctionName(interfaceDecl: Declaration.Interface, member: Declaration.Interface.Member.FunctionSignature): IRGlobalName {
@@ -1069,6 +1074,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             is ImplementationBinding.GlobalImpl -> {
                 getImplAsValue(location, implementationBinding.implDef)
             }
+            is ImplementationBinding.ImplParamTypeBound -> TODO()
         }
     }
 

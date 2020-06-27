@@ -17,4 +17,10 @@ sealed class ImplementationBinding {
         val functionDef: Declaration.FunctionDef,
         val typeParamIndex: Int
     ) : ImplementationBinding()
+
+    data class ImplParamTypeBound(
+            override val interfaceRef: InterfaceRef,
+            val implDef: Declaration.Implementation,
+            val typeParamIndex: Int
+    ) : ImplementationBinding()
 }

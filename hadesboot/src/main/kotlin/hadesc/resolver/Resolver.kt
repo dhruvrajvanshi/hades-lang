@@ -93,6 +93,12 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
         }
+        is ScopeNode.Implementation -> {
+            val param = scopeNode.declaration.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }
+            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -132,6 +138,7 @@ class Resolver(private val ctx: Context) {
         is ScopeNode.Enum -> null
         is ScopeNode.MatchArm -> findInMatchArm(ident, scope)
         is ScopeNode.TypeAlias -> null
+        is ScopeNode.Implementation -> null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeNode.MatchArm): Binding? {
@@ -290,6 +297,7 @@ class Resolver(private val ctx: Context) {
                 )
             }
             is Declaration.Implementation -> {
+                addScopeNode(declaration.location.file, ScopeNode.Implementation(declaration))
                 for (member in declaration.members) {
                     exhaustive(when (member) {
                         is Declaration.Implementation.Member.FunctionDef -> {
@@ -399,6 +407,7 @@ class Resolver(private val ctx: Context) {
                 is ScopeNode.Enum -> null
                 is ScopeNode.MatchArm -> null
                 is ScopeNode.TypeAlias -> null
+                is ScopeNode.Implementation -> null
             }
             if (binding != null) {
                 return binding
@@ -609,6 +618,15 @@ class Resolver(private val ctx: Context) {
     fun getEnclosingInterfaceDecl(node: HasLocation): Declaration.Interface? {
         for (scopeNode in getScopeStack(node)) {
             if (scopeNode is ScopeNode.Interface) {
+                return scopeNode.declaration
+            }
+        }
+        return null
+    }
+
+    fun getEnclosingImplementationDef(node: HasLocation): Declaration.Implementation? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeNode.Implementation) {
                 return scopeNode.declaration
             }
         }

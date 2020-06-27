@@ -18,6 +18,7 @@ sealed class ScopeNode {
     data class Enum(val declaration: Declaration.Enum) : ScopeNode()
     data class MatchArm(val arm: Expression.Match.Arm) : ScopeNode()
     data class Interface(val declaration: Declaration.Interface) : ScopeNode()
+    data class Implementation(val declaration: Declaration.Implementation) : ScopeNode()
     data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeNode()
 
     val location
@@ -30,5 +31,6 @@ sealed class ScopeNode {
             is Enum -> declaration.location
             is MatchArm -> arm.location
             is TypeAlias -> declaration.location
+            is Implementation -> declaration.location
         }
 }
