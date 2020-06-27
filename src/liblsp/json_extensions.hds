@@ -7,7 +7,7 @@ import hades.memory as Memory;
 import hades.primitives.size as size;
 import hades.primitives.int as int;
 import lib.cast as Cast;
-const assert = Assert.assert_with_message;
+const assert = Assert.assert;
 
 def get(this: *cj.t, key: *Byte): *cj.t {
     assert(this.is_object(), b"json_extensions::get: Expected an object");
@@ -31,9 +31,11 @@ def to_string_slice(this: *cj.t): StringSlice.t {
     return this.as_c_string().to_string_slice();
 }
 
+extern def hds_double_to_size(Double): Size = hds_double_to_size;
+
 def as_size(this: *cj.t): Size {
     assert(this.is_number(), b"json_extensions::expected a number");
-    return Cast.cast(c.floor(this.as_double()));
+    return hds_double_to_size(this.as_double());
 }
 
 def as_double(this: *cj.t): Double {
@@ -99,6 +101,12 @@ implement JsonEncodable for *mut cj.t {
 implement JsonEncodable for *Byte {
     def encode_json(this: *Byte): *mut cj.t {
         return create_string(this);
+    }
+}
+
+implement JsonEncodable for StringSlice.t {
+    def encode_json(this: StringSlice.t): *mut cj.t {
+        return this.as_c_string().encode_json();
     }
 }
 

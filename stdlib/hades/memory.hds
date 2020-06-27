@@ -24,3 +24,12 @@ def offset[T](this: *T, index: Size): *T {
 def offset_mut[T](this: *mut T, index: Size): *mut T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](this), index * size_of[T]));
 }
+
+def copy[T](destination: *mut T, source: *T, count: Size): Void {
+    libc.memcpy(pointer_cast[Void](destination), pointer_cast[Void](source), count * size_of[T]);
+}
+
+def allocate[T](count: Size): *mut T {
+    return pointer_cast[T](libc.malloc(count * size_of[T]));
+}
+

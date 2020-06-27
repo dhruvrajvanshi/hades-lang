@@ -1,6 +1,8 @@
 import lib.uri as URI;
 import liblsp.json_extensions as J;
 import cjson as cjson;
+import lib.error as err;
+import libc as c;
 
 struct t {
     val m_uri: URI.t;
@@ -16,6 +18,10 @@ def text(this: t): *Byte {
     return this.m_text;
 }
 
+def version(this: t): Size {
+    return this.m_version;
+}
+
 def from_json(json: *cjson.t): t {
     val document = json.get(b"textDocument");
     return t(
@@ -23,4 +29,21 @@ def from_json(json: *cjson.t): t {
         document.get(b"text").as_c_string(),
         document.get(b"version").as_size()
     );
+}
+
+implement J.JsonEncodable for t {
+    def encode_json(this: t): *mut cjson.t {
+        return J.create_object()
+            .add(b"uri", this.uri().as_string_slice())
+            .add(b"version", this.version())
+            .add(b"text", this.text());
+
+    }
+
+}
+
+implement err.Printable for t {
+    def print(this: t, file: *c.File): Void {
+        this.encode_json().print(file);
+    }
 }

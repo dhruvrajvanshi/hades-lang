@@ -6,6 +6,7 @@ import libc as c;
 import lib.io as IO;
 import lib.slice as Slice;
 import lib.string_slice as StringSlice;
+import lib.error as err;
 
 import liblsp.requests.request as LSPRequest;
 import liblsp.requests.initialize as LSPInitialize;

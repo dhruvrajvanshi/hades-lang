@@ -14,7 +14,7 @@ void dump_double(FILE* file, double value) {
 }
 
 void dump_void_ptr(FILE* file, void* ptr) {
-    fprintf(file, "%x\n",  ptr);
+    fprintf(file, "%x\n",  (long)ptr);
 }
 
 void fdump_char(FILE* file, char c) {
