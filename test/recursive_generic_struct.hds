@@ -1,0 +1,15 @@
+import libc as c;
+
+struct Node[T] {
+    val m_data: T;
+    val m_next: *mut Node[T];
+}
+
+struct List[T] {
+    val m_head: *mut Node[T];
+}
+
+def main(): Void {
+    val l = List(new Node(b"hello", nullptr));
+    c.puts(*l.m_head.m_data);
+}
