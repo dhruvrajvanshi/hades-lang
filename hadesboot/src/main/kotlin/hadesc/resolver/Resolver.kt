@@ -587,24 +587,27 @@ class Resolver(private val ctx: Context) {
     }
 
     fun implementationsInScope(node: HasLocation) = sequence<Declaration.Implementation> {
+        val visitedSourceFiles = mutableSetOf<SourcePath>()
+        fun implementationsInSourceFile(
+                sourceFile: SourceFile
+        ): Sequence<Declaration.Implementation> = sequence {
+            if (!visitedSourceFiles.contains(sourceFile.location.file)) {
+                visitedSourceFiles.add(sourceFile.location.file)
+                for (declaration in sourceFile.declarations) {
+                    if (declaration is Declaration.Implementation) {
+                        yield(declaration as Declaration.Implementation)
+                    }
+                }
+            }
+        }
         val sourceFile = sourceFileOf(node)
         val importedFiles = directlyImportedSourceFiles(sourceFile)
         yieldAll(implementationsInSourceFile(sourceFile))
         for (importedFile in importedFiles) {
             yieldAll(implementationsInSourceFile(importedFile))
         }
-    }
 
-    private fun implementationsInSourceFile(
-        sourceFile: SourceFile
-    ): Sequence<Declaration.Implementation> = sequence {
-        for (declaration in sourceFile.declarations) {
-            if (declaration is Declaration.Implementation) {
-                yield(declaration as Declaration.Implementation)
-            }
-        }
     }
-
 
     fun getEnclosingFunction(node: HasLocation): Declaration.FunctionDef? {
         for (scopeNode in getScopeStack(node)) {

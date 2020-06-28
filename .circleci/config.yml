@@ -22,7 +22,6 @@ jobs:
       TERM: dumb
 
     steps:
-      - run: java -version
       - checkout
       # Download and cache dependencies
       - restore_cache:
@@ -45,5 +44,6 @@ jobs:
       - store_test_results:
           path: ./hadesboot/build/test-results
 
+      - run: ./build.sh
       - store_artifacts:
           path: ./hadesboot/build/tests/test
