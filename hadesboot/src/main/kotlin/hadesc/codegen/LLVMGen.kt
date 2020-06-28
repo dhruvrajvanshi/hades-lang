@@ -564,14 +564,14 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
 
         val pass = LLVM.LLVMCreatePassManager()
-//        LLVM.LLVMAddConstantPropagationPass(pass)
-//        LLVM.LLVMAddFunctionInliningPass(pass)
-//        LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
-//        LLVM.LLVMAddAggressiveDCEPass(pass)
-//        LLVM.LLVMAddFunctionInliningPass(pass)
-//        LLVM.LLVMAddGlobalDCEPass(pass)
-//        LLVM.LLVMAddGlobalOptimizerPass(pass)
-//        LLVM.LLVMRunPassManager(pass, llvmModule.ref)
+        LLVM.LLVMAddConstantPropagationPass(pass)
+        LLVM.LLVMAddFunctionInliningPass(pass)
+        LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
+        LLVM.LLVMAddAggressiveDCEPass(pass)
+        LLVM.LLVMAddFunctionInliningPass(pass)
+        LLVM.LLVMAddGlobalDCEPass(pass)
+        LLVM.LLVMAddGlobalOptimizerPass(pass)
+        LLVM.LLVMRunPassManager(pass, llvmModule.ref)
 
         LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
 
