@@ -16,9 +16,6 @@ sealed class HIRDefinition: HasLocation {
             val returnType: Type,
             val body: HIRBlock
     ): HIRDefinition() {
-        init {
-            require(typeParams == null) { TODO() }
-        }
         val type get() = Type.Function(
                 receiver = null,
                 from = params.map { it.type },

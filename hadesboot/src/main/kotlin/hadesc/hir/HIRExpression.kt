@@ -56,4 +56,11 @@ sealed class HIRExpression: HasLocation {
             override val location: SourceLocation,
             override val type: Type
     ) : HIRExpression()
+
+    data class MethodRef(
+            override val location: SourceLocation,
+            override val type: Type,
+            val thisValue: HIRExpression,
+            val propertyBinding: HIRPropertyBinding
+    ) : HIRExpression()
 }

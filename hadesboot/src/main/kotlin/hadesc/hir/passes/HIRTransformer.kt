@@ -1,9 +1,11 @@
 package hadesc.hir.passes
 
 import hadesc.Name
+import hadesc.checker.PropertyBinding
 import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
+import java.beans.Expression
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(module: HIRModule): HIRModule {
@@ -93,6 +95,36 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.ValRef -> transformValRef(expression)
         is HIRExpression.GetStructField -> transformGetStructField(expression)
         is HIRExpression.ThisRef -> transformThisRef(expression)
+        is HIRExpression.MethodRef -> transformMethodRef(expression)
+    }
+
+    fun transformMethodRef(expression: HIRExpression.MethodRef): HIRExpression {
+        return HIRExpression.MethodRef(
+                expression.location,
+                lowerType(expression.type),
+                transformExpression(expression.thisValue),
+                transformPropertyBinding(expression.propertyBinding)
+        )
+    }
+
+    fun transformPropertyBinding(binding: HIRPropertyBinding): HIRPropertyBinding = when(binding) {
+        is HIRPropertyBinding.GlobalExtensionRef -> transformGlobalExtensionRef(binding)
+        is HIRPropertyBinding.ImplementationMethodRef -> transformImplementationMethodRef(binding)
+    }
+
+    fun transformImplementationMethodRef(binding: HIRPropertyBinding.ImplementationMethodRef): HIRPropertyBinding {
+        return HIRPropertyBinding.ImplementationMethodRef(
+                binding.location,
+                implName = transformGlobalName(binding.implName),
+                interfaceMemberIndex = binding.interfaceMemberIndex
+        )
+    }
+
+    fun transformGlobalExtensionRef(binding: HIRPropertyBinding.GlobalExtensionRef): HIRPropertyBinding {
+        return HIRPropertyBinding.GlobalExtensionRef(
+                location = binding.location,
+                functionName = binding.functionName
+        )
     }
 
     fun transformThisRef(expression: HIRExpression.ThisRef): HIRExpression {
@@ -150,10 +182,11 @@ interface HIRTransformer: TypeTransformer {
     fun transformConstant(expression: HIRExpression.Constant): HIRExpression = when(expression.constant) {
         is HIRConstant.ByteString -> expression
         is HIRConstant.BoolValue -> expression
+        is HIRConstant.IntValue -> expression
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {
-        return HIRTypeParam(param.name)
+        return HIRTypeParam(param.location, param.name)
     }
 
     fun transformParam(param: HIRParam): HIRParam {

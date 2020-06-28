@@ -18,4 +18,10 @@ sealed class HIRConstant: HasLocation {
             override val type: Type,
             val value: Boolean
     ) : HIRConstant()
+
+    data class IntValue(
+            override val location: SourceLocation,
+            override val type: Type,
+            val value: Int
+    ) : HIRConstant()
 }

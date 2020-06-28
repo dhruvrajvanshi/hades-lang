@@ -3,6 +3,7 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
+import hadesc.checker.ImplementationBinding
 import hadesc.checker.PropertyBinding
 import hadesc.context.Context
 import hadesc.qualifiedname.QualifiedName
@@ -157,7 +158,7 @@ class HIRGen(
         is Expression.BoolLiteral -> lowerBoolLiteral(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.NullPtr -> TODO()
-        is Expression.IntLiteral -> TODO()
+        is Expression.IntLiteral -> lowerIntLiteral(expression)
         is Expression.Not -> TODO()
         is Expression.BinaryOperation -> TODO()
         is Expression.SizeOf -> TODO()
@@ -169,6 +170,15 @@ class HIRGen(
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
+    }
+
+    private fun lowerIntLiteral(expression: Expression.IntLiteral): HIRExpression {
+        return HIRExpression.Constant(
+                HIRConstant.IntValue(
+                        expression.location,
+                        typeOfExpression(expression),
+                        expression.value)
+        )
     }
 
     private fun lowerThisExpression(expression: Expression.This): HIRExpression {
@@ -190,9 +200,63 @@ class HIRGen(
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> TODO()
-        is PropertyBinding.GlobalExtensionFunction -> TODO()
-        is PropertyBinding.InterfaceExtensionFunction -> TODO()
+        is PropertyBinding.GlobalExtensionFunction -> lowerGlobalExtensionRef(expression, binding)
+        is PropertyBinding.InterfaceExtensionFunction -> lowerInterfaceMethodRef(expression, binding)
         null -> requireUnreachable()
+    }
+
+    private fun lowerInterfaceMethodRef(
+            expression: Expression.Property,
+            binding: PropertyBinding.InterfaceExtensionFunction
+    ): HIRExpression = when (val interfaceBinding = binding.implementationBinding) {
+        is ImplementationBinding.GlobalImpl -> lowerGlobalImplRef(expression, binding, interfaceBinding)
+        is ImplementationBinding.TypeBound -> TODO()
+        is ImplementationBinding.ImplParamTypeBound -> TODO()
+    }
+
+    private fun lowerGlobalImplRef(
+            expression: Expression.Property,
+            propertyBinding: PropertyBinding.InterfaceExtensionFunction,
+            interfaceBinding: ImplementationBinding.GlobalImpl
+    ): HIRExpression {
+        return HIRExpression.MethodRef(
+                location = expression.location,
+                type = ctx.checker.typeOfExpression(expression),
+                thisValue = lowerExpression(expression.lhs),
+                propertyBinding = HIRPropertyBinding.ImplementationMethodRef(
+                        expression.location,
+                        implName = implName(interfaceBinding.implDef),
+                        interfaceMemberIndex = propertyBinding.memberIndex
+                )
+        )
+    }
+
+    private fun implName(implDef: Declaration.Implementation): QualifiedName {
+        val interfaceDef = ctx.resolver.resolveDeclaration(implDef.interfaceRef.path)
+        require(interfaceDef is Declaration.Interface)
+        val qualifiedInterfaceName = ctx.resolver.qualifiedInterfaceName(interfaceDef)
+        require(implDef.typeParams == null)
+        return QualifiedName(listOf(
+                ctx.makeName("impl"),
+                *qualifiedInterfaceName.names.toTypedArray(),
+                ctx.makeName("for"),
+                ctx.makeName(lowerTypeAnnotation(implDef.forType).prettyPrint())
+        ))
+    }
+
+    private fun lowerGlobalExtensionRef(
+            expression: Expression.Property,
+            binding: PropertyBinding.GlobalExtensionFunction
+    ): HIRExpression {
+        return HIRExpression.MethodRef(
+                location = expression.location,
+                type = typeOfExpression(expression),
+                thisValue = lowerExpression(expression.lhs),
+                propertyBinding = HIRPropertyBinding.GlobalExtensionRef(
+                        location = expression.lhs.location,
+                        functionName = lowerGlobalName(binding.def.name)
+                )
+        )
     }
 
     private fun lowerStructFieldBinding(
@@ -284,7 +348,7 @@ class HIRGen(
     }
 
     private fun lowerTypeParam(typeParam: TypeParam): HIRTypeParam {
-        TODO()
+        return HIRTypeParam(location = typeParam.location, name = typeParam.binder.identifier.name)
     }
 
     private fun lowerGlobalName(binder: Binder): QualifiedName {

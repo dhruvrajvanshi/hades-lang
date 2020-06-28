@@ -122,6 +122,7 @@ class IRGen(
         is HIRExpression.ValRef -> lowerValRef(expression)
         is HIRExpression.GetStructField -> lowerGetStructField(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
+        is HIRExpression.MethodRef -> requireUnreachable()
     }
 
     private fun lowerGetStructField(expression: HIRExpression.GetStructField): IRValue {
@@ -149,6 +150,7 @@ class IRGen(
     private fun lowerConstant(value: HIRConstant): IRValue = when(value) {
         is HIRConstant.ByteString -> builder.buildByteString(value.type, value.location, value.bytes)
         is HIRConstant.BoolValue -> builder.buildConstBool(value.type, value.location, value.value)
+        is HIRConstant.IntValue -> IRCIntConstant(value.type, value.location, value.value)
     }
 
     private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): IRValue {
@@ -206,6 +208,6 @@ class IRGen(
     }
 
     private fun lowerTypeParam(it: HIRTypeParam): IRTypeParam {
-        TODO()
+        requireUnreachable()
     }
 }
