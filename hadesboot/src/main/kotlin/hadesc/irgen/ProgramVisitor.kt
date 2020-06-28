@@ -655,7 +655,7 @@ internal class ProgramVisitor(private val ctx: Context) {
                     ofType = ctx.checker.annotationToType(expression.type))
             is Expression.AddressOf -> lowerAddressOf(expression)
             is Expression.AddressOfMut -> lowerAddressOfMut(expression)
-            is Expression.Load -> lowerLoad(expression)
+            is Expression.Deref -> lowerLoad(expression)
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
             is Expression.TypeApplication -> lowerTypeApplication(expression)
@@ -815,7 +815,7 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     }
 
-    private fun lowerLoad(expression: Expression.Load): IRValue {
+    private fun lowerLoad(expression: Expression.Deref): IRValue {
         val ptr = lowerExpression(expression.expression)
         val name = makeLocalName()
         val ty = typeOfExpression(expression.expression)

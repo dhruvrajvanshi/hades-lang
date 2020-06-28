@@ -626,7 +626,7 @@ class Checker(
                 checkLValue(expression.expression, mutable = true)
                 Type.Ptr(ty, isMutable = true)
             }
-            is Expression.Load -> {
+            is Expression.Deref -> {
                 val ty = inferExpression(expression.expression)
                 when (ty) {
                     is Type.Ptr -> {

@@ -431,7 +431,7 @@ class Parser(
             isStatementPredicted() -> Block.Member.Statement(parseStatement())
             else -> {
                 val expr = parseExpression()
-                if (expr is Expression.Load && at(Token.Kind.EQ)) {
+                if (expr is Expression.Deref && at(Token.Kind.EQ)) {
                     advance()
                     val rhs = parseExpression()
                     expect(tt.SEMICOLON)
@@ -682,7 +682,7 @@ class Parser(
                 // should be parsed as (*(x.y)) + z
                 // that's why this is parsePrimaryExpression() not parseExpression()
                 val expression = parsePrimaryExpression()
-                Expression.Load(makeLocation(start, expression), expression)
+                Expression.Deref(makeLocation(start, expression), expression)
             }
             tt.POINTER_CAST -> {
                 val start = advance()

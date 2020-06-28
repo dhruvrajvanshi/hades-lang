@@ -77,7 +77,7 @@ sealed class Expression : HasLocation {
         val expression: Expression
     ) : Expression()
 
-    data class Load(
+    data class Deref(
         override val location: SourceLocation,
         val expression: Expression
     ) : Expression()

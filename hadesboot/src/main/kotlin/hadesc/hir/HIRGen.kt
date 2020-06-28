@@ -174,7 +174,7 @@ class HIRGen(
         is Expression.SizeOf -> TODO()
         is Expression.AddressOf -> TODO()
         is Expression.AddressOfMut -> TODO()
-        is Expression.Load -> TODO()
+        is Expression.Deref -> TODO()
         is Expression.PointerCast -> TODO()
         is Expression.If -> TODO()
         is Expression.TypeApplication -> TODO()
