@@ -5,12 +5,12 @@ import lib.error as err;
 import libc as c;
 
 struct t {
-    val m_uri: URI.t;
+    val m_uri: *Byte;
     val m_text: *Byte;
     val m_version: Size;
 }
 
-def uri(this: t): URI.t {
+def uri(this: t): *Byte {
     return this.m_uri;
 }
 
@@ -25,7 +25,7 @@ def version(this: t): Size {
 def from_json(json: *cjson.t): t {
     val document = json.get(b"textDocument");
     return t(
-        document.get(b"uri").as_c_string().as_uri(),
+        document.get(b"uri").as_c_string(),
         document.get(b"text").as_c_string(),
         document.get(b"version").as_size()
     );
@@ -34,7 +34,7 @@ def from_json(json: *cjson.t): t {
 implement J.JsonEncodable for t {
     def encode_json(this: t): *mut cjson.t {
         return J.create_object()
-            .add(b"uri", this.uri().as_string_slice())
+            .add(b"uri", this.uri())
             .add(b"version", this.version())
             .add(b"text", this.text());
 

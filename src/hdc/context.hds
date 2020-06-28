@@ -27,6 +27,6 @@ def free(this: t): Void {
     Memory.free(this.m_ctx);
 }
 
-def set_source_text(this: t, uri: URI.t, text: *Byte): Void {
+def set_source_text(this: t, uri: *Byte, text: *Byte): Void {
     val source_text = SourceText.from_c_string(text); defer source_text.free();
 }
