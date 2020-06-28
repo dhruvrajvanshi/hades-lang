@@ -635,6 +635,10 @@ class Resolver(private val ctx: Context) {
         }
         return null
     }
+
+    fun resolveGlobalName(binder: Binder): QualifiedName {
+        return sourceFileOf(binder).moduleName.append(binder.identifier.name)
+    }
 }
 
 @Contract(pure = true)

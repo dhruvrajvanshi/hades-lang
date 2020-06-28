@@ -8,6 +8,8 @@ import hadesc.ast.SourceFile
 import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
+import hadesc.hir.HIRGen
+import hadesc.hir.passes.ExtensionMethodElimination
 import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
 import hadesc.ir.passes.SpecializeGenerics
@@ -20,6 +22,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import java.nio.file.Path
 
+@OptIn(ExperimentalStdlibApi::class)
 class Context(
     val options: BuildOptions
 ) {
@@ -39,7 +42,10 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        var irModule = IRGen(this).generate()
+
+        var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
+        hirModule = ExtensionMethodElimination(this).transformModule(hirModule)
+        var irModule = IRGen(this).generate(hirModule)
 
         irModule = ExplicitConstraints(this, irModule).run()
         irModule = ExplicitThis(this, irModule).run()
@@ -107,10 +113,11 @@ class Context(
             }
         }
 
-        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
-            makeName("hades"),
-            makeName("memory")))))
         visitSourceFile(sourceFile(QualifiedName(), mainPath()))
+
+//        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
+//                makeName("hades"),
+//                makeName("memory")))))
         collectedFiles.values.forEach(action)
     }
 
