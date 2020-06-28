@@ -1,8 +1,8 @@
-import submodule.printable_interface as pi;
+import libc as c;
 
 def main(): Void {
-    val x = if (true) 1 else 2;
-    x.print();
-    val y = if (false) 1 else 2;
-    y.print();
+    val x = if (true) b"1" else b"2";
+    c.puts(x);
+    val y = if (false) b"1" else b"2";
+    c.puts(y);
 }

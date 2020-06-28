@@ -6,6 +6,7 @@ import hadesc.ast.*
 import hadesc.checker.ImplementationBinding
 import hadesc.checker.PropertyBinding
 import hadesc.context.Context
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -89,17 +90,24 @@ class HIRGen(
     }
 
     private var currentStatements: MutableList<HIRStatement>? = null
-    private fun lowerBlock(body: Block, addReturnVoid: Boolean = false): HIRBlock {
-        val oldStatements = currentStatements
-        val statements = mutableListOf<HIRStatement>()
+    private fun lowerBlock(body: Block, addReturnVoid: Boolean = false): HIRBlock = buildBlock(body.location) {
         for (member in body.members) {
-            statements.addAll(lowerBlockMember(member))
+            lowerBlockMember(member).forEach {
+                addStatement(it)
+            }
         }
         if (addReturnVoid) {
-            statements.add(HIRStatement.ReturnVoid(body.location))
+            addStatement(HIRStatement.ReturnVoid(body.location))
         }
+    }
+
+    private fun buildBlock(location: SourceLocation, f: () -> Unit): HIRBlock {
+        val oldStatements = currentStatements
+        val statements = mutableListOf<HIRStatement>()
+        currentStatements = statements
+        f()
         currentStatements = oldStatements
-        return HIRBlock(body.location, statements)
+        return HIRBlock(location, statements)
     }
 
     private fun addStatement(statement: HIRStatement) {
@@ -196,7 +204,34 @@ class HIRGen(
     }
 
     private fun lowerIfExpression(expression: Expression.If): HIRExpression {
-        TODO()
+        val name = ctx.makeUniqueName()
+        addStatement(HIRStatement.ValDeclaration(
+                expression.location,
+                name,
+                type = typeOfExpression(expression),
+                isMutable = false)
+        )
+        val trueBlock = buildBlock(expression.trueBranch.location) {
+            addStatement(HIRStatement.Assignment(
+                expression.location,
+                name,
+                lowerExpression(expression.trueBranch)
+            ))
+        }
+        val falseBlock = buildBlock(expression.falseBranch.location) {
+            addStatement(HIRStatement.Assignment(
+                expression.location,
+                name,
+                lowerExpression(expression.falseBranch)
+            ))
+        }
+        addStatement(HIRStatement.If(
+                expression.location,
+                lowerExpression(expression.condition),
+                trueBlock,
+                falseBlock
+        ))
+        return HIRExpression.ValRef(expression.location, typeOfExpression(expression), name)
     }
 
     private fun lowerNullPtr(expression: Expression.NullPtr): HIRExpression {
