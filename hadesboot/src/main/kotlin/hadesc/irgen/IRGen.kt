@@ -2,7 +2,6 @@ package hadesc.irgen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
-import hadesc.ast.Expression
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.ir.*
@@ -104,8 +103,19 @@ class IRGen(
         is HIRStatement.Expression -> lowerExpressionStatement(statement)
         is HIRStatement.ReturnVoid -> lowerReturnVoidStatement(statement)
         is HIRStatement.Return -> lowerReturnStatement(statement)
-        is HIRStatement.Val -> lowerValStatement(statement)
+        is HIRStatement.ValDeclaration -> lowerValStatement(statement)
         is HIRStatement.If -> lowerIfStatement(statement)
+        is HIRStatement.Assignment -> lowerAssignmentStatement(statement)
+    }
+
+    private fun lowerAssignmentStatement(statement: HIRStatement.Assignment) {
+        val ptrName = localValPtrName(statement.name)
+        val ptr = builder.buildVariable(
+                Type.Ptr(statement.value.type, isMutable = true),
+                statement.location,
+                ptrName
+        )
+        builder.buildStore(ptr = ptr, value = lowerExpression(statement.value))
     }
 
     private fun lowerIfStatement(statement: HIRStatement.If) {
@@ -182,11 +192,9 @@ class IRGen(
         return buildBlock()
     }
 
-    private fun lowerValStatement(statement: HIRStatement.Val) {
+    private fun lowerValStatement(statement: HIRStatement.ValDeclaration) {
         val ptrName = localValPtrName(statement.name)
         builder.buildAlloca(statement.type, ptrName)
-        val ptr = builder.buildVariable(Type.Ptr(statement.type, isMutable = true), statement.location, ptrName)
-        builder.buildStore(ptr = ptr, value = lowerExpression(statement.rhs))
     }
 
     private fun localValPtrName(name: Name): IRLocalName {
@@ -213,12 +221,17 @@ class IRGen(
         is HIRExpression.ValRef -> lowerValRef(expression)
         is HIRExpression.GetStructField -> lowerGetStructField(expression)
         is HIRExpression.Not -> lowerNotExpression(expression)
-        is HIRExpression.BinOpExpression -> lowerBinOpExpression(expression)
+        is HIRExpression.BinOp -> lowerBinOpExpression(expression)
+        is HIRExpression.NullPtr -> lowerNullPtrExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
         is HIRExpression.MethodRef -> requireUnreachable()
     }
 
-    private fun lowerBinOpExpression(expression: HIRExpression.BinOpExpression): IRValue {
+    private fun lowerNullPtrExpression(expression: HIRExpression.NullPtr): IRValue {
+        return IRNullPtr(expression.type, expression.location)
+    }
+
+    private fun lowerBinOpExpression(expression: HIRExpression.BinOp): IRValue {
         return if (isShortCircuitingOperator(expression.operator)) {
             lowerShortCircuitingOperator(expression)
         } else {
@@ -242,7 +255,7 @@ class IRGen(
      * .done:
      * load %condition
      */
-    private fun lowerShortCircuitingOperator(expression: HIRExpression.BinOpExpression): IRValue {
+    private fun lowerShortCircuitingOperator(expression: HIRExpression.BinOp): IRValue {
         val conditionName = makeLocalName()
         val conditionPtr = IRVariable(Type.Ptr(Type.Bool, isMutable = true), expression.lhs.location, conditionName)
         val lhsName = makeLocalName()

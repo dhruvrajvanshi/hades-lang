@@ -3,6 +3,7 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.types.Type
 
 sealed class HIRStatement: HasLocation {
     data class Expression(
@@ -17,14 +18,20 @@ sealed class HIRStatement: HasLocation {
     ): HIRStatement()
 
     data class ReturnVoid(override val location: SourceLocation) : HIRStatement()
-    data class Val(
+    data class ValDeclaration(
             override val location: SourceLocation,
             val name: Name,
             val isMutable: Boolean,
-            val rhs: HIRExpression
-    ) : HIRStatement() {
-        val type get() = rhs.type
-    }
+            val type: Type
+    ) : HIRStatement()
+
+
+    data class Assignment(
+            override val location: SourceLocation,
+            val name: Name,
+            val value: HIRExpression
+    ) : HIRStatement()
+
     data class If(
             override val location: SourceLocation,
             val condition: HIRExpression,

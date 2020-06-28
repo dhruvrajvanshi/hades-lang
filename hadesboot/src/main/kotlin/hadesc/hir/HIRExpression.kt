@@ -74,11 +74,16 @@ sealed class HIRExpression: HasLocation {
         override val type get() = expression.type
     }
 
-    data class BinOpExpression(
+    data class BinOp(
             override val location: SourceLocation,
             override val type: Type,
             val lhs: HIRExpression,
             val operator: BinaryOperator,
             val rhs: HIRExpression
+    ) : HIRExpression()
+
+    data class NullPtr(
+            override val location: SourceLocation,
+            override val type: Type.Ptr
     ) : HIRExpression()
 }

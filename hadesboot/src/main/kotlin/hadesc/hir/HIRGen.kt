@@ -88,7 +88,9 @@ class HIRGen(
         return last is Block.Member.Statement && last.statement is Statement.Return
     }
 
+    private var currentStatements: MutableList<HIRStatement>? = null
     private fun lowerBlock(body: Block, addReturnVoid: Boolean = false): HIRBlock {
+        val oldStatements = currentStatements
         val statements = mutableListOf<HIRStatement>()
         for (member in body.members) {
             statements.addAll(lowerBlockMember(member))
@@ -96,7 +98,12 @@ class HIRGen(
         if (addReturnVoid) {
             statements.add(HIRStatement.ReturnVoid(body.location))
         }
+        currentStatements = oldStatements
         return HIRBlock(body.location, statements)
+    }
+
+    private fun addStatement(statement: HIRStatement) {
+        requireNotNull(currentStatements).add(statement)
     }
 
     private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
@@ -117,11 +124,17 @@ class HIRGen(
     }
 
     private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {
+        val name = lowerLocalBinder(statement.binder)
         return listOf(
-                HIRStatement.Val(
+                HIRStatement.ValDeclaration(
                         statement.location,
-                        lowerLocalBinder(statement.binder),
+                        name,
                         statement.isMutable,
+                        typeOfExpression(statement.rhs)
+                ),
+                HIRStatement.Assignment(
+                        statement.location,
+                        name,
                         lowerExpression(statement.rhs)
                 )
         )
@@ -167,7 +180,7 @@ class HIRGen(
         is Expression.ByteString -> lowerByteString(expression)
         is Expression.BoolLiteral -> lowerBoolLiteral(expression)
         is Expression.This -> lowerThisExpression(expression)
-        is Expression.NullPtr -> TODO()
+        is Expression.NullPtr -> lowerNullPtr(expression)
         is Expression.IntLiteral -> lowerIntLiteral(expression)
         is Expression.Not -> lowerNotExpression(expression)
         is Expression.BinaryOperation -> lowerBinaryExpression(expression)
@@ -176,14 +189,22 @@ class HIRGen(
         is Expression.AddressOfMut -> TODO()
         is Expression.Deref -> TODO()
         is Expression.PointerCast -> TODO()
-        is Expression.If -> TODO()
+        is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
     }
 
+    private fun lowerIfExpression(expression: Expression.If): HIRExpression {
+        TODO()
+    }
+
+    private fun lowerNullPtr(expression: Expression.NullPtr): HIRExpression {
+        return HIRExpression.NullPtr(expression.location, typeOfExpression(expression) as Type.Ptr)
+    }
+
     private fun lowerBinaryExpression(expression: Expression.BinaryOperation): HIRExpression {
-        return HIRExpression.BinOpExpression(
+        return HIRExpression.BinOp(
                 expression.location,
                 typeOfExpression(expression),
                 lowerExpression(expression.lhs),

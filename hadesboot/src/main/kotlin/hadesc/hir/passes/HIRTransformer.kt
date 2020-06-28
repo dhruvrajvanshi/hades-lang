@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Type
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(module: HIRModule): HIRModule {
@@ -54,8 +55,19 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.Expression -> transformExpressionStatement(statement)
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.ReturnVoid -> transformRetVoidStatement(statement)
-        is HIRStatement.Val -> transformValStatement(statement)
+        is HIRStatement.ValDeclaration -> transformValDeclaration(statement)
         is HIRStatement.If -> transformIfStatement(statement)
+        is HIRStatement.Assignment -> transformAssignmentStatement(statement)
+    }
+
+    fun transformAssignmentStatement(statement: HIRStatement.Assignment): Collection<HIRStatement> {
+        return listOf(
+                HIRStatement.Assignment(
+                        statement.location,
+                        transformValName(statement.name),
+                        transformExpression(statement.value)
+                )
+        )
     }
 
     fun transformIfStatement(statement: HIRStatement.If): Collection<HIRStatement> {
@@ -69,13 +81,13 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformValStatement(statement: HIRStatement.Val): Collection<HIRStatement> {
+    fun transformValDeclaration(statement: HIRStatement.ValDeclaration): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.Val(
+                HIRStatement.ValDeclaration(
                         location = statement.location,
                         name = transformValName(statement.name),
                         isMutable = statement.isMutable,
-                        rhs = transformExpression(statement.rhs)
+                        type = statement.type
                 )
         )
     }
@@ -107,11 +119,19 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.ThisRef -> transformThisRef(expression)
         is HIRExpression.MethodRef -> transformMethodRef(expression)
         is HIRExpression.Not -> transformNotExpression(expression)
-        is HIRExpression.BinOpExpression -> transformBinOpExpression(expression)
+        is HIRExpression.BinOp -> transformBinOp(expression)
+        is HIRExpression.NullPtr -> transformNullPtr(expression)
     }
 
-    fun transformBinOpExpression(expression: HIRExpression.BinOpExpression): HIRExpression {
-        return HIRExpression.BinOpExpression(
+    fun transformNullPtr(expression: HIRExpression.NullPtr): HIRExpression {
+        return HIRExpression.NullPtr(
+                expression.location,
+                lowerType(expression.type) as Type.Ptr
+        )
+    }
+
+    fun transformBinOp(expression: HIRExpression.BinOp): HIRExpression {
+        return HIRExpression.BinOp(
                 expression.location,
                 lowerType(expression.type),
                 transformExpression(expression.lhs),
