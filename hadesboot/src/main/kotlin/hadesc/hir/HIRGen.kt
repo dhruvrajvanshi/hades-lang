@@ -133,7 +133,17 @@ class HIRGen(
     }
 
     private fun lowerIfStatement(statement: Statement.If): Collection<HIRStatement> {
-        TODO()
+        return listOf(
+                HIRStatement.If(
+                        location = statement.location,
+                        condition = lowerExpression(statement.condition),
+                        trueBranch = lowerBlock(statement.ifTrue),
+                        falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: HIRBlock(
+                                location = statement.location,
+                                statements = emptyList()
+                        )
+                )
+        )
     }
 
     private fun lowerReturnStatement(statement: Statement.Return): Collection<HIRStatement> {

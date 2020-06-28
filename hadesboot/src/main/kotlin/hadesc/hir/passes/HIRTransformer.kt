@@ -55,6 +55,18 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.ReturnVoid -> transformRetVoidStatement(statement)
         is HIRStatement.Val -> transformValStatement(statement)
+        is HIRStatement.If -> transformIfStatement(statement)
+    }
+
+    fun transformIfStatement(statement: HIRStatement.If): Collection<HIRStatement> {
+        return listOf(
+                HIRStatement.If(
+                        statement.location,
+                        transformExpression(statement.condition),
+                        transformBlock(statement.trueBranch),
+                        transformBlock(statement.falseBranch)
+                )
+        )
     }
 
     fun transformValStatement(statement: HIRStatement.Val): Collection<HIRStatement> {

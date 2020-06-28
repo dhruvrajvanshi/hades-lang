@@ -2,9 +2,11 @@ package hadesc.irgen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
+import hadesc.ast.Block
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.ir.*
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
@@ -13,6 +15,7 @@ class IRGen(
 ) {
     private val module = IRModule()
     private val builder = IRBuilder()
+    private var currentFunction: IRFunctionDef? = null
 
     fun generate(hirModule: HIRModule): IRModule {
         for (definition in hirModule.definitions) {
@@ -60,26 +63,38 @@ class IRGen(
 
     private fun lowerFunctionDef(definition: HIRDefinition.Function) {
         require(definition.receiverType == null)
+
         val functionName = lowerGlobalName(definition.name)
-        module.addGlobalFunctionDef(
+        val entryBlock = IRBlock()
+
+        val fn = module.addGlobalFunctionDef(
                 definition.location,
                 functionName,
                 typeParams = definition.typeParams?.map { lowerTypeParam(it) },
                 constraints = emptyList(),
                 params = definition.params.mapIndexed { index, it -> lowerParam(functionName, index, it) },
-                entryBlock = lowerBlock(definition.body),
+                entryBlock = entryBlock,
                 receiverType = null,
                 type = definition.type
         )
+
+        currentFunction = fn
+        lowerBlock(definition.body, entryBlock, listOf())
     }
 
-    private fun lowerBlock(body: HIRBlock): IRBlock {
-        val block = IRBlock()
+    private fun lowerBlock(
+            body: HIRBlock,
+            block: IRBlock= IRBlock(),
+            cleanupBeforeBlocks: List<IRBlock>,
+            cleanup: () -> Unit = {}
+    ): IRBlock {
         builder.withinBlock(block) {
             for (statement in body.statements) {
                 lowerStatement(statement)
             }
         }
+
+        cleanup()
         return block
 
     }
@@ -89,6 +104,81 @@ class IRGen(
         is HIRStatement.ReturnVoid -> lowerReturnVoidStatement(statement)
         is HIRStatement.Return -> lowerReturnStatement(statement)
         is HIRStatement.Val -> lowerValStatement(statement)
+        is HIRStatement.If -> lowerIfStatement(statement)
+    }
+
+    private fun lowerIfStatement(statement: HIRStatement.If) {
+        val ifTrue = buildBlock()
+        val ifFalse = buildBlock()
+        val end = forkControlFlow()
+
+        builder.buildBranch(
+                statement.condition.location,
+                lowerExpression(statement.condition),
+                ifTrue = ifTrue.name,
+                ifFalse = ifFalse.name
+        )
+
+        lowerBlock(statement.trueBranch, ifTrue, cleanupBeforeBlocks = listOf(end)) {
+            terminateBlock(statement.trueBranch.location, ifTrue) {
+                builder.buildJump(statement.trueBranch.location, end.name)
+            }
+        }
+
+        lowerBlock(statement.falseBranch, ifFalse, cleanupBeforeBlocks = listOf(end)) {
+            terminateBlock(statement.location, ifFalse) {
+                builder.buildJump(statement.location, end.name)
+            }
+        }
+
+        builder.positionAtEnd(end)
+    }
+    private fun terminateBlock(location: SourceLocation, entryBlock: IRBlock, f: () -> IRInstruction) {
+        val isVisited = mutableSetOf<IRLocalName>()
+        fun visitBlock(branch: IRBlock) {
+            if (isVisited.contains(branch.name)) {
+                return
+            }
+            isVisited.add(branch.name)
+            if (!branch.hasTerminator()) {
+                builder.withinBlock(branch) {
+                    f()
+                }
+            } else {
+                when (val statement = branch.statements.last()) {
+                    is IRReturnInstruction -> {}
+                    IRReturnVoidInstruction -> {}
+                    is IRSwitch -> requireUnreachable()
+                    is IRBr -> {
+                        val block1 = getBlock(statement.ifTrue)
+                        val block2 = getBlock(statement.ifFalse)
+                        visitBlock(block1)
+                        visitBlock(block2)
+                    }
+                    is IRJump -> {
+                        val block = getBlock(statement.label)
+                        visitBlock(block)
+                    }
+                    else -> {}
+                }
+            }
+        }
+        visitBlock(entryBlock)
+    }
+
+    private fun getBlock(name: IRLocalName): IRBlock {
+        return requireNotNull(currentFunction?.getBlock(name))
+    }
+
+    private fun buildBlock(): IRBlock {
+        val name = IRLocalName(ctx.makeUniqueName())
+        val block = IRBlock(name)
+        requireNotNull(currentFunction).appendBlock(block)
+        return block
+    }
+
+    private fun forkControlFlow(): IRBlock {
+        return buildBlock()
     }
 
     private fun lowerValStatement(statement: HIRStatement.Val) {

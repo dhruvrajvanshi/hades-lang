@@ -1334,7 +1334,6 @@ internal class ProgramVisitor(private val ctx: Context) {
                     builder.withinBlock(branch) {
                         f()
                     }
-//                }
             } else {
                 when (val statement = branch.statements.last()) {
                     is IRReturnInstruction -> {}

@@ -25,4 +25,10 @@ sealed class HIRStatement: HasLocation {
     ) : HIRStatement() {
         val type get() = rhs.type
     }
+    data class If(
+            override val location: SourceLocation,
+            val condition: HIRExpression,
+            val trueBranch: HIRBlock,
+            val falseBranch: HIRBlock
+    ) : HIRStatement()
 }
