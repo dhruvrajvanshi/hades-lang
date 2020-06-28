@@ -2,10 +2,11 @@ package hadesc.irgen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
-import hadesc.ast.Block
+import hadesc.ast.Expression
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.ir.*
+import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -211,8 +212,118 @@ class IRGen(
         is HIRExpression.ParamRef -> lowerLocalRef(expression)
         is HIRExpression.ValRef -> lowerValRef(expression)
         is HIRExpression.GetStructField -> lowerGetStructField(expression)
+        is HIRExpression.Not -> lowerNotExpression(expression)
+        is HIRExpression.BinOpExpression -> lowerBinOpExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
         is HIRExpression.MethodRef -> requireUnreachable()
+    }
+
+    private fun lowerBinOpExpression(expression: HIRExpression.BinOpExpression): IRValue {
+        return if (isShortCircuitingOperator(expression.operator)) {
+            lowerShortCircuitingOperator(expression)
+        } else {
+            val ty = expression.type
+            val lhs = lowerExpression(expression.lhs)
+            val rhs = lowerExpression(expression.rhs)
+            val name = makeLocalName()
+            builder.buildBinOp(ty, name, lhs, expression.operator, rhs)
+            builder.buildVariable(ty, expression.location, name)
+        }
+    }
+    private fun isShortCircuitingOperator(operator: BinaryOperator): Boolean {
+        return operator == BinaryOperator.AND || operator == BinaryOperator.OR
+    }
+
+    /**
+     * %condition = alloca Bool
+     * store %condition lhs
+     * %lhs = load %condition
+
+     * .done:
+     * load %condition
+     */
+    private fun lowerShortCircuitingOperator(expression: HIRExpression.BinOpExpression): IRValue {
+        val conditionName = makeLocalName()
+        val conditionPtr = IRVariable(Type.Ptr(Type.Bool, isMutable = true), expression.lhs.location, conditionName)
+        val lhsName = makeLocalName()
+        val lhs = IRVariable(Type.Bool, expression.location, lhsName)
+        val done = forkControlFlow()
+        // %condition = alloca Bool
+        // store %condition lhs
+        // %lhs = load %condition
+        alloca(Type.Bool, conditionName, expression.lhs.location)
+        builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.lhs))
+        builder.buildLoad(name = lhsName, ptr = conditionPtr, type = Type.Bool)
+
+        val (branch1, branch2) = when (expression.operator) {
+            BinaryOperator.AND -> {
+                // br %lhs if_true:.and_rhs if_false:.and_short_circuit
+                // .and_rhs:
+                //   store %condition rhs
+                //   jmp .done
+                // .and_short_circuit:
+                //   jmp .done
+                val andRHS = buildBlock()
+                val andShortCircuit = buildBlock()
+                builder.buildBranch(expression.location, lhs, ifTrue = andRHS.name, ifFalse = andShortCircuit.name)
+                builder.withinBlock(andRHS) {
+                    builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
+                }
+                andRHS to andShortCircuit
+
+            }
+            BinaryOperator.OR -> {
+                // br %lhs if_true:.or_short_circuit if_false:.or_rhs
+                // .or_short_circuit:
+                //   jmp .done
+                // .or_rhs:
+                //   store %condition rhs
+                //   jmp .done
+                val orShortCircuit = buildBlock()
+                val orRHS = buildBlock()
+
+                builder.buildBranch(expression.location, lhs, ifTrue = orShortCircuit.name, ifFalse = orRHS.name)
+
+                builder.withinBlock(orRHS) {
+                    builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
+                }
+                orRHS to orShortCircuit
+            }
+            else -> {
+                requireUnreachable()
+            }
+        }
+
+        val resultName = makeLocalName()
+        builder.withinBlock(done) {
+            builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
+        }
+        terminateBlock(expression.lhs.location, branch1) {
+            builder.buildJump(expression.lhs.location, done.name)
+        }
+        terminateBlock(expression.rhs.location, branch2) {
+            builder.buildJump(expression.rhs.location, done.name)
+        }
+        builder.positionAtEnd(done)
+
+        return IRVariable(Type.Bool, expression.location, resultName)
+
+    }
+
+    private fun alloca(type: Type, name: IRLocalName, node: HasLocation) {
+        builder.buildAlloca(type, name)
+    }
+
+    private fun makeLocalName(): IRLocalName {
+        return IRLocalName(ctx.makeUniqueName())
+    }
+
+    private fun lowerNotExpression(expression: HIRExpression.Not): IRValue {
+        val name = makeLocalName()
+        builder.buildNot(expression.type, expression.location,
+                name,
+                lowerExpression(expression.expression))
+        return builder.buildVariable(expression.type, expression.location, name)
     }
 
     private fun lowerGetStructField(expression: HIRExpression.GetStructField): IRValue {

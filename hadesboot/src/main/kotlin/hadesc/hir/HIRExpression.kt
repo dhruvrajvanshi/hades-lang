@@ -1,6 +1,9 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.ast.Expression
+import hadesc.ir.BinaryOperator
+import hadesc.ir.IRBinOp
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -62,5 +65,20 @@ sealed class HIRExpression: HasLocation {
             override val type: Type,
             val thisValue: HIRExpression,
             val propertyBinding: HIRPropertyBinding
+    ) : HIRExpression()
+
+    data class Not(
+            val expression: HIRExpression
+    ) : HIRExpression() {
+        override val location get() = expression.location
+        override val type get() = expression.type
+    }
+
+    data class BinOpExpression(
+            override val location: SourceLocation,
+            override val type: Type,
+            val lhs: HIRExpression,
+            val operator: BinaryOperator,
+            val rhs: HIRExpression
     ) : HIRExpression()
 }
