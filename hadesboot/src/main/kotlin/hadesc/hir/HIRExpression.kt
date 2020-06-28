@@ -86,4 +86,10 @@ sealed class HIRExpression: HasLocation {
             override val location: SourceLocation,
             override val type: Type.Ptr
     ) : HIRExpression()
+
+    data class SizeOf(
+            override val location: SourceLocation,
+            override val type: Type,
+            val ofType: Type
+    ) : HIRExpression()
 }

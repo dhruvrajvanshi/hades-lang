@@ -121,6 +121,15 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.Not -> transformNotExpression(expression)
         is HIRExpression.BinOp -> transformBinOp(expression)
         is HIRExpression.NullPtr -> transformNullPtr(expression)
+        is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
+    }
+
+    fun transformSizeOfExpression(expression: HIRExpression.SizeOf): HIRExpression {
+        return HIRExpression.SizeOf(
+                expression.location,
+                type = lowerType(expression.type),
+                ofType = lowerType(expression.ofType)
+        )
     }
 
     fun transformNullPtr(expression: HIRExpression.NullPtr): HIRExpression {

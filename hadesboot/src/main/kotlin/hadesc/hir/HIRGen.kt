@@ -192,7 +192,7 @@ class HIRGen(
         is Expression.IntLiteral -> lowerIntLiteral(expression)
         is Expression.Not -> lowerNotExpression(expression)
         is Expression.BinaryOperation -> lowerBinaryExpression(expression)
-        is Expression.SizeOf -> TODO()
+        is Expression.SizeOf -> lowerSizeOfExpression(expression)
         is Expression.AddressOf -> TODO()
         is Expression.AddressOfMut -> TODO()
         is Expression.Deref -> TODO()
@@ -201,6 +201,13 @@ class HIRGen(
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
+    }
+
+    private fun lowerSizeOfExpression(expression: Expression.SizeOf): HIRExpression {
+        return HIRExpression.SizeOf(
+                expression.location,
+                typeOfExpression(expression),
+                lowerTypeAnnotation(expression.type))
     }
 
     private fun lowerIfExpression(expression: Expression.If): HIRExpression {

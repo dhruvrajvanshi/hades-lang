@@ -223,8 +223,17 @@ class IRGen(
         is HIRExpression.Not -> lowerNotExpression(expression)
         is HIRExpression.BinOp -> lowerBinOpExpression(expression)
         is HIRExpression.NullPtr -> lowerNullPtrExpression(expression)
+        is HIRExpression.SizeOf -> lowerSizeOfExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
         is HIRExpression.MethodRef -> requireUnreachable()
+    }
+
+    private fun lowerSizeOfExpression(expression: HIRExpression.SizeOf): IRValue {
+        return IRSizeOf(
+                expression.type,
+                expression.location,
+                ofType = expression.ofType
+        )
     }
 
     private fun lowerNullPtrExpression(expression: HIRExpression.NullPtr): IRValue {
