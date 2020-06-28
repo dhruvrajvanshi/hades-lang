@@ -1,11 +1,9 @@
 package hadesc.hir.passes
 
 import hadesc.Name
-import hadesc.checker.PropertyBinding
 import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
-import java.beans.Expression
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(module: HIRModule): HIRModule {

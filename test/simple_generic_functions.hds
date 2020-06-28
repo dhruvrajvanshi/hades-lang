@@ -1,0 +1,12 @@
+import libc as c;
+
+def main(): Void {
+    c.puts(id(b"first"));
+    if id(true) {
+        c.puts(b"second");
+    }
+}
+
+def id[T](value: T): T {
+    return value;
+}

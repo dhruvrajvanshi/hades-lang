@@ -9,6 +9,7 @@ import hadesc.checker.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
+import hadesc.hir.passes.Monomorphization
 import hadesc.hir.passes.ReceiverElimination
 import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
@@ -44,6 +45,7 @@ class Context(
         }
 
         var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
+        hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = ReceiverElimination(this).transformModule(hirModule)
         var irModule = IRGen(this).generate(hirModule)
 
