@@ -1001,7 +1001,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerProperty(expression: Expression.Property): IRValue {
-        return when (val binding = requireNotNull(ctx.checker.getPropertyBinding(expression, null))) {
+        return when (val binding = requireNotNull(ctx.checker.getPropertyBinding(expression))) {
             is PropertyBinding.Global -> lowerBindingRef(typeOfExpression(expression), expression, binding.binding)
             is PropertyBinding.StructField -> {
                 lowerStructFieldBinding(expression, binding)
@@ -1234,7 +1234,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         require(statement.lhs.lhs is Expression.Var)
         val valuePtr = resolveLocalVariablePointer(statement.lhs.lhs.name)
         val lhsType = typeOfExpression(statement.lhs)
-        val propertyBinding = ctx.checker.getPropertyBinding(statement.lhs, null)
+        val propertyBinding = ctx.checker.getPropertyBinding(statement.lhs)
         require(propertyBinding is PropertyBinding.StructField)
         val offset = propertyBinding.memberIndex
         val memberPtr = IRGetElementPointer(

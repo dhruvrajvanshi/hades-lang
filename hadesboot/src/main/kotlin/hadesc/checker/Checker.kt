@@ -840,10 +840,10 @@ class Checker(
     }
 
     private val propertyBindings = MutableNodeMap<Expression.Property, PropertyBinding?>()
-    fun getPropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?) = propertyBindings.computeIfAbsent(expression) {
-        computePropertyBinding(expression, typeArgs)
+    fun getPropertyBinding(expression: Expression.Property) = propertyBindings.computeIfAbsent(expression) {
+        computePropertyBinding(expression)
     }
-    private fun computePropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): PropertyBinding? {
+    private fun computePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val globalBinding = ctx.resolver.resolveModuleProperty(expression)
         if (globalBinding != null) {
             return PropertyBinding.Global(inferBinding(globalBinding), globalBinding)
@@ -857,7 +857,7 @@ class Checker(
             return extensionMethodBinding
         }
 
-        val interfaceExtensionBinding = getInterfacePropertyBinding(expression, typeArgs)
+        val interfaceExtensionBinding = getInterfacePropertyBinding(expression)
         if (interfaceExtensionBinding != null) {
             return interfaceExtensionBinding
         }
@@ -895,7 +895,7 @@ class Checker(
     }
 
     private fun inferProperty(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): Type {
-        return when (val binding = getPropertyBinding(expression, typeArgs)) {
+        return when (val binding = getPropertyBinding(expression)) {
             null -> {
                 val lhsType = inferExpression(expression.lhs, typeArgs)
                 error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
@@ -943,11 +943,8 @@ class Checker(
         return foundInstances.firstOrNull()
     }
 
-    private fun getInterfacePropertyBinding(expression: Expression.Property, typeArgs: List<TypeAnnotation>?): PropertyBinding? {
-        require(typeArgs == null) {
-            TODO("Generic methods within interfaces not implemented")
-        }
-        val lhsType = inferExpression(expression.lhs, typeArgs)
+    private fun getInterfacePropertyBinding(expression: Expression.Property): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs)
         val property = expression.property
         val implementations = getImplementationBindingsForType(lhsType, atNode = expression).toList()
         for (implRef in implementations) {
