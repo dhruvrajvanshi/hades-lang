@@ -124,11 +124,23 @@ class HIRGen(
         is Statement.Val -> lowerValStatement(statement)
         is Statement.While -> lowerWhileStatement(statement)
         is Statement.If -> lowerIfStatement(statement)
-        is Statement.LocalAssignment -> TODO()
+        is Statement.LocalAssignment -> lowerLocalAssignment(statement)
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
         is Statement.Defer -> TODO()
         is Statement.Error -> requireUnreachable()
+    }
+
+    private fun lowerLocalAssignment(statement: Statement.LocalAssignment): Collection<HIRStatement> {
+        val binding = ctx.resolver.resolve(statement.name)
+        require(binding is Binding.ValBinding)
+        return listOf(
+                HIRStatement.Assignment(
+                        statement.location,
+                        name = lowerLocalBinder(binding.statement.binder),
+                        value = lowerExpression(statement.value)
+                )
+        )
     }
 
     private fun lowerWhileStatement(statement: Statement.While): Collection<HIRStatement> {
