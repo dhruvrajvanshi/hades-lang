@@ -6,4 +6,6 @@ import hadesc.location.SourceLocation
 data class HIRTypeParam(
         val location: SourceLocation,
         val name: Name
-)
+) {
+    fun prettyPrint(): String  = name.text
+}

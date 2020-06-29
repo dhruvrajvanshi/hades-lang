@@ -9,4 +9,6 @@ data class HIRParam(
         override val location: SourceLocation,
         val name: Name,
         val type: Type
-) : HasLocation
+) : HasLocation {
+    fun prettyPrint() = "${name.text}: ${type.prettyPrint()}"
+}

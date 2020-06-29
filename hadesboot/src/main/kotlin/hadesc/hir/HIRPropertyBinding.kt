@@ -17,4 +17,9 @@ sealed class HIRPropertyBinding : HasLocation {
             val implName: QualifiedName,
             val interfaceMemberIndex: Int
     ) : HIRPropertyBinding()
+
+    fun prettyPrint(): String = when(this) {
+        is GlobalExtensionRef -> functionName.mangle()
+        is ImplementationMethodRef -> implName.mangle()
+    }
 }

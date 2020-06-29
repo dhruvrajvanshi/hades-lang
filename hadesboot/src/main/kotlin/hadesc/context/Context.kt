@@ -45,8 +45,8 @@ class Context(
         }
 
         var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
-        hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = ReceiverElimination(this).transformModule(hirModule)
+        hirModule = Monomorphization(this).transformModule(hirModule)
         var irModule = IRGen(this).generate(hirModule)
 
         irModule = ExplicitConstraints(this, irModule).run()

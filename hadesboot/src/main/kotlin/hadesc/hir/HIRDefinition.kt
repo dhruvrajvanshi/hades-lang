@@ -49,8 +49,26 @@ sealed class HIRDefinition: HasLocation {
     ) : HIRDefinition()
 
     fun prettyPrint(): String = when(this) {
-        is Function -> TODO()
-        is ExternFunction -> TODO()
-        is Struct -> TODO()
+        is Function -> {
+            val typeParamsStr = if (typeParams == null)
+                ""
+            else "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "]"
+            "def ${name.mangle()}$typeParamsStr(${params.joinToString(", ") {it.prettyPrint()}})" +
+                    ": ${returnType.prettyPrint()} ${body.prettyPrint()}"
+        }
+        is ExternFunction -> {
+            "extern def ${name.mangle()}(${params.joinToString(", ") {it.prettyPrint()}})" +
+                    ": ${returnType.prettyPrint()} = ${externName.text}"
+        }
+        is Struct -> {
+            val typeParamsStr = if (typeParams == null)
+                ""
+            else "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "]"
+            "struct ${name.mangle()}$typeParamsStr {\n" +
+                    fields.joinToString("\n") {
+                        "  val ${it.first.text}: ${it.second.prettyPrint()}"
+                    } +
+                    "\n}"
+        }
     }
 }

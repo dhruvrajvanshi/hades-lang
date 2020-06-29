@@ -24,4 +24,12 @@ sealed class HIRConstant: HasLocation {
             override val type: Type,
             val value: Int
     ) : HIRConstant()
+
+    fun prettyPrint(): String = when(this) {
+        is ByteString -> "b\"" + String(bytes)
+                .replace("\"", "\"\"")
+                .replace("\\", "\\\\") + "\""
+        is BoolValue -> value.toString()
+        is IntValue -> value.toString()
+    }
 }

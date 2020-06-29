@@ -92,4 +92,24 @@ sealed class HIRExpression: HasLocation {
             override val type: Type,
             val ofType: Type
     ) : HIRExpression()
+
+    fun prettyPrint(): String = when(this) {
+        is Call -> {
+            val typeArgsStr = if (typeArgs == null)
+                ""
+            else "[${typeArgs.joinToString(", ") { it.prettyPrint() } }]"
+            "${callee.prettyPrint()}${typeArgsStr}(${args.joinToString(", ") { it.prettyPrint() } })"
+        }
+        is GlobalRef -> name.mangle()
+        is Constant -> constant.prettyPrint()
+        is ParamRef -> name.text
+        is ValRef -> name.text
+        is GetStructField -> "${lhs.prettyPrint()}.${name.text}"
+        is ThisRef -> "this"
+        is MethodRef -> "($thisValue :: ${propertyBinding.prettyPrint()})"
+        is Not -> "not ${expression.prettyPrint()}"
+        is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
+        is NullPtr -> "(nullptr : ${type.prettyPrint()})"
+        is SizeOf -> "size_of[${type.prettyPrint()}]"
+    }
 }

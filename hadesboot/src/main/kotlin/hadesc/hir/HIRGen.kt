@@ -7,6 +7,7 @@ import hadesc.checker.ImplementationBinding
 import hadesc.checker.PropertyBinding
 import hadesc.context.Context
 import hadesc.location.SourceLocation
+import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -21,7 +22,9 @@ class HIRGen(
                 declarations.addAll(lowerDeclaration(it))
             }
         }
-        return HIRModule(declarations)
+        val result = HIRModule(declarations)
+        logger().debug(result.prettyPrint())
+        return result
     }
 
     private fun lowerDeclaration(declaration: Declaration): List<HIRDefinition> = when (declaration) {

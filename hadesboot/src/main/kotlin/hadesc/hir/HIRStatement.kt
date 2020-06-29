@@ -44,4 +44,14 @@ sealed class HIRStatement: HasLocation {
             val condition: HIRExpression,
             val body: HIRBlock
     ) : HIRStatement()
+
+    fun prettyPrint(indent: Int = 0): String = when(this) {
+        is Expression -> expression.prettyPrint()
+        is Return -> "return ${expression.prettyPrint()}"
+        is ReturnVoid -> "return"
+        is ValDeclaration -> "val ${name.text}: ${type.prettyPrint()}"
+        is Assignment -> "${name.text} = ${value.prettyPrint()}"
+        is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint(indent + 1)}\nelse ${falseBranch.prettyPrint(indent + 1)}"
+        is While -> "while ${condition.prettyPrint()} ${body.prettyPrint(indent + 1)}"
+    }
 }
