@@ -122,13 +122,23 @@ class HIRGen(
     private fun lowerStatement(statement: Statement): Collection<HIRStatement> = when(statement) {
         is Statement.Return -> lowerReturnStatement(statement)
         is Statement.Val -> lowerValStatement(statement)
-        is Statement.While -> TODO()
+        is Statement.While -> lowerWhileStatement(statement)
         is Statement.If -> lowerIfStatement(statement)
         is Statement.LocalAssignment -> TODO()
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
         is Statement.Defer -> TODO()
         is Statement.Error -> requireUnreachable()
+    }
+
+    private fun lowerWhileStatement(statement: Statement.While): Collection<HIRStatement> {
+        return listOf(
+                HIRStatement.While(
+                        statement.location,
+                        lowerExpression(statement.condition),
+                        lowerBlock(statement.body)
+                )
+        )
     }
 
     private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {

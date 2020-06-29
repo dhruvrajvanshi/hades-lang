@@ -38,4 +38,10 @@ sealed class HIRStatement: HasLocation {
             val trueBranch: HIRBlock,
             val falseBranch: HIRBlock
     ) : HIRStatement()
+
+    data class While(
+            override val location: SourceLocation,
+            val condition: HIRExpression,
+            val body: HIRBlock
+    ) : HIRStatement()
 }

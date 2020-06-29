@@ -106,6 +106,32 @@ class IRGen(
         is HIRStatement.ValDeclaration -> lowerValStatement(statement)
         is HIRStatement.If -> lowerIfStatement(statement)
         is HIRStatement.Assignment -> lowerAssignmentStatement(statement)
+        is HIRStatement.While -> lowerWhileStatement(statement)
+    }
+
+    private fun lowerWhileStatement(statement: HIRStatement.While) {
+        val whileBody = buildBlock()
+        val whileExit = forkControlFlow()
+
+        builder.buildBranch(
+                statement.condition.location,
+                lowerExpression(statement.condition),
+                whileBody.name,
+                whileExit.name
+        )
+
+        lowerBlock(statement.body, whileBody, cleanupBeforeBlocks = listOf(whileExit, whileBody)) {
+            terminateBlock(statement.body.location, whileBody) {
+                builder.buildBranch(
+                        statement.condition.location,
+                        lowerExpression(statement.condition),
+                        whileBody.name,
+                        whileExit.name
+                )
+            }
+        }
+
+        builder.positionAtEnd(whileExit)
     }
 
     private fun lowerAssignmentStatement(statement: HIRStatement.Assignment) {

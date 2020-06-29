@@ -5,6 +5,7 @@ import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import java.sql.Statement
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(module: HIRModule): HIRModule {
@@ -58,6 +59,17 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.ValDeclaration -> transformValDeclaration(statement)
         is HIRStatement.If -> transformIfStatement(statement)
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
+        is HIRStatement.While -> transformWhileStatement(statement)
+    }
+
+    fun transformWhileStatement(statement: HIRStatement.While): Collection<HIRStatement> {
+        return listOf(
+                HIRStatement.While(
+                        statement.location,
+                        transformExpression(statement.condition),
+                        transformBlock(statement.body)
+                )
+        )
     }
 
     fun transformAssignmentStatement(statement: HIRStatement.Assignment): Collection<HIRStatement> {
