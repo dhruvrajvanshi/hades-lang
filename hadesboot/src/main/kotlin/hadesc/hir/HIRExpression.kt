@@ -106,7 +106,7 @@ sealed class HIRExpression: HasLocation {
         is ValRef -> name.text
         is GetStructField -> "${lhs.prettyPrint()}.${name.text}"
         is ThisRef -> "this"
-        is MethodRef -> "($thisValue :: ${propertyBinding.prettyPrint()})"
+        is MethodRef -> "(${thisValue.prettyPrint()} :: ${propertyBinding.prettyPrint()})"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"

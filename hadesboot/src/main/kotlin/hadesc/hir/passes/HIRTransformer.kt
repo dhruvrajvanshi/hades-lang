@@ -99,7 +99,7 @@ interface HIRTransformer: TypeTransformer {
                         location = statement.location,
                         name = transformValName(statement.name),
                         isMutable = statement.isMutable,
-                        type = statement.type
+                        type = lowerType(statement.type)
                 )
         )
     }

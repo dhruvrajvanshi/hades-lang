@@ -8,12 +8,11 @@ data class HIRModule(
     fun prettyPrint(): String =
         this.definitions.joinToString("\n") { it.prettyPrint() }
 
-    fun findGlobalFunctionDef(name: QualifiedName): HIRDefinition.Function {
+    fun findGlobalDefinition(name: QualifiedName): HIRDefinition {
         val foundDef = definitions.find {
-            it is HIRDefinition.Function && it.name == name
-                    && it.receiverType == null
+            hasName(it, name)
         }
-        return foundDef as HIRDefinition.Function
+        return requireNotNull(foundDef)
     }
 
     fun findDefinitions(name: QualifiedName): List<HIRDefinition> {

@@ -7,10 +7,10 @@ import hadesc.hir.HIRExpression
 import hadesc.hir.HIRModule
 import hadesc.hir.HIRTypeParam
 import hadesc.location.SourceLocation
+import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import java.util.concurrent.LinkedBlockingQueue
-import kotlin.math.exp
 
 class Monomorphization(
         private val ctx: Context
@@ -19,12 +19,13 @@ class Monomorphization(
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Map<SourceLocation, Type>? = null
 
-    override fun transformModule(module: HIRModule): HIRModule {
-        oldModule = module
-        val newModule = super.transformModule(module)
+    override fun transformModule(oldModule: HIRModule): HIRModule {
+        this.oldModule = oldModule
+        val newModule = super.transformModule(oldModule)
         while (specializationQueue.isNotEmpty()) {
             addSpecialization(newModule, specializationQueue.take())
         }
+        logger().debug("HIR after monomorphization:\n${newModule.prettyPrint()}")
         return newModule
     }
 
@@ -32,28 +33,45 @@ class Monomorphization(
         val definitions = oldModule.findDefinitions(request.name)
         require(definitions.size == 1)
         val definition = definitions[0]
-        require(definition is HIRDefinition.Function)
+
         val oldSpecialization = currentSpecialization
-        require(definition.typeParams != null)
-        require(definition.typeParams.size == request.typeArgs.size)
+        when (definition) {
+            is HIRDefinition.Function -> {
+                currentSpecialization = makeSubstitution(definition.typeParams, request.typeArgs)
 
-        currentSpecialization = definition.typeParams.zip(request.typeArgs).map {
-            it.first.location to it.second
-        }.toMap()
-
-        module.addDefinition(
-                HIRDefinition.Function(
-                        location = definition.location,
-                        returnType = lowerType(definition.returnType),
-                        typeParams = null,
-                        name = getSpecializedName(request.name, request.typeArgs),
-                        params = definition.params.map { transformParam(it) },
-                        body = transformBlock(definition.body),
-                        receiverType = definition.receiverType?.let { lowerType(it) }
+                module.addDefinition(
+                        HIRDefinition.Function(
+                                location = definition.location,
+                                returnType = lowerType(definition.returnType),
+                                typeParams = null,
+                                name = getSpecializedName(request.name, request.typeArgs),
+                                params = definition.params.map { transformParam(it) },
+                                body = transformBlock(definition.body),
+                                receiverType = definition.receiverType?.let { lowerType(it) }
+                        )
                 )
-        )
 
-        currentSpecialization = oldSpecialization
+                currentSpecialization = oldSpecialization
+            }
+            is HIRDefinition.Struct -> {
+                currentSpecialization = makeSubstitution(definition.typeParams, request.typeArgs)
+
+                module.addDefinition(
+                        HIRDefinition.Struct(
+                                location = definition.location,
+                                name = getSpecializedName(request.name, request.typeArgs),
+                                typeParams = null,
+                                fields = definition.fields.map { it.first to lowerType(it.second) }
+                        )
+                )
+
+                currentSpecialization = oldSpecialization
+            }
+            else -> {
+                requireUnreachable()
+            }
+        }
+
     }
 
     override fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {
@@ -100,20 +118,39 @@ class Monomorphization(
         }
         is HIRExpression.GlobalRef -> {
             val name = getSpecializedName(expression.name, typeArgs.map { lowerType(it) })
-            val globalFunction = oldModule.findGlobalFunctionDef(expression.name)
-            require(globalFunction.typeParams != null)
-            require(globalFunction.typeParams.size == typeArgs.size)
-            val substitution = globalFunction.typeParams.zip(typeArgs).map {
-                it.first.location to lowerType(it.second)
-            }.toMap()
-            val type = lowerType(expression.type.applySubstitution(substitution))
-            HIRExpression.GlobalRef(
-                    expression.location,
-                    type,
-                    name
-            )
+            when (val definition = oldModule.findGlobalDefinition(expression.name)) {
+                is HIRDefinition.Function -> {
+                    val substitution = makeSubstitution(definition.typeParams, typeArgs)
+                    val type = lowerType(expression.type.applySubstitution(substitution))
+                    HIRExpression.GlobalRef(
+                            expression.location,
+                            type,
+                            name
+                    )
+                }
+                is HIRDefinition.Struct -> {
+                    val substitution = makeSubstitution(definition.typeParams, typeArgs)
+                    val type = lowerType(expression.type.applySubstitution(substitution))
+                    HIRExpression.GlobalRef(
+                            expression.location,
+                            type,
+                            name
+                    )
+                }
+                else -> {
+                    requireUnreachable()
+                }
+            }
         }
         else -> requireUnreachable()
+    }
+
+    private fun makeSubstitution(typeParams: List<HIRTypeParam>?, typeArgs: List<Type>): Map<SourceLocation, Type> {
+        require(typeParams != null)
+        require(typeParams.size == typeArgs.size)
+        return typeParams.zip(typeArgs).map {
+            it.first.location to lowerType(it.second)
+        }.toMap()
     }
 
     private val queuedSpecializationSet = mutableSetOf<QualifiedName>()
@@ -133,8 +170,9 @@ class Monomorphization(
     private fun specializeName(name: QualifiedName, typeArgs: List<Type>): QualifiedName {
         return QualifiedName(listOf(
                 *name.names.toTypedArray(),
-                ctx.makeName("$"),
-                ctx.makeName(typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() })
+                ctx.makeName("\$[" +
+                        typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
+                "]")
         ))
     }
 
@@ -142,7 +180,11 @@ class Monomorphization(
 //    }
 
     override fun lowerTypeApplication(type: Type.Application): Type {
-        TODO()
+        val typeName = type.callee.name
+        val definition = oldModule.findGlobalDefinition(typeName)
+        require(definition is HIRDefinition.Struct)
+        val specializedName = getSpecializedName(typeName, type.args.map { lowerType(it) })
+        return Type.Constructor(binder = null, name = specializedName, params = null)
     }
 }
 
