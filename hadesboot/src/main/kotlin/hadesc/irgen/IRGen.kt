@@ -9,6 +9,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import kotlin.math.exp
 
 class IRGen(
         private val ctx: Context
@@ -250,8 +251,17 @@ class IRGen(
         is HIRExpression.BinOp -> lowerBinOpExpression(expression)
         is HIRExpression.NullPtr -> lowerNullPtrExpression(expression)
         is HIRExpression.SizeOf -> lowerSizeOfExpression(expression)
+        is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
         is HIRExpression.MethodRef -> requireUnreachable()
+    }
+
+    private fun lowerAddressOfExpression(expression: HIRExpression.AddressOf): IRValue {
+        return builder.buildVariable(
+                expression.type,
+                expression.location,
+                localValPtrName(expression.name)
+        )
     }
 
     private fun lowerSizeOfExpression(expression: HIRExpression.SizeOf): IRValue {

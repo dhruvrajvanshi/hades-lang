@@ -93,6 +93,12 @@ sealed class HIRExpression: HasLocation {
             val ofType: Type
     ) : HIRExpression()
 
+    data class AddressOf(
+            override val location: SourceLocation,
+            override val type: Type.Ptr,
+            val name: Name
+    ) : HIRExpression()
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             val typeArgsStr = if (typeArgs == null)
@@ -111,5 +117,6 @@ sealed class HIRExpression: HasLocation {
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
+        is AddressOf -> "&${name.text}"
     }
 }

@@ -218,14 +218,36 @@ class HIRGen(
         is Expression.Not -> lowerNotExpression(expression)
         is Expression.BinaryOperation -> lowerBinaryExpression(expression)
         is Expression.SizeOf -> lowerSizeOfExpression(expression)
-        is Expression.AddressOf -> TODO()
-        is Expression.AddressOfMut -> TODO()
+        is Expression.AddressOf -> lowerAddressOfExpression(expression)
+        is Expression.AddressOfMut -> lowerAddressOfMut(expression)
         is Expression.Deref -> TODO()
         is Expression.PointerCast -> TODO()
         is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
+    }
+
+    private fun lowerAddressOfMut(expression: Expression.AddressOfMut): HIRExpression {
+        require(expression.expression is Expression.Var)
+        val binding = ctx.resolver.resolve(expression.expression.name)
+        require(binding is Binding.ValBinding)
+        return HIRExpression.AddressOf(
+                expression.location,
+                typeOfExpression(expression) as Type.Ptr,
+                lowerLocalBinder(binding.statement.binder)
+        )
+    }
+
+    private fun lowerAddressOfExpression(expression: Expression.AddressOf): HIRExpression {
+        require(expression.expression is Expression.Var)
+        val binding = ctx.resolver.resolve(expression.expression.name)
+        require(binding is Binding.ValBinding)
+        return HIRExpression.AddressOf(
+                expression.location,
+                typeOfExpression(expression) as Type.Ptr,
+                lowerLocalBinder(binding.statement.binder)
+        )
     }
 
     private fun lowerSizeOfExpression(expression: Expression.SizeOf): HIRExpression {

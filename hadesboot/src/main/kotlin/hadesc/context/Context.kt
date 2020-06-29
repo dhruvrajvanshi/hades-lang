@@ -13,7 +13,6 @@ import hadesc.hir.passes.Monomorphization
 import hadesc.hir.passes.ReceiverElimination
 import hadesc.ir.passes.ExplicitConstraints
 import hadesc.ir.passes.ExplicitThis
-import hadesc.ir.passes.SpecializeGenerics
 import hadesc.irgen.IRGen
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
@@ -47,11 +46,7 @@ class Context(
         var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
         hirModule = ReceiverElimination(this).transformModule(hirModule)
         hirModule = Monomorphization(this).transformModule(hirModule)
-        var irModule = IRGen(this).generate(hirModule)
-
-        irModule = ExplicitConstraints(this, irModule).run()
-        irModule = ExplicitThis(this, irModule).run()
-        irModule = SpecializeGenerics(this, irModule).run()
+        val irModule = IRGen(this).generate(hirModule)
 
         LLVMGen(this, irModule).use {
             it.generate()
