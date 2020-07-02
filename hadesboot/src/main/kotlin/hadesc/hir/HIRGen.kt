@@ -70,10 +70,15 @@ class HIRGen(
     private fun lowerFunctionDef(declaration: Declaration.FunctionDef): List<HIRDefinition> {
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
+        val name = if (declaration.thisParam == null) {
+            lowerGlobalName(declaration.name)
+        } else {
+            extensionFunctionName(declaration)
+        }
         val loweredDef = HIRDefinition.Function(
                 location = declaration.location,
                 receiverType = declaration.signature.thisParam?.annotation?.let { lowerTypeAnnotation(it) },
-                name = lowerGlobalName(declaration.name),
+                name = name,
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 params = declaration.params.map { lowerParam(it) },
                 returnType = returnType,
@@ -389,9 +394,16 @@ class HIRGen(
                 thisValue = lowerExpression(expression.lhs),
                 propertyBinding = HIRPropertyBinding.GlobalExtensionRef(
                         location = expression.lhs.location,
-                        functionName = lowerGlobalName(binding.def.name)
+                        functionName = extensionFunctionName(binding.def)
                 )
         )
+    }
+
+    private fun extensionFunctionName(def: Declaration.FunctionDef): QualifiedName {
+        val defName = lowerGlobalName(def.name)
+        val thisParam = requireNotNull(def.thisParam)
+        return defName.withPrefix(QualifiedName(listOf(
+                ctx.makeName(lowerTypeAnnotation(thisParam.annotation).prettyPrint()))))
     }
 
     private fun lowerStructFieldBinding(

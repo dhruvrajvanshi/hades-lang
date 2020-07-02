@@ -53,7 +53,10 @@ sealed class HIRDefinition: HasLocation {
             val typeParamsStr = if (typeParams == null)
                 ""
             else "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "]"
-            "def ${name.mangle()}$typeParamsStr(${params.joinToString(", ") {it.prettyPrint()}})" +
+            val thisParamStr = if (receiverType != null) {
+                "this: ${receiverType.prettyPrint()}" + if (params.isEmpty()) "" else ", "
+            } else ""
+            "def ${name.mangle()}$typeParamsStr($thisParamStr${params.joinToString(", ") {it.prettyPrint()}})" +
                     ": ${returnType.prettyPrint()} ${body.prettyPrint()}"
         }
         is ExternFunction -> {
