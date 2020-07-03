@@ -19,6 +19,7 @@ class ReceiverElimination(
                     location = definition.location,
                     name = transformGlobalName(definition.name),
                     typeParams = definition.typeParams?.map { transformTypeParam(it) },
+                    constraintParams = definition.constraintParams?.map { transformConstraintParam(it) },
                     receiverType = null,
                     returnType = lowerType(definition.returnType),
                     body = transformBlock(definition.body),

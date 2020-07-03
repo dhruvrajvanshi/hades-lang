@@ -3,7 +3,6 @@ package hadesc.hir
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
-import hadesc.types.Type
 
 sealed class HIRPropertyBinding : HasLocation {
 
@@ -20,6 +19,6 @@ sealed class HIRPropertyBinding : HasLocation {
 
     fun prettyPrint(): String = when(this) {
         is GlobalExtensionRef -> functionName.mangle()
-        is ImplementationMethodRef -> implName.mangle()
+        is ImplementationMethodRef -> "${implName.mangle()}->$interfaceMemberIndex"
     }
 }

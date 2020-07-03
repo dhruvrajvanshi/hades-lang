@@ -30,14 +30,58 @@ class HIRGen(
     private fun lowerDeclaration(declaration: Declaration): List<HIRDefinition> = when (declaration) {
         is Declaration.Error -> requireUnreachable()
         is Declaration.ImportAs -> emptyList()
-        is Declaration.FunctionDef -> lowerFunctionDef(declaration)
+        is Declaration.FunctionDef -> listOf(lowerFunctionDef(declaration))
         is Declaration.ConstDefinition -> TODO()
         is Declaration.ExternFunctionDef -> lowerExternFunctionDef(declaration)
         is Declaration.Struct -> lowerStructDef(declaration)
-        is Declaration.Interface -> TODO()
-        is Declaration.Implementation -> TODO()
+        is Declaration.Interface -> lowerInterfaceDef(declaration)
+        is Declaration.Implementation -> lowerImplDef(declaration)
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
+    }
+
+    private fun lowerInterfaceDef(declaration: Declaration.Interface): List<HIRDefinition> {
+        return TODO()
+    }
+
+    private fun lowerImplDef(declaration: Declaration.Implementation): List<HIRDefinition> {
+        return listOf(
+                HIRDefinition.Implementation(
+                        declaration.location,
+                        name = implName(declaration),
+                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                        interfaceRef = lowerInterfaceRef(declaration.interfaceRef),
+                        forType = lowerTypeAnnotation(declaration.forType),
+                        members = declaration.members.map {
+                            when(it) {
+                                is Declaration.Implementation.Member.FunctionDef ->
+                                    lowerFunctionDef(it.functionDef)
+                            }
+                        },
+                        constraintParams = lowerConstraintParams(declaration.typeParams)
+                )
+        )
+    }
+
+    private fun lowerConstraintParams(typeParams: List<TypeParam>?): List<HIRConstraintParam>? {
+        return typeParams?.flatMap {
+            if (it.bound == null)
+                emptyList()
+            else listOf(HIRConstraintParam(
+                    lowerTypeParam(it),
+                    lowerInterfaceRef(it.bound))
+            )
+        }
+    }
+
+    private fun lowerInterfaceRef(interfaceRef: InterfaceRef): HIRInterfaceRef {
+        val interfaceDecl = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        require(interfaceDecl is Declaration.Interface)
+        val name = ctx.resolver.resolveGlobalName(interfaceDecl.name)
+        return HIRInterfaceRef(
+                interfaceName = name,
+                typeArgs = interfaceRef.typeArgs?.map { lowerTypeAnnotation(it) }
+        )
     }
 
     private fun lowerStructDef(declaration: Declaration.Struct): List<HIRDefinition> {
@@ -67,7 +111,7 @@ class HIRGen(
         )
     }
 
-    private fun lowerFunctionDef(declaration: Declaration.FunctionDef): List<HIRDefinition> {
+    private fun lowerFunctionDef(declaration: Declaration.FunctionDef): HIRDefinition.Function {
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val name = if (declaration.thisParam == null) {
@@ -75,17 +119,16 @@ class HIRGen(
         } else {
             extensionFunctionName(declaration)
         }
-        val loweredDef = HIRDefinition.Function(
+        return HIRDefinition.Function(
                 location = declaration.location,
                 receiverType = declaration.signature.thisParam?.annotation?.let { lowerTypeAnnotation(it) },
                 name = name,
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                constraintParams = lowerConstraintParams(declaration.typeParams),
                 params = declaration.params.map { lowerParam(it) },
                 returnType = returnType,
                 body = lowerBlock(declaration.body, addReturnVoid)
         )
-
-        return listOf(loweredDef)
     }
 
     private fun hasTerminator(body: Block): Boolean {
@@ -375,10 +418,30 @@ class HIRGen(
         val interfaceDef = ctx.resolver.resolveDeclaration(implDef.interfaceRef.path)
         require(interfaceDef is Declaration.Interface)
         val qualifiedInterfaceName = ctx.resolver.qualifiedInterfaceName(interfaceDef)
-        require(implDef.typeParams == null)
+        val typeArgNames: Array<Name> = if (implDef.interfaceRef.typeArgs == null) {
+            arrayOf()
+        } else {
+            arrayOf(
+                    ctx.makeName("[${implDef.interfaceRef.typeArgs.joinToString(",") {lowerTypeAnnotation(it).prettyPrint()} }]")
+            )
+        }
+        val typeParamNames = if (implDef.typeParams == null) emptyArray()
+        else arrayOf(
+                ctx.makeName("[${implDef.typeParams.joinToString(",") { it.binder.identifier.name.text }}]")
+        )
+        val constraints = if (implDef.typeParams == null) emptyList()
+            else implDef.typeParams.flatMap { if (it.bound != null) listOf(it.binder to it.bound) else emptyList() }
+        val whereClauseNames = if (constraints.isEmpty()) arrayOf()
+            else arrayOf(
+                    ctx.makeName("where(" + constraints.joinToString(",") {
+                        it.first.identifier.name.text + ":" + lowerInterfaceRef(it.second).prettyPrint() } + ")")
+            )
         return QualifiedName(listOf(
-                ctx.makeName("impl"),
+                ctx.makeName("\$impl"),
+                *typeParamNames,
+                *whereClauseNames,
                 *qualifiedInterfaceName.names.toTypedArray(),
+                *typeArgNames,
                 ctx.makeName("for"),
                 ctx.makeName(lowerTypeAnnotation(implDef.forType).prettyPrint())
         ))

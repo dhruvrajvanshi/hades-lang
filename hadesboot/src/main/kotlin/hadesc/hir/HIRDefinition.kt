@@ -12,6 +12,7 @@ sealed class HIRDefinition: HasLocation {
             val receiverType: Type?,
             val name: QualifiedName,
             val typeParams: List<HIRTypeParam>?,
+            val constraintParams: List<HIRConstraintParam>?,
             val params: List<HIRParam>,
             val returnType: Type,
             val body: HIRBlock
@@ -48,11 +49,26 @@ sealed class HIRDefinition: HasLocation {
             val fields: List<Pair<Name, Type>>
     ) : HIRDefinition()
 
+    data class Implementation(
+            override val location: SourceLocation,
+            val name: QualifiedName,
+            val typeParams: List<HIRTypeParam>?,
+            val interfaceRef: HIRInterfaceRef,
+            val forType: Type,
+            val members: List<Function>,
+            val constraintParams: List<HIRConstraintParam>?
+    ) : HIRDefinition()
+
     fun prettyPrint(): String = when(this) {
         is Function -> {
+            val whereStr = if (constraintParams == null) {
+                ""
+            } else {
+                "where (${constraintParams.joinToString(", ") {it.prettyPrint()} })"
+            }
             val typeParamsStr = if (typeParams == null)
                 ""
-            else "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "]"
+            else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] $whereStr "
             val thisParamStr = if (receiverType != null) {
                 "this: ${receiverType.prettyPrint()}" + if (params.isEmpty()) "" else ", "
             } else ""
@@ -72,6 +88,21 @@ sealed class HIRDefinition: HasLocation {
                         "  val ${it.first.text}: ${it.second.prettyPrint()}"
                     } +
                     "\n}"
+        }
+        is Implementation -> {
+            val whereStr = if (constraintParams == null) {
+                ""
+            } else {
+                "where (${constraintParams.joinToString(", ") {it.prettyPrint()} })"
+            }
+            val typeParamsStr = if (typeParams == null)
+                ""
+            else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] $whereStr -> "
+            "implementation ${name.mangle()}: $typeParamsStr${interfaceRef.prettyPrint()} for ${forType.prettyPrint()} {\n${
+                members.joinToString("\n") {
+                    it.prettyPrint().prependIndent("  ")
+                }
+            }\n}"
         }
     }
 }

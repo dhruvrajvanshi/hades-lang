@@ -5,7 +5,6 @@ import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import java.sql.Statement
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(module: HIRModule): HIRModule {
@@ -20,6 +19,7 @@ interface HIRTransformer: TypeTransformer {
         is HIRDefinition.Function -> transformFunctionDef(definition)
         is HIRDefinition.ExternFunction -> transformExternFunctionDef(definition)
         is HIRDefinition.Struct -> transformStructDef(definition)
+        is HIRDefinition.Implementation -> TODO()
     }
 
     fun transformStructDef(definition: HIRDefinition.Struct): Collection<HIRDefinition> {
@@ -39,10 +39,25 @@ interface HIRTransformer: TypeTransformer {
                 location = definition.location,
                 name = transformGlobalName(definition.name),
                 returnType = lowerType(definition.returnType),
+                constraintParams = definition.constraintParams?.map { transformConstraintParam(it) },
                 params = definition.params.map { transformParam(it) },
                 typeParams = definition.typeParams?.map { transformTypeParam(it) },
                 body = transformBlock(definition.body)
         ))
+    }
+
+    fun transformConstraintParam(param: HIRConstraintParam): HIRConstraintParam {
+        return HIRConstraintParam(
+                param = transformTypeParam(param.param),
+                interfaceRef = transformInterfaceRef(param.interfaceRef)
+        )
+    }
+
+    fun transformInterfaceRef(interfaceRef: HIRInterfaceRef): HIRInterfaceRef {
+        return HIRInterfaceRef(
+                interfaceName = transformGlobalName(interfaceRef.interfaceName),
+                typeArgs = interfaceRef.typeArgs?.map { lowerType(it) }
+        )
     }
 
     fun transformBlock(body: HIRBlock): HIRBlock {

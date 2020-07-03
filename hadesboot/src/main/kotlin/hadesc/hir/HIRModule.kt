@@ -25,6 +25,7 @@ data class HIRModule(
         is HIRDefinition.Function -> definition.name == name
         is HIRDefinition.ExternFunction -> definition.name == name
         is HIRDefinition.Struct -> definition.name == name
+        is HIRDefinition.Implementation -> definition.name == name
     }
 
     fun addDefinition(definition: HIRDefinition) {

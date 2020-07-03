@@ -246,7 +246,11 @@ class Resolver(private val ctx: Context) {
                 return Binding.FunctionParam(index, scope.declaration)
             }
         }
-        return if (scope.declaration.typeParams == null && ident.name == scope.declaration.name.identifier.name) {
+        return if (
+            scope.declaration.thisParam == null &&
+            scope.declaration.typeParams == null &&
+            ident.name == scope.declaration.name.identifier.name
+        ) {
             Binding.GlobalFunction(scope.declaration)
         } else {
             null
