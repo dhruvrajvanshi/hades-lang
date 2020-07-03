@@ -3,10 +3,7 @@ package hadesc.hir.passes
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
-import hadesc.hir.HIRDefinition
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIRParam
-import hadesc.hir.HIRPropertyBinding
+import hadesc.hir.*
 import hadesc.types.Type
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -14,25 +11,33 @@ class ReceiverElimination(
         private val ctx: Context
 ) : HIRTransformer {
     override fun transformFunctionDef(definition: HIRDefinition.Function): Collection<HIRDefinition> {
-        if (definition.receiverType != null) {
-            return listOf(HIRDefinition.Function(
-                    location = definition.location,
-                    name = transformGlobalName(definition.name),
-                    typeParams = definition.typeParams?.map { transformTypeParam(it) },
-                    constraintParams = definition.constraintParams?.map { transformConstraintParam(it) },
-                    receiverType = null,
-                    returnType = lowerType(definition.returnType),
-                    body = transformBlock(definition.body),
-                    params = listOf(
-                            HIRParam(
-                                    definition.location,
-                                    thisRefName(),
-                                    lowerType(definition.receiverType))
-                    ) + definition.params.map {
-                        HIRParam(it.location, transformParamName(it.name), lowerType(it.type)) }
-            ))
+        return listOf(HIRDefinition.Function(
+                location = definition.location,
+                signature = transformFunctionSignature(definition.signature),
+
+                body = transformBlock(definition.body)
+        ))
+    }
+
+    override fun transformFunctionSignature(signature: HIRFunctionSignature): HIRFunctionSignature {
+        if (signature.receiverType == null) {
+            return super.transformFunctionSignature(signature)
         }
-        return super.transformFunctionDef(definition)
+        return HIRFunctionSignature(
+                location = signature.location,
+                name = transformGlobalName(signature.name),
+                typeParams = signature.typeParams?.map { transformTypeParam(it) },
+                constraintParams = signature.constraintParams?.map { transformConstraintParam(it) },
+                receiverType = null,
+                returnType = lowerType(signature.returnType),
+                params = listOf(
+                        HIRParam(
+                                signature.location,
+                                thisRefName(),
+                                lowerType(signature.receiverType))
+                ) + signature.params.map {
+                    HIRParam(it.location, transformParamName(it.name), lowerType(it.type)) }
+        )
     }
 
     override fun transformThisRef(expression: HIRExpression.ThisRef): HIRExpression {

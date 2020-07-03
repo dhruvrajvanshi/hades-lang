@@ -30,6 +30,7 @@ class IRGen(
         is HIRDefinition.ExternFunction -> lowerExternFunctionDef(definition)
         is HIRDefinition.Struct -> lowerStructDef(definition)
         is HIRDefinition.Implementation -> requireUnreachable()
+        is HIRDefinition.Interface -> TODO()
     }
 
     private fun lowerStructDef(definition: HIRDefinition.Struct) {

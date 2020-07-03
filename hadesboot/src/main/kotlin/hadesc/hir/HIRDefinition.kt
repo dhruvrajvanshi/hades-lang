@@ -1,6 +1,8 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.ast.Binder
+import hadesc.ast.Identifier
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -9,19 +11,24 @@ import hadesc.types.Type
 sealed class HIRDefinition: HasLocation {
     data class Function(
             override val location: SourceLocation,
-            val receiverType: Type?,
-            val name: QualifiedName,
-            val typeParams: List<HIRTypeParam>?,
-            val constraintParams: List<HIRConstraintParam>?,
-            val params: List<HIRParam>,
-            val returnType: Type,
+            val signature: HIRFunctionSignature,
             val body: HIRBlock
     ): HIRDefinition() {
+        val params get() = signature.params
+        val returnType get() = signature.returnType
+        val constraintParams get() = signature.constraintParams
+        val name get() = signature.name
+        val typeParams get() = signature.typeParams
+        val receiverType get() = signature.receiverType
         val type get() = Type.Function(
                 receiver = null,
                 from = params.map { it.type },
                 to = returnType,
-                constraints = emptyList(),
+                constraints = constraintParams?.map { Type.Constraint(
+                        interfaceName = it.interfaceRef.interfaceName,
+                        param = Type.Param(Binder(Identifier(it.param.location, it.param.name))),
+                        args = it.interfaceRef.typeArgs ?: listOf()
+                ) } ?: listOf(),
                 typeParams = null
         )
     }
@@ -57,23 +64,27 @@ sealed class HIRDefinition: HasLocation {
             val forType: Type,
             val members: List<Function>,
             val constraintParams: List<HIRConstraintParam>?
-    ) : HIRDefinition()
+    ) : HIRDefinition() {
+        init {
+            require(constraintParams == null || constraintParams.isNotEmpty())
+        }
+    }
+
+    data class Interface(
+            override val location: SourceLocation,
+            val name: QualifiedName,
+            val typeParams: List<HIRTypeParam>?,
+            val constraintParams: List<HIRConstraintParam>?,
+            val signatures: HIRFunctionSignature
+    ) : HIRDefinition() {
+        init {
+            require(constraintParams == null || constraintParams.isNotEmpty())
+        }
+    }
 
     fun prettyPrint(): String = when(this) {
         is Function -> {
-            val whereStr = if (constraintParams == null) {
-                ""
-            } else {
-                "where (${constraintParams.joinToString(", ") {it.prettyPrint()} })"
-            }
-            val typeParamsStr = if (typeParams == null)
-                ""
-            else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] $whereStr "
-            val thisParamStr = if (receiverType != null) {
-                "this: ${receiverType.prettyPrint()}" + if (params.isEmpty()) "" else ", "
-            } else ""
-            "def ${name.mangle()}$typeParamsStr($thisParamStr${params.joinToString(", ") {it.prettyPrint()}})" +
-                    ": ${returnType.prettyPrint()} ${body.prettyPrint()}"
+            "${signature.prettyPrint()} ${body.prettyPrint()}"
         }
         is ExternFunction -> {
             "extern def ${name.mangle()}(${params.joinToString(", ") {it.prettyPrint()}})" +
@@ -104,5 +115,6 @@ sealed class HIRDefinition: HasLocation {
                 }
             }\n}"
         }
+        is Interface -> TODO()
     }
 }

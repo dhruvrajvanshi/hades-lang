@@ -20,6 +20,7 @@ interface HIRTransformer: TypeTransformer {
         is HIRDefinition.ExternFunction -> transformExternFunctionDef(definition)
         is HIRDefinition.Struct -> transformStructDef(definition)
         is HIRDefinition.Implementation -> TODO()
+        is HIRDefinition.Interface -> TODO()
     }
 
     fun transformStructDef(definition: HIRDefinition.Struct): Collection<HIRDefinition> {
@@ -35,15 +36,22 @@ interface HIRTransformer: TypeTransformer {
 
     fun transformFunctionDef(definition: HIRDefinition.Function): Collection<HIRDefinition> {
         return listOf(HIRDefinition.Function(
-                receiverType = definition.receiverType?.let { lowerType(it) },
                 location = definition.location,
-                name = transformGlobalName(definition.name),
-                returnType = lowerType(definition.returnType),
-                constraintParams = definition.constraintParams?.map { transformConstraintParam(it) },
-                params = definition.params.map { transformParam(it) },
-                typeParams = definition.typeParams?.map { transformTypeParam(it) },
+                signature = transformFunctionSignature(definition.signature),
                 body = transformBlock(definition.body)
         ))
+    }
+
+    fun transformFunctionSignature(signature: HIRFunctionSignature): HIRFunctionSignature {
+        return HIRFunctionSignature(
+                location = signature.location,
+                receiverType = signature.receiverType?.let { lowerType(it) },
+                name = transformGlobalName(signature.name),
+                returnType = lowerType(signature.returnType),
+                constraintParams = signature.constraintParams?.map { transformConstraintParam(it) },
+                params = signature.params.map { transformParam(it) },
+                typeParams = signature.typeParams?.map { transformTypeParam(it) }
+        )
     }
 
     fun transformConstraintParam(param: HIRConstraintParam): HIRConstraintParam {

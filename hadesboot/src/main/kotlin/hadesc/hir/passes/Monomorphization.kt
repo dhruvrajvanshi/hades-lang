@@ -2,10 +2,7 @@ package hadesc.hir.passes
 
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
-import hadesc.hir.HIRDefinition
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIRModule
-import hadesc.hir.HIRTypeParam
+import hadesc.hir.*
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
@@ -43,13 +40,10 @@ class Monomorphization(
                 module.addDefinition(
                         HIRDefinition.Function(
                                 location = definition.location,
-                                returnType = lowerType(definition.returnType),
-                                typeParams = null,
-                                name = getSpecializedName(request.name, request.typeArgs),
-                                params = definition.params.map { transformParam(it) },
-                                body = transformBlock(definition.body),
-                                receiverType = definition.receiverType?.let { lowerType(it) },
-                                constraintParams = null
+                                signature = specializeFunctionSignature(
+                                        request,
+                                        definition.signature),
+                                body = transformBlock(definition.body)
                         )
                 )
 
@@ -74,6 +68,18 @@ class Monomorphization(
             }
         }
 
+    }
+
+    private fun specializeFunctionSignature(request: SpecializationRequest, definition: HIRFunctionSignature): HIRFunctionSignature {
+        return HIRFunctionSignature(
+            location = definition.location,
+            returnType = lowerType(definition.returnType),
+            typeParams = null,
+            name = getSpecializedName(request.name, request.typeArgs),
+            params = definition.params.map { transformParam(it) },
+            receiverType = definition.receiverType?.let { lowerType(it) },
+            constraintParams = null
+        )
     }
 
     override fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {

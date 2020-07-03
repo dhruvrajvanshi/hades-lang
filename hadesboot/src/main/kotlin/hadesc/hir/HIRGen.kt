@@ -64,13 +64,18 @@ class HIRGen(
     }
 
     private fun lowerConstraintParams(typeParams: List<TypeParam>?): List<HIRConstraintParam>? {
-        return typeParams?.flatMap {
+        val constraints = typeParams?.flatMap {
             if (it.bound == null)
                 emptyList()
             else listOf(HIRConstraintParam(
                     lowerTypeParam(it),
                     lowerInterfaceRef(it.bound))
             )
+        }
+        return if (constraints == null || constraints.isEmpty()) {
+            null
+        } else {
+            constraints
         }
     }
 
@@ -114,20 +119,28 @@ class HIRGen(
     private fun lowerFunctionDef(declaration: Declaration.FunctionDef): HIRDefinition.Function {
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
-        val name = if (declaration.thisParam == null) {
-            lowerGlobalName(declaration.name)
-        } else {
-            extensionFunctionName(declaration)
-        }
         return HIRDefinition.Function(
                 location = declaration.location,
-                receiverType = declaration.signature.thisParam?.annotation?.let { lowerTypeAnnotation(it) },
-                name = name,
-                typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
-                constraintParams = lowerConstraintParams(declaration.typeParams),
-                params = declaration.params.map { lowerParam(it) },
-                returnType = returnType,
+                signature = lowerFunctionSignature(declaration.signature),
                 body = lowerBlock(declaration.body, addReturnVoid)
+        )
+    }
+
+    private fun lowerFunctionSignature(signature: FunctionSignature): HIRFunctionSignature {
+        val returnType = lowerTypeAnnotation(signature.returnType)
+        val name = if (signature.thisParam == null) {
+            lowerGlobalName(signature.name)
+        } else {
+            extensionFunctionName(signature)
+        }
+        return HIRFunctionSignature(
+                location = signature.location,
+                receiverType = signature.thisParam?.annotation?.let { lowerTypeAnnotation(it) },
+                name = name,
+                typeParams = signature.typeParams?.map { lowerTypeParam(it) },
+                constraintParams = lowerConstraintParams(signature.typeParams),
+                params = signature.params.map { lowerParam(it) },
+                returnType = returnType
         )
     }
 
@@ -457,12 +470,12 @@ class HIRGen(
                 thisValue = lowerExpression(expression.lhs),
                 propertyBinding = HIRPropertyBinding.GlobalExtensionRef(
                         location = expression.lhs.location,
-                        functionName = extensionFunctionName(binding.def)
+                        functionName = extensionFunctionName(binding.def.signature)
                 )
         )
     }
 
-    private fun extensionFunctionName(def: Declaration.FunctionDef): QualifiedName {
+    private fun extensionFunctionName(def: FunctionSignature): QualifiedName {
         val defName = lowerGlobalName(def.name)
         val thisParam = requireNotNull(def.thisParam)
         return defName.withPrefix(QualifiedName(listOf(
