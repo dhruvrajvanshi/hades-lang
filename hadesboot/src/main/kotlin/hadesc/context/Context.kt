@@ -5,6 +5,7 @@ import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
+import hadesc.checker.Checker
 import hadesc.typer.Typer
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
@@ -31,9 +32,10 @@ class Context(
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() = profile("Context::build") {
+        val checker = Checker(this)
         forEachSourceFile {
             for (declaration in it.declarations) {
-                typer.checkDeclaration(declaration)
+                checker.checkDeclaration(declaration)
             }
         }
 

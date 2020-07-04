@@ -1,7 +1,6 @@
 package hadesc.types
 
 import hadesc.ast.Binder
-import hadesc.ast.TypeParam
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
@@ -23,7 +22,6 @@ sealed class Type {
     data class Function(
         val receiver: Type?,
         val from: List<Type>,
-        val typeParams: List<Param>?,
         val to: Type,
         val constraints: List<Constraint> = listOf()
     ) : Type()
@@ -70,12 +68,9 @@ sealed class Type {
             else "*${to.prettyPrint()}"
         }
         is Function -> {
-            val typeParams = if (this.typeParams != null) {
-                "[${this.typeParams.joinToString(", ") { it.prettyPrint() }}]"
-            } else ""
             val receiver = if (this.receiver == null) "" else "this: ${this.receiver.prettyPrint()}, "
             val whereClause = if (constraints.isEmpty()) "" else " where ${ this.constraints.joinToString(", ") {it.prettyPrint()} }"
-            "$typeParams($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
+            "($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
         }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> name.identifier.name.text
@@ -103,7 +98,6 @@ sealed class Type {
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
                 receiver = receiver?.recurse(),
-                typeParams = this.typeParams,
                 from = this.from.map { it.recurse() },
                 to = this.to.recurse(),
                 constraints = this.constraints.map {

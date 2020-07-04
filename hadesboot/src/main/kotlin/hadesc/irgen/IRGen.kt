@@ -39,8 +39,7 @@ class IRGen(
                 receiver = null,
                 from = definition.fields.map { it.second },
                 to = instanceType,
-                constraints = listOf(),
-                typeParams = null
+                constraints = listOf()
         )
         module.addStructDef(
             constructorType,
@@ -77,7 +76,7 @@ class IRGen(
                 params = definition.params.mapIndexed { index, it -> lowerParam(functionName, index, it) },
                 entryBlock = entryBlock,
                 receiverType = null,
-                type = definition.type
+                type = definition.type as Type.Function
         )
 
         currentFunction = fn

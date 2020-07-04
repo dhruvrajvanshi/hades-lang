@@ -59,7 +59,6 @@ class ReceiverElimination(
         return Type.Function(
                 from = from,
                 to = lowerType(type.to),
-                typeParams = type.typeParams,
                 constraints = emptyList(),
                 receiver = null
         )

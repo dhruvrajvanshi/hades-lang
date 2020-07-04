@@ -20,17 +20,29 @@ sealed class HIRDefinition: HasLocation {
         val name get() = signature.name
         val typeParams get() = signature.typeParams
         val receiverType get() = signature.receiverType
-        val type get() = Type.Function(
-                receiver = null,
-                from = params.map { it.type },
-                to = returnType,
-                constraints = constraintParams?.map { Type.Constraint(
-                        interfaceName = it.interfaceRef.interfaceName,
-                        param = Type.Param(Binder(Identifier(it.param.location, it.param.name))),
-                        args = it.interfaceRef.typeArgs ?: listOf()
-                ) } ?: listOf(),
-                typeParams = null
-        )
+        val type get(): Type {
+            val functionType = Type.Function(
+                    receiver = null,
+                    from = params.map { it.type },
+                    to = returnType,
+                    constraints = constraintParams?.map {
+                        Type.Constraint(
+                                interfaceName = it.interfaceRef.interfaceName,
+                                param = Type.Param(Binder(Identifier(it.param.location, it.param.name))),
+                                args = it.interfaceRef.typeArgs ?: listOf()
+                        )
+                    } ?: listOf()
+
+            )
+            return if (typeParams != null) {
+                Type.TypeFunction(
+                        params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
+                        body = functionType
+                )
+            } else {
+                functionType
+            }
+        }
     }
 
     data class ExternFunction(
@@ -44,8 +56,7 @@ sealed class HIRDefinition: HasLocation {
                 receiver = null,
                 from = params,
                 to = returnType,
-                constraints = emptyList(),
-                typeParams = null
+                constraints = emptyList()
         )
     }
 

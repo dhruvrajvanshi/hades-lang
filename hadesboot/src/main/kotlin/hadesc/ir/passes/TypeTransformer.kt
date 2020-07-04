@@ -22,7 +22,14 @@ interface TypeTransformer {
         is Type.Application -> lowerTypeApplication(type)
         is Type.ThisRef -> lowerThisRefType(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
-        is Type.TypeFunction -> requireUnreachable()
+        is Type.TypeFunction -> lowerTypeFunction(type)
+    }
+
+    fun lowerTypeFunction(type: Type.TypeFunction): Type {
+        return Type.TypeFunction(
+                params = type.params,
+                body = lowerType(type.body)
+        )
     }
 
     fun lowerDoubleType(type: Type): Type {
@@ -35,7 +42,6 @@ interface TypeTransformer {
 
     fun lowerFunctionType(type: Type.Function): Type = Type.Function(
             receiver = type.receiver?.let { lowerType(it) },
-            typeParams = type.typeParams,
             from = type.from.map { lowerType(it) },
             to = lowerType(type.to)
     )

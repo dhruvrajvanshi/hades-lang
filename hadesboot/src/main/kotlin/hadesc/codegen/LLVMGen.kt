@@ -446,9 +446,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             require(type.constraints.isEmpty()) {
                 "Found type constraints in LLVMGen phase"
             }
-            require(type.typeParams == null) {
-                "Can't lower unspecialized generic function type"
-            }
             FunctionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
