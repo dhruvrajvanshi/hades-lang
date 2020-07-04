@@ -479,22 +479,13 @@ class Resolver(private val ctx: Context) {
         }
     }
 
-    fun resolveQualifiedTypeDeclaration(path: QualifiedPath): Declaration? {
+    fun resolveQualifiedType(path: QualifiedPath): TypeBinding? {
         require(path.identifiers.size == 2)
         val sourceFile = sourceFileOf(path)
         for (decl in sourceFile.declarations) {
             if (decl is Declaration.ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
                 val importedSourceFile = ctx.resolveSourceFile(decl.modulePath) ?: return null
-                val binding = findTypeInSourceFile(path.identifiers.last(), importedSourceFile)
-                return if (binding == null) {
-                    null
-                } else if (binding is TypeBinding.Struct) {
-                    return binding.declaration
-                } else if (binding is TypeBinding.TypeAlias) {
-                    return binding.declaration
-                } else {
-                    return null
-                }
+                return findTypeInSourceFile(path.identifiers.last(), importedSourceFile)
             }
         }
         return null

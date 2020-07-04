@@ -1,5 +1,6 @@
 package hadesc.typer
 
+import hadesc.Name
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.ir.BinaryOperator
@@ -17,8 +18,77 @@ class Typer(
 ) {
     private val returnTypeStack = Stack<Type>()
 
-    fun getPropertyBinding(expression: Expression.Property): PropertyBinding {
+    fun getPropertyBinding(expression: Expression.Property): PropertyBinding? {
+
+        val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
+        if (modulePropertyBinding != null) {
+            val type = typeOfBinding(modulePropertyBinding)
+            return PropertyBinding.Global(type, modulePropertyBinding)
+        }
+
+        val fieldBinding = resolveStructFieldBinding(expression)
+        if (fieldBinding != null) {
+            return fieldBinding
+        }
+
+        val globalExtensionFunctionBinding = resolveExtensionFunction(expression)
+        if (globalExtensionFunctionBinding != null) {
+            return globalExtensionFunctionBinding
+        }
         TODO()
+    }
+
+    private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs)
+        val structDecl = getStructDeclOfType(lhsType)
+        return if (structDecl == null) null else {
+            val index = structDecl.members.indexOfFirst {
+                it is Declaration.Struct.Member.Field
+                        && it.binder.identifier.name == expression.property.name
+            }
+            if (index > -1) {
+                val field = structDecl.members[index]
+                require(field is Declaration.Struct.Member.Field)
+                PropertyBinding.StructField(
+                        type = annotationToType(field.typeAnnotation),
+                        structDecl = structDecl,
+                        memberIndex = index
+                )
+            } else null
+        }
+
+    }
+
+    private fun getStructDeclOfType(lhsType: Type): Declaration.Struct? {
+        return when (lhsType) {
+            is Type.Constructor -> {
+                val decl = ctx.resolver.resolveDeclaration(lhsType.name)
+                require(decl is Declaration.Struct)
+                decl
+            }
+            else -> null
+        }
+    }
+
+    private fun resolveExtensionFunction(expression: Expression.Property): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs)
+        for (functionDef in ctx.resolver.extensionDefsInScope(expression, expression.property)) {
+            require(functionDef.thisParam != null)
+            val thisType = annotationToType(functionDef.thisParam.annotation)
+
+            if (isTypeAssignableTo(lhsType, thisType, Variance.INVARIANCE)) {
+                return PropertyBinding.GlobalExtensionFunction(
+                        typeOfBinder(functionDef.name),
+                        functionDef
+                )
+            }
+
+        }
+        return null
+    }
+
+    private fun isTypeAssignableTo(source: Type, destination: Type, variance: Variance): Boolean {
+        return source == destination
     }
 
     private val typeOfExpressionCache = MutableNodeMap<Expression, Type>()
@@ -59,12 +129,18 @@ class Typer(
         is Statement.Return -> visitReturnStatement(statement)
         is Statement.Val -> visitValStatement(statement)
         is Statement.While -> TODO()
-        is Statement.If -> TODO()
+        is Statement.If -> visitIfStatement(statement)
         is Statement.LocalAssignment -> TODO()
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
         is Statement.Defer -> TODO()
         is Statement.Error -> TODO()
+    }
+
+    private fun visitIfStatement(statement: Statement.If) {
+        checkExpression(statement.condition, Type.Bool)
+        visitBlock(statement.ifTrue)
+        statement.ifFalse?.let { visitBlock(it) }
     }
 
     private fun visitReturnStatement(statement: Statement.Return) {
@@ -94,20 +170,20 @@ class Typer(
             is Expression.Error -> Type.Error
             is Expression.Var -> inferVarExpresion(expression)
             is Expression.Call -> inferCallExpression(expression)
-            is Expression.Property -> TODO()
+            is Expression.Property -> inferPropertyExpression(expression)
             is Expression.ByteString -> Type.Ptr(Type.Byte, isMutable = false)
-            is Expression.BoolLiteral -> TODO()
-            is Expression.This -> TODO()
-            is Expression.NullPtr -> TODO()
-            is Expression.IntLiteral -> TODO()
-            is Expression.Not -> TODO()
+            is Expression.BoolLiteral -> Type.Bool
+            is Expression.This -> inferThisExpression(expression)
+            is Expression.NullPtr -> Type.Error
+            is Expression.IntLiteral -> inferIntLiteral(expression)
+            is Expression.Not -> inferNotExpression(expression)
             is Expression.BinaryOperation -> TODO()
             is Expression.SizeOf -> TODO()
             is Expression.AddressOf -> TODO()
             is Expression.AddressOfMut -> TODO()
             is Expression.Deref -> TODO()
             is Expression.PointerCast -> TODO()
-            is Expression.If -> TODO()
+            is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
             is Expression.New -> TODO()
@@ -117,6 +193,33 @@ class Typer(
         return type
 
     }
+
+    private fun inferIntLiteral(expression: Expression.IntLiteral): Type {
+        return Type.CInt
+    }
+
+    private fun inferIfExpression(expression: Expression.If): Type {
+        checkExpression(expression.condition, Type.Bool)
+        val type = inferExpression(expression.trueBranch)
+        checkExpression(expression.falseBranch, type)
+        return type
+    }
+
+    private fun inferThisExpression(expression: Expression.This): Type {
+        val thisBinding = ctx.resolver.resolveThisParam(expression)
+        return if (thisBinding == null) {
+            Type.Error
+        } else {
+            return annotationToType(thisBinding.annotation)
+        }
+    }
+
+    private fun inferNotExpression(expression: Expression.Not): Type {
+        return checkExpression(expression.expression, Type.Bool)
+    }
+
+    private fun inferPropertyExpression(expression: Expression.Property): Type =
+            getPropertyBinding(expression)?.type ?: Type.Error
 
     private fun inferVarExpresion(expression: Expression.Var): Type {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
@@ -129,11 +232,43 @@ class Typer(
         is Binding.GlobalFunction -> typeOfGlobalFunctionRef(binding.declaration)
         is Binding.ExternFunction -> typeOfExternFunctionRef(binding.declaration)
         is Binding.FunctionParam -> typeOfParam(binding.declaration, binding.index)
-        is Binding.ValBinding -> TODO()
-        is Binding.Struct -> TODO()
+        is Binding.ValBinding -> typeOfValRef(binding)
+        is Binding.Struct -> typeOfStructValueRef(binding)
         is Binding.GlobalConst -> TODO()
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+    }
+
+    private fun typeOfStructValueRef(binding: Binding.Struct): Type {
+        require(binding.declaration.typeParams == null)
+        val name = ctx.resolver.resolveGlobalName(binding.declaration.binder)
+        val instanceType = Type.Constructor(
+                binding.declaration.binder,
+                name
+        )
+        val fieldTypes = structFieldTypes(binding.declaration).values.toList()
+        return Type.Ptr(
+                Type.Function(receiver = null, from = fieldTypes, to = instanceType),
+                isMutable = false
+        )
+    }
+
+    private fun structFieldTypes(declaration: Declaration.Struct): Map<Name, Type> {
+        return declaration.members.map {
+            when (it) {
+                is Declaration.Struct.Member.Field ->
+                    it.binder.identifier.name to annotationToType(it.typeAnnotation)
+            }
+        }.toMap()
+    }
+
+    private fun typeOfValRef(binding: Binding.ValBinding): Type {
+        return if (binding.statement.typeAnnotation != null) {
+            annotationToType(binding.statement.typeAnnotation)
+        } else {
+            typeOfExpression(binding.statement.rhs)
+        }
+
     }
 
     private fun typeOfParam(declaration: Declaration.FunctionDef, paramIndex: Int): Type {
@@ -240,10 +375,19 @@ class Typer(
         is TypeAnnotation.Ptr -> ptrAnnotationToType(annotation)
         is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
         is TypeAnnotation.Application -> TODO()
-        is TypeAnnotation.Qualified -> TODO()
+        is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
         is TypeAnnotation.Function -> TODO()
         is TypeAnnotation.This -> TODO()
         is TypeAnnotation.Union -> TODO()
+    }
+
+    private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
+        val binding = ctx.resolver.resolveQualifiedType(annotation.qualifiedPath)
+        return if (binding == null) {
+            Type.Error
+        } else {
+            return typeOfTypeBinding(binding)
+        }
     }
 
     private fun mutPtrAnnotationToType(annotation: TypeAnnotation.MutPtr): Type {
@@ -260,23 +404,36 @@ class Typer(
         )
     }
 
+    private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
+        require(binding.declaration.typeParams == null) { TODO()}
+        val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
+        return Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
+    }
+
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
-        return when (ctx.resolver.resolveTypeVariable(annotation.name)) {
-            is TypeBinding.Struct -> TODO()
+        val binding = ctx.resolver.resolveTypeVariable(annotation.name)
+        return if (binding == null) {
+            when (annotation.name.name.text) {
+                "Int" -> Type.CInt
+                "Bool" -> Type.Bool
+                "Byte" -> Type.Byte
+                "Size" -> Type.Size
+                "Double" -> Type.Double
+                "Void" -> Type.Void
+                else -> Type.Error
+            }
+        } else {
+            typeOfTypeBinding(binding)
+        }
+
+    }
+
+    private fun typeOfTypeBinding(binding: TypeBinding): Type {
+        return when (binding) {
+            is TypeBinding.Struct -> typeOfStructBinding(binding)
             is TypeBinding.TypeParam -> TODO()
             is TypeBinding.Enum -> TODO()
             is TypeBinding.TypeAlias -> TODO()
-            null -> {
-                when (annotation.name.name.text) {
-                    "Int" -> Type.CInt
-                    "Bool" -> Type.Bool
-                    "Byte" -> Type.Byte
-                    "Size" -> Type.Size
-                    "Double" -> Type.Double
-                    "Void" -> Type.Void
-                    else -> Type.Error
-                }
-            }
         }
     }
 

@@ -424,12 +424,12 @@ class HIRGen(
     }
 
     private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.typer.getPropertyBinding(expression)) {
+        null -> requireUnreachable()
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> TODO()
         is PropertyBinding.GlobalExtensionFunction -> lowerGlobalExtensionRef(expression, binding)
         is PropertyBinding.InterfaceExtensionFunction -> lowerInterfaceMethodRef(expression, binding)
-        null -> requireUnreachable()
     }
 
     private fun lowerInterfaceMethodRef(

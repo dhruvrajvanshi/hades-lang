@@ -1,6 +1,6 @@
 
 extern def puts(*Byte): Void = puts;
-extern def exit(CInt): Void = exit;
+extern def exit(Int): Void = exit;
 extern def malloc(Size): *mut Void = malloc;
 extern def free(*mut Void): Void = free;
 extern def strlen(*Byte): Size = strlen;
@@ -29,7 +29,7 @@ extern def closedir(*Dir): Void = closedir;
 extern def readdir(*Dir): *dirent = readdir;
 extern def getline(*mut *mut Byte, *mut Size, *File): Size = getline;
 extern def fgetc(*File): Byte = fgetc;
-extern def strtoul(*Byte, **Byte, CInt): Size = strtoul;
+extern def strtoul(*Byte, **Byte, Int): Size = strtoul;
 
 extern def hdc_dirent_name(*dirent): *Byte = hdc_dirent_name;
 extern def hdc_dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;
