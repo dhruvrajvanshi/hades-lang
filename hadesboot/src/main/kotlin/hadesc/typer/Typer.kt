@@ -1,4 +1,4 @@
-package hadesc.checker
+package hadesc.typer
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
@@ -17,7 +17,7 @@ import java.util.*
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
-class Checker(
+class Typer(
         private val ctx: Context
 ) {
 

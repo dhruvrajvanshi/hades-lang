@@ -14,7 +14,7 @@ class ExplicitConstraints(
     override val module: IRModule = IRModule()
 
     private fun typeOfInterfaceInstance(interfaceName: QualifiedName, thisType: Type, typeArgs: List<Type>): Type {
-        val interfaceDecl = ctx.checker.getInterfaceDecl(interfaceName)
+        val interfaceDecl = ctx.typer.getInterfaceDecl(interfaceName)
         require(interfaceDecl.typeParams?.size ?: 0 == typeArgs.size)
         val interfaceTypeParams = interfaceDecl.typeParams?.map {
             require(it.bound == null)

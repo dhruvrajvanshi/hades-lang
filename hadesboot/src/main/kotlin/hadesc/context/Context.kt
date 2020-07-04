@@ -5,14 +5,12 @@ import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
-import hadesc.checker.Checker
+import hadesc.typer.Typer
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
 import hadesc.hir.passes.Monomorphization
 import hadesc.hir.passes.ReceiverElimination
-import hadesc.ir.passes.ExplicitConstraints
-import hadesc.ir.passes.ExplicitThis
 import hadesc.irgen.IRGen
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
@@ -26,7 +24,7 @@ import java.nio.file.Path
 class Context(
     val options: BuildOptions
 ) {
-    val checker: Checker = Checker(this)
+    val typer: Typer = Typer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
@@ -35,7 +33,7 @@ class Context(
     fun build() = profile("Context::build") {
         forEachSourceFile {
             for (declaration in it.declarations) {
-                checker.checkDeclaration(declaration)
+                typer.checkDeclaration(declaration)
             }
         }
 

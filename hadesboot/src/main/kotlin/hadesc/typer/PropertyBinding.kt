@@ -1,4 +1,4 @@
-package hadesc.checker
+package hadesc.typer
 
 import hadesc.ast.Declaration
 import hadesc.resolver.Binding

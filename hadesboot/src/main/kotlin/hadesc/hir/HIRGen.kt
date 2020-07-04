@@ -3,8 +3,8 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.checker.ImplementationBinding
-import hadesc.checker.PropertyBinding
+import hadesc.typer.ImplementationBinding
+import hadesc.typer.PropertyBinding
 import hadesc.context.Context
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
@@ -422,7 +422,7 @@ class HIRGen(
         ))
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.checker.getPropertyBinding(expression)) {
+    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.typer.getPropertyBinding(expression)) {
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> TODO()
@@ -578,7 +578,7 @@ class HIRGen(
     }
 
     private fun typeOfExpression(expression: Expression): Type {
-        return ctx.checker.typeOfExpression(expression)
+        return ctx.typer.typeOfExpression(expression)
     }
 
     private fun lowerVarExpression(expression: Expression.Var): HIRExpression {
@@ -593,20 +593,20 @@ class HIRGen(
                 expression.location,
                 typeOfExpression(expression),
                 lowerExpression(expression.callee),
-                ctx.checker.getTypeArgs(expression),
+                ctx.typer.getTypeArgs(expression),
                 expression.args.map { lowerExpression(it.expression) }
         )
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return ctx.checker.annotationToType(annotation)
+        return ctx.typer.annotationToType(annotation)
     }
 
     private fun lowerParam(param: Param): HIRParam {
         return HIRParam(
                 param.location,
                 name = param.binder.identifier.name,
-                type = ctx.checker.typeOfBinder(param.binder)
+                type = ctx.typer.typeOfBinder(param.binder)
         )
     }
 

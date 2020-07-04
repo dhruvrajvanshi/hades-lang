@@ -3,8 +3,8 @@ package hadesc.irgen
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.checker.ImplementationBinding
-import hadesc.checker.PropertyBinding
+import hadesc.typer.ImplementationBinding
+import hadesc.typer.PropertyBinding
 import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.ir.*
@@ -78,7 +78,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         if (declaration.location in isEnumDeclLowered) {
             return
         }
-        val instanceType = ctx.checker.typeOfEnumInstance(declaration)
+        val instanceType = ctx.typer.typeOfEnumInstance(declaration)
         val enumName = ctx.resolver.qualifiedEnumName(declaration)
         val typeParams = declaration.typeParams?.map { lowerTypeParam(it) }
         val caseTypes = mutableListOf<Type>()
@@ -102,12 +102,12 @@ internal class ProgramVisitor(private val ctx: Context) {
             } else {
                 val constructorType = Type.Function(
                         typeParams = typeParams?.map { Type.Param(it.binder) },
-                        from = case.params.map { ctx.checker.annotationToType(it) },
+                        from = case.params.map { ctx.typer.annotationToType(it) },
                         to = caseInstanceType,
                         receiver = null
                 )
                 val fields = case.params.mapIndexed { paramIndex, annotation ->
-                    ctx.makeName(paramIndex.toString()) to ctx.checker.annotationToType(annotation)
+                    ctx.makeName(paramIndex.toString()) to ctx.typer.annotationToType(annotation)
                 }.toMap()
                 module.addStructDef(
                         constructorType,
@@ -127,7 +127,7 @@ internal class ProgramVisitor(private val ctx: Context) {
                     entryBlock = IRBlock(IRLocalName(ctx.makeName("entry"))),
                     params = case.params.mapIndexed { paramIndex, caseParam ->
                         IRParam(
-                                type = ctx.checker.annotationToType(caseParam),
+                                type = ctx.typer.annotationToType(caseParam),
                                 location = caseParam.location,
                                 functionName = constructorName,
                                 index = paramIndex,
@@ -177,7 +177,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val fields = declaration.members.map {
             exhaustive(when (it) {
                 is Declaration.Interface.Member.FunctionSignature -> {
-                    val fnType = ctx.checker.typeOfFunctionSignature(it.signature).applySubstitution(mapOf(), thisType)
+                    val fnType = ctx.typer.typeOfFunctionSignature(it.signature).applySubstitution(mapOf(), thisType)
                     require(fnType is Type.Function)
                     it.signature.name.identifier.name to
                             Type.Ptr(fnType, isMutable = false)
@@ -209,7 +209,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun implType(declaration: Declaration.Implementation): Type {
-        return getInterfaceRefType(declaration.interfaceRef, ctx.checker.annotationToType(declaration.forType))
+        return getInterfaceRefType(declaration.interfaceRef, ctx.typer.annotationToType(declaration.forType))
     }
 
     private fun resolveInterfaceDecl(interfaceRef: InterfaceRef): Declaration.Interface {
@@ -226,7 +226,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val name = getInterfaceName(interfaceRef)
         return IRInterfaceRef(
                 name,
-                interfaceRef.typeArgs?.map { ctx.checker.annotationToType(it) } ?: listOf()
+                interfaceRef.typeArgs?.map { ctx.typer.annotationToType(it) } ?: listOf()
         )
     }
 
@@ -237,7 +237,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun typeOfInterfaceInstance(interfaceRef: IRInterfaceRef, thisType: Type): Type {
-        val interfaceDecl = ctx.checker.getInterfaceDecl(interfaceRef.name.name)
+        val interfaceDecl = ctx.typer.getInterfaceDecl(interfaceRef.name.name)
         val interfaceName = interfaceRef.name.name
         require(interfaceDecl.typeParams?.size ?: 0 == interfaceRef.typeArgs.size)
         val interfaceTypeParams = interfaceDecl.typeParams?.map {
@@ -338,11 +338,11 @@ internal class ProgramVisitor(private val ctx: Context) {
         }
         val fields = declaration.members.map {
             when (it) {
-                is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.checker.annotationToType(it.typeAnnotation)
+                is Declaration.Struct.Member.Field -> it.binder.identifier.name to ctx.typer.annotationToType(it.typeAnnotation)
             }
         }.toMap()
         val (name, type) = lowerGlobalBinder(declaration.binder)
-        val instanceType = ctx.checker.typeOfStructInstance(declaration)
+        val instanceType = ctx.typer.typeOfStructInstance(declaration)
         val typeParams = declaration.typeParams?.map { lowerTypeParam(it) }
         val def = module.addStructDef(
             type as Type.Function,
@@ -420,7 +420,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             else IRGlobalName(unprefixedName.name.withPrefix(prefix))
             require(type is Type.Function)
             val params = def.params.mapIndexed { index, param -> lowerParam(param, functionName, index) }
-            val receiverType = def.signature.thisParam?.annotation?.let { ctx.checker.annotationToType(it) }
+            val receiverType = def.signature.thisParam?.annotation?.let { ctx.typer.annotationToType(it) }
 
             val function = module.addGlobalFunctionDef(
                 def.signature.location,
@@ -652,7 +652,7 @@ internal class ProgramVisitor(private val ctx: Context) {
             is Expression.SizeOf -> IRSizeOf(
                     type = Type.Size,
                     location = expression.location,
-                    ofType = ctx.checker.annotationToType(expression.type))
+                    ofType = ctx.typer.annotationToType(expression.type))
             is Expression.AddressOf -> lowerAddressOf(expression)
             is Expression.AddressOfMut -> lowerAddressOfMut(expression)
             is Expression.Deref -> lowerLoad(expression)
@@ -692,7 +692,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val thisPtr = builder.buildVariable(type, expression.location, thisPtrName)
 
         val args = listOf(thisPtr) + expression.args.map { lowerExpression(it.expression) }
-        val typeArgs = ctx.checker.getTypeArgs(expression)
+        val typeArgs = ctx.typer.getTypeArgs(expression)
 
         val calleeDef = module.resolveGlobal(structInitializerName(structDef.globalName))
         require(calleeDef is IRBinding.FunctionDef)
@@ -805,7 +805,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerPointerCast(expression: Expression.PointerCast): IRValue {
-        val toPointerOfType = ctx.checker.annotationToType(expression.toType)
+        val toPointerOfType = ctx.typer.annotationToType(expression.toType)
         return IRPointerCast(
                 type = typeOfExpression(expression),
                 location = expression.location,
@@ -934,7 +934,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun getDropImpl(type: Type, node: HasLocation): ImplementationBinding? {
-        return ctx.checker.getInterfaceImplementation(
+        return ctx.typer.getInterfaceImplementation(
                 type,
                 node,
                 ctx.dropInterfaceName,
@@ -994,14 +994,14 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     private fun lowerByteString(expression: Expression.ByteString): IRValue {
         return builder.buildByteString(
-            ctx.checker.typeOfExpression(expression),
+            ctx.typer.typeOfExpression(expression),
             expression.location,
             expression.bytes
         )
     }
 
     private fun lowerProperty(expression: Expression.Property): IRValue {
-        return when (val binding = requireNotNull(ctx.checker.getPropertyBinding(expression))) {
+        return when (val binding = requireNotNull(ctx.typer.getPropertyBinding(expression))) {
             is PropertyBinding.Global -> lowerBindingRef(typeOfExpression(expression), expression, binding.binding)
             is PropertyBinding.StructField -> {
                 lowerStructFieldBinding(expression, binding)
@@ -1047,11 +1047,11 @@ internal class ProgramVisitor(private val ctx: Context) {
         val interfaceDecl = resolveInterfaceDecl(interfaceRef)
 
         val substitution = interfaceDecl.typeParams?.zip(interfaceRef.typeArgs ?: listOf())?.map {
-            it.first.binder.location to ctx.checker.annotationToType(it.second)
+            it.first.binder.location to ctx.typer.annotationToType(it.second)
         }?.toMap() ?: mapOf()
         return when (val member = interfaceDecl.members[memberIndex]) {
             is Declaration.Interface.Member.FunctionSignature -> {
-                val fnType = ctx.checker.typeOfFunctionSignature(member.signature).applySubstitution(substitution, thisType)
+                val fnType = ctx.typer.typeOfFunctionSignature(member.signature).applySubstitution(substitution, thisType)
                 require(fnType is Type.Function)
                 Type.Ptr(fnType, isMutable = false)
             }
@@ -1099,7 +1099,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         val (fnName, methodTy) = lowerGlobalBinder(def.name)
         require(methodTy is Type.Function)
         require(methodTy.receiver != null)
-        val typeArgs = ctx.checker.getTypeArgs(expression)
+        val typeArgs = ctx.typer.getTypeArgs(expression)
         if (def.typeParams != null) {
             require(typeArgs != null)
         }
@@ -1139,7 +1139,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerVar(variable: Expression.Var): IRValue {
-        return lowerBindingRef(ctx.checker.typeOfExpression(variable), variable, ctx.resolver.resolve(variable.name))
+        return lowerBindingRef(ctx.typer.typeOfExpression(variable), variable, ctx.resolver.resolve(variable.name))
     }
 
     private val patternVars = mutableMapOf<SourceLocation, IRLocalName>()
@@ -1197,19 +1197,19 @@ internal class ProgramVisitor(private val ctx: Context) {
         val callee = lowerExpression(expression.callee)
         val args = expression.args.map { lowerExpression(it.expression) }
         val type = typeOfExpression(expression)
-        val constraintBindings = ctx.checker.getConstraintBindings(expression)
+        val constraintBindings = ctx.typer.getConstraintBindings(expression)
         return builder.buildCall(
             type,
             expression.location,
             callee = callee,
-            typeArgs = ctx.checker.getTypeArgs(expression),
+            typeArgs = ctx.typer.getTypeArgs(expression),
             args = args + constraintBindings.map { lowerImplBinding(callee.location, it) },
             name = makeLocalName()
         )
     }
 
     private fun typeOfExpression(expression: Expression): Type {
-        return ctx.checker.typeOfExpression(expression)
+        return ctx.typer.typeOfExpression(expression)
     }
 
     private fun lowerStatement(statement: Statement) = when (statement) {
@@ -1234,7 +1234,7 @@ internal class ProgramVisitor(private val ctx: Context) {
         require(statement.lhs.lhs is Expression.Var)
         val valuePtr = resolveLocalVariablePointer(statement.lhs.lhs.name)
         val lhsType = typeOfExpression(statement.lhs)
-        val propertyBinding = ctx.checker.getPropertyBinding(statement.lhs)
+        val propertyBinding = ctx.typer.getPropertyBinding(statement.lhs)
         require(propertyBinding is PropertyBinding.StructField)
         val offset = propertyBinding.memberIndex
         val memberPtr = IRGetElementPointer(
@@ -1358,7 +1358,7 @@ internal class ProgramVisitor(private val ctx: Context) {
 
     private fun lowerIfExpression(expr: Expression.If): IRValue {
         val resultPtrName = makeLocalName()
-        val type = ctx.checker.typeOfExpression(expr.trueBranch)
+        val type = ctx.typer.typeOfExpression(expr.trueBranch)
         alloca(type, resultPtrName, expr)
         val condition = lowerExpression(expr.condition)
         val ifTrue = buildBlock()
@@ -1474,7 +1474,7 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerGlobalBinder(name: Binder): Pair<IRGlobalName, Type> {
-        val binderType = ctx.checker.typeOfBinder(name)
+        val binderType = ctx.typer.typeOfBinder(name)
         return globalBinderName(name) to binderType
     }
 
@@ -1486,7 +1486,7 @@ internal class ProgramVisitor(private val ctx: Context) {
                 && decl.thisParam != null
         ) {
             ctx.makeName(
-                    ctx.checker.annotationToType(decl.thisParam.annotation).prettyPrint() + "::" + name.identifier.name.text)
+                    ctx.typer.annotationToType(decl.thisParam.annotation).prettyPrint() + "::" + name.identifier.name.text)
         } else {
             name.identifier.name
         }
@@ -1494,12 +1494,12 @@ internal class ProgramVisitor(private val ctx: Context) {
     }
 
     private fun lowerLocalBinder(name: Binder): Pair<IRLocalName, Type.Ptr> {
-        val ty = Type.Ptr(ctx.checker.typeOfBinder(name), isMutable = true)
+        val ty = Type.Ptr(ctx.typer.typeOfBinder(name), isMutable = true)
         return lowerLocalName(name) to ty
     }
 
     private fun lowerParamBinder(name: Binder): Pair<IRLocalName, Type> {
-        val ty = ctx.checker.typeOfBinder(name)
+        val ty = ctx.typer.typeOfBinder(name)
         return lowerLocalName(name) to ty
     }
 
