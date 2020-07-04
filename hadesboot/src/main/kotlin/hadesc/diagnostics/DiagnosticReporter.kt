@@ -2,6 +2,7 @@ package hadesc.diagnostics
 
 import hadesc.Name
 import hadesc.ast.Binder
+import hadesc.ast.QualifiedPath
 import hadesc.ast.Token
 import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
@@ -44,6 +45,7 @@ data class Diagnostic(
         data class TypeNotEqualityComparable(val type: Type) : Diagnostic.Kind(Severity.ERROR)
         data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
         data class NotAPointerType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class UnboundTypeName(val path: QualifiedPath) : Diagnostic.Kind(Severity.ERROR)
 
         object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
@@ -69,6 +71,7 @@ data class Diagnostic(
         object StatementNotAllowedInDefer : Diagnostic.Kind(Severity.ERROR)
         object MissingReturnValue : Diagnostic.Kind(Severity.ERROR)
         object InvalidTypeApplication : Diagnostic.Kind(Severity.ERROR)
+        object MissingTypeAnnotation : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -116,6 +119,8 @@ data class Diagnostic(
             StatementNotAllowedInDefer -> "Illegal defer statement"
             MissingReturnValue -> "Missing return value"
             InvalidTypeApplication -> "Invalid type application"
+            MissingTypeAnnotation -> "Missing type annotation"
+            is UnboundTypeName -> "Unbound type ${path.identifiers.joinToString(".") {it.name.text}}"
         }
 
     }
@@ -140,8 +145,15 @@ class DiagnosticReporter {
         for (i in 0..location.start.column + location.start.line.toString().length) {
             System.err.print(' ')
         }
-        printErrLn("^")
+        System.err.print("^")
+        if (location.start.line == location.stop.line) {
 
+            for (i in 0 until location.stop.column - location.start.column) {
+                System.err.print('~')
+            }
+
+        }
+        System.err.println()
     }
 
     private fun printLocationLine(location: SourceLocation) {
