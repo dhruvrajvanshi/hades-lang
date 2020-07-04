@@ -34,7 +34,7 @@ class IRGen(
 
     private fun lowerStructDef(definition: HIRDefinition.Struct) {
         require(definition.typeParams == null)
-        val instanceType = Type.Constructor(binder = null, name = definition.name, params = null)
+        val instanceType = Type.Constructor(binder = null, name = definition.name)
         val constructorType = Type.Function(
                 receiver = null,
                 from = definition.fields.map { it.second },

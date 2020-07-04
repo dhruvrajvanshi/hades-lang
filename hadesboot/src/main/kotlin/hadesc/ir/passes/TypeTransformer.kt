@@ -54,8 +54,7 @@ interface TypeTransformer {
 
     fun lowerTypeConstructor(type: Type.Constructor): Type = Type.Constructor(
             type.binder,
-            name = type.name,
-            params = type.params
+            name = type.name
     )
 
     fun lowerParamRefType(type: Type.ParamRef): Type = type

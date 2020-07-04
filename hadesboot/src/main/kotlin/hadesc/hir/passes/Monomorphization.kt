@@ -188,11 +188,12 @@ class Monomorphization(
 //    }
 
     override fun lowerTypeApplication(type: Type.Application): Type {
+        require(type.callee is Type.Constructor)
         val typeName = type.callee.name
         val definition = oldModule.findGlobalDefinition(typeName)
         require(definition is HIRDefinition.Struct)
         val specializedName = getSpecializedName(typeName, type.args.map { lowerType(it) })
-        return Type.Constructor(binder = null, name = specializedName, params = null)
+        return Type.Constructor(binder = null, name = specializedName)
     }
 }
 

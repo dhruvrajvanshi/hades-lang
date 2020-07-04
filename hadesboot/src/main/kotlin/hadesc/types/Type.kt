@@ -39,7 +39,7 @@ sealed class Type {
         }
     }
 
-    data class Constructor(val binder: Binder?, val name: QualifiedName, val params: List<Param>?) : Type()
+    data class Constructor(val binder: Binder?, val name: QualifiedName) : Type()
 
     data class ParamRef(val name: Binder) : Type()
 
@@ -50,7 +50,7 @@ sealed class Type {
         val id: Long
     ) : Type()
 
-    data class Application(val callee: Constructor, val args: List<Type>) : Type()
+    data class Application(val callee: Type, val args: List<Type>) : Type()
     data class ThisRef(val location: SourceLocation) : Type()
     data class UntaggedUnion(val members: List<Type>) : Type()
 

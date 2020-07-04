@@ -99,9 +99,10 @@ class HIRGen(
         require(interfaceDef is Declaration.Interface)
         val constructor = Type.Constructor(
                 null,
-                interfaceRef.interfaceName,
-                params = interfaceDef.typeParams?.map { Type.Param(it.binder) }
+                interfaceRef.interfaceName
         )
+        val typeParams = interfaceDef.typeParams?.map { Type.Param(it.binder) }
+        require(typeParams == null)
         return Type.Application(
                 constructor,
                 listOf(Type.ParamRef(param.binder)) +

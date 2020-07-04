@@ -238,12 +238,19 @@ class Typer(
         is TypeAnnotation.Error -> Type.Error
         is TypeAnnotation.Var -> varAnnotationToType(annotation)
         is TypeAnnotation.Ptr -> ptrAnnotationToType(annotation)
-        is TypeAnnotation.MutPtr -> TODO()
+        is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
         is TypeAnnotation.Application -> TODO()
         is TypeAnnotation.Qualified -> TODO()
         is TypeAnnotation.Function -> TODO()
         is TypeAnnotation.This -> TODO()
         is TypeAnnotation.Union -> TODO()
+    }
+
+    private fun mutPtrAnnotationToType(annotation: TypeAnnotation.MutPtr): Type {
+        return Type.Ptr(
+                to = annotationToType(annotation.to),
+                isMutable = true
+        )
     }
 
     private fun ptrAnnotationToType(annotation: TypeAnnotation.Ptr): Type {
