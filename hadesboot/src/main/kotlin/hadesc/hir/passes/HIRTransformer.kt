@@ -56,6 +56,7 @@ interface HIRTransformer: TypeTransformer {
 
     fun transformConstraintParam(param: HIRConstraintParam): HIRConstraintParam {
         return HIRConstraintParam(
+                type = lowerType(param.type),
                 param = transformTypeParam(param.param),
                 interfaceRef = transformInterfaceRef(param.interfaceRef)
         )
@@ -158,6 +159,14 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.NullPtr -> transformNullPtr(expression)
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
         is HIRExpression.AddressOf -> transformAddressOfExpression(expression)
+        is HIRExpression.BoundRef -> transformBoundRef(expression)
+    }
+
+    fun transformBoundRef(expression: HIRExpression.BoundRef): HIRExpression {
+        return HIRExpression.BoundRef(
+                location = expression.location,
+                param = transformConstraintParam(expression.param)
+        )
     }
 
     fun transformAddressOfExpression(expression: HIRExpression.AddressOf): HIRExpression {
@@ -202,13 +211,8 @@ interface HIRTransformer: TypeTransformer {
                 expression.location,
                 lowerType(expression.type),
                 transformExpression(expression.thisValue),
-                transformPropertyBinding(expression.propertyBinding)
+                transformExpression(expression.method)
         )
-    }
-
-    fun transformPropertyBinding(binding: HIRPropertyBinding): HIRPropertyBinding = when(binding) {
-        is HIRPropertyBinding.GlobalExtensionRef -> transformGlobalExtensionRef(binding)
-        is HIRPropertyBinding.ImplementationMethodRef -> transformImplementationMethodRef(binding)
     }
 
     fun transformImplementationMethodRef(binding: HIRPropertyBinding.ImplementationMethodRef): HIRPropertyBinding {

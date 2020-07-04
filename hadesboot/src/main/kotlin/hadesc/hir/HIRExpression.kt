@@ -1,9 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
-import hadesc.ast.Expression
 import hadesc.ir.BinaryOperator
-import hadesc.ir.IRBinOp
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -64,7 +62,7 @@ sealed class HIRExpression: HasLocation {
             override val location: SourceLocation,
             override val type: Type,
             val thisValue: HIRExpression,
-            val propertyBinding: HIRPropertyBinding
+            val method: HIRExpression
     ) : HIRExpression()
 
     data class Not(
@@ -99,6 +97,14 @@ sealed class HIRExpression: HasLocation {
             val name: Name
     ) : HIRExpression()
 
+    data class BoundRef(
+            override val location: SourceLocation,
+            val param: HIRConstraintParam
+    ) : HIRExpression() {
+        override val type: Type
+            get() = param.type
+    }
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             val typeArgsStr = if (typeArgs == null)
@@ -112,11 +118,12 @@ sealed class HIRExpression: HasLocation {
         is ValRef -> name.text
         is GetStructField -> "${lhs.prettyPrint()}.${name.text}"
         is ThisRef -> "this"
-        is MethodRef -> "(${thisValue.prettyPrint()} :: ${propertyBinding.prettyPrint()})"
+        is MethodRef -> "(${thisValue.prettyPrint()} :: ${method.prettyPrint()})"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
         is AddressOf -> "&${name.text}"
+        is BoundRef -> TODO()
     }
 }

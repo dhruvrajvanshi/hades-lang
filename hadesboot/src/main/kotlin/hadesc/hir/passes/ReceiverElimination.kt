@@ -78,20 +78,13 @@ class ReceiverElimination(
         val transformedTypeArgs = expression.typeArgs?.map { lowerType(it) }
         val transformedArgs = listOf(transformedReceiver) +
             expression.args.map { transformExpression(it) }
-        return when (callee.propertyBinding) {
-            is HIRPropertyBinding.GlobalExtensionRef -> HIRExpression.Call(
-                    expression.location,
-                    lowerType(expression.type),
-                    callee = HIRExpression.GlobalRef(
-                            callee.location,
-                            lowerType(callee.type),
-                            callee.propertyBinding.functionName
-                    ),
-                    args = transformedArgs,
-                    typeArgs = transformedTypeArgs
-            )
-            is HIRPropertyBinding.ImplementationMethodRef -> TODO()
-        }
+        return HIRExpression.Call(
+            expression.location,
+            lowerType(expression.type),
+            callee = transformExpression(callee.method),
+            args = transformedArgs,
+            typeArgs = transformedTypeArgs
+        )
     }
 
     override fun transformMethodRef(expression: HIRExpression.MethodRef): HIRExpression {

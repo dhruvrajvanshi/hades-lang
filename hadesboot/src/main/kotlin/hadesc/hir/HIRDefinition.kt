@@ -75,7 +75,7 @@ sealed class HIRDefinition: HasLocation {
             val name: QualifiedName,
             val typeParams: List<HIRTypeParam>?,
             val constraintParams: List<HIRConstraintParam>?,
-            val signatures: HIRFunctionSignature
+            val signatures: List<HIRFunctionSignature>
     ) : HIRDefinition() {
         init {
             require(constraintParams == null || constraintParams.isNotEmpty())
@@ -115,6 +115,17 @@ sealed class HIRDefinition: HasLocation {
                 }
             }\n}"
         }
-        is Interface -> TODO()
+        is Interface -> {
+            val whereStr = if (constraintParams == null) {
+                ""
+            } else {
+                "where (${constraintParams.joinToString(", ") {it.prettyPrint()} })"
+            }
+            val typeParamsStr = if (typeParams == null)
+                ""
+            else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] $whereStr "
+            val signaturesStr = signatures.joinToString("\n") { it.prettyPrint() }.prependIndent("  ")
+            "interface ${name.mangle()}$typeParamsStr {\n$signaturesStr\n}"
+        }
     }
 }

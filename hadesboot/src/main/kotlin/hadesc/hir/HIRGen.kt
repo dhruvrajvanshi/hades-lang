@@ -41,7 +41,20 @@ class HIRGen(
     }
 
     private fun lowerInterfaceDef(declaration: Declaration.Interface): List<HIRDefinition> {
-        return TODO()
+        return listOf(
+                HIRDefinition.Interface(
+                        location = declaration.location,
+                        name = lowerGlobalName(declaration.name),
+                        constraintParams = lowerConstraintParams(declaration.typeParams),
+                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                        signatures = declaration.members.map {
+                            when (it) {
+                                is Declaration.Interface.Member.FunctionSignature ->
+                                    lowerFunctionSignature(it.signature)
+                            }
+                        }
+                )
+        )
     }
 
     private fun lowerImplDef(declaration: Declaration.Implementation): List<HIRDefinition> {
@@ -68,6 +81,7 @@ class HIRGen(
             if (it.bound == null)
                 emptyList()
             else listOf(HIRConstraintParam(
+                    constraintType(it, it.bound),
                     lowerTypeParam(it),
                     lowerInterfaceRef(it.bound))
             )
@@ -77,6 +91,22 @@ class HIRGen(
         } else {
             constraints
         }
+    }
+
+    private fun constraintType(param: TypeParam, bound: InterfaceRef): Type {
+        val interfaceRef = lowerInterfaceRef(bound)
+        val interfaceDef = ctx.resolver.resolveDeclaration(bound.path)
+        require(interfaceDef is Declaration.Interface)
+        val constructor = Type.Constructor(
+                null,
+                interfaceRef.interfaceName,
+                params = interfaceDef.typeParams?.map { Type.Param(it.binder) }
+        )
+        return Type.Application(
+                constructor,
+                listOf(Type.ParamRef(param.binder)) +
+                        (bound.typeArgs?.map { lowerTypeAnnotation(it) } ?: listOf())
+        )
     }
 
     private fun lowerInterfaceRef(interfaceRef: InterfaceRef): HIRInterfaceRef {
@@ -406,8 +436,16 @@ class HIRGen(
             binding: PropertyBinding.InterfaceExtensionFunction
     ): HIRExpression = when (val interfaceBinding = binding.implementationBinding) {
         is ImplementationBinding.GlobalImpl -> lowerGlobalImplRef(expression, binding, interfaceBinding)
-        is ImplementationBinding.TypeBound -> TODO()
+        is ImplementationBinding.TypeBound -> lowerTypeBoundRef(expression, binding, interfaceBinding)
         is ImplementationBinding.ImplParamTypeBound -> TODO()
+    }
+
+    private fun lowerTypeBoundRef(
+            expression: Expression.Property,
+            binding: PropertyBinding.InterfaceExtensionFunction,
+            interfaceBinding: ImplementationBinding.TypeBound
+    ): HIRExpression {
+        TODO()
     }
 
     private fun lowerGlobalImplRef(
@@ -415,16 +453,17 @@ class HIRGen(
             propertyBinding: PropertyBinding.InterfaceExtensionFunction,
             interfaceBinding: ImplementationBinding.GlobalImpl
     ): HIRExpression {
-        return HIRExpression.MethodRef(
-                location = expression.location,
-                type = ctx.checker.typeOfExpression(expression),
-                thisValue = lowerExpression(expression.lhs),
-                propertyBinding = HIRPropertyBinding.ImplementationMethodRef(
-                        expression.location,
-                        implName = implName(interfaceBinding.implDef),
-                        interfaceMemberIndex = propertyBinding.memberIndex
-                )
-        )
+        TODO()
+//        return HIRExpression.MethodRef(
+//                location = expression.location,
+//                type = ctx.checker.typeOfExpression(expression),
+//                thisValue = lowerExpression(expression.lhs),
+//                method = HIRPropertyBinding.ImplementationMethodRef(
+//                        expression.location,
+//                        implName = implName(interfaceBinding.implDef),
+//                        interfaceMemberIndex = propertyBinding.memberIndex
+//                )
+//        )
     }
 
     private fun implName(implDef: Declaration.Implementation): QualifiedName {
@@ -468,9 +507,10 @@ class HIRGen(
                 location = expression.location,
                 type = typeOfExpression(expression),
                 thisValue = lowerExpression(expression.lhs),
-                propertyBinding = HIRPropertyBinding.GlobalExtensionRef(
+                method = HIRExpression.GlobalRef(
                         location = expression.lhs.location,
-                        functionName = extensionFunctionName(binding.def.signature)
+                        type = binding.type,
+                        name = extensionFunctionName(binding.def.signature)
                 )
         )
     }

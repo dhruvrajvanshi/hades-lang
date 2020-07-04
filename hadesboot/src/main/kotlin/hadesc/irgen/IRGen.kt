@@ -256,6 +256,7 @@ class IRGen(
         is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
         is HIRExpression.MethodRef -> requireUnreachable()
+        is HIRExpression.BoundRef -> requireUnreachable()
     }
 
     private fun lowerAddressOfExpression(expression: HIRExpression.AddressOf): IRValue {
