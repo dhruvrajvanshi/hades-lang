@@ -8,7 +8,6 @@ import hadesc.location.HasLocation
 import hadesc.typer.Variance
 import hadesc.types.Type
 import java.util.*
-import kotlin.reflect.typeOf
 
 class Checker(private val ctx: Context) {
     private val returnTypeStack = Stack<Type>()
@@ -22,7 +21,12 @@ class Checker(private val ctx: Context) {
         is Declaration.Interface -> TODO()
         is Declaration.Implementation -> TODO()
         is Declaration.Enum -> TODO()
-        is Declaration.TypeAlias -> TODO()
+        is Declaration.TypeAlias -> checkTypeAliasDecl(declaration)
+    }
+
+    private fun checkTypeAliasDecl(declaration: Declaration.TypeAlias) {
+        declaration.typeParams?.forEach { checkTypeParam(it) }
+        checkAnnotation(declaration.rhs)
     }
 
     private fun checkStructDecl(declaration: Declaration.Struct) {
@@ -86,7 +90,10 @@ class Checker(private val ctx: Context) {
     }
 
     private fun checkBlockMember(member: Block.Member) = when (member) {
-        is Block.Member.Expression -> checkExpression(member.expression)
+        is Block.Member.Expression -> {
+            checkExpression(member.expression)
+            Unit
+        }
         is Block.Member.Statement -> checkStatement(member.statement)
     }
 
@@ -113,6 +120,16 @@ class Checker(private val ctx: Context) {
         checkNameBinding(statement.binder)
         if (statement.typeAnnotation != null) {
             checkAnnotation(statement.typeAnnotation)
+            val rhsType = ctx.typer.typeOfExpression(statement.rhs)
+            val lhsType = ctx.typer.annotationToType(statement.typeAnnotation)
+            if (!ctx.typer.isTypeAssignableTo(
+                            source = rhsType,
+                            destination = lhsType)) {
+                error(statement.rhs, Diagnostic.Kind.TypeNotAssignable(
+                        source = rhsType,
+                        destination = rhsType
+                ))
+            }
         }
         checkExpression(statement.rhs)
     }
@@ -132,9 +149,9 @@ class Checker(private val ctx: Context) {
             is Expression.BinaryOperation -> TODO()
             is Expression.SizeOf -> TODO()
             is Expression.AddressOf -> TODO()
-            is Expression.AddressOfMut -> TODO()
+            is Expression.AddressOfMut -> checkAddressOfMut(expression)
             is Expression.Deref -> TODO()
-            is Expression.PointerCast -> TODO()
+            is Expression.PointerCast -> checkPointerCast(expression)
             is Expression.If -> checkIfExpression(expression)
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
@@ -147,6 +164,14 @@ class Checker(private val ctx: Context) {
             }
         }
         return typeOfExpression(expression)
+    }
+
+    private fun checkAddressOfMut(expression: Expression.AddressOfMut) {
+        // TODO: Check if expression is addressable
+    }
+
+    private fun checkPointerCast(expression: Expression.PointerCast) {
+        checkAnnotation(expression.toType)
     }
 
     private fun checkIfExpression(expression: Expression.If): Type {

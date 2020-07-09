@@ -273,7 +273,7 @@ class Typer(
             is Expression.BinaryOperation -> TODO()
             is Expression.SizeOf -> TODO()
             is Expression.AddressOf -> TODO()
-            is Expression.AddressOfMut -> TODO()
+            is Expression.AddressOfMut -> inferAddressOfMut(expression)
             is Expression.Deref -> TODO()
             is Expression.PointerCast -> TODO()
             is Expression.If -> inferIfExpression(expression)
@@ -285,6 +285,10 @@ class Typer(
         typeOfExpressionCache[expression] = type
         return type
 
+    }
+
+    private fun inferAddressOfMut(expression: Expression.AddressOfMut): Type {
+        return Type.Ptr(inferExpression(expression.expression), isMutable = true)
     }
 
     private fun inferIntLiteral(expression: Expression.IntLiteral): Type {
@@ -587,6 +591,16 @@ class Typer(
         )
     }
 
+    private fun typeOfTypeAlias(binding: TypeBinding.TypeAlias): Type {
+        return if (binding.declaration.typeParams != null) {
+            return Type.TypeFunction(
+                    binding.declaration.typeParams.map { Type.Param(it.binder) },
+                    annotationToType(binding.declaration.rhs)
+            )
+        }
+        else annotationToType(binding.declaration.rhs)
+    }
+
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
         val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
         val typeConstructor = Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
@@ -630,7 +644,7 @@ class Typer(
             is TypeBinding.Struct -> typeOfStructBinding(binding)
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.Enum -> TODO()
-            is TypeBinding.TypeAlias -> TODO()
+            is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
         }
     }
 
