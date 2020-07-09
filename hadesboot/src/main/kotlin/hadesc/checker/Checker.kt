@@ -127,7 +127,7 @@ class Checker(private val ctx: Context) {
                             destination = lhsType)) {
                 error(statement.rhs, Diagnostic.Kind.TypeNotAssignable(
                         source = rhsType,
-                        destination = rhsType
+                        destination = lhsType
                 ))
             }
         }
@@ -205,34 +205,32 @@ class Checker(private val ctx: Context) {
             error(expression.callee, Diagnostic.Kind.TypeNotCallable(calleeType))
         }
 
-        val expectedArgTypes = expectedArgTypes(calleeType)
+        val fnTypeComponents = ctx.typer.getFunctionTypeComponents(calleeType)
+        val expectedArgTypes = expectedArgTypes(calleeType) ?: emptyList()
+        val substitution = ctx.typer.instantiateSubstitution(fnTypeComponents?.typeParams)
         for (index in expression.args.indices) {
             val arg = expression.args[index]
             val expectedType = if (index < expectedArgTypes.size) {
-                expectedArgTypes[index]
+                expectedArgTypes[index].applySubstitution(substitution)
             } else null
+
             checkExpression(arg.expression, expectedType)
         }
 
+        if (expression.args.size > expectedArgTypes.size) {
+            error(expression, Diagnostic.Kind.TooManyArgs(required = expectedArgTypes.size))
+        }
+        if (expression.args.size < expectedArgTypes.size) {
+            error(expression, Diagnostic.Kind.MissingArgs(required = expectedArgTypes.size))
+        }
+
     }
 
-    private fun expectedArgTypes(calleeType: Type): List<Type> = when(calleeType) {
-        is Type.Ptr -> {
-            expectedArgTypes(calleeType.to)
-        }
-        is Type.Function -> calleeType.from
-        is Type.TypeFunction -> expectedArgTypes(calleeType.body)
-        else -> emptyList()
-    }
+    private fun expectedArgTypes(calleeType: Type): List<Type>? =
+            ctx.typer.getFunctionTypeComponents(calleeType)?.from
 
-    private fun isTypeCallable(calleeType: Type): Boolean = when(calleeType) {
-        is Type.Ptr -> {
-            isTypeCallable(calleeType.to)
-        }
-        is Type.Function -> true
-        is Type.TypeFunction -> isTypeCallable(calleeType.body)
-        else -> false
-    }
+    private fun isTypeCallable(calleeType: Type): Boolean =
+            ctx.typer.getFunctionTypeComponents(calleeType) != null
 
     private fun typeOfExpression(expression: Expression): Type {
         return ctx.typer.typeOfExpression(expression)

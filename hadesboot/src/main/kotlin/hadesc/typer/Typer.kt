@@ -1,7 +1,6 @@
 package hadesc.typer
 
 import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.ir.BinaryOperator
@@ -348,10 +347,7 @@ class Typer(
         val functionTypeComponents = getFunctionTypeComponents(functionType)
         requireNotNull(functionTypeComponents)
         requireNotNull(functionTypeComponents.receiverType)
-        val substitution = functionTypeComponents.typeParams
-                ?.map { it.binder.location to makeGenericInstance(it.binder) }
-                ?.toMap()
-                ?: emptyMap()
+        val substitution = instantiateSubstitution(functionTypeComponents.typeParams)
         checkAssignability(lhsType, functionTypeComponents.receiverType.applySubstitution(substitution))
         return Type.Function(
                 receiver = null,
@@ -493,13 +489,31 @@ class Typer(
             }
             Type.Error
         } else {
-            val substitution = functionType.typeParams
-                    ?.map { it.binder.location to makeGenericInstance(it.binder) }
-                    ?.toMap()
-                    ?: emptyMap()
+            val substitution = instantiateSubstitution(functionType.typeParams)
             checkCallArgs(functionType, args, substitution)
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
+    }
+
+    /**
+     * Takes type params and creates a fresh substitution mapping each type param
+     * with a fresh type hole (Type.GenericInstance) that is assignable to any type.
+     * If we try to check a type against this new type hole, if the hole is unassigned,
+     * we assume that the types match and assign the type to the specific hole.
+     * For example, when doing something like
+     * // assume id : [T](T) -> T
+     * id(true)
+     * We instantiate the `T` param to Type.GenericInstance(1)
+     * Then when checking the call args, when we try to check
+     * isTypeAssignable( destination = Type.GenericInstance(1), source = Bool ),
+     * we see that Type.GenericInstance(1) isn't instantiated, so it type checks fine.
+     *
+     */
+    internal fun instantiateSubstitution(typeParams: List<Type.Param>?): Substitution {
+        return typeParams
+                ?.map { it.binder.location to makeGenericInstance(it.binder) }
+                ?.toMap()
+                ?: emptyMap()
     }
 
     private fun checkCallArgs(functionType: FunctionTypeComponents, args: List<Arg>, substitution: Substitution) {
@@ -514,22 +528,26 @@ class Typer(
         }
     }
 
-    private fun getFunctionTypeComponents(type: Type, typeParams: List<Type.Param>? = null): FunctionTypeComponents? {
-        return when (type) {
-            is Type.Ptr -> getFunctionTypeComponents(type.to)
-            is Type.Function ->
-                FunctionTypeComponents(
-                        receiverType = type.receiver,
-                        from = type.from,
-                        to = type.to,
-                        typeParams = typeParams
-                )
-            is Type.TypeFunction -> {
-                return getFunctionTypeComponents(type.body, type.params)
+    internal fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
+        fun recurse(type: Type, typeParams: List<Type.Param>?): FunctionTypeComponents? {
+            return when (type) {
+                is Type.Ptr -> recurse(type.to, null)
+                is Type.Function ->
+                    FunctionTypeComponents(
+                            receiverType = type.receiver,
+                            from = type.from,
+                            to = type.to,
+                            typeParams = typeParams
+                    )
+                is Type.TypeFunction -> {
+                    return recurse(type.body, type.params)
+                }
+                is Type.GenericInstance -> recurse(reduceGenericInstances(type), null)
+                else -> null
             }
-            is Type.GenericInstance -> getFunctionTypeComponents(reduceGenericInstances(type))
-            else -> null
         }
+        return recurse(type, null)
+
     }
 
     private var makeGenericInstanceId = 0L
@@ -661,10 +679,10 @@ class Typer(
         return object : TypeTransformer {
             override fun lowerGenericInstance(type: Type.GenericInstance): Type {
                 val existing = genericInstances[type.id]
-                if (existing != null) {
-                    return lowerType(existing)
+                return if (existing != null) {
+                    lowerType(existing)
                 } else {
-                    requireUnreachable()
+                    type
                 }
             }
 

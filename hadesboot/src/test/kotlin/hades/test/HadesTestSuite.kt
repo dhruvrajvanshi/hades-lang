@@ -30,16 +30,18 @@ class HadesTestSuite {
         return buildList {
             for (file in files.sortedBy { it.name }) {
                 if (file.extension == "hds") {
-                    add(DynamicTest.dynamicTest(file.name) {
-                        logger().debug("Running suite file {}", file)
-                        val expectedStdoutFile = Paths.get(
+
+                    val expectedStdoutFile = Paths.get(
                             directory.toPath().toString(),
                             file.nameWithoutExtension + ".stdout"
-                        ).toFile()
-                        val expectedErrorsFile = Paths.get(
+                    ).toFile()
+                    val expectedErrorsFile = Paths.get(
                             directory.toPath().toString(),
                             file.nameWithoutExtension + ".errors"
-                        ).toFile()
+                    ).toFile()
+                    if (expectedErrorsFile.exists())
+                    add(DynamicTest.dynamicTest(file.name) {
+                        logger().debug("Running suite file {}", file)
 
                         val outputPath = Paths.get(
                             outputDirectory.toString(),
