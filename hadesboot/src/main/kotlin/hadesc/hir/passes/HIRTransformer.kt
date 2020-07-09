@@ -153,13 +153,23 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.ValRef -> transformValRef(expression)
         is HIRExpression.GetStructField -> transformGetStructField(expression)
         is HIRExpression.ThisRef -> transformThisRef(expression)
-        is HIRExpression.MethodRef -> transformMethodRef(expression)
+        is HIRExpression.MethodCall -> transformMethodCall(expression)
         is HIRExpression.Not -> transformNotExpression(expression)
         is HIRExpression.BinOp -> transformBinOp(expression)
         is HIRExpression.NullPtr -> transformNullPtr(expression)
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
         is HIRExpression.AddressOf -> transformAddressOfExpression(expression)
         is HIRExpression.BoundRef -> transformBoundRef(expression)
+        is HIRExpression.TypeApplication -> transformTypeApplication(expression)
+    }
+
+    fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIRExpression {
+        return HIRExpression.TypeApplication(
+                expression.location,
+                lowerType(expression.type),
+                transformExpression(expression.expression),
+                expression.args.map { lowerType(it) }
+        )
     }
 
     fun transformBoundRef(expression: HIRExpression.BoundRef): HIRExpression {
@@ -206,12 +216,13 @@ interface HIRTransformer: TypeTransformer {
         return HIRExpression.Not(transformExpression(expression.expression))
     }
 
-    fun transformMethodRef(expression: HIRExpression.MethodRef): HIRExpression {
-        return HIRExpression.MethodRef(
+    fun transformMethodCall(expression: HIRExpression.MethodCall): HIRExpression {
+        return HIRExpression.MethodCall(
                 expression.location,
                 lowerType(expression.type),
                 transformExpression(expression.thisValue),
-                transformExpression(expression.method)
+                transformExpression(expression.method),
+                expression.args.map { transformExpression(it) }
         )
     }
 
@@ -268,7 +279,6 @@ interface HIRTransformer: TypeTransformer {
         return HIRExpression.Call(
                 location = expression.location,
                 type = lowerType(expression.type),
-                typeArgs = expression.typeArgs?.map { lowerType(it) },
                 callee = transformExpression(expression.callee),
                 args = expression.args.map { transformExpression(it) }
         )

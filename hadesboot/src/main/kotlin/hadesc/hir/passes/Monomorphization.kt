@@ -106,24 +106,11 @@ class Monomorphization(
         return listOf()
     }
 
-    override fun transformCall(expression: HIRExpression.Call): HIRExpression {
-        if (expression.typeArgs == null) {
-            return super.transformCall(expression)
-        }
-        val specializedCallee = generateSpecialization(expression.callee, expression.typeArgs)
-        return HIRExpression.Call(
-                location = expression.location,
-                typeArgs = null,
-                type = lowerType(expression.type),
-                args = expression.args.map { transformExpression(it) },
-                callee = specializedCallee
-        )
+    override fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIRExpression {
+        return generateSpecialization(expression.expression, expression.args)
     }
 
     private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIRExpression = when(expression) {
-        is HIRExpression.MethodRef -> {
-            TODO()
-        }
         is HIRExpression.GlobalRef -> {
             val name = getSpecializedName(expression.name, typeArgs.map { lowerType(it) })
             when (val definition = oldModule.findGlobalDefinition(expression.name)) {

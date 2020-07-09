@@ -253,8 +253,9 @@ class IRGen(
         is HIRExpression.SizeOf -> lowerSizeOfExpression(expression)
         is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
-        is HIRExpression.MethodRef -> requireUnreachable()
+        is HIRExpression.MethodCall -> requireUnreachable()
         is HIRExpression.BoundRef -> requireUnreachable()
+        is HIRExpression.TypeApplication -> requireUnreachable()
     }
 
     private fun lowerAddressOfExpression(expression: HIRExpression.AddressOf): IRValue {
@@ -441,9 +442,7 @@ class IRGen(
                 callee = lowerExpression(expression.callee),
                 args = expression.args.map { lowerExpression(it) },
                 name = name,
-                typeArgs = expression.typeArgs
-
-
+                typeArgs = null
         )
 
         return builder.buildVariable(

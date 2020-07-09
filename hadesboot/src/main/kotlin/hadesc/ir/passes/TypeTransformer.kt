@@ -18,11 +18,15 @@ interface TypeTransformer {
         is Type.Function -> lowerFunctionType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
         is Type.ParamRef -> lowerParamRefType(type)
-        is Type.GenericInstance -> requireUnreachable()
+        is Type.GenericInstance -> lowerGenericInstance(type)
         is Type.Application -> lowerTypeApplication(type)
         is Type.ThisRef -> lowerThisRefType(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
         is Type.TypeFunction -> lowerTypeFunction(type)
+    }
+
+    fun lowerGenericInstance(type: Type.GenericInstance): Type {
+        return type
     }
 
     fun lowerTypeFunction(type: Type.TypeFunction): Type {

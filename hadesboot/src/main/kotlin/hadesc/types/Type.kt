@@ -112,7 +112,7 @@ sealed class Type {
                 substitution[this.name.location] ?: this
             }
             is Application -> {
-                Application(callee.recurse() as Constructor, args.map { it.recurse() })
+                Application(callee.recurse(), args.map { it.recurse() })
             }
             is Constructor -> this
             is ThisRef -> thisType?.recurse() ?: this
@@ -130,4 +130,6 @@ sealed class Type {
         return prettyPrint()
     }
 }
+
+typealias Substitution = Map<SourceLocation, Type>
 

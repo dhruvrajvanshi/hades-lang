@@ -17,7 +17,7 @@ def log_bool(message: *Byte, condition: Bool): Void {
     utils.print_bool(condition);
 }
 
-def log_int(message: *Byte, value: CInt): Void {
+def log_int(message: *Byte, value: Int): Void {
      utils.print_byte_string(message);
      utils.print_byte_string(b" -> ");
      utils.print_int(value);

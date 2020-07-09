@@ -423,7 +423,7 @@ class HIRGen(
         ))
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.typer.getPropertyBinding(expression)) {
+    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.typer.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
@@ -504,16 +504,7 @@ class HIRGen(
             expression: Expression.Property,
             binding: PropertyBinding.GlobalExtensionFunction
     ): HIRExpression {
-        return HIRExpression.MethodRef(
-                location = expression.location,
-                type = typeOfExpression(expression),
-                thisValue = lowerExpression(expression.lhs),
-                method = HIRExpression.GlobalRef(
-                        location = expression.lhs.location,
-                        type = binding.type,
-                        name = extensionFunctionName(binding.def.signature)
-                )
-        )
+        TODO()
     }
 
     private fun extensionFunctionName(def: FunctionSignature): QualifiedName {
@@ -579,7 +570,7 @@ class HIRGen(
     }
 
     private fun typeOfExpression(expression: Expression): Type {
-        return ctx.typer.typeOfExpression(expression)
+        return ctx.typer.reduceGenericInstances(ctx.typer.typeOfExpression(expression))
     }
 
     private fun lowerVarExpression(expression: Expression.Var): HIRExpression {
@@ -594,13 +585,12 @@ class HIRGen(
                 expression.location,
                 typeOfExpression(expression),
                 lowerExpression(expression.callee),
-                ctx.typer.getTypeArgs(expression),
                 expression.args.map { lowerExpression(it.expression) }
         )
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return ctx.typer.annotationToType(annotation)
+        return ctx.typer.reduceGenericInstances(ctx.typer.annotationToType(annotation))
     }
 
     private fun lowerParam(param: Param): HIRParam {

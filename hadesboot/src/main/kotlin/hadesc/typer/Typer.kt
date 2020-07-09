@@ -1,13 +1,16 @@
 package hadesc.typer
 
 import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.ir.BinaryOperator
+import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
+import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
 import kotlin.math.min
@@ -18,12 +21,13 @@ class Typer(
 ) {
     private val returnTypeStack = Stack<Type>()
 
-    fun getPropertyBinding(expression: Expression.Property): PropertyBinding? {
+    private val genericInstances = mutableMapOf<Long, Type>()
+
+    fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
 
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
         if (modulePropertyBinding != null) {
-            val type = typeOfBinding(modulePropertyBinding)
-            return PropertyBinding.Global(type, modulePropertyBinding)
+            return PropertyBinding.Global(modulePropertyBinding)
         }
 
         val fieldBinding = resolveStructFieldBinding(expression)
@@ -35,7 +39,7 @@ class Typer(
         if (globalExtensionFunctionBinding != null) {
             return globalExtensionFunctionBinding
         }
-        TODO()
+        return null
     }
 
     private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
@@ -49,8 +53,16 @@ class Typer(
             if (index > -1) {
                 val field = structDecl.members[index]
                 require(field is Declaration.Struct.Member.Field)
+                val typeArgs = if (lhsType is Type.Application) {
+                    lhsType.args
+                } else emptyList()
+                val substitution = structDecl.typeParams?.zip(typeArgs)
+                        ?.map { it.first.binder.location to it.second }
+                        ?.toMap()
+                        ?: emptyMap()
+                val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
+                isTypeAssignableTo(lhsType, fieldType, Variance.INVARIANCE)
                 PropertyBinding.StructField(
-                        type = annotationToType(field.typeAnnotation),
                         structDecl = structDecl,
                         memberIndex = index
                 )
@@ -66,6 +78,9 @@ class Typer(
                 require(decl is Declaration.Struct)
                 decl
             }
+            is Type.Application -> {
+                getStructDeclOfType(lhsType.callee)
+            }
             else -> null
         }
     }
@@ -73,22 +88,79 @@ class Typer(
     private fun resolveExtensionFunction(expression: Expression.Property): PropertyBinding? {
         val lhsType = inferExpression(expression.lhs)
         for (functionDef in ctx.resolver.extensionDefsInScope(expression, expression.property)) {
-            require(functionDef.thisParam != null)
-            val thisType = annotationToType(functionDef.thisParam.annotation)
-
-            if (isTypeAssignableTo(lhsType, thisType, Variance.INVARIANCE)) {
-                return PropertyBinding.GlobalExtensionFunction(
-                        typeOfBinder(functionDef.name),
-                        functionDef
-                )
+            if (isExtensionFor(functionDef, lhsType)) {
+                return PropertyBinding.GlobalExtensionFunction(functionDef)
             }
-
         }
         return null
     }
 
-    private fun isTypeAssignableTo(source: Type, destination: Type, variance: Variance): Boolean {
-        return source == destination
+    private fun isExtensionFor(functionDef: Declaration.FunctionDef, lhsType: Type): Boolean {
+        require(functionDef.thisParam != null)
+        val thisType = annotationToType(functionDef.thisParam.annotation)
+
+        val typeArgs = if (lhsType is Type.Application) {
+            lhsType.args
+        } else {
+            emptyList()
+        }
+
+        val substitution = functionDef.typeParams?.zip(typeArgs)
+                ?.map { it.first.binder.location to it.second }
+                ?.toMap()
+                ?: emptyMap()
+        return isTypeAssignableTo(lhsType, thisType.applySubstitution(substitution), Variance.INVARIANCE)
+    }
+
+    private fun collapseTypeFunctionParams(type: Type, typeParams: List<TypeParam>?): Type {
+        return object : TypeTransformer {
+            override fun lowerTypeFunction(type: Type.TypeFunction): Type {
+                return if (typeParams == null) {
+                    super.lowerTypeFunction(type)
+                } else {
+                    val firstParamLocation = type.params[0].binder.location
+                    if (typeParams[0].location == firstParamLocation) {
+                        require(typeParams.map { it.location } == type.params.map { it.binder.location })
+                        lowerType(type.body)
+                    } else {
+                        super.lowerTypeFunction(type)
+                    }
+                }
+            }
+        }.lowerType(type)
+
+    }
+
+    private fun checkAssignability(source: Type, destination: Type) {
+        isTypeAssignableTo(source, destination)
+    }
+    fun isTypeAssignableTo(source: Type, destination: Type, variance: Variance = Variance.INVARIANCE): Boolean {
+        if (source == destination) {
+            return true
+        }
+        return when {
+            destination is Type.GenericInstance -> {
+                val existing = genericInstances[destination.id]
+                if (existing != null) {
+                    isTypeAssignableTo(source, destination = existing, variance = Variance.INVARIANCE)
+                } else {
+                    genericInstances[destination.id] = source
+                    true
+                }
+            }
+            destination is Type.Application && source is Type.Application -> {
+                isTypeAssignableTo(source.callee, destination.callee, Variance.INVARIANCE)
+                        && source.args.size == destination.args.size
+                        && source.args.zip(destination.args).all {
+                            isTypeAssignableTo(it.first, it.second, Variance.INVARIANCE)
+                        }
+            }
+
+            destination is Type.ParamRef && source is Type.ParamRef -> {
+                destination.name.identifier.name == source.name.identifier.name
+            }
+            else -> false
+        }
     }
 
     private val typeOfExpressionCache = MutableNodeMap<Expression, Type>()
@@ -128,13 +200,18 @@ class Typer(
     private fun visitStatement(statement: Statement): Unit = when(statement) {
         is Statement.Return -> visitReturnStatement(statement)
         is Statement.Val -> visitValStatement(statement)
-        is Statement.While -> TODO()
+        is Statement.While -> visitWhileStatement(statement)
         is Statement.If -> visitIfStatement(statement)
         is Statement.LocalAssignment -> TODO()
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
         is Statement.Defer -> TODO()
         is Statement.Error -> TODO()
+    }
+
+    private fun visitWhileStatement(statement: Statement.While) {
+        checkExpression(statement.condition, Type.Bool)
+        visitBlock(statement.body)
     }
 
     private fun visitIfStatement(statement: Statement.If) {
@@ -159,10 +236,26 @@ class Typer(
         }
     }
 
-    private fun checkExpression(expression: Expression, expectedType: Type) = when(expression) {
-        else -> {
-            inferExpression(expression)
+    private fun checkExpression(expression: Expression, expectedType: Type): Type = when(expression) {
+        is Expression.IntLiteral -> {
+            if (isIntLiteralAssignable(expectedType)) {
+                typeOfExpressionCache[expression] = expectedType
+                expectedType
+            } else {
+                inferExpression(expression)
+            }
         }
+        else -> {
+            val inferredType = inferExpression(expression)
+            isTypeAssignableTo(inferredType, expectedType, Variance.INVARIANCE)
+            expectedType
+        }
+    }
+
+    private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
+        is Type.Size,
+        is Type.CInt -> true
+        else -> false
     }
 
     private fun inferExpression(expression: Expression): Type {
@@ -219,7 +312,54 @@ class Typer(
     }
 
     private fun inferPropertyExpression(expression: Expression.Property): Type =
-            getPropertyBinding(expression)?.type ?: Type.Error
+            when (val binding = resolvePropertyBinding(expression)) {
+                is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
+                is PropertyBinding.StructField -> typeOfStructFieldProperty(expression, binding)
+                is PropertyBinding.StructFieldPointer -> TODO()
+                is PropertyBinding.GlobalExtensionFunction -> typeOfGlobalExtensionMethod(expression, binding)
+                is PropertyBinding.InterfaceExtensionFunction -> TODO()
+                null -> Type.Error
+            }
+
+    private fun typeOfStructFieldProperty(
+            expression: Expression.Property,
+            binding: PropertyBinding.StructField): Type {
+        val lhsType = typeOfExpression(expression.lhs)
+        val typeArgs = if (lhsType is Type.Application)  {
+            lhsType.args
+        } else emptyList()
+        val substitution = binding.structDecl.typeParams?.zip(typeArgs)
+                ?.map { it.first.binder.location to it.second }
+                ?.toMap()
+                ?: emptyMap()
+        val genericMemberType = annotationToType(binding.member.typeAnnotation)
+        val memberType = genericMemberType.applySubstitution(substitution)
+        checkAssignability(lhsType, memberType)
+        return memberType
+    }
+
+    private fun typeOfGlobalExtensionMethod(expression: Expression.Property, binding: PropertyBinding.GlobalExtensionFunction): Type {
+        val lhsType = typeOfExpression(expression.lhs)
+        val functionType = typeOfGlobalFunctionRef(binding.def)
+        val functionTypeComponents = getFunctionTypeComponents(functionType)
+        requireNotNull(functionTypeComponents)
+        requireNotNull(functionTypeComponents.receiverType)
+        val substitution = functionTypeComponents.typeParams
+                ?.map { it.binder.location to makeGenericInstance(it.binder) }
+                ?.toMap()
+                ?: emptyMap()
+        checkAssignability(lhsType, functionTypeComponents.receiverType.applySubstitution(substitution))
+        return Type.Function(
+                receiver = null,
+                from = functionTypeComponents.from.map { it.applySubstitution(substitution) },
+                to = functionTypeComponents.to.applySubstitution(substitution)
+        )
+    }
+
+    private fun typeOfGlobalPropertyBinding(
+            binding: PropertyBinding.Global): Type {
+        return typeOfBinding(binding.binding)
+    }
 
     private fun inferVarExpresion(expression: Expression.Var): Type {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
@@ -240,15 +380,31 @@ class Typer(
     }
 
     private fun typeOfStructValueRef(binding: Binding.Struct): Type {
-        require(binding.declaration.typeParams == null)
         val name = ctx.resolver.resolveGlobalName(binding.declaration.binder)
-        val instanceType = Type.Constructor(
+        val constrType = Type.Constructor(
                 binding.declaration.binder,
                 name
         )
+        val instanceType = if (binding.declaration.typeParams == null) {
+            constrType
+        } else {
+            Type.Application(
+                    constrType,
+                    binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
+        val functionType = Type.Function(receiver = null, from = fieldTypes, to = instanceType)
+        val type = if (binding.declaration.typeParams == null) {
+            functionType
+        } else {
+            Type.TypeFunction(
+                    params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                    body = functionType
+            )
+        }
         return Type.Ptr(
-                Type.Function(receiver = null, from = fieldTypes, to = instanceType),
+                type,
                 isMutable = false
         )
     }
@@ -313,6 +469,7 @@ class Typer(
     }
 
     data class FunctionTypeComponents(
+            val receiverType: Type?,
             val from: List<Type>,
             val to: Type,
             val typeParams: List<Type.Param>?
@@ -332,15 +489,19 @@ class Typer(
             }
             Type.Error
         } else {
-            checkCallArgs(functionType, args)
-            functionType.to
+            val substitution = functionType.typeParams
+                    ?.map { it.binder.location to makeGenericInstance(it.binder) }
+                    ?.toMap()
+                    ?: emptyMap()
+            checkCallArgs(functionType, args, substitution)
+            reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
     }
 
-    private fun checkCallArgs(functionType: FunctionTypeComponents, args: List<Arg>) {
+    private fun checkCallArgs(functionType: FunctionTypeComponents, args: List<Arg>, substitution: Substitution) {
         val length = min(functionType.from.size, args.size)
         for (i in 0 until length) {
-            val expectedType = functionType.from[i]
+            val expectedType = functionType.from[i].applySubstitution(substitution)
             val arg = args[i]
             checkExpression(arg.expression, expectedType)
         }
@@ -349,20 +510,29 @@ class Typer(
         }
     }
 
-    private fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
+    private fun getFunctionTypeComponents(type: Type, typeParams: List<Type.Param>? = null): FunctionTypeComponents? {
         return when (type) {
-            is Type.Ptr -> when (type.to) {
-                is Type.Function -> {
-                    FunctionTypeComponents(
-                            from = type.to.from,
-                            to = type.to.to,
-                            typeParams = null
-                    )
-                }
-                else -> null
+            is Type.Ptr -> getFunctionTypeComponents(type.to)
+            is Type.Function ->
+                FunctionTypeComponents(
+                        receiverType = type.receiver,
+                        from = type.from,
+                        to = type.to,
+                        typeParams = typeParams
+                )
+            is Type.TypeFunction -> {
+                return getFunctionTypeComponents(type.body, type.params)
             }
+            is Type.GenericInstance -> getFunctionTypeComponents(reduceGenericInstances(type))
             else -> null
         }
+    }
+
+    private var makeGenericInstanceId = 0L
+    private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
+        val id = makeGenericInstanceId
+        makeGenericInstanceId++
+        return Type.GenericInstance(binder, id = id)
     }
 
     fun getTypeArgs(expression: Expression.Call): List<Type>? {
@@ -374,11 +544,24 @@ class Typer(
         is TypeAnnotation.Var -> varAnnotationToType(annotation)
         is TypeAnnotation.Ptr -> ptrAnnotationToType(annotation)
         is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
-        is TypeAnnotation.Application -> TODO()
+        is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
         is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
         is TypeAnnotation.Function -> TODO()
         is TypeAnnotation.This -> TODO()
         is TypeAnnotation.Union -> TODO()
+    }
+
+    private fun typeApplicationAnnotationToType(annotation: TypeAnnotation.Application): Type {
+        val callee = annotationToType(annotation.callee)
+        return if (callee is Type.TypeFunction) {
+            val args = annotation.args.map { annotationToType(it) }
+            val substitution = callee.params.zip(args).map {
+                it.first.binder.location to it.second
+            }.toMap()
+            callee.body.applySubstitution(substitution)
+        } else {
+            Type.Error
+        }
     }
 
     private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
@@ -405,12 +588,27 @@ class Typer(
     }
 
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
-        require(binding.declaration.typeParams == null) { TODO()}
         val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
-        return Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
+        val typeConstructor = Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
+
+        return if (binding.declaration.typeParams == null) {
+            typeConstructor
+        } else {
+            Type.TypeFunction(
+                    params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                    body = Type.Application(
+                            typeConstructor,
+                            args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                    )
+            )
+        }
     }
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
+        return resolveTypeVariable(annotation) ?: Type.Error
+    }
+
+    fun resolveTypeVariable(annotation: TypeAnnotation.Var): Type? {
         val binding = ctx.resolver.resolveTypeVariable(annotation.name)
         return if (binding == null) {
             when (annotation.name.name.text) {
@@ -420,26 +618,54 @@ class Typer(
                 "Size" -> Type.Size
                 "Double" -> Type.Double
                 "Void" -> Type.Void
-                else -> Type.Error
+                else -> null
             }
         } else {
             typeOfTypeBinding(binding)
         }
-
     }
 
     private fun typeOfTypeBinding(binding: TypeBinding): Type {
         return when (binding) {
             is TypeBinding.Struct -> typeOfStructBinding(binding)
-            is TypeBinding.TypeParam -> TODO()
+            is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.Enum -> TODO()
             is TypeBinding.TypeAlias -> TODO()
         }
     }
 
+    private fun typeOfTypeParam(binding: TypeBinding.TypeParam): Type {
+        return Type.ParamRef(binding.binder)
+    }
+
     fun typeOfBinder(binder: Binder): Type = when (val binding = ctx.resolver.resolve(binder.identifier)) {
         null -> Type.Error
         else -> typeOfBinding(binding)
+    }
+
+    fun reduceGenericInstances(type: Type): Type {
+        return object : TypeTransformer {
+            override fun lowerGenericInstance(type: Type.GenericInstance): Type {
+                val existing = genericInstances[type.id]
+                if (existing != null) {
+                    return lowerType(existing)
+                } else {
+                    requireUnreachable()
+                }
+            }
+
+            override fun lowerTypeApplication(type: Type.Application): Type {
+                return if (type.callee is Type.TypeFunction) {
+                    require(type.callee.params.size == type.args.size)
+                    val substitution = type.callee.params.zip(type.args)
+                            .map { it.first.binder.location to it.second }
+                            .toMap()
+                    return type.callee.body.applySubstitution(substitution)
+                } else {
+                    super.lowerTypeApplication(type)
+                }
+            }
+        }.lowerType(type)
     }
 
 }

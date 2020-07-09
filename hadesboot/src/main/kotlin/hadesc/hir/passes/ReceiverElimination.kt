@@ -64,30 +64,16 @@ class ReceiverElimination(
         )
     }
 
-    override fun transformCall(expression: HIRExpression.Call): HIRExpression {
-        return if (expression.callee is HIRExpression.MethodRef) {
-            transformMethodCall(expression.callee, expression)
-        } else {
-            super.transformCall(expression)
-        }
-    }
-
-    private fun transformMethodCall(callee: HIRExpression.MethodRef, expression: HIRExpression.Call): HIRExpression {
-        val transformedReceiver = transformExpression(callee.thisValue)
-        val transformedTypeArgs = expression.typeArgs?.map { lowerType(it) }
+    override fun transformMethodCall(expression: HIRExpression.MethodCall): HIRExpression {
+        val transformedReceiver = transformExpression(expression.thisValue)
         val transformedArgs = listOf(transformedReceiver) +
             expression.args.map { transformExpression(it) }
         return HIRExpression.Call(
             expression.location,
             lowerType(expression.type),
-            callee = transformExpression(callee.method),
-            args = transformedArgs,
-            typeArgs = transformedTypeArgs
+            callee = transformExpression(expression.method),
+            args = transformedArgs
         )
-    }
-
-    override fun transformMethodRef(expression: HIRExpression.MethodRef): HIRExpression {
-        requireUnreachable()
     }
 
     private fun thisRefName(): Name {

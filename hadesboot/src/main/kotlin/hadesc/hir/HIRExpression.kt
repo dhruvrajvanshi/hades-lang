@@ -13,8 +13,14 @@ sealed class HIRExpression: HasLocation {
             override val location: SourceLocation,
             override val type: Type,
             val callee: HIRExpression,
-            val typeArgs: List<Type>?,
             val args: List<HIRExpression>
+    ) : HIRExpression()
+
+    data class TypeApplication(
+            override val location: SourceLocation,
+            override val type: Type,
+            val expression: HIRExpression,
+            val args: List<Type>
     ) : HIRExpression()
 
     data class GlobalRef(
@@ -58,11 +64,12 @@ sealed class HIRExpression: HasLocation {
             override val type: Type
     ) : HIRExpression()
 
-    data class MethodRef(
+    data class MethodCall(
             override val location: SourceLocation,
             override val type: Type,
             val thisValue: HIRExpression,
-            val method: HIRExpression
+            val method: HIRExpression,
+            val args: List<HIRExpression>
     ) : HIRExpression()
 
     data class Not(
@@ -107,10 +114,7 @@ sealed class HIRExpression: HasLocation {
 
     fun prettyPrint(): String = when(this) {
         is Call -> {
-            val typeArgsStr = if (typeArgs == null)
-                ""
-            else "[${typeArgs.joinToString(", ") { it.prettyPrint() } }]"
-            "${callee.prettyPrint()}${typeArgsStr}(${args.joinToString(", ") { it.prettyPrint() } })"
+            "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
         is GlobalRef -> name.mangle()
         is Constant -> constant.prettyPrint()
@@ -118,12 +122,16 @@ sealed class HIRExpression: HasLocation {
         is ValRef -> name.text
         is GetStructField -> "${lhs.prettyPrint()}.${name.text}"
         is ThisRef -> "this"
-        is MethodRef -> "(${thisValue.prettyPrint()} :: ${method.prettyPrint()})"
+        is MethodCall -> "(${thisValue.prettyPrint()} :: ${method.prettyPrint()}).(${args.joinToString(", ") {it.prettyPrint()} })"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
         is AddressOf -> "&${name.text}"
         is BoundRef -> TODO()
+        is TypeApplication -> {
+            val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
+            "${expression.prettyPrint()}$typeArgsStr"
+        }
     }
 }

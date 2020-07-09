@@ -1,6 +1,6 @@
 import submodule.test_utils as utils;
 
-def greater_than_5(value: CInt): Bool {
+def greater_than_5(value: Int): Bool {
     return value > 5;
 }
 
