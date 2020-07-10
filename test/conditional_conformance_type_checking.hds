@@ -1,0 +1,35 @@
+import submodule.test_utils as utils;
+def main(): Void {
+    print(1);
+    print(Box(1));
+    print(Box(true));
+}
+
+def print[T](value: T): Void
+    where T: Printable {
+}
+def print_both[T, U](value: T, value2: U): Void
+    where T: Printable, U: Printable {
+    print(value);
+    print(value2);
+}
+
+struct Box[T] {
+    val value: T;
+}
+
+implement[T] Printable for Box[T] where T: Printable {
+    def print(this: *Box[T]): Void {
+        this.value.print();
+    }
+}
+
+interface Printable {
+    def print(this: *This): Void;
+}
+
+implement Printable for Int {
+    def print(this: *Int): Void {
+        utils.print_int(this);
+    }
+}

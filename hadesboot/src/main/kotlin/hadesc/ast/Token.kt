@@ -36,6 +36,7 @@ data class Token(
         UNION,
         DEFER,
         TYPE,
+        WHERE,
 
         NOT,
         AND,

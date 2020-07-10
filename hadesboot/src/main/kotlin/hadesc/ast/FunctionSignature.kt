@@ -9,5 +9,6 @@ data class FunctionSignature(
     val typeParams: List<TypeParam>?,
     val thisParam: ThisParam?,
     val params: List<Param>,
-    val returnType: TypeAnnotation
+    val returnType: TypeAnnotation,
+    val whereClause: WhereClause?
 ) : HasLocation

@@ -129,6 +129,7 @@ class Parser(
         val interfaceRef = parseInterfaceRef()
         expect(tt.FOR)
         val forType = parseTypeAnnotation()
+        val whereClause = parseOptionalWhereClause()
         expect(tt.LBRACE)
         val members = buildList {
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
@@ -137,11 +138,38 @@ class Parser(
         }
         val stop = expect(tt.RBRACE)
         return Declaration.Implementation(
-                makeLocation(start, stop),
-                interfaceRef = interfaceRef,
-                typeParams = params,
-                forType = forType,
-                members = members
+            makeLocation(start, stop),
+            interfaceRef = interfaceRef,
+            typeParams = params,
+            forType = forType,
+            members = members,
+            whereClause = whereClause
+        )
+    }
+
+    private fun parseOptionalWhereClause(): WhereClause? {
+        return if (at(tt.WHERE)) {
+            val start = advance()
+            val constraints = parseSeperatedList(tt.COMMA, terminator = tt.LBRACE) {
+                parseWhereClauseConstraint()
+            }
+            val stop: HasLocation = constraints.lastOrNull() ?: start
+            WhereClause(
+                location = makeLocation(start, stop),
+                constraints = constraints
+            )
+        } else {
+            null
+        }
+    }
+
+    private fun parseWhereClauseConstraint(): WhereClauseConstraint {
+        val ident = parseIdentifier()
+        expect(tt.COLON)
+        val interfaceRef = parseInterfaceRef()
+        return WhereClauseConstraint(
+            ident,
+            interfaceRef
         )
     }
 
@@ -200,13 +228,15 @@ class Parser(
         val (thisParam, params) = parseParams()
         expect(tt.COLON)
         val returnType = parseTypeAnnotation()
+        val whereClause = parseOptionalWhereClause()
         return FunctionSignature(
-                makeLocation(start, returnType),
-                binder,
-                typeParams,
-                thisParam,
-                params,
-                returnType
+            makeLocation(start, returnType),
+            binder,
+            typeParams,
+            thisParam,
+            params,
+            returnType,
+            whereClause
         )
     }
 

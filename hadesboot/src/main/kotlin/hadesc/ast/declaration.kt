@@ -74,6 +74,7 @@ sealed class Declaration : HasLocation {
             val typeParams: List<TypeParam>?,
             val interfaceRef: InterfaceRef,
             val forType: TypeAnnotation,
+            val whereClause: WhereClause?,
             val members: List<Member>
     ) : Declaration() {
         sealed class Member {
