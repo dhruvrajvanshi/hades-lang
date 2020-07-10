@@ -1,8 +1,9 @@
-package hadesc.typer
+package hadesc.frontend
 
 import hadesc.Name
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.diagnostics.Diagnostic
 import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
@@ -15,11 +16,11 @@ import java.util.*
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
-class Typer(
+class Checker(
         private val ctx: Context
 ) {
+    private var reportErrors = false
     private val returnTypeStack = Stack<Type>()
-
     private val genericInstances = mutableMapOf<Long, Type>()
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
@@ -158,6 +159,14 @@ class Typer(
             destination is Type.ParamRef && source is Type.ParamRef -> {
                 destination.name.identifier.name == source.name.identifier.name
             }
+            destination is Type.Ptr && source is Type.Ptr -> {
+                if (destination.isMutable && !source.isMutable) {
+                    false
+                } else {
+                    isTypeAssignableTo(source.to, destination.to)
+                }
+
+            }
             else -> false
         }
     }
@@ -169,38 +178,68 @@ class Typer(
             return cached
         }
         val def = requireNotNull(ctx.resolver.getEnclosingFunction(expression))
-        visitFunction(def)
+        checkDeclaration(def)
         return requireNotNull(typeOfExpressionCache[expression])
 
     }
 
-    private fun visitFunction(def: Declaration.FunctionDef) {
+    private val checkedDeclarationSet = MutableNodeMap<Declaration, Unit>()
+    fun checkDeclaration(declaration: Declaration) = checkedDeclarationSet.computeIfAbsent(declaration) {
+        when (declaration) {
+            is Declaration.Error -> {}
+            is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
+            is Declaration.FunctionDef -> checkFunctionDefDeclaration(declaration)
+            is Declaration.ConstDefinition -> TODO()
+            is Declaration.ExternFunctionDef -> TODO()
+            is Declaration.Struct -> TODO()
+            is Declaration.Interface -> checkInterfaceDeclaration(declaration)
+            is Declaration.Implementation -> TODO()
+            is Declaration.Enum -> TODO()
+            is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
+        }
+    }
+
+    private fun checkImportAsDeclaration(declaration: Declaration.ImportAs) {
+        if (ctx.resolveSourceFile(declaration.modulePath) == null) {
+            error(declaration.modulePath, Diagnostic.Kind.NoSuchModule)
+        }
+    }
+
+    private fun checkTypeAliasDeclaration(declaration: Declaration.TypeAlias) {
+        // TODO
+    }
+
+    private fun checkInterfaceDeclaration(declaration: Declaration.Interface) {
+        // TODO
+    }
+
+    private fun checkFunctionDefDeclaration(def: Declaration.FunctionDef) {
         val returnType = annotationToType(def.signature.returnType)
         returnTypeStack.push(returnType)
-        visitBlock(def.body)
+        checkBlock(def.body)
         returnTypeStack.pop()
 
     }
 
-    private fun visitBlock(block: Block) {
+    private fun checkBlock(block: Block) {
         for (member in block.members) {
-            visitBlockMember(member)
+            checkBlockMember(member)
         }
     }
 
-    private fun visitBlockMember(member: Block.Member): Unit = when(member) {
+    private fun checkBlockMember(member: Block.Member): Unit = when(member) {
         is Block.Member.Expression -> {
             inferExpression(member.expression)
             Unit
         }
-        is Block.Member.Statement -> visitStatement(member.statement)
+        is Block.Member.Statement -> checkStatement(member.statement)
     }
 
-    private fun visitStatement(statement: Statement): Unit = when(statement) {
-        is Statement.Return -> visitReturnStatement(statement)
-        is Statement.Val -> visitValStatement(statement)
-        is Statement.While -> visitWhileStatement(statement)
-        is Statement.If -> visitIfStatement(statement)
+    private fun checkStatement(statement: Statement): Unit = when(statement) {
+        is Statement.Return -> checkReturnStatement(statement)
+        is Statement.Val -> checkValStatement(statement)
+        is Statement.While -> checkWhileStatement(statement)
+        is Statement.If -> checkIfStatement(statement)
         is Statement.LocalAssignment -> TODO()
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
@@ -208,47 +247,68 @@ class Typer(
         is Statement.Error -> TODO()
     }
 
-    private fun visitWhileStatement(statement: Statement.While) {
+    private fun checkWhileStatement(statement: Statement.While) {
         checkExpression(statement.condition, Type.Bool)
-        visitBlock(statement.body)
+        checkBlock(statement.body)
     }
 
-    private fun visitIfStatement(statement: Statement.If) {
+    private fun checkIfStatement(statement: Statement.If) {
         checkExpression(statement.condition, Type.Bool)
-        visitBlock(statement.ifTrue)
-        statement.ifFalse?.let { visitBlock(it) }
+        checkBlock(statement.ifTrue)
+        statement.ifFalse?.let { checkBlock(it) }
     }
 
-    private fun visitReturnStatement(statement: Statement.Return) {
+    private fun checkReturnStatement(statement: Statement.Return) {
         if (statement.value != null) {
             val returnType = returnTypeStack.peek()
             checkExpression(statement.value, returnType)
         }
     }
 
-    private fun visitValStatement(statement: Statement.Val) {
+    private fun checkValStatement(statement: Statement.Val) {
         val expectedType = statement.typeAnnotation?.let { annotationToType(it) }
         if (expectedType != null) {
             checkExpression(statement.rhs, expectedType)
         } else {
             inferExpression(statement.rhs)
         }
+        checkNameBinding(statement.binder)
     }
 
-    private fun checkExpression(expression: Expression, expectedType: Type): Type = when(expression) {
-        is Expression.IntLiteral -> {
-            if (isIntLiteralAssignable(expectedType)) {
-                typeOfExpressionCache[expression] = expectedType
+    private fun checkNameBinding(name: Binder) {
+        // TODO: Check for duplicate bindings
+    }
+
+    private fun checkExpression(expression: Expression, expectedType: Type): Type {
+        val type = when (expression) {
+            is Expression.IntLiteral -> {
+                if (isIntLiteralAssignable(expectedType)) {
+                    expectedType
+                } else {
+                    inferExpression(expression)
+                }
+            }
+            is Expression.Call -> {
+                checkCallExpression(expression, expectedType)
+            }
+            is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
+            else -> {
+                val inferredType = inferExpression(expression)
+                if (!isTypeAssignableTo(inferredType, expectedType)) {
+                    error(expression, Diagnostic.Kind.TypeNotAssignable(source = inferredType, destination = expectedType))
+                }
                 expectedType
-            } else {
-                inferExpression(expression)
             }
         }
-        else -> {
-            val inferredType = inferExpression(expression)
-            isTypeAssignableTo(inferredType, expectedType, Variance.INVARIANCE)
-            expectedType
+        typeOfExpressionCache[expression] = type
+        return type
+    }
+
+    private fun checkNullPtrExpression(expression: Expression.NullPtr, expectedType: Type): Type {
+        if (expectedType !is Type.Ptr) {
+            error(expression, Diagnostic.Kind.NotAPointerType(expectedType))
         }
+        return expectedType
     }
 
     private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
@@ -266,7 +326,7 @@ class Typer(
             is Expression.ByteString -> Type.Ptr(Type.Byte, isMutable = false)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.This -> inferThisExpression(expression)
-            is Expression.NullPtr -> Type.Error
+            is Expression.NullPtr -> inferNullPtrExpression(expression)
             is Expression.IntLiteral -> inferIntLiteral(expression)
             is Expression.Not -> inferNotExpression(expression)
             is Expression.BinaryOperation -> TODO()
@@ -284,6 +344,11 @@ class Typer(
         typeOfExpressionCache[expression] = type
         return type
 
+    }
+
+    private fun inferNullPtrExpression(expression: Expression.NullPtr): Type {
+        error(expression, Diagnostic.Kind.MissingTypeAnnotation)
+        return Type.Error
     }
 
     private fun inferAddressOfMut(expression: Expression.AddressOfMut): Type {
@@ -474,14 +539,35 @@ class Typer(
             val to: Type,
             val typeParams: List<Type.Param>?
     )
+
     private fun inferCallExpression(expression: Expression.Call): Type {
-        return inferCallLikeExpression(inferExpression(expression.callee), expression.args)
+        return inferOrCheckCallLikeExpression(
+                callNode = expression,
+                callee = expression.callee,
+                typeArgs = expression.typeArgs,
+                args = expression.args,
+                expectedReturnType = null
+        )
+    }
+    private fun checkCallExpression(expression: Expression.Call, expectedType: Type): Type {
+        return inferOrCheckCallLikeExpression(
+                callNode = expression,
+                callee = expression.callee,
+                typeArgs = expression.typeArgs,
+                args = expression.args,
+                expectedReturnType = expectedType
+        )
     }
 
-    private fun inferCallLikeExpression(
-            calleeType: Type,
-            args: List<Arg>
+    private fun inferOrCheckCallLikeExpression(
+            callNode: HasLocation,
+            callee: Expression,
+            typeArgs: List<TypeAnnotation>?,
+            args: List<Arg>,
+            expectedReturnType: Type?
     ): Type {
+        val explicitTypeArgs = typeArgs?.map { annotationToType(it) }
+        val calleeType = inferExpression(callee)
         val functionType = getFunctionTypeComponents(calleeType)
         return if (functionType == null) {
             for (arg in args) {
@@ -490,7 +576,7 @@ class Typer(
             Type.Error
         } else {
             val substitution = instantiateSubstitution(functionType.typeParams)
-            checkCallArgs(functionType, args, substitution)
+            checkCallArgs(functionType, callNode, explicitTypeArgs, args, expectedReturnType, substitution)
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
     }
@@ -509,15 +595,34 @@ class Typer(
      * we see that Type.GenericInstance(1) isn't instantiated, so it type checks fine.
      *
      */
-    internal fun instantiateSubstitution(typeParams: List<Type.Param>?): Substitution {
+    private fun instantiateSubstitution(typeParams: List<Type.Param>?): Substitution {
         return typeParams
                 ?.map { it.binder.location to makeGenericInstance(it.binder) }
                 ?.toMap()
                 ?: emptyMap()
     }
 
-    private fun checkCallArgs(functionType: FunctionTypeComponents, args: List<Arg>, substitution: Substitution) {
+    private fun checkCallArgs(
+            functionType: FunctionTypeComponents,
+            callNode: HasLocation,
+            typeArgs: List<Type>?,
+            args: List<Arg>,
+            expectedReturnType: Type?,
+            substitution: Substitution
+    ) {
         val length = min(functionType.from.size, args.size)
+        typeArgs?.zip(functionType.typeParams ?: emptyList())?.forEach { (arg, param) ->
+            val expectedType = Type.ParamRef(param.binder).applySubstitution(substitution)
+            checkAssignability(source = arg, destination = expectedType)
+        }
+
+        if (expectedReturnType != null) {
+            checkAssignability(
+                    source = functionType.to.applySubstitution(substitution),
+                    destination = expectedReturnType
+            )
+        }
+
         for (i in 0 until length) {
             val expectedType = functionType.from[i].applySubstitution(substitution)
             val arg = args[i]
@@ -526,9 +631,40 @@ class Typer(
         for (arg in args.drop(length)) {
             inferExpression(arg.expression)
         }
+
+        if (args.size < functionType.from.size) {
+            error(callNode, Diagnostic.Kind.MissingArgs(required = functionType.from.size))
+        }
+
+        if (args.size > functionType.from.size) {
+            error(callNode, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
+        }
+
+        for (typeArgInstance in substitution.values) {
+            require(typeArgInstance is Type.GenericInstance)
+            if (!isFullyReduced(reduceGenericInstances(typeArgInstance))) {
+                error(callNode, Diagnostic.Kind.UninferrableTypeParam(typeArgInstance.name))
+            }
+        }
     }
 
-    internal fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
+    private fun isFullyReduced(type: Type): Boolean {
+        var isFullyReduced = true
+        // We don't have a concept of a recursive TypeVisitor yet
+        // but TypeTransformer does recursively visit each type
+        // probably could have a separate visitor that doesn't
+        // return anything.
+        object : TypeTransformer {
+            override fun lowerGenericInstance(type: Type.GenericInstance): Type {
+                isFullyReduced = false
+                return super.lowerGenericInstance(type)
+            }
+        }.lowerType(type)
+        return isFullyReduced
+
+    }
+
+    private fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
         fun recurse(type: Type, typeParams: List<Type.Param>?): FunctionTypeComponents? {
             return when (type) {
                 is Type.Ptr -> recurse(type.to, null)
@@ -561,16 +697,19 @@ class Typer(
         return null // FIXME
     }
 
-    fun annotationToType(annotation: TypeAnnotation): Type = when(annotation) {
-        is TypeAnnotation.Error -> Type.Error
-        is TypeAnnotation.Var -> varAnnotationToType(annotation)
-        is TypeAnnotation.Ptr -> ptrAnnotationToType(annotation)
-        is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
-        is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
-        is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
-        is TypeAnnotation.Function -> TODO()
-        is TypeAnnotation.This -> TODO()
-        is TypeAnnotation.Union -> TODO()
+    private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
+    fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.computeIfAbsent(annotation) {
+        when (annotation) {
+            is TypeAnnotation.Error -> Type.Error
+            is TypeAnnotation.Var -> varAnnotationToType(annotation)
+            is TypeAnnotation.Ptr -> ptrAnnotationToType(annotation)
+            is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
+            is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
+            is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
+            is TypeAnnotation.Function -> TODO()
+            is TypeAnnotation.This -> TODO()
+            is TypeAnnotation.Union -> TODO()
+        }
     }
 
     private fun typeApplicationAnnotationToType(annotation: TypeAnnotation.Application): Type {
@@ -637,10 +776,14 @@ class Typer(
     }
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
-        return resolveTypeVariable(annotation) ?: Type.Error
+        val resolved = resolveTypeVariable(annotation)
+        if (resolved == null) {
+            error(annotation, Diagnostic.Kind.UnboundType(annotation.name.name))
+        }
+        return resolved ?: Type.Error
     }
 
-    fun resolveTypeVariable(annotation: TypeAnnotation.Var): Type? {
+    private fun resolveTypeVariable(annotation: TypeAnnotation.Var): Type? {
         val binding = ctx.resolver.resolveTypeVariable(annotation.name)
         return if (binding == null) {
             when (annotation.name.name.text) {
@@ -698,6 +841,20 @@ class Typer(
                 }
             }
         }.lowerType(type)
+    }
+
+    private fun error(node: HasLocation, kind: Diagnostic.Kind) {
+        if (reportErrors) {
+            ctx.diagnosticReporter.report(node.location, kind)
+        }
+    }
+
+    fun enableDiagnostics() {
+        reportErrors = true
+    }
+
+    fun disableDiagnostics() {
+        reportErrors = false
     }
 
 }

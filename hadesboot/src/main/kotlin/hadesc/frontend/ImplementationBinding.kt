@@ -1,4 +1,4 @@
-package hadesc.typer
+package hadesc.frontend
 
 import hadesc.ast.Declaration
 import hadesc.ast.InterfaceRef

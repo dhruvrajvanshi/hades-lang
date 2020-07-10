@@ -1,8 +1,7 @@
-package hadesc.typer
+package hadesc.frontend
 
 import hadesc.ast.Declaration
 import hadesc.resolver.Binding
-import hadesc.types.Type
 
 sealed class PropertyBinding {
     data class Global(

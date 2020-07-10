@@ -3,8 +3,8 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.typer.ImplementationBinding
-import hadesc.typer.PropertyBinding
+import hadesc.frontend.ImplementationBinding
+import hadesc.frontend.PropertyBinding
 import hadesc.context.Context
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
@@ -423,7 +423,7 @@ class HIRGen(
         ))
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.typer.resolvePropertyBinding(expression)) {
+    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.checker.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
@@ -570,7 +570,7 @@ class HIRGen(
     }
 
     private fun typeOfExpression(expression: Expression): Type {
-        return ctx.typer.reduceGenericInstances(ctx.typer.typeOfExpression(expression))
+        return ctx.checker.reduceGenericInstances(ctx.checker.typeOfExpression(expression))
     }
 
     private fun lowerVarExpression(expression: Expression.Var): HIRExpression {
@@ -590,14 +590,14 @@ class HIRGen(
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return ctx.typer.reduceGenericInstances(ctx.typer.annotationToType(annotation))
+        return ctx.checker.reduceGenericInstances(ctx.checker.annotationToType(annotation))
     }
 
     private fun lowerParam(param: Param): HIRParam {
         return HIRParam(
                 param.location,
                 name = param.binder.identifier.name,
-                type = ctx.typer.typeOfBinder(param.binder)
+                type = ctx.checker.typeOfBinder(param.binder)
         )
     }
 

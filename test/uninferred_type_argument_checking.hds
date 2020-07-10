@@ -10,4 +10,8 @@ def null[T](): *mut T {
     return nullptr;
 }
 
+def immutable_null[T](): *T {
+    return null[T]();
+}
+
 def take_int(x: *Int): Void {}
