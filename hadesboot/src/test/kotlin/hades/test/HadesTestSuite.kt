@@ -40,7 +40,6 @@ class HadesTestSuite {
                             directory.toPath().toString(),
                             file.nameWithoutExtension + ".errors"
                     ).toFile()
-                    if (expectedErrorsFile.exists())
                     add(DynamicTest.dynamicTest(file.name) {
                         logger().debug("Running suite file {}", file)
 
