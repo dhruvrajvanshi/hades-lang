@@ -44,6 +44,9 @@ class Context(
         }
 
         var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
+        if (this.diagnosticReporter.hasErrors) {
+            return
+        }
         hirModule = ReceiverElimination(this).transformModule(hirModule)
         hirModule = Monomorphization(this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)

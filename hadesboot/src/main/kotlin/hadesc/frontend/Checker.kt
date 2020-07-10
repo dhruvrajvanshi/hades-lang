@@ -12,6 +12,7 @@ import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
+import jdk.jshell.Diag
 import java.util.*
 import kotlin.math.min
 
@@ -61,7 +62,7 @@ class Checker(
                         ?.toMap()
                         ?: emptyMap()
                 val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
-                isTypeAssignableTo(lhsType, fieldType, Variance.INVARIANCE)
+                isTypeAssignableTo(lhsType, fieldType)
                 PropertyBinding.StructField(
                         structDecl = structDecl,
                         memberIndex = index
@@ -109,7 +110,7 @@ class Checker(
                 ?.map { it.first.binder.location to it.second }
                 ?.toMap()
                 ?: emptyMap()
-        return isTypeAssignableTo(lhsType, thisType.applySubstitution(substitution), Variance.INVARIANCE)
+        return isTypeAssignableTo(lhsType, thisType.applySubstitution(substitution))
     }
 
     private fun collapseTypeFunctionParams(type: Type, typeParams: List<TypeParam>?): Type {
@@ -131,10 +132,12 @@ class Checker(
 
     }
 
-    private fun checkAssignability(source: Type, destination: Type) {
+    private fun equateTypes(source: Type, destination: Type) {
+        // isTypeAssignable is side effectful in the sense that it instantiates
+        // Type.GenericInstance types for matching source and destination types
         isTypeAssignableTo(source, destination)
     }
-    fun isTypeAssignableTo(source: Type, destination: Type, variance: Variance = Variance.INVARIANCE): Boolean {
+    private fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
         if (source == destination) {
             return true
         }
@@ -142,17 +145,26 @@ class Checker(
             destination is Type.GenericInstance -> {
                 val existing = genericInstances[destination.id]
                 if (existing != null) {
-                    isTypeAssignableTo(source, destination = existing, variance = Variance.INVARIANCE)
+                    isTypeAssignableTo(source, destination = existing)
                 } else {
                     genericInstances[destination.id] = source
                     true
                 }
             }
+            source is Type.GenericInstance -> {
+                val existing = genericInstances[source.id]
+                if (existing != null) {
+                    isTypeAssignableTo(existing, destination = destination)
+                } else {
+                    genericInstances[source.id] = destination
+                    true
+                }
+            }
             destination is Type.Application && source is Type.Application -> {
-                isTypeAssignableTo(source.callee, destination.callee, Variance.INVARIANCE)
+                isTypeAssignableTo(source.callee, destination.callee)
                         && source.args.size == destination.args.size
                         && source.args.zip(destination.args).all {
-                            isTypeAssignableTo(it.first, it.second, Variance.INVARIANCE)
+                            isTypeAssignableTo(it.first, it.second)
                         }
             }
 
@@ -160,10 +172,11 @@ class Checker(
                 destination.name.identifier.name == source.name.identifier.name
             }
             destination is Type.Ptr && source is Type.Ptr -> {
+                val ptrTypeAssignable = isTypeAssignableTo(source.to, destination.to)
                 if (destination.isMutable && !source.isMutable) {
                     false
                 } else {
-                    isTypeAssignableTo(source.to, destination.to)
+                    ptrTypeAssignable
                 }
 
             }
@@ -402,7 +415,7 @@ class Checker(
                 ?: emptyMap()
         val genericMemberType = annotationToType(binding.member.typeAnnotation)
         val memberType = genericMemberType.applySubstitution(substitution)
-        checkAssignability(lhsType, memberType)
+        equateTypes(lhsType, memberType)
         return memberType
     }
 
@@ -413,7 +426,7 @@ class Checker(
         requireNotNull(functionTypeComponents)
         requireNotNull(functionTypeComponents.receiverType)
         val substitution = instantiateSubstitution(functionTypeComponents.typeParams)
-        checkAssignability(lhsType, functionTypeComponents.receiverType.applySubstitution(substitution))
+        equateTypes(lhsType, functionTypeComponents.receiverType.applySubstitution(substitution))
         return Type.Function(
                 receiver = null,
                 from = functionTypeComponents.from.map { it.applySubstitution(substitution) },
@@ -573,10 +586,20 @@ class Checker(
             for (arg in args) {
                 inferExpression(arg.expression)
             }
+            error(callNode, Diagnostic.Kind.TypeNotCallable(calleeType))
             Type.Error
         } else {
             val substitution = instantiateSubstitution(functionType.typeParams)
             checkCallArgs(functionType, callNode, explicitTypeArgs, args, expectedReturnType, substitution)
+            if (expectedReturnType != null) {
+                val source = functionType.to.applySubstitution(substitution)
+                if(!isTypeAssignableTo(
+                        source = source,
+                        destination = expectedReturnType
+                )) {
+                    error(callNode, Diagnostic.Kind.TypeNotAssignable(source, destination = expectedReturnType))
+                }
+            }
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
     }
@@ -613,14 +636,7 @@ class Checker(
         val length = min(functionType.from.size, args.size)
         typeArgs?.zip(functionType.typeParams ?: emptyList())?.forEach { (arg, param) ->
             val expectedType = Type.ParamRef(param.binder).applySubstitution(substitution)
-            checkAssignability(source = arg, destination = expectedType)
-        }
-
-        if (expectedReturnType != null) {
-            checkAssignability(
-                    source = functionType.to.applySubstitution(substitution),
-                    destination = expectedReturnType
-            )
+            equateTypes(source = arg, destination = expectedType)
         }
 
         for (i in 0 until length) {
@@ -632,19 +648,20 @@ class Checker(
             inferExpression(arg.expression)
         }
 
+        checkArgumentLength(callNode, args, functionType)
+    }
+
+    private fun checkArgumentLength(
+            callNode: HasLocation,
+            args: List<Arg>,
+            functionType: FunctionTypeComponents
+    ) {
         if (args.size < functionType.from.size) {
             error(callNode, Diagnostic.Kind.MissingArgs(required = functionType.from.size))
         }
 
         if (args.size > functionType.from.size) {
             error(callNode, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
-        }
-
-        for (typeArgInstance in substitution.values) {
-            require(typeArgInstance is Type.GenericInstance)
-            if (!isFullyReduced(reduceGenericInstances(typeArgInstance))) {
-                error(callNode, Diagnostic.Kind.UninferrableTypeParam(typeArgInstance.name))
-            }
         }
     }
 
@@ -906,6 +923,3 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
         (op.OR to Type.Bool) to (Type.Bool to Type.Bool)
 )
 
-enum class Variance {
-    INVARIANCE
-}

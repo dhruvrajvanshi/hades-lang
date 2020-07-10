@@ -73,7 +73,7 @@ sealed class Type {
             "($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
         }
         is ParamRef -> this.name.identifier.name.text
-        is GenericInstance -> "Generic[${name.identifier.name.text}]"
+        is GenericInstance -> name.identifier.name.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
         Size -> "Size"

@@ -6,6 +6,9 @@ import hadesc.ast.*
 import hadesc.frontend.ImplementationBinding
 import hadesc.frontend.PropertyBinding
 import hadesc.context.Context
+import hadesc.diagnostics.Diagnostic
+import hadesc.diagnostics.DiagnosticReporter
+import hadesc.ir.passes.TypeTransformer
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
@@ -569,8 +572,26 @@ class HIRGen(
                         expression.bytes))
     }
 
-    private fun typeOfExpression(expression: Expression): Type {
-        return ctx.checker.reduceGenericInstances(ctx.checker.typeOfExpression(expression))
+    private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()
+    private fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
+        val type = ctx.checker.reduceGenericInstances(ctx.checker.typeOfExpression(expression))
+        checkUninferredGenerics(expression, type)
+        return type
+    }
+
+    private fun checkUninferredGenerics(expression: Expression, type: Type) {
+        var genericInstanceFound: Type.GenericInstance? = null
+        object : TypeTransformer {
+            override fun lowerGenericInstance(type: Type.GenericInstance): Type {
+                genericInstanceFound = type
+                return super.lowerGenericInstance(type)
+            }
+        }.lowerType(type)
+
+        when (val instance = genericInstanceFound) {
+            null -> {}
+            else -> ctx.diagnosticReporter.report(expression.location, Diagnostic.Kind.UninferrableTypeParam(instance.name))
+        }
     }
 
     private fun lowerVarExpression(expression: Expression.Var): HIRExpression {

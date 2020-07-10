@@ -1,1 +1,1 @@
-test/uninferred_type_argument_checking.hds: UninferrableTypeParam
+test/uninferred_type_argument_checking.hds:3: UninferrableTypeParam
