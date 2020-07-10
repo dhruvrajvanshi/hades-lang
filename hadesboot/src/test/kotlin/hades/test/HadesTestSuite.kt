@@ -3,6 +3,7 @@ package hades.test
 import hadesc.Compiler
 import hadesc.logging.logger
 import org.apache.commons.lang3.SystemUtils
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
@@ -96,9 +97,9 @@ class HadesTestSuite {
                                     .map {
                                         "${it.sourceLocation.file.path.toString().replace('\\', '/')}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
                                     }
-                            assertEquals(
-                                expectedErrors,
-                                actualErrors
+                            Assertions.assertEquals(
+                                    expectedErrors,
+                                    actualErrors
                             )
                         }
 
