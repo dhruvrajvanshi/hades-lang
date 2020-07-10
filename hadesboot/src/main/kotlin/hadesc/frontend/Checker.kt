@@ -12,7 +12,6 @@ import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
-import jdk.jshell.Diag
 import java.util.*
 import kotlin.math.min
 
@@ -213,7 +212,25 @@ class Checker(
     }
 
     private fun checkStructDeclaration(declaration: Declaration.Struct) {
-        TODO()
+        checkTypeNameBinder(declaration.binder)
+        checkValueNameBinder(declaration.binder)
+        declaration.typeParams?.forEach {
+            checkTypeParam(it)
+        }
+
+        fun checkMember(member: Declaration.Struct.Member) = when(member) {
+            is Declaration.Struct.Member.Field -> {
+                inferAnnotation(member.typeAnnotation)
+            }
+        }
+
+        for (member in declaration.members) {
+            checkMember(member)
+        }
+    }
+
+    private fun checkTypeParam(it: TypeParam) {
+        // TODO
     }
 
     private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
@@ -236,11 +253,23 @@ class Checker(
     }
 
     private fun checkFunctionDefDeclaration(def: Declaration.FunctionDef) {
-        val returnType = annotationToType(def.signature.returnType)
+        def.typeParams?.forEach {
+            checkTypeParam(it)
+        }
+        def.params.forEach {
+            if (it.annotation != null) {
+                inferAnnotation(it.annotation)
+            }
+        }
+        val returnType = inferAnnotation(def.signature.returnType)
         returnTypeStack.push(returnType)
         checkBlock(def.body)
         returnTypeStack.pop()
 
+    }
+
+    private fun inferAnnotation(annotation: TypeAnnotation): Type {
+        return annotationToType(annotation)
     }
 
     private fun checkBlock(block: Block) {
@@ -313,8 +342,15 @@ class Checker(
             return
         }
 
-        if (!isTypeAssignableTo(destination = lhsType, source = rhsType)) {
-            error(statement.value, Diagnostic.Kind.TypeNotAssignable(source = rhsType, destination = lhsType))
+        checkAssignability(statement.value, destination = lhsType, source = rhsType)
+    }
+
+    private fun checkAssignability(node: HasLocation, source: Type, destination: Type) {
+        if (!isTypeAssignableTo(destination = destination, source = source)) {
+            error(node, Diagnostic.Kind.TypeNotAssignable(
+                source = source,
+                destination = destination
+            ))
         }
     }
 
@@ -343,21 +379,27 @@ class Checker(
         } else {
             inferExpression(statement.rhs)
         }
-        checkNameBinding(statement.binder)
+        checkValueNameBinder(statement.binder)
     }
 
-    private fun checkNameBinding(name: Binder) {
+    private fun checkTypeNameBinder(binder: Binder) {
+        // TODO
+    }
+
+    private fun checkValueNameBinder(name: Binder) {
         // TODO: Check for duplicate bindings
     }
 
     private fun checkExpression(expression: Expression, expectedType: Type): Type {
         val type = when (expression) {
             is Expression.IntLiteral -> {
-                if (isIntLiteralAssignable(expectedType)) {
+                val type = if (isIntLiteralAssignable(expectedType)) {
                     expectedType
                 } else {
                     inferExpression(expression)
                 }
+                checkAssignability(expression, source = type, destination = expectedType)
+                type
             }
             is Expression.Call -> {
                 checkCallExpression(expression, expectedType)
@@ -365,9 +407,7 @@ class Checker(
             is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
             else -> {
                 val inferredType = inferExpression(expression)
-                if (!isTypeAssignableTo(inferredType, expectedType)) {
-                    error(expression, Diagnostic.Kind.TypeNotAssignable(source = inferredType, destination = expectedType))
-                }
+                checkAssignability(expression, source = inferredType, destination = expectedType)
                 expectedType
             }
         }
@@ -388,8 +428,8 @@ class Checker(
         else -> false
     }
 
-    private fun inferExpression(expression: Expression): Type {
-        val type = when (expression) {
+    private fun inferExpression(expression: Expression): Type = typeOfExpressionCache.computeIfAbsent(expression) {
+        when (expression) {
             is Expression.Error -> Type.Error
             is Expression.Var -> inferVarExpresion(expression)
             is Expression.Call -> inferCallExpression(expression)
@@ -411,10 +451,6 @@ class Checker(
             is Expression.Match -> TODO()
             is Expression.New -> TODO()
         }
-
-        typeOfExpressionCache[expression] = type
-        return type
-
     }
 
     private fun inferSizeOfExpression(expression: Expression.SizeOf): Type {
@@ -680,12 +716,11 @@ class Checker(
             checkCallArgs(functionType, callNode, explicitTypeArgs, args, expectedReturnType, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
-                if(!isTypeAssignableTo(
+                checkAssignability(
+                        callNode,
                         source = source,
                         destination = expectedReturnType
-                )) {
-                    error(callNode, Diagnostic.Kind.TypeNotAssignable(source, destination = expectedReturnType))
-                }
+                )
             }
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
