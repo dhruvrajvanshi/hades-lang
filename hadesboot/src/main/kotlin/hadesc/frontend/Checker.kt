@@ -203,13 +203,22 @@ class Checker(
             is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
             is Declaration.FunctionDef -> checkFunctionDefDeclaration(declaration)
             is Declaration.ConstDefinition -> TODO()
-            is Declaration.ExternFunctionDef -> TODO()
-            is Declaration.Struct -> TODO()
+            is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
+            is Declaration.Struct -> checkStructDeclaration(declaration)
             is Declaration.Interface -> checkInterfaceDeclaration(declaration)
             is Declaration.Implementation -> TODO()
             is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
         }
+    }
+
+    private fun checkStructDeclaration(declaration: Declaration.Struct) {
+        TODO()
+    }
+
+    private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
+        declaration.paramTypes.forEach { annotationToType(it) }
+        annotationToType(declaration.returnType)
     }
 
     private fun checkImportAsDeclaration(declaration: Declaration.ImportAs) {
@@ -253,11 +262,60 @@ class Checker(
         is Statement.Val -> checkValStatement(statement)
         is Statement.While -> checkWhileStatement(statement)
         is Statement.If -> checkIfStatement(statement)
-        is Statement.LocalAssignment -> TODO()
-        is Statement.MemberAssignment -> TODO()
-        is Statement.PointerAssignment -> TODO()
-        is Statement.Defer -> TODO()
-        is Statement.Error -> TODO()
+        is Statement.LocalAssignment -> checkLocalAssignment(statement)
+        is Statement.MemberAssignment -> checkMemberAssignment(statement)
+        is Statement.PointerAssignment -> checkPointerAssignment(statement)
+        is Statement.Defer -> checkDeferStatement(statement)
+        is Statement.Error -> {}
+    }
+
+    private fun checkDeferStatement(statement: Statement.Defer) {
+        TODO()
+    }
+
+    private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
+        TODO()
+    }
+
+    private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
+        val binding = ctx.resolver.resolve(statement.name)
+        return when (binding) {
+            is Binding.ValBinding -> {
+                if (!binding.statement.isMutable) {
+                    error(statement.name, Diagnostic.Kind.AssignmentToImmutableVariable)
+                }
+                checkValStatement(binding.statement)
+                val type = typeOfBinding(binding)
+                checkExpression(statement.value, type)
+                Unit
+            }
+            null -> {
+                error(statement.name, Diagnostic.Kind.UnboundVariable)
+            }
+            else -> {
+                // TODO: Show a more helpful diagnostic here
+                error(statement.name, Diagnostic.Kind.NotAnAddressableValue)
+            }
+        }
+    }
+
+    private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
+        val lhsType = inferExpression(statement.lhs)
+        val rhsType = inferExpression(statement.value)
+        val field = resolvePropertyBinding(statement.lhs)
+        if (field !is PropertyBinding.StructField) {
+            error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
+            return
+        }
+
+        if (!field.member.isMutable) {
+            error(statement.lhs.property, Diagnostic.Kind.StructFieldNotMutable)
+            return
+        }
+
+        if (!isTypeAssignableTo(destination = lhsType, source = rhsType)) {
+            error(statement.value, Diagnostic.Kind.TypeNotAssignable(source = rhsType, destination = lhsType))
+        }
     }
 
     private fun checkWhileStatement(statement: Statement.While) {
@@ -342,12 +400,12 @@ class Checker(
             is Expression.NullPtr -> inferNullPtrExpression(expression)
             is Expression.IntLiteral -> inferIntLiteral(expression)
             is Expression.Not -> inferNotExpression(expression)
-            is Expression.BinaryOperation -> TODO()
-            is Expression.SizeOf -> TODO()
+            is Expression.BinaryOperation -> inferBinaryOperation(expression)
+            is Expression.SizeOf -> inferSizeOfExpression(expression)
             is Expression.AddressOf -> TODO()
             is Expression.AddressOfMut -> inferAddressOfMut(expression)
             is Expression.Deref -> TODO()
-            is Expression.PointerCast -> TODO()
+            is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
@@ -357,6 +415,35 @@ class Checker(
         typeOfExpressionCache[expression] = type
         return type
 
+    }
+
+    private fun inferSizeOfExpression(expression: Expression.SizeOf): Type {
+        annotationToType(expression.type)
+        return Type.Size
+    }
+
+    private fun inferBinaryOperation(expression: Expression.BinaryOperation): Type {
+        val lhsType = inferExpression(expression.lhs)
+        val matchingRule = BIN_OP_RULES[expression.operator to lhsType]
+        return if (matchingRule != null) {
+            checkExpression(expression.rhs, matchingRule.first)
+            matchingRule.second
+        } else {
+            inferExpression(expression.rhs)
+            error(expression.location, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+            Type.Error
+        }
+    }
+
+    private fun inferPointerCast(expression: Expression.PointerCast): Type {
+        val targetPointerToType = annotationToType(expression.toType)
+        val argType = inferExpression(expression.arg)
+        return if (argType !is Type.Ptr) {
+            error(expression.toType, Diagnostic.Kind.NotAPointerType(argType))
+            Type.Ptr(targetPointerToType, isMutable = true)
+        } else {
+            Type.Ptr(targetPointerToType, isMutable = argType.isMutable)
+        }
     }
 
     private fun inferNullPtrExpression(expression: Expression.NullPtr): Type {
@@ -405,7 +492,7 @@ class Checker(
     private fun typeOfStructFieldProperty(
             expression: Expression.Property,
             binding: PropertyBinding.StructField): Type {
-        val lhsType = typeOfExpression(expression.lhs)
+        val lhsType = inferExpression(expression.lhs)
         val typeArgs = if (lhsType is Type.Application)  {
             lhsType.args
         } else emptyList()
@@ -420,7 +507,7 @@ class Checker(
     }
 
     private fun typeOfGlobalExtensionMethod(expression: Expression.Property, binding: PropertyBinding.GlobalExtensionFunction): Type {
-        val lhsType = typeOfExpression(expression.lhs)
+        val lhsType = inferExpression(expression.lhs)
         val functionType = typeOfGlobalFunctionRef(binding.def)
         val functionTypeComponents = getFunctionTypeComponents(functionType)
         requireNotNull(functionTypeComponents)
@@ -500,7 +587,7 @@ class Checker(
         return if (binding.statement.typeAnnotation != null) {
             annotationToType(binding.statement.typeAnnotation)
         } else {
-            typeOfExpression(binding.statement.rhs)
+            inferExpression(binding.statement.rhs)
         }
 
     }
