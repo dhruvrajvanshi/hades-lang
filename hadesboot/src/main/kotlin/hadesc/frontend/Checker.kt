@@ -39,6 +39,18 @@ class Checker(
         if (globalExtensionFunctionBinding != null) {
             return globalExtensionFunctionBinding
         }
+
+        val interfaceExtensionFunctionBinding = resolveInterfaceExtensionFunction(expression)
+        if (interfaceExtensionFunctionBinding != null) {
+            return interfaceExtensionFunctionBinding
+        }
+
+        error(expression.property, Diagnostic.Kind.NoSuchProperty(
+            inferExpression(expression.lhs), expression.property.name))
+        return null
+    }
+
+    private fun resolveInterfaceExtensionFunction(expression: Expression.Property): PropertyBinding? {
         return null
     }
 
@@ -205,9 +217,23 @@ class Checker(
             is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
             is Declaration.Struct -> checkStructDeclaration(declaration)
             is Declaration.Interface -> checkInterfaceDeclaration(declaration)
-            is Declaration.Implementation -> TODO()
+            is Declaration.Implementation -> checkImplementationDeclaration(declaration)
             is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
+        }
+    }
+
+    private fun checkImplementationDeclaration(declaration: Declaration.Implementation) {
+        declaration.typeParams?.forEach { checkTypeParam(it) }
+        checkInterfaceRef(declaration.interfaceRef)
+        declaration.whereClause?.let { checkWhereClause(it) }
+        fun checkMember(member: Declaration.Implementation.Member) = when(member) {
+            is Declaration.Implementation.Member.FunctionDef -> {
+                checkFunctionDefDeclaration(member.functionDef)
+            }
+        }
+        for (member in declaration.members) {
+            checkMember(member)
         }
     }
 
@@ -220,7 +246,7 @@ class Checker(
 
         fun checkMember(member: Declaration.Struct.Member) = when(member) {
             is Declaration.Struct.Member.Field -> {
-                inferAnnotation(member.typeAnnotation)
+                annotationToType(member.typeAnnotation)
             }
         }
 
@@ -229,8 +255,16 @@ class Checker(
         }
     }
 
-    private fun checkTypeParam(it: TypeParam) {
+    private fun checkTypeParam(param: TypeParam) {
         // TODO
+        param.bound?.let { checkInterfaceRef(it) }
+    }
+
+    private fun checkInterfaceRef(interfaceRef: InterfaceRef) {
+        val declaration = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        if (declaration == null) {
+            error(interfaceRef, Diagnostic.Kind.UnboundInterface)
+        }
     }
 
     private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
@@ -249,27 +283,87 @@ class Checker(
     }
 
     private fun checkInterfaceDeclaration(declaration: Declaration.Interface) {
+        checkInterfaceNameBinder(declaration.name)
+        declaration.typeParams?.forEach {
+            checkTypeParam(it)
+        }
+
+        fun checkMethodReceiver(receiver: ThisParam) {
+            val thisType = annotationToType(receiver.annotation)
+            if (thisType !is Type.ThisRef) {
+                if (thisType is Type.Ptr) {
+                    if (thisType.to !is Type.ThisRef) {
+                        error(receiver.annotation, Diagnostic.Kind.InterfaceMethodReceiverMustBeThisOrThisPtr)
+                    }
+                } else {
+                    error(receiver.annotation, Diagnostic.Kind.InterfaceMethodReceiverMustBeThisOrThisPtr)
+                }
+            }
+        }
+
+        fun checkMember(member: Declaration.Interface.Member) = when (member) {
+            is Declaration.Interface.Member.FunctionSignature -> {
+                checkFunctionSignature(member.signature)
+                if (member.signature.typeParams != null) {
+                    error(member.signature, Diagnostic.Kind.TypeParametersNotAllowedInInterfaceMethods)
+                }
+                member.signature.typeParams?.forEach {
+                    checkTypeParam(it)
+                }
+
+                if (member.signature.thisParam == null) {
+                    error(member.signature, Diagnostic.Kind.InterfaceMemberMustBeAnExtensionMethod)
+                }
+
+                member.signature.thisParam?.let {
+                    checkMethodReceiver(member.signature.thisParam)
+                }
+            }
+        }
+
+        for (member in declaration.members) {
+            checkMember(member)
+        }
+
+    }
+
+    private fun checkWhereClause(clause: WhereClause) {
+        for (constraint in clause.constraints) {
+            checkInterfaceRef(constraint.interfaceRef)
+            when(ctx.resolver.resolveTypeVariable(constraint.param)) {
+                null -> error(constraint.param, Diagnostic.Kind.UnboundType(constraint.param.name))
+                !is TypeBinding.TypeParam -> {
+                    error(constraint.param, Diagnostic.Kind.WhereClauseMustReferToATypeParam)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    private fun checkInterfaceNameBinder(name: Binder) {
         // TODO
     }
 
     private fun checkFunctionDefDeclaration(def: Declaration.FunctionDef) {
-        def.typeParams?.forEach {
-            checkTypeParam(it)
-        }
-        def.params.forEach {
-            if (it.annotation != null) {
-                inferAnnotation(it.annotation)
-            }
-        }
-        val returnType = inferAnnotation(def.signature.returnType)
+        checkFunctionSignature(def.signature)
+        val returnType = annotationToType(def.signature.returnType)
         returnTypeStack.push(returnType)
         checkBlock(def.body)
         returnTypeStack.pop()
 
     }
 
-    private fun inferAnnotation(annotation: TypeAnnotation): Type {
-        return annotationToType(annotation)
+    private fun checkFunctionSignature(signature: FunctionSignature) {
+        signature.typeParams?.forEach {
+            checkTypeParam(it)
+        }
+        signature.params.forEach {
+            if (it.annotation != null) {
+                annotationToType(it.annotation)
+            }
+        }
+        annotationToType(signature.returnType)
+        signature.whereClause?.let { checkWhereClause(it) }
     }
 
     private fun checkBlock(block: Block) {
@@ -299,7 +393,7 @@ class Checker(
     }
 
     private fun checkDeferStatement(statement: Statement.Defer) {
-        TODO()
+        checkBlockMember(statement.blockMember)
     }
 
     private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
@@ -307,8 +401,7 @@ class Checker(
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
-        val binding = ctx.resolver.resolve(statement.name)
-        return when (binding) {
+        return when (val binding = ctx.resolver.resolve(statement.name)) {
             is Binding.ValBinding -> {
                 if (!binding.statement.isMutable) {
                     error(statement.name, Diagnostic.Kind.AssignmentToImmutableVariable)
@@ -818,6 +911,14 @@ class Checker(
                     return recurse(type.body, type.params)
                 }
                 is Type.GenericInstance -> recurse(reduceGenericInstances(type), null)
+                is Type.Error -> {
+                    return FunctionTypeComponents(
+                        receiverType = Type.Error,
+                        from = emptyList(),
+                        to = Type.Error,
+                        typeParams = null
+                    )
+                }
                 else -> null
             }
         }
@@ -846,7 +947,15 @@ class Checker(
             is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
             is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
             is TypeAnnotation.Function -> TODO()
-            is TypeAnnotation.This -> TODO()
+            is TypeAnnotation.This -> {
+                val interfaceDecl = ctx.resolver.getEnclosingInterfaceDecl(annotation)
+                if (interfaceDecl == null) {
+                    error(annotation, Diagnostic.Kind.UnboundThisType)
+                    Type.Error
+                } else {
+                    Type.ThisRef(interfaceDecl.location)
+                }
+            }
             is TypeAnnotation.Union -> TODO()
         }
     }

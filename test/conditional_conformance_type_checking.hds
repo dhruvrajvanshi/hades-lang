@@ -7,11 +7,15 @@ def main(): Void {
 
 def print[T](value: T): Void
     where T: Printable {
+    value.print();
 }
 def print_both[T, U](value: T, value2: U): Void
     where T: Printable, U: Printable {
     print(value);
     print(value2);
+}
+
+def x[T](value: T): Void where T: UnboundInterface {
 }
 
 struct Box[T] {
@@ -32,4 +36,13 @@ implement Printable for Int {
     def print(this: *Int): Void {
         utils.print_int(this);
     }
+}
+
+interface I {
+    def p[T](this: This): Void;
+    def t(): Void;
+    def x(this: Int): Void;
+    def y(this: *Void): Void;
+    def z(this: This): Void;
+    def a(this: *This): Void;
 }

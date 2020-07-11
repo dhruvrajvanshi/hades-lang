@@ -72,6 +72,11 @@ data class Diagnostic(
         object MissingReturnValue : Diagnostic.Kind(Severity.ERROR)
         object InvalidTypeApplication : Diagnostic.Kind(Severity.ERROR)
         object MissingTypeAnnotation : Diagnostic.Kind(Severity.ERROR)
+        object TypeParametersNotAllowedInInterfaceMethods : Diagnostic.Kind(Severity.ERROR)
+        object InterfaceMemberMustBeAnExtensionMethod : Diagnostic.Kind(Severity.ERROR)
+        object InterfaceMethodReceiverMustBeThisOrThisPtr : Diagnostic.Kind(Severity.ERROR)
+        object WhereClauseMustReferToATypeParam : Diagnostic.Kind(Severity.ERROR)
+        object UnboundInterface : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -121,6 +126,11 @@ data class Diagnostic(
             InvalidTypeApplication -> "Invalid type application"
             MissingTypeAnnotation -> "Missing type annotation"
             is UnboundTypeName -> "Unbound type ${path.identifiers.joinToString(".") {it.name.text}}"
+            TypeParametersNotAllowedInInterfaceMethods -> "Type parameters are not allowed in interface methods"
+            InterfaceMemberMustBeAnExtensionMethod -> "Interface member must be an extension method (try adding a receiver/this parameter)"
+            InterfaceMethodReceiverMustBeThisOrThisPtr -> "Interface method receiver must be either This or *This"
+            WhereClauseMustReferToATypeParam -> "Where clause must refer to a type parameter"
+            UnboundInterface -> "Unbound interface"
         }
 
     }

@@ -1,6 +1,6 @@
 import submodule.test_utils as u;
 struct Box {
-    val mut x: CInt;
+    val mut x: Int;
 }
 
 def main(): Void {
