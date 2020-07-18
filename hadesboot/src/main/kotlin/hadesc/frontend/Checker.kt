@@ -208,7 +208,7 @@ class Checker(
     }
 
     private val checkedDeclarationSet = MutableNodeMap<Declaration, Unit>()
-    fun checkDeclaration(declaration: Declaration) = checkedDeclarationSet.computeIfAbsent(declaration) {
+    fun checkDeclaration(declaration: Declaration) = checkedDeclarationSet.getOrPut(declaration) {
         when (declaration) {
             is Declaration.Error -> {}
             is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
@@ -521,7 +521,7 @@ class Checker(
         else -> false
     }
 
-    private fun inferExpression(expression: Expression): Type = typeOfExpressionCache.computeIfAbsent(expression) {
+    private fun inferExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression) {
         when (expression) {
             is Expression.Error -> Type.Error
             is Expression.Var -> inferVarExpresion(expression)
@@ -535,14 +535,24 @@ class Checker(
             is Expression.Not -> inferNotExpression(expression)
             is Expression.BinaryOperation -> inferBinaryOperation(expression)
             is Expression.SizeOf -> inferSizeOfExpression(expression)
-            is Expression.AddressOf -> TODO()
+            is Expression.AddressOf -> inferAddressOf(expression)
             is Expression.AddressOfMut -> inferAddressOfMut(expression)
-            is Expression.Deref -> TODO()
+            is Expression.Deref -> inferDerefExpression(expression)
             is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
             is Expression.New -> TODO()
+        }
+    }
+
+    private fun inferDerefExpression(expression: Expression.Deref): Type {
+        val ptrType = inferExpression(expression)
+        return if (ptrType !is Type.Ptr) {
+            error(expression, Diagnostic.Kind.NotAPointerType(ptrType))
+            Type.Error
+        } else {
+            ptrType.to
         }
     }
 
@@ -582,6 +592,10 @@ class Checker(
 
     private fun inferAddressOfMut(expression: Expression.AddressOfMut): Type {
         return Type.Ptr(inferExpression(expression.expression), isMutable = true)
+    }
+
+    private fun inferAddressOf(expression: Expression.AddressOf): Type {
+        return Type.Ptr(inferExpression(expression.expression), isMutable = false)
     }
 
     private fun inferIntLiteral(expression: Expression.IntLiteral): Type {
@@ -938,7 +952,7 @@ class Checker(
     }
 
     private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
-    fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.computeIfAbsent(annotation) {
+    fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.getOrPut(annotation) {
         when (annotation) {
             is TypeAnnotation.Error -> Type.Error
             is TypeAnnotation.Var -> varAnnotationToType(annotation)
@@ -956,8 +970,14 @@ class Checker(
                     Type.ThisRef(interfaceDecl.location)
                 }
             }
-            is TypeAnnotation.Union -> TODO()
+            is TypeAnnotation.Union -> unionAnnotationToType(annotation)
         }
+    }
+
+    private fun unionAnnotationToType(annotation: TypeAnnotation.Union): Type {
+        return Type.UntaggedUnion(
+            annotation.args.map { annotationToType(it) }
+        )
     }
 
     private fun typeApplicationAnnotationToType(annotation: TypeAnnotation.Application): Type {
@@ -1110,7 +1130,7 @@ class Checker(
 private class MutableNodeMap<T : HasLocation, V> {
     private val map = mutableMapOf<SourceLocation, V>()
 
-    fun computeIfAbsent(key: T, compute: () -> V): V {
+    fun getOrPut(key: T, compute: () -> V): V {
         val existing = map[key.location]
         if (existing != null) {
             return existing
@@ -1151,6 +1171,14 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
         (op.LESS_THAN to Type.Size) to (Type.Size to Type.Bool),
 
         (op.AND to Type.Bool) to (Type.Bool to Type.Bool),
-        (op.OR to Type.Bool) to (Type.Bool to Type.Bool)
+        (op.OR to Type.Bool) to (Type.Bool to Type.Bool),
+
+
+        (op.EQUALS to Type.CInt) to (Type.CInt to Type.Bool),
+        (op.NOT_EQUALS to Type.CInt) to (Type.CInt to Type.Bool),
+        (op.EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
+        (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
+        (op.EQUALS to Type.Size) to (Type.Size to Type.Bool),
+        (op.NOT_EQUALS to Type.Size) to (Type.Size to Type.Bool)
 )
 
