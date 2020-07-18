@@ -97,7 +97,7 @@ data class Diagnostic(
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
             NotAConst -> "Not a const. Only CInt and Bool values are allowed as global constants"
             is TypeNotEqualityComparable -> "Type ${type.prettyPrint()} is not equatable"
-            is OperatorNotApplicable -> "Operator not applicable type"
+            is OperatorNotApplicable -> "Operator not applicable to type"
             NotAnAddressableValue -> "Not an addressable value"
             is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
             AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
