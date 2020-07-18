@@ -741,7 +741,33 @@ class Checker(
             is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
-            is Expression.New -> TODO()
+            is Expression.New -> inferNewExpression(expression)
+        }
+    }
+
+    private fun inferNewExpression(expression: Expression.New): Type {
+        return Type.Ptr(inferOrCheckCallLikeExpression(
+            callNode = expression,
+            args = expression.args,
+            typeArgs = expression.typeArgs,
+            expectedReturnType = null,
+            calleeType = checkConstructorFunction(expression.qualifiedPath)
+        ), isMutable = true)
+    }
+
+    private fun checkConstructorFunction(path: QualifiedPath): Type {
+        return when (val declaration = ctx.resolver.resolveDeclaration(path)) {
+            null -> {
+                error(path, Diagnostic.Kind.UnboundTypeName(path))
+                Type.Error
+            }
+            is Declaration.Struct -> {
+                typeOfBinder(declaration.binder)
+            }
+            else -> {
+                error(path, Diagnostic.Kind.NotAConstructor)
+                Type.Error
+            }
         }
     }
 
@@ -1025,7 +1051,7 @@ class Checker(
     private fun inferCallExpression(expression: Expression.Call): Type {
         return inferOrCheckCallLikeExpression(
                 callNode = expression,
-                callee = expression.callee,
+                calleeType = inferExpression(expression.callee),
                 typeArgs = expression.typeArgs,
                 args = expression.args,
                 expectedReturnType = null
@@ -1034,7 +1060,7 @@ class Checker(
     private fun checkCallExpression(expression: Expression.Call, expectedType: Type): Type {
         return inferOrCheckCallLikeExpression(
                 callNode = expression,
-                callee = expression.callee,
+                calleeType = inferExpression(expression.callee),
                 typeArgs = expression.typeArgs,
                 args = expression.args,
                 expectedReturnType = expectedType
@@ -1043,13 +1069,12 @@ class Checker(
 
     private fun inferOrCheckCallLikeExpression(
             callNode: HasLocation,
-            callee: Expression,
+            calleeType: Type,
             typeArgs: List<TypeAnnotation>?,
             args: List<Arg>,
             expectedReturnType: Type?
     ): Type {
         val explicitTypeArgs = typeArgs?.map { annotationToType(it) }
-        val calleeType = inferExpression(callee)
         val functionType = getFunctionTypeComponents(calleeType)
         return if (functionType == null) {
             for (arg in args) {

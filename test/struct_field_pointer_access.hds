@@ -3,8 +3,8 @@ import submodule.test_utils as u;
 def main(): Void {
     val b = Box(30);
 
-    val b_ptr: *Box[CInt] = &b;
-    val b_value_ptr: *CInt = b_ptr.value;
+    val b_ptr: *Box[Int] = &b;
+    val b_value_ptr: *Int = b_ptr.value;
 
     u.print_int(*b_ptr.value);
     u.print_int(*b_value_ptr);

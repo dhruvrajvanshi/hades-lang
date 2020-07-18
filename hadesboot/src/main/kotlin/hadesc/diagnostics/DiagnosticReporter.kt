@@ -77,6 +77,7 @@ data class Diagnostic(
         object InterfaceMethodReceiverMustBeThisOrThisPtr : Diagnostic.Kind(Severity.ERROR)
         object WhereClauseMustReferToATypeParam : Diagnostic.Kind(Severity.ERROR)
         object UnboundInterface : Diagnostic.Kind(Severity.ERROR)
+        object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -131,6 +132,7 @@ data class Diagnostic(
             InterfaceMethodReceiverMustBeThisOrThisPtr -> "Interface method receiver must be either This or *This"
             WhereClauseMustReferToATypeParam -> "Where clause must refer to a type parameter"
             UnboundInterface -> "Unbound interface"
+            NotAConstructor -> "Not a constructor"
         }
 
     }
