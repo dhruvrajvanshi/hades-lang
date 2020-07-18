@@ -264,6 +264,8 @@ class Checker(
         val declaration = ctx.resolver.resolveDeclaration(interfaceRef.path)
         if (declaration == null) {
             error(interfaceRef, Diagnostic.Kind.UnboundInterface)
+        } else if (declaration !is Declaration.Interface){
+            error(interfaceRef, Diagnostic.Kind.NotAnInterface)
         }
     }
 
