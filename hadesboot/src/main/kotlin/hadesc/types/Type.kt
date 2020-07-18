@@ -47,7 +47,9 @@ sealed class Type {
 
     data class GenericInstance(
         val name: Binder,
-        val id: Long
+        val id: Long,
+        val constraints: List<Constraint>,
+        val intantiationLocation: SourceLocation
     ) : Type()
 
     data class Application(val callee: Type, val args: List<Type>) : Type()
@@ -73,7 +75,11 @@ sealed class Type {
             "($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
         }
         is ParamRef -> this.name.identifier.name.text
-        is GenericInstance -> name.identifier.name.text
+        is GenericInstance -> "${name.identifier.name.text} : ${constraints.joinToString(", ") {
+            val argsStr = if (it.args.isEmpty()) ""
+            else "[${it.args.joinToString(", ")}]"
+            it.interfaceName.mangle() + argsStr
+        } }"
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
         Size -> "Size"

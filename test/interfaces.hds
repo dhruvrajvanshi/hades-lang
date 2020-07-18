@@ -3,7 +3,7 @@ import submodule.printable_interface as pi;
 import libc as c;
 
 struct IntAndBool {
-    val int: CInt;
+    val int: Int;
     val bool: Bool;
 }
 
@@ -29,7 +29,7 @@ implement pi.Printable for *Byte {
     }
 }
 
-def get_int[T: Has[CInt]](value: T): CInt {
+def get_int[T: Has[Int]](value: T): CInt {
     return get[CInt, T](value);
 }
 

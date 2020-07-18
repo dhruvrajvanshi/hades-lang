@@ -16,7 +16,9 @@ sealed class ImplementationBinding {
         override val interfaceRef: InterfaceRef,
         val functionDef: Declaration.FunctionDef,
         val typeParamIndex: Int
-    ) : ImplementationBinding()
+    ) : ImplementationBinding() {
+        val typeParam get() = requireNotNull(functionDef.typeParams)[typeParamIndex]
+    }
 
     data class ImplParamTypeBound(
             override val interfaceRef: InterfaceRef,

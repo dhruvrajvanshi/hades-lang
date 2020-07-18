@@ -1,6 +1,7 @@
 package hadesc.frontend
 
 import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -8,6 +9,7 @@ import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
@@ -51,8 +53,183 @@ class Checker(
     }
 
     private fun resolveInterfaceExtensionFunction(expression: Expression.Property): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs)
+        val impls = implsInScope(expression, lhsType)
+        for (impl in impls) {
+            val index = implPropertyIndex(impl, lhsType, expression)
+            if (index != null) {
+                return PropertyBinding.InterfaceExtensionFunction(
+                    impl,
+                    index
+                )
+            }
+        }
         return null
     }
+
+    private fun doesTypeSatisfyConstraint(location: SourceLocation, type: Type, constraint: Type.Constraint): Boolean {
+        val impls = implsInScope(location, type)
+        require(constraint.args.isEmpty()) { TODO() }
+        return impls.find {
+            constraint.interfaceName == resolveInterfaceName(it.interfaceRef)
+        } != null
+    }
+
+    private fun resolveInterfaceName(interfaceRef: InterfaceRef): QualifiedName? {
+        return resolveInterfaceDeclaration(interfaceRef)?.let {
+            ctx.resolver.qualifiedInterfaceName(it)
+        }
+    }
+
+    private fun implPropertyIndex(
+        impl: ImplementationBinding,
+        lhsType: Type,
+        expression: Expression.Property
+    ): Int? {
+        val interfaceRef = impl.interfaceRef
+        val interfaceDecl = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        if (interfaceDecl !is Declaration.Interface) {
+            return null
+        }
+        interfaceDecl.members.forEachIndexed { index, member ->
+            when (member) {
+                is Declaration.Interface.Member.FunctionSignature -> {
+                    if (member.signature.name.identifier.name == expression.property.name) {
+                        return index
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun implsInScope(node: HasLocation, lhsType: Type): List<ImplementationBinding> = buildList {
+        when (lhsType) {
+            is Type.ParamRef -> {
+                val functionDef = ctx.resolver.getEnclosingFunction(node)
+                val functionDefParam =
+                    functionDef?.typeParams?.find { lhsType.name == it.binder }
+                if (functionDef is Declaration.FunctionDef && functionDefParam != null) {
+                    val bound = functionDefParam.bound
+                    val paramIndex = functionDef.typeParams?.indexOf(functionDefParam) ?: requireUnreachable()
+                    if (bound != null) {
+                        add(ImplementationBinding.TypeBound(
+                            bound,
+                            functionDef,
+                            paramIndex))
+                    } else if (functionDef.signature.whereClause != null) {
+                        addAll(functionDef.signature.whereClause.constraints.filter {
+                            it.param.name == functionDefParam.binder.identifier.name
+                        }.map {
+                            ImplementationBinding.TypeBound(
+                                it.interfaceRef,
+                                functionDef,
+                                paramIndex
+                            )
+                        })
+                    }
+                }
+                val implDef = ctx.resolver.getEnclosingImplementationDef(lhsType.name)
+                if (implDef != null) {
+                    val param =
+                        implDef.typeParams?.find { lhsType.name == it.binder }
+                    val bound = param?.bound
+                    val paramIndex = implDef.typeParams?.indexOf(param) ?: return@buildList
+                    if (bound != null) {
+                        add(ImplementationBinding.ImplParamTypeBound(
+                            bound,
+                            implDef,
+                            paramIndex))
+                    } else if (implDef.whereClause != null) {
+                        addAll(implDef.whereClause.constraints.filter {
+                            it.param.name == param?.binder?.identifier?.name
+                        }.map {
+                            ImplementationBinding.ImplParamTypeBound(
+                                it.interfaceRef,
+                                implDef,
+                                paramIndex
+                            )
+                        })
+                    }
+                }
+
+            }
+            is Type.Application -> {
+                if (lhsType.callee is Type.Constructor) {
+                    addAll(implsInScopeForTypeConstructor(node, lhsType.callee, lhsType.args))
+                }
+            }
+            is Type.Constructor -> {
+                addAll(implsInScopeForTypeConstructor(node, lhsType, null))
+            }
+            else -> {
+                addAll(implsInScopeForType(node, lhsType))
+            }
+        }
+    }
+
+    private fun implsInScopeForType(node: HasLocation, lhsType: Type): Collection<ImplementationBinding> = buildList {
+        for (implementation in ctx.resolver.implementationsInScope(node)) {
+            val substitution = instantiateSubstitution(
+                implementation.typeParams?.map { Type.Param(it.binder) },
+                constraintsOf(implementation.typeParams, implementation.whereClause),
+                node.location
+            )
+            val forType = annotationToType(implementation.forType).applySubstitution(substitution)
+
+            if (isTypeAssignableTo(source = lhsType, destination = forType)) {
+                add(ImplementationBinding.GlobalImpl(implementation))
+            }
+        }
+    }
+
+    private fun implsInScopeForTypeConstructor(
+        node: HasLocation,
+        lhsType: Type.Constructor,
+        typeArgs: List<Type>?
+    ): Collection<ImplementationBinding> = buildList {
+        val appliedLhsType = if (typeArgs != null)
+            Type.Application(lhsType, typeArgs)
+        else lhsType
+        return implsInScopeForType(node, appliedLhsType)
+    }
+
+    private fun constraintsOf(typeParams: List<TypeParam>?, whereClause: WhereClause?): List<Type.Constraint> = buildList {
+        typeParams?.forEach { typeParam ->
+            if (typeParam.bound != null) {
+                val declaration = resolveInterfaceDeclaration(typeParam.bound)
+                if (declaration != null) {
+                    add(Type.Constraint(
+                        interfaceName = ctx.resolver.qualifiedInterfaceName(declaration),
+                        param = Type.Param(typeParam.binder),
+                        args = typeParam.bound.typeArgs?.map { annotationToType(it) } ?: emptyList()
+                    ))
+                }
+            }
+        }
+        whereClause?.constraints?.forEach { constraint ->
+            val declaration = resolveInterfaceDeclaration(constraint.interfaceRef)
+            val typeParam = typeParams?.find {  constraint.param.name == it.binder.identifier.name }
+            if (declaration != null && typeParam != null) {
+
+                add(Type.Constraint(
+                    interfaceName = ctx.resolver.qualifiedInterfaceName(declaration),
+                    param = Type.Param(typeParam.binder),
+                    args = constraint.interfaceRef.typeArgs?.map { annotationToType(it) } ?: emptyList()
+                ))
+            }
+        }
+    }
+
+    private fun resolveInterfaceDeclaration(interfaceRef: InterfaceRef): Declaration.Interface? {
+        val declaration = ctx.resolver.resolveDeclaration(interfaceRef.path)
+        return if (declaration is Declaration.Interface) {
+            declaration
+        } else {
+            null
+        }
+    }
+
 
     private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
         val lhsType = inferExpression(expression.lhs)
@@ -148,6 +325,7 @@ class Checker(
         // Type.GenericInstance types for matching source and destination types
         isTypeAssignableTo(source, destination)
     }
+
     private fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
         if (source == destination) {
             return true
@@ -155,11 +333,21 @@ class Checker(
         return when {
             destination is Type.GenericInstance -> {
                 val existing = genericInstances[destination.id]
-                if (existing != null) {
-                    isTypeAssignableTo(source, destination = existing)
-                } else {
-                    genericInstances[destination.id] = source
-                    true
+                when {
+                    existing != null -> {
+                        isTypeAssignableTo(source, destination = existing)
+                    }
+                    destination.constraints.all { doesTypeSatisfyConstraint(
+                        destination.intantiationLocation,
+                        reduceGenericInstances(source),
+                        it
+                    ) } -> {
+                        genericInstances[destination.id] = source
+                        true
+                    }
+                    else -> {
+                        false
+                    }
                 }
             }
             source is Type.GenericInstance -> {
@@ -190,6 +378,15 @@ class Checker(
                     ptrTypeAssignable
                 }
 
+            }
+            destination is Type.Application && source is Type.Application -> {
+                isTypeAssignableTo(source = source.callee, destination = destination.callee)
+                        && source.args.zip(destination.args).all {
+                    isTypeAssignableTo(source = it.first, destination = it.second)
+                }
+            }
+            destination is Type.Constructor && source is Type.Constructor -> {
+                destination.name == source.name
             }
             else -> false
         }
@@ -443,8 +640,8 @@ class Checker(
     private fun checkAssignability(node: HasLocation, source: Type, destination: Type) {
         if (!isTypeAssignableTo(destination = destination, source = source)) {
             error(node, Diagnostic.Kind.TypeNotAssignable(
-                source = source,
-                destination = destination
+                source = reduceGenericInstances(source),
+                destination = reduceGenericInstances(destination)
             ))
         }
     }
@@ -549,7 +746,7 @@ class Checker(
     }
 
     private fun inferDerefExpression(expression: Expression.Deref): Type {
-        val ptrType = inferExpression(expression)
+        val ptrType = inferExpression(expression.expression)
         return if (ptrType !is Type.Ptr) {
             error(expression, Diagnostic.Kind.NotAPointerType(ptrType))
             Type.Error
@@ -630,9 +827,43 @@ class Checker(
                 is PropertyBinding.StructField -> typeOfStructFieldProperty(expression, binding)
                 is PropertyBinding.StructFieldPointer -> TODO()
                 is PropertyBinding.GlobalExtensionFunction -> typeOfGlobalExtensionMethod(expression, binding)
-                is PropertyBinding.InterfaceExtensionFunction -> TODO()
+                is PropertyBinding.InterfaceExtensionFunction -> typeOfInterfaceExtensionFunction(expression, binding)
                 null -> Type.Error
             }
+
+    private fun typeOfInterfaceExtensionFunction(expression: Expression.Property, binding: PropertyBinding.InterfaceExtensionFunction): Type {
+        val interfaceRef = binding.implementationBinding.interfaceRef
+        val interfaceDeclaration = resolveInterfaceDeclaration(interfaceRef) ?: return Type.Error
+        val lhsType = inferExpression(expression.lhs)
+        return interfaceMemberPropertyType(lhsType, interfaceDeclaration, binding.memberIndex)
+    }
+
+    private fun interfaceMemberPropertyType(
+        lhsType: Type,
+        interfaceDeclaration: Declaration.Interface,
+        memberIndex: Int
+    ): Type {
+        val method = interfaceDeclaration.members[memberIndex]
+        if (method !is Declaration.Interface.Member.FunctionSignature) {
+            return Type.Error
+        }
+        require(method.signature.typeParams == null)
+
+        return substituteThisParam(Type.Function(
+            receiver = null,
+            constraints = emptyList(),
+            from = method.signature.params.map { param -> param.annotation?.let { annotationToType(it) } ?: Type.Error },
+            to = annotationToType(method.signature.returnType)
+        ), with = lhsType)
+    }
+
+    private fun substituteThisParam(type: Type, with: Type): Type {
+        return object : TypeTransformer {
+            override fun lowerThisRefType(type: Type.ThisRef): Type {
+                return with
+            }
+        }.lowerType(type)
+    }
 
     private fun typeOfStructFieldProperty(
             expression: Expression.Property,
@@ -657,7 +888,11 @@ class Checker(
         val functionTypeComponents = getFunctionTypeComponents(functionType)
         requireNotNull(functionTypeComponents)
         requireNotNull(functionTypeComponents.receiverType)
-        val substitution = instantiateSubstitution(functionTypeComponents.typeParams)
+        val substitution = instantiateSubstitution(
+            functionTypeComponents.typeParams,
+            functionTypeComponents.constraints,
+            expression.location
+        )
         equateTypes(lhsType, functionTypeComponents.receiverType.applySubstitution(substitution))
         return Type.Function(
                 receiver = null,
@@ -763,7 +998,8 @@ class Checker(
                 from = declaration.params.map { param ->
                     param.annotation?.let { annotationToType(it) } ?: Type.Error },
                 to = annotationToType(declaration.signature.returnType),
-                receiver = declaration.thisParam?.let { annotationToType(it.annotation) }
+                receiver = declaration.thisParam?.let { annotationToType(it.annotation) },
+                constraints = constraintsOf(declaration.typeParams, declaration.signature.whereClause)
         )
         val typeParams = declaration.typeParams
         val type = if (typeParams != null) {
@@ -782,7 +1018,8 @@ class Checker(
             val receiverType: Type?,
             val from: List<Type>,
             val to: Type,
-            val typeParams: List<Type.Param>?
+            val typeParams: List<Type.Param>?,
+            val constraints: List<Type.Constraint>
     )
 
     private fun inferCallExpression(expression: Expression.Call): Type {
@@ -821,7 +1058,11 @@ class Checker(
             error(callNode, Diagnostic.Kind.TypeNotCallable(calleeType))
             Type.Error
         } else {
-            val substitution = instantiateSubstitution(functionType.typeParams)
+            val substitution = instantiateSubstitution(
+                functionType.typeParams,
+                functionType.constraints,
+                callNode.location
+            )
             checkCallArgs(functionType, callNode, explicitTypeArgs, args, expectedReturnType, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
@@ -849,9 +1090,17 @@ class Checker(
      * we see that Type.GenericInstance(1) isn't instantiated, so it type checks fine.
      *
      */
-    private fun instantiateSubstitution(typeParams: List<Type.Param>?): Substitution {
+    private fun instantiateSubstitution(
+        typeParams: List<Type.Param>?,
+        constraints: List<Type.Constraint>,
+        instantiationLocation: SourceLocation
+    ): Substitution {
         return typeParams
-                ?.map { it.binder.location to makeGenericInstance(it.binder) }
+                ?.map { it.binder.location to makeGenericInstance(
+                    it.binder,
+                    constraints.filter { constraint -> constraint.param.binder.location == it.binder.location },
+                    instantiationLocation = instantiationLocation
+                ) }
                 ?.toMap()
                 ?: emptyMap()
     }
@@ -921,7 +1170,8 @@ class Checker(
                             receiverType = type.receiver,
                             from = type.from,
                             to = type.to,
-                            typeParams = typeParams
+                            typeParams = typeParams,
+                            constraints = type.constraints
                     )
                 is Type.TypeFunction -> {
                     return recurse(type.body, type.params)
@@ -932,7 +1182,8 @@ class Checker(
                         receiverType = Type.Error,
                         from = emptyList(),
                         to = Type.Error,
-                        typeParams = null
+                        typeParams = null,
+                        constraints = emptyList()
                     )
                 }
                 else -> null
@@ -943,10 +1194,18 @@ class Checker(
     }
 
     private var makeGenericInstanceId = 0L
-    private fun makeGenericInstance(binder: Binder): Type.GenericInstance {
+    private fun makeGenericInstance(
+        binder: Binder,
+        constraints: List<Type.Constraint>,
+        instantiationLocation: SourceLocation
+    ): Type.GenericInstance {
         val id = makeGenericInstanceId
         makeGenericInstanceId++
-        return Type.GenericInstance(binder, id = id)
+        return Type.GenericInstance(
+            binder,
+            id = id,
+            constraints = constraints,
+            intantiationLocation = instantiationLocation)
     }
 
     fun getTypeArgs(expression: Expression.Call): List<Type>? {

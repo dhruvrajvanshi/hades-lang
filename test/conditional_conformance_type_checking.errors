@@ -1,0 +1,7 @@
+test/conditional_conformance_type_checking.hds:4: TypeNotAssignable
+test/conditional_conformance_type_checking.hds:6: TypeNotAssignable
+test/conditional_conformance_type_checking.hds:20: UnboundInterface
+test/conditional_conformance_type_checking.hds:44: TypeParametersNotAllowedInInterfaceMethods
+test/conditional_conformance_type_checking.hds:45: InterfaceMemberMustBeAnExtensionMethod
+test/conditional_conformance_type_checking.hds:46: InterfaceMethodReceiverMustBeThisOrThisPtr
+test/conditional_conformance_type_checking.hds:47: InterfaceMethodReceiverMustBeThisOrThisPtr
