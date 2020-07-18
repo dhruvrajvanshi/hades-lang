@@ -10,7 +10,7 @@ implement I for Bool {
     def x(): Void {
     }
 
-    def m(): CInt {
+    def m(): Int {
         return 0;
     }
 }
