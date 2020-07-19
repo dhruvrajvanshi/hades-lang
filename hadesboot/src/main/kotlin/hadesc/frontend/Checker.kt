@@ -162,6 +162,9 @@ class Checker(
             is Type.Constructor -> {
                 addAll(implsInScopeForTypeConstructor(node, lhsType, null))
             }
+            is Type.Ptr -> {
+                addAll(implsInScope(node, lhsType.to))
+            }
             else -> {
                 addAll(implsInScopeForType(node, lhsType))
             }
@@ -1081,13 +1084,21 @@ class Checker(
             )
             if (receiverArg != null) {
                 require(functionType.receiverType != null)
-                val inferredType = inferExpression(receiverArg)
+                val inferredType = reduceGenericInstances(inferExpression(receiverArg))
+
+                val thisType = if (
+                    functionType.receiverType is Type.Ptr &&
+                    functionType.receiverType.to is Type.ThisRef &&
+                    inferredType is Type.Ptr) {
+                    inferredType.to
+                } else  inferredType
+
                 checkAssignability(
                     receiverArg,
                     source = inferredType,
                     destination = substituteThisParam(
                         functionType.receiverType.applySubstitution(substitution),
-                        with = inferredType
+                        with = thisType
                     )
                 )
             }

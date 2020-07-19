@@ -4,12 +4,12 @@ def main(): Void {
     print(true);
     print(Box(1));
     print(Box(true));
-    Box(1).print();
+    val box = Box(1); (&box).print();
 }
 
 def print[T](value: T): Void
     where T: Printable {
-    value.print();
+    val copy = value; (&copy).print();
 }
 def print_both[T, U](value: T, value2: U): Void
     where T: Printable, U: Printable {
@@ -26,7 +26,7 @@ struct Box[T] {
 
 implement[T] Printable for Box[T] where T: Printable {
     def print(this: *Box[T]): Void {
-        (*this).value.print();
+        val value = (*this).value; (&value).print();
     }
 }
 
