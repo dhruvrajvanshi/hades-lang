@@ -64,18 +64,6 @@ class ReceiverElimination(
         )
     }
 
-    override fun transformMethodCall(expression: HIRExpression.MethodCall): HIRExpression {
-        val transformedReceiver = transformExpression(expression.thisValue)
-        val transformedArgs = listOf(transformedReceiver) +
-            expression.args.map { transformExpression(it) }
-        return HIRExpression.Call(
-            expression.location,
-            lowerType(expression.type),
-            callee = transformExpression(expression.method),
-            args = transformedArgs
-        )
-    }
-
     private fun thisRefName(): Name {
         return ctx.makeName("this")
     }

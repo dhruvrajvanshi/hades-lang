@@ -153,7 +153,6 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.ValRef -> transformValRef(expression)
         is HIRExpression.GetStructField -> transformGetStructField(expression)
         is HIRExpression.ThisRef -> transformThisRef(expression)
-        is HIRExpression.MethodCall -> transformMethodCall(expression)
         is HIRExpression.Not -> transformNotExpression(expression)
         is HIRExpression.BinOp -> transformBinOp(expression)
         is HIRExpression.NullPtr -> transformNullPtr(expression)
@@ -214,31 +213,6 @@ interface HIRTransformer: TypeTransformer {
 
     fun transformNotExpression(expression: HIRExpression.Not): HIRExpression {
         return HIRExpression.Not(transformExpression(expression.expression))
-    }
-
-    fun transformMethodCall(expression: HIRExpression.MethodCall): HIRExpression {
-        return HIRExpression.MethodCall(
-                expression.location,
-                lowerType(expression.type),
-                transformExpression(expression.thisValue),
-                transformExpression(expression.method),
-                expression.args.map { transformExpression(it) }
-        )
-    }
-
-    fun transformImplementationMethodRef(binding: HIRPropertyBinding.ImplementationMethodRef): HIRPropertyBinding {
-        return HIRPropertyBinding.ImplementationMethodRef(
-                binding.location,
-                implName = transformGlobalName(binding.implName),
-                interfaceMemberIndex = binding.interfaceMemberIndex
-        )
-    }
-
-    fun transformGlobalExtensionRef(binding: HIRPropertyBinding.GlobalExtensionRef): HIRPropertyBinding {
-        return HIRPropertyBinding.GlobalExtensionRef(
-                location = binding.location,
-                functionName = binding.functionName
-        )
     }
 
     fun transformThisRef(expression: HIRExpression.ThisRef): HIRExpression {

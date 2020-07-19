@@ -253,7 +253,6 @@ class IRGen(
         is HIRExpression.SizeOf -> lowerSizeOfExpression(expression)
         is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
         is HIRExpression.ThisRef -> requireUnreachable()
-        is HIRExpression.MethodCall -> requireUnreachable()
         is HIRExpression.BoundRef -> requireUnreachable()
         is HIRExpression.TypeApplication -> requireUnreachable()
     }

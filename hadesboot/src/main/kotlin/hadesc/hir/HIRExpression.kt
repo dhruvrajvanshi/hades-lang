@@ -64,14 +64,6 @@ sealed class HIRExpression: HasLocation {
             override val type: Type
     ) : HIRExpression()
 
-    data class MethodCall(
-            override val location: SourceLocation,
-            override val type: Type,
-            val thisValue: HIRExpression,
-            val method: HIRExpression,
-            val args: List<HIRExpression>
-    ) : HIRExpression()
-
     data class Not(
             val expression: HIRExpression
     ) : HIRExpression() {
@@ -122,7 +114,6 @@ sealed class HIRExpression: HasLocation {
         is ValRef -> name.text
         is GetStructField -> "${lhs.prettyPrint()}.${name.text}"
         is ThisRef -> "this"
-        is MethodCall -> "(${thisValue.prettyPrint()} :: ${method.prettyPrint()}).(${args.joinToString(", ") {it.prettyPrint()} })"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
