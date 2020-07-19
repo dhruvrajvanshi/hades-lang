@@ -70,6 +70,9 @@ class Monomorphization(
 
     }
 
+    override fun lowerGenericInstance(type: Type.GenericInstance): Type {
+        requireUnreachable()
+    }
     private fun specializeFunctionSignature(request: SpecializationRequest, definition: HIRFunctionSignature): HIRFunctionSignature {
         return HIRFunctionSignature(
             location = definition.location,

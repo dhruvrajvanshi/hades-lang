@@ -750,8 +750,7 @@ class Checker(
             callNode = expression,
             args = expression.args,
             typeArgs = expression.typeArgs,
-            expectedReturnType = null,
-            calleeType = checkConstructorFunction(expression.qualifiedPath)
+            expectedReturnType = null
         ), isMutable = true)
     }
 
@@ -853,7 +852,7 @@ class Checker(
                 is PropertyBinding.StructField -> typeOfStructFieldProperty(expression, binding)
                 is PropertyBinding.StructFieldPointer -> TODO()
                 is PropertyBinding.GlobalExtensionFunction -> typeOfGlobalExtensionMethod(expression, binding)
-                is PropertyBinding.InterfaceExtensionFunction -> typeOfInterfaceExtensionFunction(expression, binding)
+                is PropertyBinding.InterfaceExtensionFunction -> typeOfInterfaceExtensionMethod(binding)
                 null -> Type.Error
             }
 
@@ -1051,7 +1050,6 @@ class Checker(
     private fun inferCallExpression(expression: Expression.Call): Type {
         return inferOrCheckCallLikeExpression(
                 callNode = expression,
-                calleeType = inferExpression(expression.callee),
                 typeArgs = expression.typeArgs,
                 args = expression.args,
                 expectedReturnType = null
@@ -1060,7 +1058,6 @@ class Checker(
     private fun checkCallExpression(expression: Expression.Call, expectedType: Type): Type {
         return inferOrCheckCallLikeExpression(
                 callNode = expression,
-                calleeType = inferExpression(expression.callee),
                 typeArgs = expression.typeArgs,
                 args = expression.args,
                 expectedReturnType = expectedType
@@ -1068,14 +1065,18 @@ class Checker(
     }
 
     private fun inferOrCheckCallLikeExpression(
-            callNode: HasLocation,
-            calleeType: Type,
+            callNode: Expression,
             typeArgs: List<TypeAnnotation>?,
             args: List<Arg>,
             expectedReturnType: Type?
     ): Type {
         val explicitTypeArgs = typeArgs?.map { annotationToType(it) }
+        val calleeType = getCalleeType(callNode)
+        val receiverArg = getReceiverArg(callNode)
         val functionType = getFunctionTypeComponents(calleeType)
+        if (receiverArg != null) {
+            inferExpression(receiverArg)
+        }
         return if (functionType == null) {
             for (arg in args) {
                 inferExpression(arg.expression)
@@ -1088,6 +1089,18 @@ class Checker(
                 functionType.constraints,
                 callNode.location
             )
+            if (receiverArg != null) {
+                require(functionType.receiverType != null)
+                val inferredType = inferExpression(receiverArg)
+                checkAssignability(
+                    receiverArg,
+                    source = inferredType,
+                    destination = substituteThisParam(
+                        functionType.receiverType.applySubstitution(substitution),
+                        with = inferredType
+                    )
+                )
+            }
             checkCallArgs(functionType, callNode, explicitTypeArgs, args, expectedReturnType, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
@@ -1097,8 +1110,72 @@ class Checker(
                         destination = expectedReturnType
                 )
             }
+            if (functionType.typeParams != null) {
+                getTypeArgsCache[callNode] = functionType.typeParams.map {
+                    requireNotNull(substitution[it.binder.location])
+                }
+            }
+
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
+
+    }
+
+    private fun getReceiverArg(callNode: Expression): Expression? = when(callNode) {
+        is Expression.Call -> when (callNode.callee) {
+            is Expression.Property -> when (resolvePropertyBinding(callNode.callee)) {
+                is PropertyBinding.InterfaceExtensionFunction ->
+                    callNode.callee.lhs
+                is PropertyBinding.GlobalExtensionFunction ->
+                    callNode.callee.lhs
+                else -> null
+            }
+            else -> null
+        }
+        is Expression.New -> null
+        else -> null
+    }
+
+    private fun getCalleeType(callNode: Expression): Type = when(callNode) {
+        is Expression.Call -> when (callNode.callee) {
+            is Expression.Property -> when (val binding = resolvePropertyBinding(callNode.callee)) {
+                is PropertyBinding.InterfaceExtensionFunction -> {
+                    inferExpression(callNode.callee)
+                    typeOfInterfaceExtensionMethod(binding)
+                }
+                is PropertyBinding.GlobalExtensionFunction -> {
+                    inferExpression(callNode.callee)
+                    typeOfGlobalFunctionRef(binding.def)
+                }
+                else -> inferExpression(callNode.callee)
+            }
+            else -> inferExpression(callNode.callee)
+        }
+        is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
+        else -> Type.Error
+    }
+
+    private fun typeOfInterfaceExtensionMethod(binding: PropertyBinding.InterfaceExtensionFunction): Type {
+        val interfaceDef = resolveInterfaceDeclaration(binding.implementationBinding.interfaceRef) ?: requireUnreachable()
+        val member = interfaceDef.members[binding.memberIndex]
+
+        require(member is Declaration.Interface.Member.FunctionSignature)
+        val signature = member.signature
+        require(signature.typeParams == null)
+        require(signature.whereClause == null)
+        val functionType = Type.Function(
+            receiver = member.signature.thisParam?.annotation?.let { annotationToType(it) },
+            constraints = constraintsOf(interfaceDef.typeParams, null),
+            from = signature.params.map { it.annotation?.let { annot -> annotationToType(annot) } ?: Type.Error },
+            to = annotationToType(signature.returnType)
+        )
+
+        return if (interfaceDef.typeParams != null)
+            Type.TypeFunction(
+                params = interfaceDef.typeParams.map { Type.Param(it.binder) },
+                body = functionType
+            )
+        else functionType
     }
 
     /**
@@ -1233,9 +1310,10 @@ class Checker(
             intantiationLocation = instantiationLocation)
     }
 
-    fun getTypeArgs(expression: Expression.Call): List<Type>? {
-        return null // FIXME
-    }
+    private val getTypeArgsCache = MutableNodeMap<Expression, List<Type>>()
+    fun getTypeArgs(expression: Expression): List<Type>? =
+        getTypeArgsCache[expression]?.map { reduceGenericInstances(it) }
+
 
     private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
     fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.getOrPut(annotation) {

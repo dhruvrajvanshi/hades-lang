@@ -538,7 +538,7 @@ class HIRGen(
         return type
     }
 
-    private fun checkUninferredGenerics(expression: Expression, type: Type) {
+    private fun checkUninferredGenerics(node: HasLocation, type: Type) {
         var genericInstanceFound: Type.GenericInstance? = null
         object : TypeTransformer {
             override fun lowerGenericInstance(type: Type.GenericInstance): Type {
@@ -549,7 +549,7 @@ class HIRGen(
 
         when (val instance = genericInstanceFound) {
             null -> {}
-            else -> ctx.diagnosticReporter.report(expression.location, Diagnostic.Kind.UninferrableTypeParam(instance.name))
+            else -> ctx.diagnosticReporter.report(node.location, Diagnostic.Kind.UninferrableTypeParam(instance.name))
         }
     }
 
@@ -622,7 +622,10 @@ class HIRGen(
         callee: HIRExpression,
         args: List<HIRExpression>
     ): HIRExpression {
-        val typeArgs = ctx.checker.getTypeArgs(call) ?: getCallee(call)?.let { ctx.checker.getTypeArgs(it) }
+        val typeArgs = ctx.checker.getTypeArgs(call)
+        typeArgs?.forEach {
+            checkUninferredGenerics(call, it)
+        }
         return if (typeArgs != null) {
             val reducedArgs = typeArgs.map { ctx.checker.reduceGenericInstances(it) }
             val appliedType = applyType(ctx.checker.reduceGenericInstances(callee.type), reducedArgs)
@@ -647,13 +650,8 @@ class HIRGen(
         }
     }
 
-    private fun getCallee(call: Expression): Expression? = when(call) {
-        is Expression.Call -> call.callee
-        else -> null
-    }
-
     private fun applyType(type: Type, args: List<Type>): Type {
-        require(type is Type.TypeFunction)
+        if (type !is Type.TypeFunction) return type
         require(type.params.size == args.size)
         return type.body.applySubstitution(
             type.params.zip(args).map {
