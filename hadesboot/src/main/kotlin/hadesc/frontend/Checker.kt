@@ -372,6 +372,14 @@ class Checker(
             destination is Type.Constructor && source is Type.Constructor -> {
                 destination.name == source.name
             }
+            destination is Type.Function && source is Type.Function -> {
+                destination.from.size == source.from.size
+                        && destination.receiver == null && source.receiver == null
+                        && isTypeAssignableTo(source = source.to, destination = destination.to)
+                        && source.from.zip(destination.from).all { (sourceParam, destParam) ->
+                            isTypeAssignableTo(source = destParam, destination = sourceParam)
+                        }
+            }
             else -> false
         }
     }
@@ -1308,7 +1316,7 @@ class Checker(
             is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
             is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
             is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
-            is TypeAnnotation.Function -> TODO()
+            is TypeAnnotation.Function -> functionAnnotationToType(annotation)
             is TypeAnnotation.This -> {
                 val interfaceDecl = ctx.resolver.getEnclosingInterfaceDecl(annotation)
                 if (interfaceDecl == null) {
@@ -1320,6 +1328,15 @@ class Checker(
             }
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
         }
+    }
+
+    private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {
+        return Type.Function(
+            from = annotation.from.map { annotationToType(it) },
+            to = annotationToType(annotation.to),
+            constraints = emptyList(),
+            receiver = null
+        )
     }
 
     private fun unionAnnotationToType(annotation: TypeAnnotation.Union): Type {
