@@ -301,25 +301,6 @@ class Checker(
         return isTypeAssignableTo(lhsType, thisType.applySubstitution(substitution))
     }
 
-    private fun collapseTypeFunctionParams(type: Type, typeParams: List<TypeParam>?): Type {
-        return object : TypeTransformer {
-            override fun lowerTypeFunction(type: Type.TypeFunction): Type {
-                return if (typeParams == null) {
-                    super.lowerTypeFunction(type)
-                } else {
-                    val firstParamLocation = type.params[0].binder.location
-                    if (typeParams[0].location == firstParamLocation) {
-                        require(typeParams.map { it.location } == type.params.map { it.binder.location })
-                        lowerType(type.body)
-                    } else {
-                        super.lowerTypeFunction(type)
-                    }
-                }
-            }
-        }.lowerType(type)
-
-    }
-
     private fun equateTypes(source: Type, destination: Type) {
         // isTypeAssignable is side effectful in the sense that it instantiates
         // Type.GenericInstance types for matching source and destination types
@@ -477,7 +458,10 @@ class Checker(
         }
     }
 
-    private fun checkTypeAliasDeclaration(declaration: Declaration.TypeAlias) {
+    private fun checkTypeAliasDeclaration(
+        @Suppress("UNUSED_PARAMETER")
+        declaration: Declaration.TypeAlias
+    ) {
         // TODO
     }
 
@@ -539,7 +523,9 @@ class Checker(
         }
     }
 
-    private fun checkInterfaceNameBinder(name: Binder) {
+    private fun checkInterfaceNameBinder(
+        @Suppress("UNUSED_PARAMETER")
+        name: Binder) {
         // TODO
     }
 
@@ -678,8 +664,9 @@ class Checker(
         // TODO
     }
 
-    private fun checkValueNameBinder(name: Binder) {
-        // TODO: Check for duplicate bindings
+    private fun checkValueNameBinder(
+        @Suppress("UNUSED_PARAMETER")
+        name: Binder) {
     }
 
     private fun checkExpression(expression: Expression, expectedType: Type): Type {
@@ -822,7 +809,10 @@ class Checker(
         return Type.Ptr(inferExpression(expression.expression), isMutable = false)
     }
 
-    private fun inferIntLiteral(expression: Expression.IntLiteral): Type {
+    private fun inferIntLiteral(
+        @Suppress("UNUSED_PARAMETER")
+        expression: Expression.IntLiteral
+    ): Type {
         return Type.CInt
     }
 
@@ -1101,7 +1091,7 @@ class Checker(
                     )
                 )
             }
-            checkCallArgs(functionType, callNode, explicitTypeArgs, args, expectedReturnType, substitution)
+            checkCallArgs(functionType, callNode, explicitTypeArgs, args, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
                 checkAssignability(
@@ -1212,7 +1202,6 @@ class Checker(
             callNode: HasLocation,
             typeArgs: List<Type>?,
             args: List<Arg>,
-            expectedReturnType: Type?,
             substitution: Substitution
     ) {
         val length = min(functionType.from.size, args.size)
@@ -1245,22 +1234,6 @@ class Checker(
         if (args.size > functionType.from.size) {
             error(callNode, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
         }
-    }
-
-    private fun isFullyReduced(type: Type): Boolean {
-        var isFullyReduced = true
-        // We don't have a concept of a recursive TypeVisitor yet
-        // but TypeTransformer does recursively visit each type
-        // probably could have a separate visitor that doesn't
-        // return anything.
-        object : TypeTransformer {
-            override fun lowerGenericInstance(type: Type.GenericInstance): Type {
-                isFullyReduced = false
-                return super.lowerGenericInstance(type)
-            }
-        }.lowerType(type)
-        return isFullyReduced
-
     }
 
     private fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
