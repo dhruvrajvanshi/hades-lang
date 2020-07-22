@@ -250,8 +250,18 @@ class IRGen(
         is HIRExpression.SizeOf -> lowerSizeOfExpression(expression)
         is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
         is HIRExpression.Load -> lowerLoadExpression(expression)
+        is HIRExpression.PointerCast -> lowerPointerCastExpression(expression)
         is HIRExpression.BoundRef -> requireUnreachable()
         is HIRExpression.TypeApplication -> requireUnreachable()
+    }
+
+    private fun lowerPointerCastExpression(expression: HIRExpression.PointerCast): IRValue {
+        return IRPointerCast(
+            expression.type,
+            expression.location,
+            toPointerOfType = expression.toPointerOfType,
+            arg = lowerExpression(expression.value)
+        )
     }
 
     private fun lowerLoadExpression(expression: HIRExpression.Load): IRValue {

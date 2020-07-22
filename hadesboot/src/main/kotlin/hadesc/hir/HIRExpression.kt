@@ -105,6 +105,18 @@ sealed class HIRExpression: HasLocation {
         val ptr: HIRExpression
     ) : HIRExpression()
 
+    data class PointerCast(
+        override val location: SourceLocation,
+        val toPointerOfType: Type,
+        val value: HIRExpression
+    ) : HIRExpression() {
+        init {
+            require(value.type is Type.Ptr)
+        }
+        override val type: Type
+            get() = Type.Ptr(toPointerOfType, isMutable = true)
+    }
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -125,5 +137,6 @@ sealed class HIRExpression: HasLocation {
             "${expression.prettyPrint()}$typeArgsStr"
         }
         is Load -> "*${ptr.prettyPrint()}"
+        is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
     }
 }

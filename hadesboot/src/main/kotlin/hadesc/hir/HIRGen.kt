@@ -309,11 +309,22 @@ class HIRGen(
         is Expression.AddressOf -> lowerAddressOfExpression(expression)
         is Expression.AddressOfMut -> lowerAddressOfMut(expression)
         is Expression.Deref -> lowerDerefExpression(expression)
-        is Expression.PointerCast -> TODO()
+        is Expression.PointerCast -> lowerPointerCast(expression)
         is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
+    }
+
+    private fun lowerPointerCast(expression: Expression.PointerCast): HIRExpression {
+        val value = lowerExpression(expression.arg)
+        require(value.type is Type.Ptr)
+        val type = lowerTypeAnnotation(expression.toType)
+        return HIRExpression.PointerCast(
+            expression.location,
+            toPointerOfType = type,
+            value = value
+        )
     }
 
     private fun lowerDerefExpression(expression: Expression.Deref): HIRExpression {
