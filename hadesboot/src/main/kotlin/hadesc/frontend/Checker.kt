@@ -704,7 +704,6 @@ class Checker(
             is Expression.Property -> inferPropertyExpression(expression)
             is Expression.ByteString -> Type.Ptr(Type.Byte, isMutable = false)
             is Expression.BoolLiteral -> Type.Bool
-            is Expression.This -> inferThisExpression(expression)
             is Expression.NullPtr -> inferNullPtrExpression(expression)
             is Expression.IntLiteral -> inferIntLiteral(expression)
             is Expression.Not -> inferNotExpression(expression)
@@ -810,15 +809,6 @@ class Checker(
         val type = inferExpression(expression.trueBranch)
         checkExpression(expression.falseBranch, type)
         return type
-    }
-
-    private fun inferThisExpression(expression: Expression.This): Type {
-        val thisBinding = ctx.resolver.resolveThisParam(expression)
-        return if (thisBinding == null) {
-            Type.Error
-        } else {
-            return annotationToType(thisBinding.annotation)
-        }
     }
 
     private fun inferNotExpression(expression: Expression.Not): Type {

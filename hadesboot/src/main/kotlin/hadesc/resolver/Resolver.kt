@@ -421,24 +421,6 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    fun resolveThisParam(node: HasLocation): ThisParam? {
-        val def = resolveThisBindingSignature(node)
-        require(def == null || def.thisParam != null)
-        return def?.thisParam
-    }
-
-    private fun resolveThisBindingSignature(node: HasLocation): FunctionSignature? {
-        val scopeStack = getScopeStack(node)
-        for (scope in scopeStack) {
-            if (scope is ScopeNode.FunctionDef) {
-                if (scope.declaration.signature.thisParam != null) {
-                    return scope.declaration.signature
-                }
-            }
-        }
-        return null
-    }
-
     private fun directlyImportedSourceFiles(sourceFile: SourceFile): Sequence<SourceFile> = sequence {
         for (declaration in sourceFile.declarations) {
             if (declaration is Declaration.ImportAs) {
