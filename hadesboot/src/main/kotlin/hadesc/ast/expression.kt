@@ -36,6 +36,7 @@ sealed class Expression : HasLocation {
         val value: Boolean
     ) : Expression()
 
+    @Deprecated("this expression is deprecated")
     data class This(
         override val location: SourceLocation
     ) : Expression()

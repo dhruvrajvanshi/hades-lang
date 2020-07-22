@@ -20,6 +20,7 @@ sealed class Declaration : HasLocation {
     ) : Declaration() {
         val name get() = signature.name
         val typeParams get() = signature.typeParams
+        @Deprecated("")
         val thisParam = signature.thisParam
         val params get() = signature.params
     }

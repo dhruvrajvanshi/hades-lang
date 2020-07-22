@@ -11,6 +11,7 @@ data class Param(
         get() = SourceLocation.between(binder, annotation ?: binder)
 }
 
+@Deprecated("")
 data class ThisParam(
     override val location: SourceLocation,
     val annotation: TypeAnnotation
