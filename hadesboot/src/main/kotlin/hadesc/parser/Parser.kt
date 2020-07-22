@@ -225,7 +225,7 @@ class Parser(
         val start = expect(tt.DEF)
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
-        val (thisParam, params) = parseParams()
+        val params = parseParams()
         expect(tt.COLON)
         val returnType = parseTypeAnnotation()
         val whereClause = parseOptionalWhereClause()
@@ -233,7 +233,7 @@ class Parser(
             makeLocation(start, returnType),
             binder,
             typeParams,
-            thisParam,
+            null,
             params,
             returnType,
             whereClause
@@ -683,9 +683,6 @@ class Parser(
                 val expression = parsePrimaryExpression()
                 Expression.Not(makeLocation(start, expression), expression)
             }
-            tt.THIS -> {
-                Expression.This(advance().location)
-            }
             tt.SIZE_OF -> {
                 val start = advance()
                 expect(tt.LSQB)
@@ -917,8 +914,7 @@ class Parser(
         return Expression.Var(identifier)
     }
 
-    private fun parseParams(lparen: Token? = null): Pair<ThisParam?, List<Param>> {
-        var thisParam: ThisParam? = null
+    private fun parseParams(lparen: Token? = null): List<Param> {
         val params = buildList {
             lparen ?: expect(tt.LPAREN)
             var first = true
@@ -927,19 +923,12 @@ class Parser(
                     expect(tt.COMMA)
                 } else {
                     first = false
-                    if (at(tt.THIS)) {
-                        val start = advance()
-                        expect(tt.COLON)
-                        val annotation = parseTypeAnnotation()
-                        thisParam = ThisParam(makeLocation(start, annotation), annotation)
-                        continue
-                    }
                 }
                 add(parseParam())
             }
             expect(tt.RPAREN)
         }
-        return thisParam to params
+        return params
     }
 
     private fun parseParam(): Param {

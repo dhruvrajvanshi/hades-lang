@@ -18,7 +18,6 @@ data class Token(
         STRUCT,
         TRUE,
         FALSE,
-        THIS,
         NULLPTR,
         WHILE,
         IF,

@@ -18,7 +18,6 @@ val KEYWORDS = mapOf(
     "struct" to tt.STRUCT,
     "true" to tt.TRUE,
     "false" to tt.FALSE,
-    "this" to tt.THIS,
     "nullptr" to tt.NULLPTR,
     "while" to tt.WHILE,
     "not" to tt.NOT,
