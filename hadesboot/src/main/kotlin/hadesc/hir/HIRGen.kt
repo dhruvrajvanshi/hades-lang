@@ -437,8 +437,6 @@ class HIRGen(
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> TODO()
-        is PropertyBinding.GlobalExtensionFunction -> requireUnreachable()
-        is PropertyBinding.InterfaceExtensionFunction -> requireUnreachable()
     }
 
     private fun implName(implDef: Declaration.Implementation): QualifiedName {
@@ -558,61 +556,12 @@ class HIRGen(
         }
     }
 
-    private fun lowerCallExpression(expression: Expression.Call): HIRExpression = when(expression.callee) {
-        is Expression.Property -> {
-            lowerMethodCall(
-                expression,
-                ctx.checker.resolvePropertyBinding(expression.callee),
-                receiver = expression.callee.lhs,
-                args = expression.args
-            )
-        }
-        else -> buildCall(
-            expression,
-            typeOfExpression(expression),
-            callee = lowerExpression(expression.callee),
-            args = expression.args.map { lowerExpression(it.expression) }
-        )
-    }
-
-    private fun lowerMethodCall(
-        callExpression: Expression.Call,
-        propertyBinding: PropertyBinding?,
-        receiver: Expression,
-        args: List<Arg>
-    ): HIRExpression = when(propertyBinding) {
-        is PropertyBinding.Global -> buildCall(
-            callExpression,
-            typeOfExpression(callExpression),
-            callee = lowerExpression(callExpression.callee),
-            args = callExpression.args.map { lowerExpression(it.expression) }
-        )
-        is PropertyBinding.StructField -> requireUnreachable()
-        is PropertyBinding.StructFieldPointer -> requireUnreachable()
-        is PropertyBinding.GlobalExtensionFunction -> lowerGlobalExtensionMethodCall(callExpression, propertyBinding, receiver, args)
-        is PropertyBinding.InterfaceExtensionFunction -> TODO()
-        null -> requireUnreachable()
-    }
-
-    private fun lowerGlobalExtensionMethodCall(
-        callExpression: Expression.Call,
-        propertyBinding: PropertyBinding.GlobalExtensionFunction,
-        receiver: Expression,
-        args: List<Arg>
-    ): HIRExpression {
-        return buildCall(
-            callExpression,
-            type = typeOfExpression(callExpression),
-            callee = HIRExpression.GlobalRef(
-                name = lowerGlobalName(propertyBinding.def.name),
-                location = callExpression.callee.location,
-                type = typeOfExpression(callExpression.callee)
-            ),
-            args = listOf(lowerExpression(receiver)) +
-                    args.map { lowerExpression(it.expression) }
-
-        )
-    }
+    private fun lowerCallExpression(expression: Expression.Call): HIRExpression = buildCall(
+        expression,
+        typeOfExpression(expression),
+        callee = lowerExpression(expression.callee),
+        args = expression.args.map { lowerExpression(it.expression) }
+    )
 
     private fun buildCall(
         call: Expression,

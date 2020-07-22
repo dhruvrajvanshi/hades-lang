@@ -19,19 +19,4 @@ sealed class PropertyBinding {
     ): PropertyBinding() {
         val member get(): Declaration.Struct.Member.Field = structDecl.members[memberIndex] as Declaration.Struct.Member.Field
     }
-
-    /**
-     * extension function defined at top level
-     */
-    data class GlobalExtensionFunction(
-            val def: Declaration.FunctionDef
-    ): PropertyBinding()
-
-    /**
-     * extension function defined inside an interface
-     */
-    data class InterfaceExtensionFunction(
-        val implementationBinding: ImplementationBinding,
-        val memberIndex: Int
-    ): PropertyBinding()
 }

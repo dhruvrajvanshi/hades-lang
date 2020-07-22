@@ -37,28 +37,8 @@ class Checker(
             return fieldBinding
         }
 
-        val interfaceExtensionFunctionBinding = resolveInterfaceExtensionFunction(expression)
-        if (interfaceExtensionFunctionBinding != null) {
-            return interfaceExtensionFunctionBinding
-        }
-
         error(expression.property, Diagnostic.Kind.NoSuchProperty(
             inferExpression(expression.lhs), expression.property.name))
-        return null
-    }
-
-    private fun resolveInterfaceExtensionFunction(expression: Expression.Property): PropertyBinding? {
-        val lhsType = inferExpression(expression.lhs)
-        val impls = implsInScope(expression, lhsType)
-        for (impl in impls) {
-            val index = implPropertyIndex(impl, lhsType, expression)
-            if (index != null) {
-                return PropertyBinding.InterfaceExtensionFunction(
-                    impl,
-                    index
-                )
-            }
-        }
         return null
     }
 
@@ -74,28 +54,6 @@ class Checker(
         return resolveInterfaceDeclaration(interfaceRef)?.let {
             ctx.resolver.qualifiedInterfaceName(it)
         }
-    }
-
-    private fun implPropertyIndex(
-        impl: ImplementationBinding,
-        lhsType: Type,
-        expression: Expression.Property
-    ): Int? {
-        val interfaceRef = impl.interfaceRef
-        val interfaceDecl = ctx.resolver.resolveDeclaration(interfaceRef.path)
-        if (interfaceDecl !is Declaration.Interface) {
-            return null
-        }
-        interfaceDecl.members.forEachIndexed { index, member ->
-            when (member) {
-                is Declaration.Interface.Member.FunctionSignature -> {
-                    if (member.signature.name.identifier.name == expression.property.name) {
-                        return index
-                    }
-                }
-            }
-        }
-        return null
     }
 
     private fun implsInScope(node: HasLocation, lhsType: Type): List<ImplementationBinding> = buildList {
@@ -788,35 +746,8 @@ class Checker(
                 is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
                 is PropertyBinding.StructField -> typeOfStructFieldProperty(expression, binding)
                 is PropertyBinding.StructFieldPointer -> TODO()
-                is PropertyBinding.GlobalExtensionFunction -> typeOfGlobalExtensionMethod(expression, binding)
-                is PropertyBinding.InterfaceExtensionFunction -> typeOfInterfaceExtensionMethod(binding)
                 null -> Type.Error
             }
-
-    private fun typeOfInterfaceExtensionFunction(expression: Expression.Property, binding: PropertyBinding.InterfaceExtensionFunction): Type {
-        val interfaceRef = binding.implementationBinding.interfaceRef
-        val interfaceDeclaration = resolveInterfaceDeclaration(interfaceRef) ?: return Type.Error
-        val lhsType = inferExpression(expression.lhs)
-        return interfaceMemberPropertyType(lhsType, interfaceDeclaration, binding.memberIndex)
-    }
-
-    private fun interfaceMemberPropertyType(
-        lhsType: Type,
-        interfaceDeclaration: Declaration.Interface,
-        memberIndex: Int
-    ): Type {
-        val method = interfaceDeclaration.members[memberIndex]
-        if (method !is Declaration.Interface.Member.FunctionSignature) {
-            return Type.Error
-        }
-        require(method.signature.typeParams == null)
-
-        return substituteThisParam(Type.Function(
-            constraints = emptyList(),
-            from = method.signature.params.map { param -> param.annotation?.let { annotationToType(it) } ?: Type.Error },
-            to = annotationToType(method.signature.returnType)
-        ), with = lhsType)
-    }
 
     private fun substituteThisParam(type: Type, with: Type): Type {
         return object : TypeTransformer {
@@ -841,22 +772,6 @@ class Checker(
         val memberType = genericMemberType.applySubstitution(substitution)
         equateTypes(lhsType, memberType)
         return memberType
-    }
-
-    private fun typeOfGlobalExtensionMethod(expression: Expression.Property, binding: PropertyBinding.GlobalExtensionFunction): Type {
-        val lhsType = inferExpression(expression.lhs)
-        val functionType = typeOfGlobalFunctionRef(binding.def)
-        val functionTypeComponents = getFunctionTypeComponents(functionType)
-        requireNotNull(functionTypeComponents)
-        val substitution = instantiateSubstitution(
-            functionTypeComponents.typeParams,
-            functionTypeComponents.constraints,
-            expression.location
-        )
-        return Type.Function(
-                from = functionTypeComponents.from.map { it.applySubstitution(substitution) },
-                to = functionTypeComponents.to.applySubstitution(substitution)
-        )
     }
 
     private fun typeOfGlobalPropertyBinding(
@@ -1035,60 +950,15 @@ class Checker(
 
     }
 
-    private fun getReceiverArg(callNode: Expression): Expression? = when(callNode) {
-        is Expression.Call -> when (callNode.callee) {
-            is Expression.Property -> when (resolvePropertyBinding(callNode.callee)) {
-                is PropertyBinding.InterfaceExtensionFunction ->
-                    callNode.callee.lhs
-                is PropertyBinding.GlobalExtensionFunction ->
-                    callNode.callee.lhs
-                else -> null
-            }
-            else -> null
-        }
-        is Expression.New -> null
-        else -> null
-    }
-
     private fun getCalleeType(callNode: Expression): Type = when(callNode) {
         is Expression.Call -> when (callNode.callee) {
             is Expression.Property -> when (val binding = resolvePropertyBinding(callNode.callee)) {
-                is PropertyBinding.InterfaceExtensionFunction -> {
-                    inferExpression(callNode.callee)
-                    typeOfInterfaceExtensionMethod(binding)
-                }
-                is PropertyBinding.GlobalExtensionFunction -> {
-                    inferExpression(callNode.callee)
-                    typeOfGlobalFunctionRef(binding.def)
-                }
                 else -> inferExpression(callNode.callee)
             }
             else -> inferExpression(callNode.callee)
         }
         is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
         else -> Type.Error
-    }
-
-    private fun typeOfInterfaceExtensionMethod(binding: PropertyBinding.InterfaceExtensionFunction): Type {
-        val interfaceDef = resolveInterfaceDeclaration(binding.implementationBinding.interfaceRef) ?: requireUnreachable()
-        val member = interfaceDef.members[binding.memberIndex]
-
-        require(member is Declaration.Interface.Member.FunctionSignature)
-        val signature = member.signature
-        require(signature.typeParams == null)
-        require(signature.whereClause == null)
-        val functionType = Type.Function(
-            constraints = constraintsOf(interfaceDef.typeParams, null),
-            from = signature.params.map { it.annotation?.let { annot -> annotationToType(annot) } ?: Type.Error },
-            to = annotationToType(signature.returnType)
-        )
-
-        return if (interfaceDef.typeParams != null)
-            Type.TypeFunction(
-                params = interfaceDef.typeParams.map { Type.Param(it.binder) },
-                body = functionType
-            )
-        else functionType
     }
 
     /**
