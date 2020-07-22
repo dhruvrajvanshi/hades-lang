@@ -158,6 +158,15 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.AddressOf -> transformAddressOfExpression(expression)
         is HIRExpression.BoundRef -> transformBoundRef(expression)
         is HIRExpression.TypeApplication -> transformTypeApplication(expression)
+        is HIRExpression.Load -> transformLoadExpression(expression)
+    }
+
+    fun transformLoadExpression(expression: HIRExpression.Load): HIRExpression {
+        return HIRExpression.Load(
+            location = expression.location,
+            type = lowerType(expression.type),
+            ptr = transformExpression(expression.ptr)
+        )
     }
 
     fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIRExpression {

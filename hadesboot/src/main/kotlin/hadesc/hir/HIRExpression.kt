@@ -99,6 +99,12 @@ sealed class HIRExpression: HasLocation {
             get() = param.type
     }
 
+    data class Load(
+        override val location: SourceLocation,
+        override val type: Type,
+        val ptr: HIRExpression
+    ) : HIRExpression()
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -118,5 +124,6 @@ sealed class HIRExpression: HasLocation {
             val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
             "${expression.prettyPrint()}$typeArgsStr"
         }
+        is Load -> "*${ptr.prettyPrint()}"
     }
 }

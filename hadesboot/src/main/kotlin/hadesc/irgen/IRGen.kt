@@ -249,8 +249,15 @@ class IRGen(
         is HIRExpression.NullPtr -> lowerNullPtrExpression(expression)
         is HIRExpression.SizeOf -> lowerSizeOfExpression(expression)
         is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
+        is HIRExpression.Load -> lowerLoadExpression(expression)
         is HIRExpression.BoundRef -> requireUnreachable()
         is HIRExpression.TypeApplication -> requireUnreachable()
+    }
+
+    private fun lowerLoadExpression(expression: HIRExpression.Load): IRValue {
+        val name = makeLocalName()
+        builder.buildLoad(name, expression.type, lowerExpression(expression.ptr))
+        return IRVariable(expression.type, expression.location, name)
     }
 
     private fun lowerAddressOfExpression(expression: HIRExpression.AddressOf): IRValue {

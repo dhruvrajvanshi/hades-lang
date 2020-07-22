@@ -308,12 +308,21 @@ class HIRGen(
         is Expression.SizeOf -> lowerSizeOfExpression(expression)
         is Expression.AddressOf -> lowerAddressOfExpression(expression)
         is Expression.AddressOfMut -> lowerAddressOfMut(expression)
-        is Expression.Deref -> TODO()
+        is Expression.Deref -> lowerDerefExpression(expression)
         is Expression.PointerCast -> TODO()
         is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
+    }
+
+    private fun lowerDerefExpression(expression: Expression.Deref): HIRExpression {
+        val pointerType = ctx.checker.typeOfExpression(expression.expression)
+        require(pointerType is Type.Ptr)
+        return HIRExpression.Load(
+            expression.location,
+            pointerType.to,
+            lowerExpression(expression.expression))
     }
 
     private fun lowerAddressOfMut(expression: Expression.AddressOfMut): HIRExpression {
