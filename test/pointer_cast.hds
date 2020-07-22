@@ -3,11 +3,11 @@ import submodule.test_utils as utils;
 def main(): Void {
     val local = 12;
     val void_ptr: *Void = pointer_cast[Void](&local);
-    utils.print_int(*pointer_cast[CInt](void_ptr));
+    utils.print_int(*pointer_cast[Int](void_ptr));
     val int_ptr = cast_to_int_ptr(void_ptr);
     utils.print_int(*int_ptr);
 }
 
-def cast_to_int_ptr[T](ptr: *T): *CInt {
-    return pointer_cast[CInt](ptr);
+def cast_to_int_ptr[T](ptr: *T): *Int {
+    return pointer_cast[Int](ptr);
 }
