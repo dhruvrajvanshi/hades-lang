@@ -80,7 +80,6 @@ class Monomorphization(
             typeParams = null,
             name = getSpecializedName(request.name, request.typeArgs),
             params = definition.params.map { transformParam(it) },
-            receiverType = definition.receiverType?.let { lowerType(it) },
             constraintParams = null
         )
     }

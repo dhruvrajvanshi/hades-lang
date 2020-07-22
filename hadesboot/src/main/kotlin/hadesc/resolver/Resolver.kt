@@ -199,11 +199,9 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Error -> null
                 is Declaration.ImportAs -> null
                 is Declaration.FunctionDef -> {
-                    if (declaration.thisParam == null && declaration.name.identifier.name == name) {
+                    if (declaration.name.identifier.name == name)
                         Binding.GlobalFunction(declaration)
-                    } else {
-                        null
-                    }
+                    else null
                 }
                 is Declaration.ExternFunctionDef -> {
                     if (declaration.binder.identifier.name == name) {
@@ -247,7 +245,6 @@ class Resolver(private val ctx: Context) {
             }
         }
         return if (
-            scope.declaration.thisParam == null &&
             scope.declaration.typeParams == null &&
             ident.name == scope.declaration.name.identifier.name
         ) {
@@ -432,35 +429,6 @@ class Resolver(private val ctx: Context) {
         }
     }
 
-    fun extensionDefsInScope(node: HasLocation, name: Identifier) = sequence {
-        val visitedSourceFiles = mutableSetOf<SourcePath>()
-        for (scope in getScopeStack(node)) {
-            if (scope is ScopeNode.FunctionDef && isPossibleExtensionSignature(scope.declaration.signature, name)) {
-                yield(scope.declaration)
-            }
-            fun extensionsInSourceFile(sourceFile: SourceFile): Sequence<Declaration.FunctionDef> = sequence {
-                if (visitedSourceFiles.contains(sourceFile.location.file)) {
-                    return@sequence
-                }
-                visitedSourceFiles.add(sourceFile.location.file)
-                for (definition in sourceFile.declarations) {
-                    if (definition is Declaration.FunctionDef && isPossibleExtensionSignature(definition.signature, name)) {
-                        yield(definition as Declaration.FunctionDef)
-                    }
-                    if (definition is Declaration.ImportAs) {
-                        val file = ctx.resolveSourceFile(definition.modulePath)
-                        if (file != null) {
-                            yieldAll(extensionsInSourceFile(file))
-                        }
-                    }
-                }
-            }
-            if (scope is ScopeNode.SourceFile) {
-                yieldAll(extensionsInSourceFile(scope.sourceFile))
-            }
-        }
-    }
-
     fun resolveQualifiedType(path: QualifiedPath): TypeBinding? {
         require(path.identifiers.size == 2)
         val sourceFile = sourceFileOf(path)
@@ -616,10 +584,4 @@ class Resolver(private val ctx: Context) {
     fun resolveGlobalName(binder: Binder): QualifiedName {
         return sourceFileOf(binder).moduleName.append(binder.identifier.name)
     }
-}
-
-@Contract(pure = true)
-private fun isPossibleExtensionSignature(def: FunctionSignature, property: Identifier): Boolean {
-    return def.thisParam != null &&
-            def.name.identifier.name == property.name
 }

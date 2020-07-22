@@ -37,11 +37,6 @@ class Checker(
             return fieldBinding
         }
 
-        val globalExtensionFunctionBinding = resolveExtensionFunction(expression)
-        if (globalExtensionFunctionBinding != null) {
-            return globalExtensionFunctionBinding
-        }
-
         val interfaceExtensionFunctionBinding = resolveInterfaceExtensionFunction(expression)
         if (interfaceExtensionFunctionBinding != null) {
             return interfaceExtensionFunctionBinding
@@ -275,33 +270,6 @@ class Checker(
             }
             else -> null
         }
-    }
-
-    private fun resolveExtensionFunction(expression: Expression.Property): PropertyBinding? {
-        val lhsType = inferExpression(expression.lhs)
-        for (functionDef in ctx.resolver.extensionDefsInScope(expression, expression.property)) {
-            if (isExtensionFor(functionDef, lhsType)) {
-                return PropertyBinding.GlobalExtensionFunction(functionDef)
-            }
-        }
-        return null
-    }
-
-    private fun isExtensionFor(functionDef: Declaration.FunctionDef, lhsType: Type): Boolean {
-        require(functionDef.thisParam != null)
-        val thisType = annotationToType(functionDef.thisParam.annotation)
-
-        val typeArgs = if (lhsType is Type.Application) {
-            lhsType.args
-        } else {
-            emptyList()
-        }
-
-        val substitution = functionDef.typeParams?.zip(typeArgs)
-                ?.map { it.first.binder.location to it.second }
-                ?.toMap()
-                ?: emptyMap()
-        return isTypeAssignableTo(lhsType, thisType.applySubstitution(substitution))
     }
 
     private fun equateTypes(source: Type, destination: Type) {

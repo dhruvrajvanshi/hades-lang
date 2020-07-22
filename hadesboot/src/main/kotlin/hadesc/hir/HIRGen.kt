@@ -3,11 +3,9 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.frontend.ImplementationBinding
 import hadesc.frontend.PropertyBinding
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
-import hadesc.diagnostics.DiagnosticReporter
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -163,14 +161,9 @@ class HIRGen(
 
     private fun lowerFunctionSignature(signature: FunctionSignature): HIRFunctionSignature {
         val returnType = lowerTypeAnnotation(signature.returnType)
-        val name = if (signature.thisParam == null) {
-            lowerGlobalName(signature.name)
-        } else {
-            extensionFunctionName(signature)
-        }
+        val name = lowerGlobalName(signature.name)
         return HIRFunctionSignature(
                 location = signature.location,
-                receiverType = signature.thisParam?.annotation?.let { lowerTypeAnnotation(it) },
                 name = name,
                 typeParams = signature.typeParams?.map { lowerTypeParam(it) },
                 constraintParams = lowerConstraintParams(signature.typeParams),
@@ -461,13 +454,6 @@ class HIRGen(
         ))
     }
 
-    private fun extensionFunctionName(def: FunctionSignature): QualifiedName {
-        val defName = ctx.resolver.resolveGlobalName(def.name)
-        val thisParam = requireNotNull(def.thisParam)
-        return defName.withPrefix(QualifiedName(listOf(
-                ctx.makeName(lowerTypeAnnotation(thisParam.annotation).prettyPrint()))))
-    }
-
     private fun lowerStructFieldBinding(
             expression: Expression.Property,
             binding: PropertyBinding.StructField
@@ -669,12 +655,6 @@ class HIRGen(
     }
 
     private fun lowerGlobalName(binder: Binder): QualifiedName {
-        val functionDef = ctx.resolver.getEnclosingFunction(binder)
-        val globalName = ctx.resolver.resolveGlobalName(binder)
-        return if (functionDef != null && functionDef.signature.thisParam != null) {
-            extensionFunctionName(functionDef.signature)
-        } else {
-            globalName
-        }
+        return ctx.resolver.resolveGlobalName(binder)
     }
 }

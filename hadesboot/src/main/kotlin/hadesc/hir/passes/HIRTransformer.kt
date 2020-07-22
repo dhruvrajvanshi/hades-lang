@@ -45,7 +45,6 @@ interface HIRTransformer: TypeTransformer {
     fun transformFunctionSignature(signature: HIRFunctionSignature): HIRFunctionSignature {
         return HIRFunctionSignature(
                 location = signature.location,
-                receiverType = signature.receiverType?.let { lowerType(it) },
                 name = transformGlobalName(signature.name),
                 returnType = lowerType(signature.returnType),
                 constraintParams = signature.constraintParams?.map { transformConstraintParam(it) },

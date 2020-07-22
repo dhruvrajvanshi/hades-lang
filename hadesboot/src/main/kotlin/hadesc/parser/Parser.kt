@@ -233,7 +233,6 @@ class Parser(
             makeLocation(start, returnType),
             binder,
             typeParams,
-            null,
             params,
             returnType,
             whereClause
