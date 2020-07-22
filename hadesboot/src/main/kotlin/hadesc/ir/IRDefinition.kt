@@ -38,25 +38,14 @@ data class IRFunctionSignature(
     val name: IRGlobalName,
     val type: Type.Function,
     val typeParams: List<IRTypeParam>?,
-    val receiverType: Type?,
     val params: List<IRParam>,
     val constraints: List<IRConstraint>
 ) {
-    init {
-        if (receiverType == null) {
-            require(type.receiver == null)
-        } else {
-            requireNotNull(type.receiver)
-        }
-    }
     fun prettyPrint(): String {
         val typeParamsStr = if (typeParams != null)
             "[" + typeParams.joinToString(", ") { it.name.prettyPrint() } + "]"
         else ""
-        val receiverStr = if (receiverType != null) {
-            "this: ${receiverType.prettyPrint()}, "
-        } else ""
-        val paramsStr = "(" + receiverStr + params.joinToString(", ") { it.prettyPrint() } + ")"
+        val paramsStr = "(" + params.joinToString(", ") { it.prettyPrint() } + ")"
         val constraintsStr = if (constraints.isEmpty()) "" else
             constraints.joinToString(", ") { it.prettyPrint() }
         return "def ${name.prettyPrint()}: ${type.prettyPrint()} = $typeParamsStr$paramsStr$constraintsStr"

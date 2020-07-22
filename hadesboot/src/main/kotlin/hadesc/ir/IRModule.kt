@@ -36,7 +36,6 @@ class IRModule {
             name: IRGlobalName,
             type: Type.Function,
             typeParams: List<IRTypeParam>?,
-            receiverType: Type?,
             params: List<IRParam>,
             entryBlock: IRBlock,
             constraints: List<IRConstraint>
@@ -48,7 +47,6 @@ class IRModule {
                         name,
                         type,
                         typeParams,
-                        receiverType,
                         params,
                         constraints
                 ),

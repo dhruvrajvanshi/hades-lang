@@ -19,10 +19,8 @@ sealed class HIRDefinition: HasLocation {
         val constraintParams get() = signature.constraintParams
         val name get() = signature.name
         val typeParams get() = signature.typeParams
-        val receiverType get() = signature.receiverType
         val type get(): Type {
             val functionType = Type.Function(
-                    receiver = null,
                     from = params.map { it.type },
                     to = returnType,
                     constraints = constraintParams?.map {
@@ -53,7 +51,6 @@ sealed class HIRDefinition: HasLocation {
             val externName: Name
     ) : HIRDefinition() {
         val type get() = Type.Function(
-                receiver = null,
                 from = params,
                 to = returnType,
                 constraints = emptyList()

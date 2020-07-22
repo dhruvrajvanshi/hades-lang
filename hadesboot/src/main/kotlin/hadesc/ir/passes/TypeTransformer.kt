@@ -43,7 +43,6 @@ interface TypeTransformer {
     }
 
     fun lowerFunctionType(type: Type.Function): Type = Type.Function(
-            receiver = type.receiver?.let { lowerType(it) },
             from = type.from.map { lowerType(it) },
             to = lowerType(type.to)
     )

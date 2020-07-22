@@ -36,7 +36,6 @@ class IRGen(
         require(definition.typeParams == null)
         val instanceType = Type.Constructor(binder = null, name = definition.name)
         val constructorType = Type.Function(
-                receiver = null,
                 from = definition.fields.map { it.second },
                 to = instanceType,
                 constraints = listOf()
@@ -63,7 +62,6 @@ class IRGen(
     }
 
     private fun lowerFunctionDef(definition: HIRDefinition.Function) {
-        require(definition.receiverType == null)
 
         val functionName = lowerGlobalName(definition.name)
         val entryBlock = IRBlock()
@@ -75,7 +73,6 @@ class IRGen(
                 constraints = emptyList(),
                 params = definition.params.mapIndexed { index, it -> lowerParam(functionName, index, it) },
                 entryBlock = entryBlock,
-                receiverType = null,
                 type = definition.type as Type.Function
         )
 

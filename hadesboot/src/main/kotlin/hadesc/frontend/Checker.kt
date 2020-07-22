@@ -374,7 +374,6 @@ class Checker(
             }
             destination is Type.Function && source is Type.Function -> {
                 destination.from.size == source.from.size
-                        && destination.receiver == null && source.receiver == null
                         && isTypeAssignableTo(source = source.to, destination = destination.to)
                         && source.from.zip(destination.from).all { (sourceParam, destParam) ->
                             isTypeAssignableTo(source = destParam, destination = sourceParam)
@@ -482,19 +481,6 @@ class Checker(
             checkTypeParam(it)
         }
 
-        fun checkMethodReceiver(receiver: ThisParam) {
-            val thisType = annotationToType(receiver.annotation)
-            if (thisType !is Type.ThisRef) {
-                if (thisType is Type.Ptr) {
-                    if (thisType.to !is Type.ThisRef) {
-                        error(receiver.annotation, Diagnostic.Kind.InterfaceMethodReceiverMustBeThisOrThisPtr)
-                    }
-                } else {
-                    error(receiver.annotation, Diagnostic.Kind.InterfaceMethodReceiverMustBeThisOrThisPtr)
-                }
-            }
-        }
-
         fun checkMember(member: Declaration.Interface.Member) = when (member) {
             is Declaration.Interface.Member.FunctionSignature -> {
                 checkFunctionSignature(member.signature)
@@ -503,14 +489,6 @@ class Checker(
                 }
                 member.signature.typeParams?.forEach {
                     checkTypeParam(it)
-                }
-
-                if (member.signature.thisParam == null) {
-                    error(member.signature, Diagnostic.Kind.InterfaceMemberMustBeAnExtensionMethod)
-                }
-
-                member.signature.thisParam?.let {
-                    checkMethodReceiver(member.signature.thisParam)
                 }
             }
         }
@@ -876,7 +854,6 @@ class Checker(
         require(method.signature.typeParams == null)
 
         return substituteThisParam(Type.Function(
-            receiver = null,
             constraints = emptyList(),
             from = method.signature.params.map { param -> param.annotation?.let { annotationToType(it) } ?: Type.Error },
             to = annotationToType(method.signature.returnType)
@@ -913,15 +890,12 @@ class Checker(
         val functionType = typeOfGlobalFunctionRef(binding.def)
         val functionTypeComponents = getFunctionTypeComponents(functionType)
         requireNotNull(functionTypeComponents)
-        requireNotNull(functionTypeComponents.receiverType)
         val substitution = instantiateSubstitution(
             functionTypeComponents.typeParams,
             functionTypeComponents.constraints,
             expression.location
         )
-        equateTypes(lhsType, functionTypeComponents.receiverType.applySubstitution(substitution))
         return Type.Function(
-                receiver = null,
                 from = functionTypeComponents.from.map { it.applySubstitution(substitution) },
                 to = functionTypeComponents.to.applySubstitution(substitution)
         )
@@ -965,7 +939,7 @@ class Checker(
             )
         }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
-        val functionType = Type.Function(receiver = null, from = fieldTypes, to = instanceType)
+        val functionType = Type.Function(from = fieldTypes, to = instanceType)
         val type = if (binding.declaration.typeParams == null) {
             functionType
         } else {
@@ -1011,7 +985,6 @@ class Checker(
         return Type.Ptr(
                 to = Type.Function(
                         constraints = emptyList(),
-                        receiver = null,
                         from = declaration.paramTypes.map { annotationToType(it) },
                         to = annotationToType(declaration.returnType)
                 ),
@@ -1024,7 +997,6 @@ class Checker(
                 from = declaration.params.map { param ->
                     param.annotation?.let { annotationToType(it) } ?: Type.Error },
                 to = annotationToType(declaration.signature.returnType),
-                receiver = declaration.thisParam?.let { annotationToType(it.annotation) },
                 constraints = constraintsOf(declaration.typeParams, declaration.signature.whereClause)
         )
         val typeParams = declaration.typeParams
@@ -1041,7 +1013,6 @@ class Checker(
     }
 
     data class FunctionTypeComponents(
-            val receiverType: Type?,
             val from: List<Type>,
             val to: Type,
             val typeParams: List<Type.Param>?,
@@ -1073,11 +1044,7 @@ class Checker(
     ): Type {
         val explicitTypeArgs = typeArgs?.map { annotationToType(it) }
         val calleeType = getCalleeType(callNode)
-        val receiverArg = getReceiverArg(callNode)
         val functionType = getFunctionTypeComponents(calleeType)
-        if (receiverArg != null) {
-            inferExpression(receiverArg)
-        }
         return if (functionType == null) {
             for (arg in args) {
                 inferExpression(arg.expression)
@@ -1090,26 +1057,6 @@ class Checker(
                 functionType.constraints,
                 callNode.location
             )
-            if (receiverArg != null) {
-                require(functionType.receiverType != null)
-                val inferredType = reduceGenericInstances(inferExpression(receiverArg))
-
-                val thisType = if (
-                    functionType.receiverType is Type.Ptr &&
-                    functionType.receiverType.to is Type.ThisRef &&
-                    inferredType is Type.Ptr) {
-                    inferredType.to
-                } else  inferredType
-
-                checkAssignability(
-                    receiverArg,
-                    source = inferredType,
-                    destination = substituteThisParam(
-                        functionType.receiverType.applySubstitution(substitution),
-                        with = thisType
-                    )
-                )
-            }
             checkCallArgs(functionType, callNode, explicitTypeArgs, args, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
@@ -1173,7 +1120,6 @@ class Checker(
         require(signature.typeParams == null)
         require(signature.whereClause == null)
         val functionType = Type.Function(
-            receiver = member.signature.thisParam?.annotation?.let { annotationToType(it) },
             constraints = constraintsOf(interfaceDef.typeParams, null),
             from = signature.params.map { it.annotation?.let { annot -> annotationToType(annot) } ?: Type.Error },
             to = annotationToType(signature.returnType)
@@ -1261,7 +1207,6 @@ class Checker(
                 is Type.Ptr -> recurse(type.to, null)
                 is Type.Function ->
                     FunctionTypeComponents(
-                            receiverType = type.receiver,
                             from = type.from,
                             to = type.to,
                             typeParams = typeParams,
@@ -1273,7 +1218,6 @@ class Checker(
                 is Type.GenericInstance -> recurse(reduceGenericInstances(type), null)
                 is Type.Error -> {
                     return FunctionTypeComponents(
-                        receiverType = Type.Error,
                         from = emptyList(),
                         to = Type.Error,
                         typeParams = null,
@@ -1334,8 +1278,7 @@ class Checker(
         return Type.Function(
             from = annotation.from.map { annotationToType(it) },
             to = annotationToType(annotation.to),
-            constraints = emptyList(),
-            receiver = null
+            constraints = emptyList()
         )
     }
 

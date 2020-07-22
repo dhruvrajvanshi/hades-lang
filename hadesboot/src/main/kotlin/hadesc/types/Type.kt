@@ -20,7 +20,6 @@ sealed class Type {
     }
 
     data class Function(
-        val receiver: Type?,
         val from: List<Type>,
         val to: Type,
         val constraints: List<Constraint> = listOf()
@@ -70,9 +69,8 @@ sealed class Type {
             else "*${to.prettyPrint()}"
         }
         is Function -> {
-            val receiver = if (this.receiver == null) "" else "this: ${this.receiver.prettyPrint()}, "
             val whereClause = if (constraints.isEmpty()) "" else " where ${ this.constraints.joinToString(", ") {it.prettyPrint()} }"
-            "($receiver${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
+            "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
         }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> "${name.identifier.name.text} : ${constraints.joinToString(", ") {
@@ -103,7 +101,6 @@ sealed class Type {
             Bool -> this
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
-                receiver = receiver?.recurse(),
                 from = this.from.map { it.recurse() },
                 to = this.to.recurse(),
                 constraints = this.constraints.map {

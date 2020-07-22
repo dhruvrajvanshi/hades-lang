@@ -50,17 +50,12 @@ class ReceiverElimination(
 
     override fun lowerFunctionType(type: Type.Function): Type {
         require(type.constraints.isEmpty()) { TODO() }
-        val from = if (type.receiver == null) {
-            type.from.map { lowerType(it) }
-        } else buildList {
-            add(lowerType(type.receiver))
-            addAll(type.from.map { lowerType(it) })
-        }
+        val from = type.from.map { lowerType(it) }
+
         return Type.Function(
                 from = from,
                 to = lowerType(type.to),
-                constraints = emptyList(),
-                receiver = null
+                constraints = emptyList()
         )
     }
 
