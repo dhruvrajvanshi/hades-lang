@@ -10,7 +10,6 @@ import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
 import hadesc.hir.passes.Monomorphization
-import hadesc.hir.passes.ReceiverElimination
 import hadesc.irgen.IRGen
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
@@ -47,7 +46,6 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        hirModule = ReceiverElimination(this).transformModule(hirModule)
         hirModule = Monomorphization(this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)
 

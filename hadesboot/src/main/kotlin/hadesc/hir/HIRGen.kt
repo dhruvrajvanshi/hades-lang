@@ -308,7 +308,7 @@ class HIRGen(
         is Expression.Property -> lowerPropertyExpression(expression)
         is Expression.ByteString -> lowerByteString(expression)
         is Expression.BoolLiteral -> lowerBoolLiteral(expression)
-        is Expression.This -> lowerThisExpression(expression)
+        is Expression.This -> requireUnreachable()
         is Expression.NullPtr -> lowerNullPtr(expression)
         is Expression.IntLiteral -> lowerIntLiteral(expression)
         is Expression.Not -> lowerNotExpression(expression)
@@ -409,13 +409,6 @@ class HIRGen(
                         expression.location,
                         typeOfExpression(expression),
                         expression.value)
-        )
-    }
-
-    private fun lowerThisExpression(expression: Expression.This): HIRExpression {
-        return HIRExpression.ThisRef(
-                expression.location,
-                typeOfExpression(expression)
         )
     }
 
