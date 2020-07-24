@@ -523,13 +523,6 @@ class Checker(
                 null -> Type.Error
             }
 
-    private fun substituteThisParam(type: Type, with: Type): Type {
-        return object : TypeTransformer {
-            override fun lowerThisRefType(type: Type.ThisRef): Type {
-                return with
-            }
-        }.lowerType(type)
-    }
 
     private fun typeOfStructFieldProperty(
             expression: Expression.Property,

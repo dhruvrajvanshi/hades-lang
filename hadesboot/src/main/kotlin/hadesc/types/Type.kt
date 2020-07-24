@@ -37,7 +37,6 @@ sealed class Type {
     ) : Type()
 
     data class Application(val callee: Type, val args: List<Type>) : Type()
-    data class ThisRef(val location: SourceLocation) : Type()
     data class UntaggedUnion(val members: List<Type>) : Type()
 
 
@@ -61,7 +60,6 @@ sealed class Type {
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
         Size -> "Size"
-        is ThisRef -> "This"
         is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
     }
@@ -91,7 +89,6 @@ sealed class Type {
                 Application(callee.recurse(), args.map { it.recurse() })
             }
             is Constructor -> this
-            is ThisRef -> thisType?.recurse() ?: this
             is UntaggedUnion -> UntaggedUnion(
                     members.map { it.recurse() }
             )

@@ -1,6 +1,5 @@
 package hadesc.ir.passes
 
-import hadesc.assertions.requireUnreachable
 import hadesc.types.Type
 
 interface TypeTransformer {
@@ -18,7 +17,6 @@ interface TypeTransformer {
         is Type.ParamRef -> lowerParamRefType(type)
         is Type.GenericInstance -> lowerGenericInstance(type)
         is Type.Application -> lowerTypeApplication(type)
-        is Type.ThisRef -> lowerThisRefType(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
         is Type.TypeFunction -> lowerTypeFunction(type)
     }
@@ -64,8 +62,6 @@ interface TypeTransformer {
             callee = lowerType(type.callee) as Type.Constructor,
             args = type.args.map { lowerType(it) }
     )
-
-    fun lowerThisRefType(type: Type.ThisRef): Type = type
 
     fun lowerVoidType(type: Type): Type = type
 
