@@ -340,7 +340,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerByteString(expression: IRByteString): Value {
         val text = expression.value.decodeToString()
-        val constStringRef = llvm.ConstantArray(text, nullTerminate = false, context = llvmCtx)
+        val constStringRef = ConstantArray(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
             constStringRef.getType()
@@ -443,9 +443,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Double -> doubleTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
-            require(type.constraints.isEmpty()) {
-                "Found type constraints in LLVMGen phase"
-            }
             FunctionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
@@ -487,18 +484,18 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return "\$string_literal_$nextLiteralIndex"
     }
 
-    private val byteTy = llvm.IntType(8, llvmCtx)
-    private val bytePtrTy = llvm.PointerType(byteTy)
-    private val voidTy = llvm.VoidType(llvmCtx)
-    private val boolTy = llvm.IntType(1, llvmCtx)
-    private val cIntTy = llvm.IntType(32, llvmCtx)
+    private val byteTy = IntType(8, llvmCtx)
+    private val bytePtrTy = PointerType(byteTy)
+    private val voidTy = VoidType(llvmCtx)
+    private val boolTy = IntType(1, llvmCtx)
+    private val cIntTy = IntType(32, llvmCtx)
     private val doubleTy = LLVM.LLVMDoubleTypeInContext(llvmCtx)
-    private val trueValue = llvm.ConstantInt(boolTy, 1, false)
-    private val falseValue = llvm.ConstantInt(boolTy, 0, false)
-    private val sizeTy = llvm.IntType(64, llvmCtx) // FIXME: This isn't portable
+    private val trueValue = ConstantInt(boolTy, 1, false)
+    private val falseValue = ConstantInt(boolTy, 0, false)
+    private val sizeTy = IntType(64, llvmCtx) // FIXME: This isn't portable
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
-        return llvm.PointerType(to)
+        return PointerType(to)
     }
 
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {

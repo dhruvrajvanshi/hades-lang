@@ -963,10 +963,6 @@ class Parser(
                     TypeAnnotation.Var(id)
                 }
             }
-            tt.THIS_TYPE -> {
-                val location = advance().location
-                TypeAnnotation.This(location)
-            }
             tt.STAR -> {
                 val start = advance()
                 val isMutable = if (at(tt.MUT)) {

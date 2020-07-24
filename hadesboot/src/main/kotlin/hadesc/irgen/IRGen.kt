@@ -37,8 +37,7 @@ class IRGen(
         val instanceType = Type.Constructor(binder = null, name = definition.name)
         val constructorType = Type.Function(
                 from = definition.fields.map { it.second },
-                to = instanceType,
-                constraints = listOf()
+                to = instanceType
         )
         module.addStructDef(
             constructorType,

@@ -22,14 +22,7 @@ sealed class HIRDefinition: HasLocation {
         val type get(): Type {
             val functionType = Type.Function(
                     from = params.map { it.type },
-                    to = returnType,
-                    constraints = constraintParams?.map {
-                        Type.Constraint(
-                                interfaceName = it.interfaceRef.interfaceName,
-                                param = Type.Param(Binder(Identifier(it.param.location, it.param.name))),
-                                args = it.interfaceRef.typeArgs ?: listOf()
-                        )
-                    } ?: listOf()
+                    to = returnType
 
             )
             return if (typeParams != null) {
@@ -52,8 +45,7 @@ sealed class HIRDefinition: HasLocation {
     ) : HIRDefinition() {
         val type get() = Type.Function(
                 from = params,
-                to = returnType,
-                constraints = emptyList()
+                to = returnType
         )
     }
 

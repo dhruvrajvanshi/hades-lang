@@ -27,7 +27,6 @@ data class Token(
         MUT,
         INTERFACE,
         IMPLEMENT,
-        THIS_TYPE,
         FOR,
         MATCH,
         ENUM,

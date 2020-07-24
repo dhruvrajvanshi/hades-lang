@@ -21,22 +21,8 @@ sealed class Type {
 
     data class Function(
         val from: List<Type>,
-        val to: Type,
-        val constraints: List<Constraint> = listOf()
+        val to: Type
     ) : Type()
-
-    data class Constraint(
-        val interfaceName: QualifiedName,
-        val args: List<Type>,
-        val param: Param
-    ) {
-        fun prettyPrint(): String {
-            val argsStr = if (args.isEmpty())
-                ""
-            else "[${args.joinToString(", ") {it.prettyPrint()} }]"
-            return "${param.binder.identifier.name.text}: ${interfaceName.mangle()}$argsStr"
-        }
-    }
 
     data class Constructor(val binder: Binder?, val name: QualifiedName) : Type()
 
@@ -47,7 +33,6 @@ sealed class Type {
     data class GenericInstance(
         val name: Binder,
         val id: Long,
-        val constraints: List<Constraint>,
         val intantiationLocation: SourceLocation
     ) : Type()
 
@@ -69,15 +54,10 @@ sealed class Type {
             else "*${to.prettyPrint()}"
         }
         is Function -> {
-            val whereClause = if (constraints.isEmpty()) "" else " where ${ this.constraints.joinToString(", ") {it.prettyPrint()} }"
-            "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}$whereClause"
+            "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
         is ParamRef -> this.name.identifier.name.text
-        is GenericInstance -> "${name.identifier.name.text} : ${constraints.joinToString(", ") {
-            val argsStr = if (it.args.isEmpty()) ""
-            else "[${it.args.joinToString(", ")}]"
-            it.interfaceName.mangle() + argsStr
-        } }"
+        is GenericInstance -> name.identifier.name.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
         Size -> "Size"
@@ -102,14 +82,7 @@ sealed class Type {
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
                 from = this.from.map { it.recurse() },
-                to = this.to.recurse(),
-                constraints = this.constraints.map {
-                    Constraint(
-                            it.interfaceName,
-                            param = it.param,
-                            args = it.args.map { arg -> arg.recurse() }
-                    )
-                }
+                to = this.to.recurse()
             )
             is ParamRef -> {
                 substitution[this.name.location] ?: this

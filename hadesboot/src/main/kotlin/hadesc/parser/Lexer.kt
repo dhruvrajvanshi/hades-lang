@@ -31,7 +31,6 @@ val KEYWORDS = mapOf(
     "mut" to tt.MUT,
     "interface" to tt.INTERFACE,
     "implement" to tt.IMPLEMENT,
-    "This" to tt.THIS_TYPE,
     "for" to tt.FOR,
     "match" to tt.MATCH,
     "enum" to tt.ENUM,

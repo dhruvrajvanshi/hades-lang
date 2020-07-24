@@ -37,11 +37,6 @@ sealed class TypeAnnotation : HasLocation {
         val to: TypeAnnotation
     ) : TypeAnnotation()
 
-    @Deprecated("")
-    data class This(
-        override val location: SourceLocation
-    ) : TypeAnnotation()
-
     data class Union(
         override val location: SourceLocation,
         val args: List<TypeAnnotation>
