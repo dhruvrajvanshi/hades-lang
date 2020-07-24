@@ -1,10 +1,10 @@
 import submodule.test_utils as u;
 struct Box {
-    val mut x: Int;
+    val x: Int;
 }
 
 def main(): Void {
-    val box = Box(10);
+    val mut box = Box(10);
     box.x = 20;
     u.print_int(box.x);
 }

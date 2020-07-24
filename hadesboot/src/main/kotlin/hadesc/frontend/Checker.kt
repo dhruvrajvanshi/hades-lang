@@ -60,7 +60,7 @@ class Checker(
 
     }
 
-    private fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
+    public fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
         val structDecl = getStructDeclOfType(lhsType)
         return if (structDecl == null) null else {
             val index = structDecl.members.indexOfFirst {
@@ -331,19 +331,29 @@ class Checker(
 
     private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
         val lhsType = inferExpression(statement.lhs)
-        val rhsType = inferExpression(statement.value)
+        val rhsType = checkExpression(statement.value, lhsType)
         val field = resolvePropertyBinding(statement.lhs)
         if (field !is PropertyBinding.StructField) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
             return
         }
 
-        if (!field.member.isMutable) {
-            error(statement.lhs.property, Diagnostic.Kind.StructFieldNotMutable)
-            return
+        if (statement.lhs.lhs !is Expression.Var) {
+            error(statement.lhs.lhs, Diagnostic.Kind.NotAnAddressableValue)
+        } else {
+            val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
+            if (binding == null) {
+                error(statement.lhs.lhs, Diagnostic.Kind.UnboundVariable)
+                return
+            }
+            if (binding !is Binding.ValBinding) {
+                error(statement.lhs, Diagnostic.Kind.NotAnAddressableValue)
+                return
+            }
+            if (!binding.statement.isMutable) {
+                error(statement.lhs.lhs, Diagnostic.Kind.ValNotMutable)
+            }
         }
-
-        checkAssignability(statement.value, destination = lhsType, source = rhsType)
     }
 
     private fun checkAssignability(node: HasLocation, source: Type, destination: Type) {

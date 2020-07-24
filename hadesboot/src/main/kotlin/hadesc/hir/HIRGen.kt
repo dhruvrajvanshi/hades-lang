@@ -135,10 +135,40 @@ class HIRGen(
         is Statement.While -> lowerWhileStatement(statement)
         is Statement.If -> lowerIfStatement(statement)
         is Statement.LocalAssignment -> lowerLocalAssignment(statement)
-        is Statement.MemberAssignment -> TODO()
+        is Statement.MemberAssignment -> lowerMemberAssignmentStatement(statement)
         is Statement.PointerAssignment -> lowerPointerAssignment(statement)
         is Statement.Defer -> TODO()
         is Statement.Error -> requireUnreachable()
+    }
+
+    private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment): Collection<HIRStatement> {
+        require(statement.lhs.lhs is Expression.Var)
+        val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
+        require(binding is Binding.ValBinding)
+        require(binding.statement.isMutable)
+        val name = binding.statement.binder.identifier.name
+        val structAddr = HIRExpression.AddressOf(
+                statement.lhs.lhs.location,
+                type = Type.Ptr(typeOfExpression(statement.lhs.lhs), isMutable = true),
+                name = name
+        )
+        val fieldBinding = ctx.checker.resolveStructFieldBinding(typeOfExpression(statement.lhs.lhs), statement.lhs.property)
+        requireNotNull(fieldBinding)
+        val fieldType = fieldBinding.type
+        val fieldAddr = HIRExpression.GetStructFieldPointer(
+                location = statement.lhs.location,
+                type = Type.Ptr(fieldType, isMutable = true),
+                lhs = structAddr,
+                memberName = statement.lhs.property.name,
+                memberIndex = fieldBinding.memberIndex
+        )
+        return listOf(
+                HIRStatement.Store(
+                        location = statement.location,
+                        ptr = fieldAddr,
+                        value = lowerExpression(statement.value)
+                )
+        )
     }
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment): Collection<HIRStatement> {
