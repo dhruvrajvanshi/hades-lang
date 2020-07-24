@@ -55,32 +55,6 @@ sealed class Declaration : HasLocation {
         }
     }
 
-    data class Interface(
-        override val location: SourceLocation,
-        val name: Binder,
-        val typeParams: List<TypeParam>?,
-        val members: List<Member>
-    ) : Declaration() {
-        sealed class Member {
-            data class FunctionSignature(
-                    val signature: hadesc.ast.FunctionSignature
-            ) : Member()
-        }
-    }
-
-    data class Implementation(
-            override val location: SourceLocation,
-            val typeParams: List<TypeParam>?,
-            val interfaceRef: InterfaceRef,
-            val forType: TypeAnnotation,
-            val whereClause: WhereClause?,
-            val members: List<Member>
-    ) : Declaration() {
-        sealed class Member {
-            data class FunctionDef(val functionDef: Declaration.FunctionDef): Member()
-        }
-    }
-
     data class Enum(
         override val location: SourceLocation,
         val name: Binder,

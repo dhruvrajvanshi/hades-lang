@@ -8,7 +8,6 @@ import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import org.jetbrains.annotations.Contract
 
 class Resolver(private val ctx: Context) {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeNode>>()
@@ -80,20 +79,8 @@ class Resolver(private val ctx: Context) {
                 else -> null
             }
         }
-        is ScopeNode.Interface -> {
-            val param = scopeNode.declaration.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }
-            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
-        }
         is ScopeNode.MatchArm -> null
         is ScopeNode.TypeAlias -> {
-            val param = scopeNode.declaration.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }
-            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
-        }
-        is ScopeNode.Implementation -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
             }
@@ -134,11 +121,9 @@ class Resolver(private val ctx: Context) {
         is ScopeNode.SourceFile -> findInSourceFile(ident.name, scope.sourceFile)
         is ScopeNode.Block -> findInBlock(ident, scope)
         is ScopeNode.Struct -> null
-        is ScopeNode.Interface -> null
         is ScopeNode.Enum -> null
         is ScopeNode.MatchArm -> findInMatchArm(ident, scope)
         is ScopeNode.TypeAlias -> null
-        is ScopeNode.Implementation -> null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeNode.MatchArm): Binding? {
@@ -224,8 +209,6 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.Interface -> null
-                is Declaration.Implementation -> null
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
             }
@@ -271,14 +254,6 @@ class Resolver(private val ctx: Context) {
         return sourceFileOf(declaration).moduleName.append(declaration.binder.identifier.name)
     }
 
-    fun qualifiedEnumName(declaration: Declaration.Enum): QualifiedName {
-        return sourceFileOf(declaration).moduleName.append(declaration.name.identifier.name)
-    }
-
-    fun qualifiedInterfaceName(declaration: Declaration.Interface): QualifiedName {
-        return sourceFileOf(declaration).moduleName.append(declaration.name.identifier.name)
-    }
-
     fun onParseMatchArm(arm: Expression.Match.Arm) {
         addScopeNode(arm.location.file, ScopeNode.MatchArm(arm))
     }
@@ -296,21 +271,6 @@ class Resolver(private val ctx: Context) {
                     declaration.location.file,
                     ScopeNode.Struct(declaration)
                 )
-            }
-            is Declaration.Implementation -> {
-                addScopeNode(declaration.location.file, ScopeNode.Implementation(declaration))
-                for (member in declaration.members) {
-                    exhaustive(when (member) {
-                        is Declaration.Implementation.Member.FunctionDef -> {
-                            addScopeNode(
-                                declaration.location.file,
-                                ScopeNode.FunctionDef(member.functionDef))
-                        }
-                    })
-                }
-            }
-            is Declaration.Interface -> {
-                addScopeNode(declaration.location.file, ScopeNode.Interface(declaration))
             }
             is Declaration.Enum -> {
                 addScopeNode(declaration.location.file, ScopeNode.Enum(declaration))
@@ -335,16 +295,6 @@ class Resolver(private val ctx: Context) {
         sourceFileScopes
             .computeIfAbsent(file) { mutableListOf() }
             .add(scopeNode)
-    }
-
-    fun getDeclarationContaining(node: HasLocation): Declaration {
-        val sourceFile = requireNotNull(sourceFiles[node.location.file])
-        for (declaration in sourceFile.declarations) {
-            if (declaration.location contains node) {
-                return declaration
-            }
-        }
-        requireUnreachable()
     }
 
     fun resolveModuleProperty(expression: Expression.Property): Binding? {
@@ -379,8 +329,6 @@ class Resolver(private val ctx: Context) {
                             is Declaration.ConstDefinition -> {
                                 null
                             }
-                            is Declaration.Interface -> null
-                            is Declaration.Implementation -> null
                             is Declaration.Enum -> {
                                 if (declaration.name.identifier.name == expression.lhs.name.name) {
                                     declaration.cases.indexOfFirst {
@@ -404,11 +352,9 @@ class Resolver(private val ctx: Context) {
                     }
                     binding
                 }
-                is ScopeNode.Interface -> null
-                is ScopeNode.Enum -> null
                 is ScopeNode.MatchArm -> null
                 is ScopeNode.TypeAlias -> null
-                is ScopeNode.Implementation -> null
+                is ScopeNode.Enum -> null
             }
             if (binding != null) {
                 return binding
@@ -416,17 +362,6 @@ class Resolver(private val ctx: Context) {
 
         }
         return null
-    }
-
-    private fun directlyImportedSourceFiles(sourceFile: SourceFile): Sequence<SourceFile> = sequence {
-        for (declaration in sourceFile.declarations) {
-            if (declaration is Declaration.ImportAs) {
-                val file = ctx.resolveSourceFile(declaration.modulePath)
-                if (file != null) {
-                    yield(file as SourceFile)
-                }
-            }
-        }
     }
 
     fun resolveQualifiedType(path: QualifiedPath): TypeBinding? {
@@ -453,8 +388,6 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ConstDefinition -> decl.name.identifier.name == declName
                 is Declaration.ExternFunctionDef -> decl.binder.identifier.name == declName
                 is Declaration.Struct -> decl.binder.identifier.name == declName
-                is Declaration.Interface -> decl.name.identifier.name == declName
-                is Declaration.Implementation -> false
                 is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
             })
@@ -506,12 +439,6 @@ class Resolver(private val ctx: Context) {
                 } else {
                     null
                 }
-                is Declaration.Interface -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is Declaration.Implementation -> null
                 is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
@@ -531,50 +458,9 @@ class Resolver(private val ctx: Context) {
 
     }
 
-    fun implementationsInScope(node: HasLocation) = sequence<Declaration.Implementation> {
-        val visitedSourceFiles = mutableSetOf<SourcePath>()
-        fun implementationsInSourceFile(
-                sourceFile: SourceFile
-        ): Sequence<Declaration.Implementation> = sequence {
-            if (!visitedSourceFiles.contains(sourceFile.location.file)) {
-                visitedSourceFiles.add(sourceFile.location.file)
-                for (declaration in sourceFile.declarations) {
-                    if (declaration is Declaration.Implementation) {
-                        yield(declaration as Declaration.Implementation)
-                    }
-                }
-            }
-        }
-        val sourceFile = sourceFileOf(node)
-        val importedFiles = directlyImportedSourceFiles(sourceFile)
-        yieldAll(implementationsInSourceFile(sourceFile))
-        for (importedFile in importedFiles) {
-            yieldAll(implementationsInSourceFile(importedFile))
-        }
-
-    }
-
     fun getEnclosingFunction(node: HasLocation): Declaration.FunctionDef? {
         for (scopeNode in getScopeStack(node)) {
             if (scopeNode is ScopeNode.FunctionDef) {
-                return scopeNode.declaration
-            }
-        }
-        return null
-    }
-
-    fun getEnclosingInterfaceDecl(node: HasLocation): Declaration.Interface? {
-        for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeNode.Interface) {
-                return scopeNode.declaration
-            }
-        }
-        return null
-    }
-
-    fun getEnclosingImplementationDef(node: HasLocation): Declaration.Implementation? {
-        for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeNode.Implementation) {
                 return scopeNode.declaration
             }
         }

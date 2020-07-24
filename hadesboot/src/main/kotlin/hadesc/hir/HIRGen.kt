@@ -36,90 +36,8 @@ class HIRGen(
         is Declaration.ConstDefinition -> TODO()
         is Declaration.ExternFunctionDef -> lowerExternFunctionDef(declaration)
         is Declaration.Struct -> lowerStructDef(declaration)
-        is Declaration.Interface -> lowerInterfaceDef(declaration)
-        is Declaration.Implementation -> lowerImplDef(declaration)
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
-    }
-
-    private fun lowerInterfaceDef(declaration: Declaration.Interface): List<HIRDefinition> {
-        return listOf(
-                HIRDefinition.Interface(
-                        location = declaration.location,
-                        name = lowerGlobalName(declaration.name),
-                        constraintParams = lowerConstraintParams(declaration.typeParams),
-                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
-                        signatures = declaration.members.map {
-                            when (it) {
-                                is Declaration.Interface.Member.FunctionSignature ->
-                                    lowerFunctionSignature(it.signature)
-                            }
-                        }
-                )
-        )
-    }
-
-    private fun lowerImplDef(declaration: Declaration.Implementation): List<HIRDefinition> {
-        return listOf(
-                HIRDefinition.Implementation(
-                        declaration.location,
-                        name = implName(declaration),
-                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
-                        interfaceRef = lowerInterfaceRef(declaration.interfaceRef),
-                        forType = lowerTypeAnnotation(declaration.forType),
-                        members = declaration.members.map {
-                            when(it) {
-                                is Declaration.Implementation.Member.FunctionDef ->
-                                    lowerFunctionDef(it.functionDef)
-                            }
-                        },
-                        constraintParams = lowerConstraintParams(declaration.typeParams)
-                )
-        )
-    }
-
-    private fun lowerConstraintParams(typeParams: List<TypeParam>?): List<HIRConstraintParam>? {
-        val constraints = typeParams?.flatMap {
-            if (it.bound == null)
-                emptyList()
-            else listOf(HIRConstraintParam(
-                    constraintType(it, it.bound),
-                    lowerTypeParam(it),
-                    lowerInterfaceRef(it.bound))
-            )
-        }
-        return if (constraints == null || constraints.isEmpty()) {
-            null
-        } else {
-            constraints
-        }
-    }
-
-    private fun constraintType(param: TypeParam, bound: InterfaceRef): Type {
-        val interfaceRef = lowerInterfaceRef(bound)
-        val interfaceDef = ctx.resolver.resolveDeclaration(bound.path)
-        require(interfaceDef is Declaration.Interface)
-        val constructor = Type.Constructor(
-                null,
-                interfaceRef.interfaceName
-        )
-        val typeParams = interfaceDef.typeParams?.map { Type.Param(it.binder) }
-        require(typeParams == null)
-        return Type.Application(
-                constructor,
-                listOf(Type.ParamRef(param.binder)) +
-                        (bound.typeArgs?.map { lowerTypeAnnotation(it) } ?: listOf())
-        )
-    }
-
-    private fun lowerInterfaceRef(interfaceRef: InterfaceRef): HIRInterfaceRef {
-        val interfaceDecl = ctx.resolver.resolveDeclaration(interfaceRef.path)
-        require(interfaceDecl is Declaration.Interface)
-        val name = ctx.resolver.resolveGlobalName(interfaceDecl.name)
-        return HIRInterfaceRef(
-                interfaceName = name,
-                typeArgs = interfaceRef.typeArgs?.map { lowerTypeAnnotation(it) }
-        )
     }
 
     private fun lowerStructDef(declaration: Declaration.Struct): List<HIRDefinition> {
@@ -166,7 +84,7 @@ class HIRGen(
                 location = signature.location,
                 name = name,
                 typeParams = signature.typeParams?.map { lowerTypeParam(it) },
-                constraintParams = lowerConstraintParams(signature.typeParams),
+                constraintParams = null,
                 params = signature.params.map { lowerParam(it) },
                 returnType = returnType
         )
@@ -437,39 +355,6 @@ class HIRGen(
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> TODO()
-    }
-
-    private fun implName(implDef: Declaration.Implementation): QualifiedName {
-        val interfaceDef = ctx.resolver.resolveDeclaration(implDef.interfaceRef.path)
-        require(interfaceDef is Declaration.Interface)
-        val qualifiedInterfaceName = ctx.resolver.qualifiedInterfaceName(interfaceDef)
-        val typeArgNames: Array<Name> = if (implDef.interfaceRef.typeArgs == null) {
-            arrayOf()
-        } else {
-            arrayOf(
-                    ctx.makeName("[${implDef.interfaceRef.typeArgs.joinToString(",") {lowerTypeAnnotation(it).prettyPrint()} }]")
-            )
-        }
-        val typeParamNames = if (implDef.typeParams == null) emptyArray()
-        else arrayOf(
-                ctx.makeName("[${implDef.typeParams.joinToString(",") { it.binder.identifier.name.text }}]")
-        )
-        val constraints = if (implDef.typeParams == null) emptyList()
-            else implDef.typeParams.flatMap { if (it.bound != null) listOf(it.binder to it.bound) else emptyList() }
-        val whereClauseNames = if (constraints.isEmpty()) arrayOf()
-            else arrayOf(
-                    ctx.makeName("where(" + constraints.joinToString(",") {
-                        it.first.identifier.name.text + ":" + lowerInterfaceRef(it.second).prettyPrint() } + ")")
-            )
-        return QualifiedName(listOf(
-                ctx.makeName("\$impl"),
-                *typeParamNames,
-                *whereClauseNames,
-                *qualifiedInterfaceName.names.toTypedArray(),
-                *typeArgNames,
-                ctx.makeName("for"),
-                ctx.makeName(lowerTypeAnnotation(implDef.forType).prettyPrint())
-        ))
     }
 
     private fun lowerStructFieldBinding(

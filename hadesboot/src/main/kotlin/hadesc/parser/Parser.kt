@@ -68,7 +68,7 @@ object SyntaxError : Error()
 class Parser(
         private val ctx: Context,
         private val moduleName: QualifiedName,
-        val file: SourcePath
+        private val file: SourcePath
 ) {
     private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file))
     private val currentToken get() = tokenBuffer.currentToken
@@ -99,8 +99,6 @@ class Parser(
             tt.STRUCT -> parseStructDeclaration(decorators = listOf())
             tt.EXTERN -> parseExternFunctionDef()
             tt.CONST -> parseConstDef()
-            tt.INTERFACE -> parseInterfaceDeclaration()
-            tt.IMPLEMENT -> parseImplementationDeclaration()
             tt.ENUM -> parseEnumDeclaration()
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.AT_SYMBOL -> {
@@ -121,30 +119,6 @@ class Parser(
             val name = parseIdentifier()
             add(Decorator(makeLocation(start, name), name))
         }
-    }
-
-    private fun parseImplementationDeclaration(): Declaration {
-        val start = expect(tt.IMPLEMENT)
-        val params = parseOptionalTypeParams()
-        val interfaceRef = parseInterfaceRef()
-        expect(tt.FOR)
-        val forType = parseTypeAnnotation()
-        val whereClause = parseOptionalWhereClause()
-        expect(tt.LBRACE)
-        val members = buildList {
-            while (!at(tt.RBRACE) && !at(tt.EOF)) {
-                add(Declaration.Implementation.Member.FunctionDef(parseDeclarationFunctionDef()))
-            }
-        }
-        val stop = expect(tt.RBRACE)
-        return Declaration.Implementation(
-            makeLocation(start, stop),
-            interfaceRef = interfaceRef,
-            typeParams = params,
-            forType = forType,
-            members = members,
-            whereClause = whereClause
-        )
     }
 
     private fun parseOptionalWhereClause(): WhereClause? {
@@ -185,40 +159,6 @@ class Parser(
                 path,
                 typeArgs
         )
-    }
-
-    private fun parseInterfaceDeclaration(): Declaration {
-        val start = expect(tt.INTERFACE)
-        val binder = parseBinder()
-        val typeParams = if (at(tt.LSQB)) {
-            advance()
-            val params = parseSeperatedList(tt.COMMA, tt.RSQB) {
-                parseTypeParam()
-            }
-            expect(tt.RSQB)
-            params
-        } else {
-            null
-        }
-        expect(tt.LBRACE)
-        val members = buildList {
-            while (!at(tt.RBRACE) && !at(tt.EOF)) {
-                add(parseInterfaceMember())
-            }
-        }
-        val stop = expect(tt.RBRACE)
-        return Declaration.Interface(
-            makeLocation(start, stop),
-            binder,
-            typeParams,
-            members
-        )
-    }
-
-    private fun parseInterfaceMember(): Declaration.Interface.Member {
-        val signature = parseFunctionSignature()
-        expect(tt.SEMICOLON)
-        return Declaration.Interface.Member.FunctionSignature(signature)
     }
 
     private fun parseFunctionSignature(): FunctionSignature {
