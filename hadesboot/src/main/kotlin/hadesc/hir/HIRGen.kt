@@ -136,9 +136,19 @@ class HIRGen(
         is Statement.If -> lowerIfStatement(statement)
         is Statement.LocalAssignment -> lowerLocalAssignment(statement)
         is Statement.MemberAssignment -> TODO()
-        is Statement.PointerAssignment -> TODO()
+        is Statement.PointerAssignment -> lowerPointerAssignment(statement)
         is Statement.Defer -> TODO()
         is Statement.Error -> requireUnreachable()
+    }
+
+    private fun lowerPointerAssignment(statement: Statement.PointerAssignment): Collection<HIRStatement> {
+        return listOf(
+                HIRStatement.Store(
+                        statement.location,
+                        ptr = lowerExpression(statement.lhs.expression),
+                        value = lowerExpression(statement.value)
+                )
+        )
     }
 
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment): Collection<HIRStatement> {

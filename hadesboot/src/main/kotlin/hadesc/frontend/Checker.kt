@@ -294,7 +294,18 @@ class Checker(
     }
 
     private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
-        TODO()
+        val valueType = inferExpression(statement.lhs)
+        val ptrType = inferExpression(statement.lhs.expression)
+
+        if (ptrType !is Type.Ptr) {
+            error(statement.lhs, Diagnostic.Kind.NotAPointerType(ptrType))
+            inferExpression(statement.value)
+            return
+        }
+        checkExpression(statement.value, valueType)
+        if (!ptrType.isMutable) {
+            error(statement.lhs, Diagnostic.Kind.ValNotMutable)
+        }
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {

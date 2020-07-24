@@ -32,6 +32,12 @@ sealed class HIRStatement: HasLocation {
             val value: HIRExpression
     ) : HIRStatement()
 
+    data class Store(
+            override val location: SourceLocation,
+            val ptr: HIRExpression,
+            val value: HIRExpression
+    ) : HIRStatement()
+
     data class If(
             override val location: SourceLocation,
             val condition: HIRExpression,
@@ -53,5 +59,6 @@ sealed class HIRStatement: HasLocation {
         is Assignment -> "${name.text} = ${value.prettyPrint()}"
         is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint()}\nelse ${falseBranch.prettyPrint()}"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
+        is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
     }
 }

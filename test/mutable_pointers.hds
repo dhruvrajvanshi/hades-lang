@@ -2,8 +2,8 @@ import submodule.test_utils as u;
 
 def main(): Void {
     val mut x = 30;
-    val x_ptr: *mut CInt = &mut x;
-    val x_const_ptr: *CInt = x_ptr;
+    val x_ptr: *mut Int = &mut x;
+    val x_const_ptr: *Int = x_ptr;
 
     *x_ptr = 10;
     u.print_int(*x_ptr);

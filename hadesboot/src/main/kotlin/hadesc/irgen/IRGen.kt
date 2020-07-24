@@ -104,6 +104,14 @@ class IRGen(
         is HIRStatement.If -> lowerIfStatement(statement)
         is HIRStatement.Assignment -> lowerAssignmentStatement(statement)
         is HIRStatement.While -> lowerWhileStatement(statement)
+        is HIRStatement.Store -> lowerStoreStatement(statement)
+    }
+
+    private fun lowerStoreStatement(statement: HIRStatement.Store) {
+        builder.buildStore(
+                ptr = lowerExpression(statement.ptr),
+                value = lowerExpression(statement.value)
+        )
     }
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {

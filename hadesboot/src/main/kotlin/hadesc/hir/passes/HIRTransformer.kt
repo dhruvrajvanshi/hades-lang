@@ -83,6 +83,17 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.If -> transformIfStatement(statement)
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
         is HIRStatement.While -> transformWhileStatement(statement)
+        is HIRStatement.Store -> transformStoreStatement(statement)
+    }
+
+    fun transformStoreStatement(statement: HIRStatement.Store): Collection<HIRStatement> {
+        return listOf(
+                HIRStatement.Store(
+                        statement.location,
+                        transformExpression(statement.ptr),
+                        transformExpression(statement.value)
+                )
+        )
     }
 
     fun transformWhileStatement(statement: HIRStatement.While): Collection<HIRStatement> {
