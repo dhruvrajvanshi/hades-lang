@@ -354,7 +354,17 @@ class HIRGen(
         null -> requireUnreachable()
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
-        is PropertyBinding.StructFieldPointer -> TODO()
+        is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
+    }
+
+    private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {
+        return HIRExpression.GetStructFieldPointer(
+                expression.location,
+                typeOfExpression(expression),
+                lowerExpression(expression.lhs),
+                memberName = expression.property.name,
+                memberIndex = binding.memberIndex
+        )
     }
 
     private fun lowerStructFieldBinding(

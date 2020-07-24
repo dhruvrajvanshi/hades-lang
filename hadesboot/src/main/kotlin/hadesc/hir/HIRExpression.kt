@@ -59,6 +59,14 @@ sealed class HIRExpression: HasLocation {
             val index: Int
     ) : HIRExpression()
 
+    data class GetStructFieldPointer(
+            override val location: SourceLocation,
+            override val type: Type,
+            val lhs: HIRExpression,
+            val memberName: Name,
+            val memberIndex: Int
+    ) : HIRExpression()
+
     data class Not(
             val expression: HIRExpression
     ) : HIRExpression() {
@@ -138,5 +146,6 @@ sealed class HIRExpression: HasLocation {
         }
         is Load -> "*${ptr.prettyPrint()}"
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
+        is GetStructFieldPointer -> "(${lhs.prettyPrint()}.${memberName.text})"
     }
 }

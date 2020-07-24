@@ -160,6 +160,17 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.TypeApplication -> transformTypeApplication(expression)
         is HIRExpression.Load -> transformLoadExpression(expression)
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
+        is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
+    }
+
+    fun transformGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): HIRExpression {
+        return HIRExpression.GetStructFieldPointer(
+                expression.location,
+                lowerType(expression.type),
+                lhs = transformExpression(expression.lhs),
+                memberIndex = expression.memberIndex,
+                memberName = expression.memberName
+        )
     }
 
     fun transformPointerCastExpression(expression: HIRExpression.PointerCast): HIRExpression {

@@ -35,18 +35,37 @@ class Checker(
             return fieldBinding
         }
 
+        val elementPointerBinding = resolveElementPointerBinding(expression)
+        if (elementPointerBinding != null) {
+            return elementPointerBinding
+        }
+
         error(expression.property, Diagnostic.Kind.NoSuchProperty(
             inferExpression(expression.lhs), expression.property.name))
         return null
     }
 
-    private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
+    private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructFieldPointer? {
         val lhsType = inferExpression(expression.lhs)
+        if (lhsType !is Type.Ptr) {
+            return null
+        }
+        val fieldBinding = resolveStructFieldBinding(lhsType.to, expression.property) ?: return null
+        val isMutable = lhsType.isMutable
+        return PropertyBinding.StructFieldPointer(
+                fieldBinding.structDecl,
+                fieldBinding.memberIndex,
+                type = Type.Ptr(fieldBinding.type, isMutable)
+        )
+
+    }
+
+    private fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
         val structDecl = getStructDeclOfType(lhsType)
         return if (structDecl == null) null else {
             val index = structDecl.members.indexOfFirst {
                 it is Declaration.Struct.Member.Field
-                        && it.binder.identifier.name == expression.property.name
+                        && it.binder.identifier.name == property.name
             }
             if (index > -1) {
                 val field = structDecl.members[index]
@@ -62,11 +81,15 @@ class Checker(
                 isTypeAssignableTo(lhsType, fieldType)
                 PropertyBinding.StructField(
                         structDecl = structDecl,
-                        memberIndex = index
+                        memberIndex = index,
+                        type = reduceGenericInstances(fieldType)
                 )
             } else null
         }
-
+    }
+    private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
+        val lhsType = inferExpression(expression.lhs)
+        return resolveStructFieldBinding(lhsType, expression.property)
     }
 
     private fun getStructDeclOfType(lhsType: Type): Declaration.Struct? {
@@ -397,7 +420,7 @@ class Checker(
     }
 
     private fun inferExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression) {
-        when (expression) {
+        reduceGenericInstances(when (expression) {
             is Expression.Error -> Type.Error
             is Expression.Var -> inferVarExpresion(expression)
             is Expression.Call -> inferCallExpression(expression)
@@ -417,7 +440,7 @@ class Checker(
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
-        }
+        })
     }
 
     private fun inferNewExpression(expression: Expression.New): Type {
@@ -518,28 +541,10 @@ class Checker(
     private fun inferPropertyExpression(expression: Expression.Property): Type =
             when (val binding = resolvePropertyBinding(expression)) {
                 is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
-                is PropertyBinding.StructField -> typeOfStructFieldProperty(expression, binding)
-                is PropertyBinding.StructFieldPointer -> TODO()
+                is PropertyBinding.StructField -> binding.type
+                is PropertyBinding.StructFieldPointer -> binding.type
                 null -> Type.Error
             }
-
-
-    private fun typeOfStructFieldProperty(
-            expression: Expression.Property,
-            binding: PropertyBinding.StructField): Type {
-        val lhsType = inferExpression(expression.lhs)
-        val typeArgs = if (lhsType is Type.Application)  {
-            lhsType.args
-        } else emptyList()
-        val substitution = binding.structDecl.typeParams?.zip(typeArgs)
-                ?.map { it.first.binder.location to it.second }
-                ?.toMap()
-                ?: emptyMap()
-        val genericMemberType = annotationToType(binding.member.typeAnnotation)
-        val memberType = genericMemberType.applySubstitution(substitution)
-        equateTypes(lhsType, memberType)
-        return memberType
-    }
 
     private fun typeOfGlobalPropertyBinding(
             binding: PropertyBinding.Global): Type {

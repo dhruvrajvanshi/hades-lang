@@ -250,8 +250,18 @@ class IRGen(
         is HIRExpression.AddressOf -> lowerAddressOfExpression(expression)
         is HIRExpression.Load -> lowerLoadExpression(expression)
         is HIRExpression.PointerCast -> lowerPointerCastExpression(expression)
+        is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
         is HIRExpression.BoundRef -> requireUnreachable()
         is HIRExpression.TypeApplication -> requireUnreachable()
+    }
+
+    private fun lowerGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): IRValue {
+        return IRGetElementPointer(
+                expression.type,
+                expression.location,
+                ptr = lowerExpression(expression.lhs),
+                offset = expression.memberIndex
+        )
     }
 
     private fun lowerPointerCastExpression(expression: HIRExpression.PointerCast): IRValue {
