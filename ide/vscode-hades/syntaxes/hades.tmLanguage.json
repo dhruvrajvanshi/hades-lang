@@ -373,13 +373,13 @@
 				"3": {
 					"name": "string.quoted.double"
 				},
-				"1": {
+				"2": {
 					"name": "emphasis"
 				}
 			},
-			"captures": {
-				"0": {
-					"name": "string.quoted.double.hades"
+			"endCaptures": {
+				"1": {
+					"name": "string.quoted.double"
 				}
 			},
 			"patterns": [
