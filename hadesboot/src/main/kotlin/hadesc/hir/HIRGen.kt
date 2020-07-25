@@ -13,6 +13,7 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import libhades.collections.Stack
 
 class HIRGen(
         private val ctx: Context
@@ -110,15 +111,23 @@ class HIRGen(
     }
 
     private var currentStatements: MutableList<HIRStatement>? = null
+    private val deferStack = Stack<MutableList<HIRStatement>>()
     private fun lowerBlock(body: Block, addReturnVoid: Boolean = false): HIRBlock = buildBlock(body.location) {
+        deferStack.push(mutableListOf())
         for (member in body.members) {
             lowerBlockMember(member).forEach {
                 addStatement(it)
             }
         }
         if (addReturnVoid) {
+            terminateScope()
             addStatement(HIRStatement.ReturnVoid(body.location))
+        } else {
+            for (statement in requireNotNull(deferStack.peek())) {
+                addStatement(statement)
+            }
         }
+        deferStack.pop()
     }
 
     private fun buildBlock(location: SourceLocation, f: () -> Unit): HIRBlock {
@@ -147,8 +156,13 @@ class HIRGen(
         is Statement.LocalAssignment -> lowerLocalAssignment(statement)
         is Statement.MemberAssignment -> lowerMemberAssignmentStatement(statement)
         is Statement.PointerAssignment -> lowerPointerAssignment(statement)
-        is Statement.Defer -> TODO()
+        is Statement.Defer -> lowerDeferStatement(statement)
         is Statement.Error -> requireUnreachable()
+    }
+
+    private fun lowerDeferStatement(statement: Statement.Defer): Collection<HIRStatement> {
+        requireNotNull(deferStack.peek()).addAll(lowerBlockMember(statement.blockMember).reversed())
+        return emptyList()
     }
 
     private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment): Collection<HIRStatement> {
@@ -250,6 +264,8 @@ class HIRGen(
     }
 
     private fun lowerReturnStatement(statement: Statement.Return): Collection<HIRStatement> {
+        terminateScope()
+        requireNotNull(deferStack.peek()).removeIf { true }
         return if (statement.value == null) {
             listOf(HIRStatement.ReturnVoid(statement.location))
         } else {
@@ -259,6 +275,14 @@ class HIRGen(
                     lowerExpression(statement.value)
                 )
             )
+        }
+    }
+
+    private fun terminateScope() {
+        for (deferStatements in deferStack) {
+            for (statement in deferStatements.reversed()) {
+                addStatement(statement)
+            }
         }
     }
 
