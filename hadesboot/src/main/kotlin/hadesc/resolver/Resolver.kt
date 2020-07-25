@@ -211,6 +211,8 @@ class Resolver(private val ctx: Context) {
                 }
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
+                is Declaration.ModuleDef -> TODO()
+                is Declaration.ModuleAlias -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -345,6 +347,8 @@ class Resolver(private val ctx: Context) {
                                 }
                             }
                             is Declaration.TypeAlias -> null
+                            is Declaration.ModuleDef -> TODO()
+                            is Declaration.ModuleAlias -> TODO()
                         }
                         if (binding != null) {
                             break
@@ -390,6 +394,8 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Struct -> decl.binder.identifier.name == declName
                 is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
+                is Declaration.ModuleDef -> decl.name.identifier.name == declName
+                is Declaration.ModuleAlias -> decl.name.identifier.name == declName
             })
             if (match) {
                 return decl
@@ -445,6 +451,16 @@ class Resolver(private val ctx: Context) {
                     null
                 }
                 is Declaration.TypeAlias -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.ModuleDef -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.ModuleAlias -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
                     null

@@ -73,6 +73,26 @@ sealed class Declaration : HasLocation {
             val typeParams: List<TypeParam>?,
             val rhs: TypeAnnotation
     ) : Declaration()
+
+    data class ModuleDef(
+            override val location: SourceLocation,
+            val name: Binder,
+            val typeParams: List<TypeParam>?,
+            val body: Body
+    ): Declaration() {
+        val declarations get() = body.declarations
+        data class Body(
+                override val location: SourceLocation,
+                val declarations: List<Declaration>
+        ): HasLocation
+    }
+
+    data class ModuleAlias(
+            override val location: SourceLocation,
+            val name: Binder,
+            val typeParams: List<TypeParam>?,
+            val body: ModulePath
+    ): Declaration()
 }
 
 

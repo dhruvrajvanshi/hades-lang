@@ -39,6 +39,8 @@ class HIRGen(
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
+        is Declaration.ModuleDef -> TODO()
+        is Declaration.ModuleAlias -> TODO()
     }
 
     private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {

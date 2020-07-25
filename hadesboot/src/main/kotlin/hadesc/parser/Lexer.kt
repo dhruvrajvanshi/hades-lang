@@ -37,7 +37,7 @@ val KEYWORDS = mapOf(
     "union" to tt.UNION,
     "defer" to tt.DEFER,
     "type" to tt.TYPE,
-    "where" to tt.WHERE
+    "module" to tt.MODULE
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
