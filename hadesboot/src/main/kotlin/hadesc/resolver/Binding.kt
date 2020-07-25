@@ -1,6 +1,7 @@
 package hadesc.resolver
 
 import hadesc.ast.Declaration
+import hadesc.ast.SourceFile
 import hadesc.ast.Statement
 
 sealed class Binding {
@@ -39,4 +40,12 @@ sealed class Binding {
     }
 
     data class Pattern(val pattern: hadesc.ast.Pattern.Name) : Binding()
+
+    data class ModuleDef(
+            val moduleDeclaration: Declaration.ModuleDef
+    ) : Binding()
+
+    data class SourceFileRef(
+            val sourceFile: SourceFile
+    ) : Binding()
 }

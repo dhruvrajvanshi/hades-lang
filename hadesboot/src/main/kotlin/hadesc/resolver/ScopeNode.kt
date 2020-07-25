@@ -18,6 +18,8 @@ sealed class ScopeNode {
     data class Enum(val declaration: Declaration.Enum) : ScopeNode()
     data class MatchArm(val arm: Expression.Match.Arm) : ScopeNode()
     data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeNode()
+    data class Module(val def: Declaration.ModuleDef) : ScopeNode()
+    data class ModuleAlias(val def: Declaration.ModuleAlias) : ScopeNode()
 
     val location
         get(): SourceLocation = when (this) {
@@ -28,5 +30,7 @@ sealed class ScopeNode {
             is Enum -> declaration.location
             is MatchArm -> arm.location
             is TypeAlias -> declaration.location
+            is Module -> def.location
+            is ModuleAlias -> def.location
         }
 }

@@ -492,6 +492,8 @@ class HIRGen(
         )
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+        is Binding.ModuleDef -> requireUnreachable()
+        is Binding.SourceFileRef -> requireUnreachable()
     }
 
     private fun lowerByteString(expression: Expression.ByteString): HIRExpression {

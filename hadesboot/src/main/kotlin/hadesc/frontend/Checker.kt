@@ -1,6 +1,7 @@
 package hadesc.frontend
 
 import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -25,7 +26,7 @@ class Checker(
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
 
-        val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
+        val modulePropertyBinding = resolveModuleProperty(expression)
         if (modulePropertyBinding != null) {
             return PropertyBinding.Global(modulePropertyBinding)
         }
@@ -40,9 +41,23 @@ class Checker(
             return elementPointerBinding
         }
 
-        error(expression.property, Diagnostic.Kind.NoSuchProperty(
-            inferExpression(expression.lhs), expression.property.name))
+        val inferredLHSType = inferExpression(expression.lhs)
+        if (inferredLHSType != Type.Error) {
+            error(expression.property, Diagnostic.Kind.NoSuchProperty(
+                    inferExpression(expression.lhs), expression.property.name))
+        }
         return null
+    }
+
+    private fun resolveModuleProperty(expression: Expression.Property): Binding? = when(expression.lhs) {
+        is Expression.Var -> {
+            when (val moduleBinding = ctx.resolver.resolve(expression.lhs.name)) {
+                is Binding.ModuleDef -> ctx.resolver.findInModule(expression.property, moduleBinding.moduleDeclaration)
+                is Binding.SourceFileRef -> ctx.resolver.findInSourceFile(expression.property.name, moduleBinding.sourceFile)
+                else -> null
+            }
+        }
+        else -> null
     }
 
     private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructFieldPointer? {
@@ -479,10 +494,14 @@ class Checker(
             is Expression.Deref -> inferDerefExpression(expression)
             is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
-            is Expression.TypeApplication -> TODO()
+            is Expression.TypeApplication -> inferTypeApplication(expression)
             is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
         })
+    }
+
+    private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
+        TODO()
     }
 
     private fun inferNewExpression(expression: Expression.New): Type {
@@ -609,6 +628,8 @@ class Checker(
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+        is Binding.ModuleDef -> requireUnreachable()
+        is Binding.SourceFileRef -> requireUnreachable()
     }
 
     private fun typeOfGlobalConstBinding(binding: Binding.GlobalConst): Type {

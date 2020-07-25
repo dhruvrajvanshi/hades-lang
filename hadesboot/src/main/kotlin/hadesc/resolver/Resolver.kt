@@ -1,7 +1,6 @@
 package hadesc.resolver
 
 import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.exhaustive
@@ -86,6 +85,19 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
         }
+        is ScopeNode.Module -> {
+            findTypeInDeclarations(ident, scopeNode.def.declarations)
+                    ?: scopeNode.def.typeParams?.find { it.binder.identifier.name == ident.name }?.let {
+                        TypeBinding.TypeParam(it.binder, it.bound)
+                    }
+        }
+        is ScopeNode.ModuleAlias -> {
+            scopeNode.def.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }?.let {
+                TypeBinding.TypeParam(it.binder, it.bound)
+            }
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -99,7 +111,11 @@ class Resolver(private val ctx: Context) {
     }
 
     private fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
-        for (declaration in sourceFile.declarations) {
+        return findTypeInDeclarations(ident, sourceFile.declarations)
+    }
+
+    private fun findTypeInDeclarations(ident: Identifier, declarations: List<Declaration>): TypeBinding? {
+        for (declaration in declarations) {
             val binding = if (declaration is Declaration.Struct && declaration.binder.identifier.name == ident.name) {
                 TypeBinding.Struct(declaration)
             } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
@@ -124,6 +140,14 @@ class Resolver(private val ctx: Context) {
         is ScopeNode.Enum -> null
         is ScopeNode.MatchArm -> findInMatchArm(ident, scope)
         is ScopeNode.TypeAlias -> null
+        is ScopeNode.Module -> if (ident.name == scope.def.name.identifier.name) {
+            Binding.ModuleDef(scope.def)
+        } else null
+        is ScopeNode.ModuleAlias -> null
+    }
+
+    fun findInModule(ident: Identifier, moduleDef: Declaration.ModuleDef): Binding? {
+        return findInDeclarations(ident.name, moduleDef.declarations)
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeNode.MatchArm): Binding? {
@@ -178,11 +202,22 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    private fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
-        for (declaration in sourceFile.declarations) {
+    fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
+        return findInDeclarations(name, sourceFile.declarations)
+    }
+
+    private fun findInDeclarations(name: Name, declarations: List<Declaration>): Binding? {
+        for (declaration in declarations) {
             val binding = when (declaration) {
                 is Declaration.Error -> null
-                is Declaration.ImportAs -> null
+                is Declaration.ImportAs -> {
+                    if (declaration.asName.identifier.name == name) {
+                        val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                        if (sourceFile != null) {
+                            Binding.SourceFileRef(sourceFile)
+                        } else null
+                    } else null
+                }
                 is Declaration.FunctionDef -> {
                     if (declaration.name.identifier.name == name)
                         Binding.GlobalFunction(declaration)
@@ -211,7 +246,11 @@ class Resolver(private val ctx: Context) {
                 }
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
-                is Declaration.ModuleDef -> TODO()
+                is Declaration.ModuleDef -> if (declaration.name.identifier.name == name) {
+                    Binding.ModuleDef(declaration)
+                } else {
+                    null
+                }
                 is Declaration.ModuleAlias -> TODO()
             }
             if (binding != null) {
@@ -310,55 +349,27 @@ class Resolver(private val ctx: Context) {
                 is ScopeNode.FunctionDef -> null
                 is ScopeNode.Block -> null // Blocks can't have imports yet
                 is ScopeNode.Struct -> null
+                is ScopeNode.MatchArm -> null
+                is ScopeNode.TypeAlias -> null
+                is ScopeNode.Enum -> null
+                is ScopeNode.Module -> TODO()
+                is ScopeNode.ModuleAlias -> TODO()
                 is ScopeNode.SourceFile -> {
                     var binding: Binding? = null
                     for (declaration in scope.sourceFile.declarations) {
-                        binding = when (declaration) {
-                            is Declaration.Error -> null
-                            is Declaration.ImportAs -> if (declaration.asName.identifier.name == expression.lhs.name.name) {
-                                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                                if (sourceFile != null) {
-                                    findInSourceFile(expression.property.name, sourceFile)
-                                } else {
-                                    null
-                                }
-                            } else {
-                                null
-                            }
-                            is Declaration.FunctionDef -> null
-                            is Declaration.ExternFunctionDef -> null
-                            is Declaration.Struct -> null
-                            is Declaration.ConstDefinition -> {
-                                null
-                            }
-                            is Declaration.Enum -> {
-                                if (declaration.name.identifier.name == expression.lhs.name.name) {
-                                    declaration.cases.indexOfFirst {
-                                        it.name.identifier.name == expression.property.name
-                                    }.let { case ->
-                                        if (case > -1) {
-                                            Binding.EnumCaseConstructor(declaration, case)
-                                        } else {
-                                            null
-                                        }
-                                    }
-                                } else {
-                                    null
+                        if (declaration is Declaration.ImportAs && declaration.asName.identifier.name == expression.lhs.name.name) {
+                            val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                            if (sourceFile != null) {
+                                val found = findInSourceFile(expression.property.name, sourceFile)
+                                if (found != null) {
+                                    binding = found
+                                    break
                                 }
                             }
-                            is Declaration.TypeAlias -> null
-                            is Declaration.ModuleDef -> TODO()
-                            is Declaration.ModuleAlias -> TODO()
-                        }
-                        if (binding != null) {
-                            break
                         }
                     }
                     binding
                 }
-                is ScopeNode.MatchArm -> null
-                is ScopeNode.TypeAlias -> null
-                is ScopeNode.Enum -> null
             }
             if (binding != null) {
                 return binding
@@ -485,5 +496,14 @@ class Resolver(private val ctx: Context) {
 
     fun resolveGlobalName(binder: Binder): QualifiedName {
         return sourceFileOf(binder).moduleName.append(binder.identifier.name)
+    }
+
+    fun resolveModule(moduleName: Identifier): Declaration.ModuleDef? {
+        val binding = resolve(moduleName)
+        return if (binding is Binding.ModuleDef) {
+            binding.moduleDeclaration
+        } else {
+            null
+        }
     }
 }
