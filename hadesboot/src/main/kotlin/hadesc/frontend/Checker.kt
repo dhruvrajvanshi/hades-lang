@@ -193,11 +193,32 @@ class Checker(
             is Declaration.Error -> {}
             is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
             is Declaration.FunctionDef -> checkFunctionDefDeclaration(declaration)
-            is Declaration.ConstDefinition -> TODO()
+            is Declaration.ConstDefinition -> checkConstDefinition(declaration)
             is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
             is Declaration.Struct -> checkStructDeclaration(declaration)
             is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
+        }
+    }
+
+    private fun checkConstDefinition(declaration: Declaration.ConstDefinition) {
+        val annotatedType = declaration.annotation?.let { annotationToType(it) }
+
+        val type = if (annotatedType != null) {
+            checkExpression(declaration.initializer, annotatedType)
+        } else {
+            inferExpression(declaration.initializer)
+        }
+        when (type) {
+            is Type.CInt,
+            is Type.Bool,
+            is Type.Size,
+            is Type.Double,
+            is Type.Ptr
+            -> {}
+            else -> {
+                error(declaration.name, Diagnostic.Kind.NotAConst)
+            }
         }
     }
 
@@ -585,9 +606,17 @@ class Checker(
         is Binding.FunctionParam -> typeOfParam(binding.declaration, binding.index)
         is Binding.ValBinding -> typeOfValRef(binding)
         is Binding.Struct -> typeOfStructValueRef(binding)
-        is Binding.GlobalConst -> TODO()
+        is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+    }
+
+    private fun typeOfGlobalConstBinding(binding: Binding.GlobalConst): Type {
+        return if (binding.declaration.annotation != null) {
+            annotationToType(binding.declaration.annotation)
+        } else {
+            inferExpression(binding.declaration.initializer)
+        }
     }
 
     private fun typeOfStructValueRef(binding: Binding.Struct): Type {

@@ -33,11 +33,21 @@ class HIRGen(
         is Declaration.Error -> requireUnreachable()
         is Declaration.ImportAs -> emptyList()
         is Declaration.FunctionDef -> listOf(lowerFunctionDef(declaration))
-        is Declaration.ConstDefinition -> TODO()
+        is Declaration.ConstDefinition -> lowerConstDef(declaration)
         is Declaration.ExternFunctionDef -> lowerExternFunctionDef(declaration)
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
+    }
+
+    private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {
+        return listOf(
+                HIRDefinition.Const(
+                        declaration.location,
+                        lowerGlobalName(declaration.name),
+                        lowerExpression(declaration.initializer)
+                )
+        )
     }
 
     private fun lowerStructDef(declaration: Declaration.Struct): List<HIRDefinition> {
@@ -449,7 +459,11 @@ class HIRGen(
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.binder)
         )
-        is Binding.GlobalConst -> TODO()
+        is Binding.GlobalConst -> HIRExpression.GlobalRef(
+                expression.location,
+                typeOfExpression(expression),
+                lowerGlobalName(binding.declaration.name)
+        )
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
     }

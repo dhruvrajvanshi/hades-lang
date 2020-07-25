@@ -36,6 +36,12 @@ sealed class HIRDefinition: HasLocation {
         }
     }
 
+    data class Const(
+            override val location: SourceLocation,
+            val name: QualifiedName,
+            val initializer: HIRExpression
+    ) : HIRDefinition()
+
     data class ExternFunction(
             override val location: SourceLocation,
             val name: QualifiedName,
@@ -127,5 +133,6 @@ sealed class HIRDefinition: HasLocation {
             val signaturesStr = signatures.joinToString("\n") { it.prettyPrint() }.prependIndent("  ")
             "interface ${name.mangle()}$typeParamsStr {\n$signaturesStr\n}"
         }
+        is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
     }
 }

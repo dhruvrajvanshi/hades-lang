@@ -30,6 +30,11 @@ class IRGen(
         is HIRDefinition.Struct -> lowerStructDef(definition)
         is HIRDefinition.Implementation -> requireUnreachable()
         is HIRDefinition.Interface -> TODO()
+        is HIRDefinition.Const -> lowerConstDef(definition)
+    }
+
+    private fun lowerConstDef(definition: HIRDefinition.Const) {
+        module.addConstDef(lowerGlobalName(definition.name), definition.initializer.type, lowerExpression(definition.initializer))
     }
 
     private fun lowerStructDef(definition: HIRDefinition.Struct) {
