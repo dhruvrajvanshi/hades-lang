@@ -1,0 +1,37 @@
+import libc as libc;
+import submodule.text_utils as utils;
+
+module Box[T] {
+    type Value = T;
+    struct Self {
+        val value: Value;
+    }
+
+    def make(value: T): Void {
+        return Self(value);
+    } 
+
+    const value = Accessors.value;
+
+    module Accessors {
+        def value(self: Self): T {
+            return self.value;
+        }
+    }
+}
+
+module BoxInt = Box[Int];
+module BoxAlias[T] = Box[T];
+
+
+def main(): Void {
+    val int_box: BoxInt.Self = Box[Int].make(10);
+    val string_box = Box[*Byte].make(b"string_box");
+
+    val string_box_text = BoxAlias[*Byte].Accessors.value(string_box);
+
+    libc.puts(string_box_text);
+
+    utils.print_int(BoxInt.value(int_box));
+
+}
