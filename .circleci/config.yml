@@ -43,7 +43,3 @@ jobs:
       - run: ./test.sh
       - store_test_results:
           path: ./hadesboot/build/test-results
-
-      - run: ./build.sh
-      - store_artifacts:
-          path: ./hadesboot/build/tests/test
