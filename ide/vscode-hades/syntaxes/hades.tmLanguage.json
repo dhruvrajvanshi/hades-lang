@@ -42,10 +42,39 @@
 					"include": "#interface-def"
 				},
 				{
-					"include": "#implementation-def"
+					"include": "#type-alias"
 				},
 				{
-					"include": "#type-alias"
+					"include": "#module-def"
+				}
+			]
+		},
+		"module-def": {
+			"begin": "\\b(module\\s+)",
+			"end": "([}])",
+			"beginCaptures": {
+				"1": { "name": "keyword" }
+			},
+			"patterns": [
+				{
+					"include": "#function-def"
+				},
+				{
+					"include": "#comments"
+				},
+				{
+					"begin": "(?<=module\\s+)([a-zA-Z_][a-zA-Z0-9]*)\\b",
+					"end": "(?=[{])",
+					"beginCaptures": {
+						"1": { "name": "entity.name.class" }
+					}
+				},
+				{
+					"begin": "([{])",
+					"end": "([}])",
+					"patterns": [
+						{ "include": "#declarations" }
+					]
 				}
 			]
 		},
@@ -85,21 +114,6 @@
 			"patterns": [
 				{
 					"include": "#function-signature"
-				},
-				{
-					"include": "#comments"
-				}
-			]
-		},
-		"implementation-def": {
-			"begin": "\\b(implement)\\b",
-			"end": "([}])",
-			"beginCaptures": {
-				"1": { "name": "keyword" }
-			},
-			"patterns": [
-				{
-					"include": "#function-def"
 				},
 				{
 					"include": "#comments"
