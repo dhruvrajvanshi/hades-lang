@@ -51,27 +51,21 @@
 		},
 		"module-def": {
 			"begin": "\\b(module\\s+)",
-			"end": "([}])",
+			"end": "(?<=[}])|(?=(def|const|struct|interface|module))",
 			"beginCaptures": {
 				"1": { "name": "keyword" }
 			},
 			"patterns": [
 				{
-					"include": "#function-def"
-				},
-				{
-					"include": "#comments"
-				},
-				{
 					"begin": "(?<=module\\s+)([a-zA-Z_][a-zA-Z0-9]*)\\b",
-					"end": "(?=[{])",
+					"end": "(?=[{=])",
 					"beginCaptures": {
 						"1": { "name": "entity.name.class" }
 					}
 				},
 				{
 					"begin": "([{])",
-					"end": "(?<=[}])",
+					"end": "([}])",
 					"patterns": [
 						{ "include": "#declarations" }
 					]
