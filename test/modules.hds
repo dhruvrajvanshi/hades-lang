@@ -1,5 +1,5 @@
 import libc as libc;
-import submodule.text_utils as utils;
+import submodule.test_utils as utils;
 
 module Box[T] {
     type Value = T;

@@ -11,16 +11,16 @@ sealed class ModulePath: HasLocation {
 
     data class TypeApplication(
             override val location: SourceLocation,
-            val base: ModulePath,
+            val head: ModulePath,
             val args: List<TypeAnnotation>
     ): ModulePath()
 
     data class Property(
-            val base: ModulePath,
+            val lhs: ModulePath,
             val property: Identifier
     ) : ModulePath() {
         override val location: SourceLocation
-            get() = SourceLocation.between(base, property)
+            get() = SourceLocation.between(lhs, property)
     }
 
 }

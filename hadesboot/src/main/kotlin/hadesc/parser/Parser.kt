@@ -15,7 +15,7 @@ internal typealias tt = Token.Kind
 private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
         tt.INTERFACE, tt.IMPLEMENT, tt.AT_SYMBOL,
-        tt.TYPE
+        tt.TYPE, tt.MODULE
 )
 private val statementPredictors = setOf(
     tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
@@ -105,12 +105,95 @@ class Parser(
                 val decorators = parseDecorators()
                 parseStructDeclaration(decorators)
             }
+            tt.MODULE -> {
+                parseModuleDeclaration()
+            }
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseModuleDeclaration(): Declaration {
+        val start = expect(tt.MODULE)
+        val name = parseBinder()
+        val typeParams = parseOptionalTypeParams()
+        if (at(tt.EQ)) {
+            advance()
+            val path = parseModulePath()
+            expect(tt.SEMICOLON)
+            return Declaration.ModuleAlias(
+                    location = makeLocation(start, path),
+                    name = name,
+                    typeParams = typeParams,
+                    body = path
+            )
+        } else {
+            val body = parseModuleBody()
+            return Declaration.ModuleDef(
+                    location = makeLocation(start, body),
+                    name = name,
+                    typeParams = typeParams,
+                    body = body
+            )
+        }
+    }
+
+    private fun parseModuleBody(): Declaration.ModuleDef.Body {
+        val start = expect(tt.LBRACE)
+        val declarations = buildList {
+            while (!(at(tt.EOF) || at(tt.RBRACE))) {
+                add(parseDeclaration())
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.ModuleDef.Body(
+                location = makeLocation(start, stop),
+                declarations = declarations
+        )
+    }
+
+    private fun parseModulePath(): ModulePath {
+        val head = when (currentToken.kind) {
+            tt.ID -> {
+                ModulePath.Name(parseIdentifier())
+            }
+            else -> {
+                syntaxError(currentToken.location, Diagnostic.Kind.ModulePathExpected)
+            }
+        }
+        return parseModulePathTail(head)
+    }
+
+    private fun parseModulePathTail(head: ModulePath): ModulePath {
+        return when (currentToken.kind) {
+            tt.LSQB -> {
+                advance()
+                val args = parseSeperatedList(seperator = tt.COLON, terminator = tt.RSQB) {
+                    parseTypeAnnotation()
+                }
+                val stop = expect(tt.RSQB)
+                parseModulePathTail(
+                        ModulePath.TypeApplication(
+                                makeLocation(head, stop),
+                                head = head,
+                                args = args
+                        )
+                )
+            }
+            tt.DOT -> {
+                advance()
+                parseModulePathTail(
+                        ModulePath.Property(
+                                lhs = head,
+                                property = parseIdentifier()
+                        )
+                )
+            }
+            else -> head
+        }
     }
 
     private fun parseDecorators(): List<Decorator> = buildList {

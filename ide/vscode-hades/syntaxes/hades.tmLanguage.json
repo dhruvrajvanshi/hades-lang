@@ -51,7 +51,7 @@
 		},
 		"module-def": {
 			"begin": "\\b(module\\s+)",
-			"end": "(?<=[}])|(?=(def|const|struct|interface|module))",
+			"end": "(?<=[}])|(?=(def|const|struct|interface|module|extern|import))",
 			"beginCaptures": {
 				"1": { "name": "keyword" }
 			},
