@@ -597,6 +597,10 @@ class HIRGen(
     }
 
     private fun lowerGlobalName(binder: Binder): QualifiedName {
+        val binding = requireNotNull(ctx.resolver.resolve(binder.identifier))
+        if (binding is Binding.GlobalFunction && binding.declaration.externName != null) {
+            return QualifiedName(listOf(binding.declaration.externName.name))
+        }
         return ctx.resolver.resolveGlobalName(binder)
     }
 }

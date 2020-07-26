@@ -15,6 +15,7 @@ sealed class Declaration : HasLocation {
 
     data class FunctionDef(
         override val location: SourceLocation,
+        val externName: Identifier?,
         val signature: FunctionSignature,
         val body: Block
     ) : Declaration() {

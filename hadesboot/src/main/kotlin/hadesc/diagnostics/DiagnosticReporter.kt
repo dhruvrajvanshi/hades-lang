@@ -78,6 +78,7 @@ data class Diagnostic(
         object WhereClauseMustReferToATypeParam : Diagnostic.Kind(Severity.ERROR)
         object UnboundInterface : Diagnostic.Kind(Severity.ERROR)
         object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
+        object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -133,6 +134,7 @@ data class Diagnostic(
             WhereClauseMustReferToATypeParam -> "Where clause must refer to a type parameter"
             UnboundInterface -> "Unbound interface"
             NotAConstructor -> "Not a constructor"
+            UnknownAnnotation -> "Unknown annotation"
         }
 
     }

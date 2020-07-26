@@ -95,7 +95,8 @@ class Parser(
     private fun parseDeclaration(): Declaration {
         val decl = when (currentToken.kind) {
             tt.IMPORT -> parseDeclarationImportAs()
-            tt.DEF -> parseDeclarationFunctionDef()
+            tt.DEF,
+            tt.AT_SYMBOL -> parseDeclarationFunctionDef()
             tt.STRUCT -> parseStructDeclaration(decorators = listOf())
             tt.EXTERN -> parseExternFunctionDef()
             tt.CONST -> parseConstDef()
@@ -347,10 +348,19 @@ class Parser(
     }
 
     private fun parseDeclarationFunctionDef(): Declaration.FunctionDef {
+        val externName = if (at(tt.AT_SYMBOL)) {
+            advance()
+            expect(tt.EXTERN)
+            expect(tt.LPAREN)
+            val name = parseIdentifier()
+            expect(tt.RPAREN)
+            name
+        } else null
         val signature = parseFunctionSignature()
         val body = parseBlock()
         return Declaration.FunctionDef(
                 location = makeLocation(signature, body),
+                externName = externName,
                 signature = signature,
                 body = body
         )
