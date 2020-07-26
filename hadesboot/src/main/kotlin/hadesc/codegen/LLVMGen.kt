@@ -27,7 +27,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         lower()
         verifyModule()
         writeModuleToFile()
-        linkWithRuntime()
+        if (!ctx.options.lib) {
+            linkWithRuntime()
+        }
     }
 
     private fun lower() = profile("LLVM::lower") {
@@ -566,7 +568,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         LLVM.LLVMAddGlobalOptimizerPass(pass)
         LLVM.LLVMRunPassManager(pass, llvmModule.ref)
 
-        LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
+//        LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
 
         LLVM.LLVMTargetMachineEmitToFile(
             targetMachine,

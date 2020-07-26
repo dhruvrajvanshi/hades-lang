@@ -14,6 +14,7 @@ sealed class Options {
             val output = Path.of(args.getString("--output"))
             val runtime = Path.of(args.getString("--runtime"))
             val main = Path.of(args.getString("--main"))
+            val lib = args.getBool("--lib")
             val directories = args.getList("--directories").map { Path.of(it) }
             val cFlags = if (args.contains("--cflags")) {
                 args.getList("--cflags")
@@ -32,7 +33,8 @@ sealed class Options {
                 runtime = runtime,
                 cFlags = cFlags,
                 debugSymbols = debugSymbols,
-                cSources = cSources
+                cSources = cSources,
+                lib = lib
             )
         }
 
@@ -42,6 +44,10 @@ sealed class Options {
             assert(indexOfNext < size)
             assert(!this[indexOfNext].startsWith("--"))
             return this[indexOfNext]
+        }
+
+        private fun Array<String>.getBool(long: String): Boolean {
+            return indexOf(long) > -1
         }
 
         private fun Array<String>.getList(long: String): List<String> {
@@ -62,7 +68,8 @@ data class BuildOptions(
     val runtime: Path,
     val cFlags: List<String>,
     val debugSymbols: Boolean,
-    val cSources: List<Path>
+    val cSources: List<Path>,
+    val lib: Boolean
 ) : Options()
 
 class Compiler(
