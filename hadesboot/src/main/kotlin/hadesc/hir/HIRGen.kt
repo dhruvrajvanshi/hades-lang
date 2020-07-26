@@ -9,7 +9,6 @@ import hadesc.diagnostics.Diagnostic
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
-import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -26,7 +25,6 @@ class HIRGen(
             }
         }
         val result = HIRModule(declarations)
-        logger().debug(result.prettyPrint())
         return result
     }
 
