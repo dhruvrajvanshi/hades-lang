@@ -482,7 +482,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private var nextLiteralIndex = 0
     private fun stringLiteralName(): String {
         nextLiteralIndex++
-        return "\$string_literal_$nextLiteralIndex"
+        return "_hadesboot_string_literal_$nextLiteralIndex"
     }
 
     private val byteTy = IntType(8, llvmCtx)
@@ -535,7 +535,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private val objectFilePath get() = ctx.options.output.toString() + ".object"
+    private val objectFilePath get() = ctx.options.output.toString() + ".o"
 
     private fun writeModuleToFile() {
         log.info("Writing object file")
@@ -554,7 +554,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             cpu,
             features,
             LLVM.LLVMCodeGenLevelLess,
-            LLVM.LLVMRelocDefault,
+            if (ctx.options.lib) LLVM.LLVMRelocDynamicNoPic else LLVM.LLVMRelocDefault,
             LLVM.LLVMCodeModelDefault
         )
 
