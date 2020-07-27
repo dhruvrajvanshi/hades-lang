@@ -17,7 +17,7 @@ void SG_Debug_dump_newline() {
 #define MAX_STACK_LEVELS 50
 
 // helper-function to print the current stack trace
-void SG_Debug_dump_stacktrace()
+void SG_Debug_dump_stack_trace()
 {
   void *buffer[MAX_STACK_LEVELS];
   int levels = backtrace(buffer, MAX_STACK_LEVELS);
