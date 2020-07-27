@@ -500,9 +500,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
-        log.info("Linking using gcc")
+        val cc = System.getenv("CC") ?: "gcc"
+        log.info("Linking using $cc")
         val commandParts = mutableListOf(
-            "gcc",
+            cc,
             "-O2",
             "-no-pie",
             "-flto"
