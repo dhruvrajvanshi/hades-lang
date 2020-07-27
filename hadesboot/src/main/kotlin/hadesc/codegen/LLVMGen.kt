@@ -554,7 +554,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             cpu,
             features,
             LLVM.LLVMCodeGenLevelLess,
-            if (ctx.options.lib) LLVM.LLVMRelocDynamicNoPic else LLVM.LLVMRelocDefault,
+            LLVM.LLVMRelocPIC,
             LLVM.LLVMCodeModelDefault
         )
 
