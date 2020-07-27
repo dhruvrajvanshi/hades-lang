@@ -26,12 +26,14 @@ def parse(argc: Int, argv: **Byte): SGResult.t[t] {
 
     val OUTPUT_INDEX = MInt.to_size(argc - 1);
     val INPUT_INDEX = MInt.to_size(argc - 2);
-
-    return Result.ok(t(*Pointer.offset(argv, INPUT_INDEX), *Pointer.offset(argv, OUTPUT_INDEX)));
+    val input = *Pointer.offset(argv, INPUT_INDEX);
+    val output = *Pointer.offset(argv, OUTPUT_INDEX);
+    return Result.ok(t(input, output));
 }
 
 def parse_error[T](message: *Byte): SGResult.t[T] {
-    return Result.error(SGError.invalid_flags(ParseError(message)));
+    return message
+        |> ParseError
+        |> SGError.invalid_flags
+        |> Result.error;
 }
-
-
