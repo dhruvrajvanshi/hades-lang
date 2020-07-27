@@ -539,7 +539,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val objectFilePath get() = ctx.options.output.toString() + ".o"
 
     private fun writeModuleToFile() {
-        log.info("Writing object file")
+        log.debug("Writing object file")
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()
         LLVM.LLVMInitializeAllTargetMCs()
