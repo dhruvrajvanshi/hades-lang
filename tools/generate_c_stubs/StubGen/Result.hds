@@ -1,0 +1,6 @@
+import StubGen.Error as SGError;
+import lib.Result as Result;
+
+type t = Self;
+type Self[T] = Result.Self[T, SGError.t];
+

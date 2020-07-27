@@ -1,0 +1,25 @@
+import libc as c;
+
+type t = Self;
+
+type Kind = Int;
+
+const KIND_UNIMPLEMENTED: Kind = 0;
+
+struct Self {
+    val m_kind: Kind;
+}
+
+def unimplemented(): Self {
+    return Self(KIND_UNIMPLEMENTED);
+}
+
+def kind(self: Self): Kind {
+    return self.m_kind;
+}
+
+def dump(self: Self): Void {
+    if (self.m_kind == KIND_UNIMPLEMENTED) {
+        c.puts(b"UNIMPLEMENTED");
+    }
+}

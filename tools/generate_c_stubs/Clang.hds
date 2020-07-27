@@ -1,0 +1,7 @@
+type Index = *mut Void;
+
+/// @param exclude_declarations_from_pch: Bool
+/// @param display_diagnostics: Bool
+extern def create_index(Bool, Bool): Index = clang_createIndex;
+
+extern def dispose_index(Index): Void = clang_disposeIndex;
