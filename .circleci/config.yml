@@ -43,5 +43,3 @@ jobs:
       - run: ./test.sh
       - store_test_results:
           path: ./hadesboot/build/test-results
-      - run: ./gradlew install
-      - run: cd tools/generate_c_stubs; make

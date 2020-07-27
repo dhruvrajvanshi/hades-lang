@@ -13,7 +13,7 @@ HADES_SOURCES=$(wildcard **/*.hds)
 C_SOURCES=$(wildcard **/*.c)
 
 generate_c_stubs: $(HADES_SOURCES) $(C_SOURCES)
-	CC=$(CC) $(HDC) --main generate_c_stubs.hds --directories . $(STDLIB_DIR) --output generate_c_stubs \
+	CC=$(CC) $(HDC) -g --main generate_c_stubs.hds --directories . $(STDLIB_DIR) --output generate_c_stubs \
 		--c-sources $(LIBC_SOURCES) $(C_SOURCES) --runtime $(RUNTIME_SOURCE) --cflags '-lclang'
 
 clean:

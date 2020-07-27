@@ -505,7 +505,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val commandParts = mutableListOf(
             cc,
             "-O2",
-            "-no-pie",
             "-flto"
         )
         if (ctx.options.debugSymbols) {
@@ -559,17 +558,21 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             LLVM.LLVMCodeModelDefault
         )
 
-        val pass = LLVM.LLVMCreatePassManager()
-        LLVM.LLVMAddConstantPropagationPass(pass)
-        LLVM.LLVMAddFunctionInliningPass(pass)
-        LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
-        LLVM.LLVMAddAggressiveDCEPass(pass)
-        LLVM.LLVMAddFunctionInliningPass(pass)
-        LLVM.LLVMAddGlobalDCEPass(pass)
-        LLVM.LLVMAddGlobalOptimizerPass(pass)
-        LLVM.LLVMRunPassManager(pass, llvmModule.ref)
+        if (!ctx.options.debugSymbols) {
 
-//        LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
+            val pass = LLVM.LLVMCreatePassManager()
+            LLVM.LLVMAddConstantPropagationPass(pass)
+            LLVM.LLVMAddFunctionInliningPass(pass)
+            LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
+            LLVM.LLVMAddAggressiveDCEPass(pass)
+            LLVM.LLVMAddFunctionInliningPass(pass)
+            LLVM.LLVMAddGlobalDCEPass(pass)
+            LLVM.LLVMAddGlobalOptimizerPass(pass)
+            LLVM.LLVMRunPassManager(pass, llvmModule.ref)
+            LLVM.LLVMDisposePassManager(pass)
+        }
+
+        LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
 
         LLVM.LLVMTargetMachineEmitToFile(
             targetMachine,
@@ -579,7 +582,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             BytePointer("Message")
         )
 
-        LLVM.LLVMDisposePassManager(pass)
         LLVM.LLVMDisposeTargetMachine(targetMachine)
     }
 
