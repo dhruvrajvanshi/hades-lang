@@ -572,7 +572,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             LLVM.LLVMDisposePassManager(pass)
         }
 
-        LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
+        if (ctx.options.dumpLLVMModule) {
+            LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
+        }
+
 
         LLVM.LLVMTargetMachineEmitToFile(
             targetMachine,

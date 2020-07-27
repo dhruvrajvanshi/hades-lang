@@ -34,7 +34,8 @@ sealed class Options {
                 cFlags = cFlags,
                 debugSymbols = debugSymbols,
                 cSources = cSources,
-                lib = lib
+                lib = lib,
+                dumpLLVMModule = args.getBool("--dump-llvm-module")
             )
         }
 
@@ -69,7 +70,8 @@ data class BuildOptions(
     val cFlags: List<String>,
     val debugSymbols: Boolean,
     val cSources: List<Path>,
-    val lib: Boolean
+    val lib: Boolean,
+    val dumpLLVMModule: Boolean
 ) : Options()
 
 class Compiler(
