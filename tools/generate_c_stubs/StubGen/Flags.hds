@@ -1,25 +1,24 @@
-import lib.Core as Core;
-import lib.Result as Result;
+import hades.Result as Result;
 import StubGen.Result as SGResult;
 import StubGen.Error as SGError;
-import lib.Debug as Debug;
+import hades.Debug as Debug;
 import hades.Pointer as Pointer;
-import lib.UnsafeCast as UnsafeCast;
+import hades.UnsafeCast as UnsafeCast;
 
 struct t {
-    val m_input_header: Core.StaticCString;
-    val m_output_path: Core.StaticCString;
+    val m_input_header: *Byte;
+    val m_output_path: *Byte;
 }
 
 struct ParseError {
-    val message: Core.StaticCString;
+    val message: *Byte;
 }
 
 
 const USAGE = b"
 USAGE: generate_c_stubs [...FLAGS] <INPUT_HEADER_PATH> <OUTPUT_HDS_FILE_PATH>
 ";
-def parse(argc: Int, argv: Core.StaticPtr[Core.StaticCString]): SGResult.t[t] {
+def parse(argc: Int, argv: **Byte): SGResult.t[t] {
     if (argc < 3) {
         return parse_error(b"Missing arguments.");
     }
@@ -30,7 +29,7 @@ def parse(argc: Int, argv: Core.StaticPtr[Core.StaticCString]): SGResult.t[t] {
     return Result.ok(t(*Pointer.offset(argv, INPUT_INDEX), *Pointer.offset(argv, OUTPUT_INDEX)));
 }
 
-def parse_error[T](message: Core.StaticCString): SGResult.t[T] {
+def parse_error[T](message: *Byte): SGResult.t[T] {
     return Result.error(SGError.invalid_flags(ParseError(message)));
 }
 

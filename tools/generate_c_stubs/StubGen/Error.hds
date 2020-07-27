@@ -1,5 +1,5 @@
 import libc as c;
-import lib.UnsafeCast as UnsafeCast;
+import hades.UnsafeCast as UnsafeCast;
 import StubGen.Flags as SGFlags;
 
 type t = Self;

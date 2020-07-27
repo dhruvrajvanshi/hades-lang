@@ -2,7 +2,7 @@ import libc as c;
 import Clang as Clang;
 import StubGen.Result as SGResult;
 import StubGen.Error as SGError;
-import lib.Result as Result;
+import hades.Result as Result;
 import StubGen.Flags as SGFlags;
 
 def main(argc: Int, argv: **Byte): Void {
