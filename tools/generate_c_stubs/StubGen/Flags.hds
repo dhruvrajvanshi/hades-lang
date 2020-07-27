@@ -4,6 +4,7 @@ import StubGen.Error as SGError;
 import hades.Debug as Debug;
 import hades.Pointer as Pointer;
 import hades.UnsafeCast as UnsafeCast;
+import hades.Primitives.Int as MInt;
 
 struct t {
     val m_input_header: *Byte;
@@ -23,8 +24,8 @@ def parse(argc: Int, argv: **Byte): SGResult.t[t] {
         return parse_error(b"Missing arguments.");
     }
 
-    val OUTPUT_INDEX = UnsafeCast.upcast[Size](argc - 1);
-    val INPUT_INDEX = UnsafeCast.upcast[Size](argc - 2);
+    val OUTPUT_INDEX = MInt.to_size(argc - 1);
+    val INPUT_INDEX = MInt.to_size(argc - 2);
 
     return Result.ok(t(*Pointer.offset(argv, INPUT_INDEX), *Pointer.offset(argv, OUTPUT_INDEX)));
 }

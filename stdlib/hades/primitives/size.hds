@@ -1,7 +1,0 @@
-
-def to_double(this: Size): Double {
-    return hds_size_to_double(this);
-}
-
-extern def hds_size_to_double(Size): Double = hds_size_to_double;
-

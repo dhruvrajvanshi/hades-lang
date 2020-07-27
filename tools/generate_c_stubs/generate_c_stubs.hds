@@ -8,7 +8,7 @@ import StubGen.Flags as SGFlags;
 def main(argc: Int, argv: **Byte): Void {
     val result = run(argc, argv);
     if (Result.is_error(result)) {
-        SGError.dump(Result.get_error(result));
+        result |> Result.get_error |> SGError.dump;
         c.exit(-1);
     } else {
         c.exit(0);
@@ -18,7 +18,7 @@ def main(argc: Int, argv: **Byte): Void {
 def run(argc: Int, argv: **Byte): SGResult.t[Int] {
     val flags_result = SGFlags.parse(argc, argv);
     if (Result.is_error(flags_result)) {
-        return Result.error(Result.get_error(flags_result));
+        return flags_result |> Result.get_error |> Result.error;
     }
     val flags = Result.get_value(flags_result);
     return Result.error(SGError.unimplemented());

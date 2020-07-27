@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <execinfo.h>
 
 void Hades_Debug_dump_int(int value) {
@@ -7,6 +8,10 @@ void Hades_Debug_dump_int(int value) {
 
 void Hades_Debug_dump_string(const char* str) {
     fprintf(stderr, "%s", str);
+}
+
+void Hades_Debug_dump_size(size_t size) {
+    fprintf(stderr, "%ld", size);
 }
 void Hades_Debug_dump_newline() {
     fprintf(stderr, "\n");
