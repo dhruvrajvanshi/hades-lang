@@ -1,5 +1,6 @@
 import lib.UnsafeCast as UnsafeCast;
 import lib.Assert as Assert;
+import lib.Debug as Debug;
 
 struct Self[T, Err] {
     val m_is_error: Bool;
@@ -14,7 +15,12 @@ def ok[Err, T](value: T): Self[T, Err] {
     return Self(false, UnsafeCast.upcast(value));
 }
 
+const TRACE_ON_ERROR = true;
+
 def error[T, Err](err: Err): Self[T, Err] {
+    if (TRACE_ON_ERROR) {
+        Debug.dump_stack_trace();
+    }
     return Self(true, UnsafeCast.upcast(err));
 }
 

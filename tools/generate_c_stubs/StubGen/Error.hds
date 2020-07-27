@@ -1,25 +1,47 @@
 import libc as c;
+import lib.UnsafeCast as UnsafeCast;
+import StubGen.Flags as SGFlags;
 
 type t = Self;
 
 type Kind = Int;
+type _Data = union[Bool, SGFlags.ParseError];
 
 const KIND_UNIMPLEMENTED: Kind = 0;
+const KIND_INVALID_FLAGS: Kind = 1;
 
 struct Self {
     val m_kind: Kind;
+    val m_data: _Data;
 }
 
 def unimplemented(): Self {
-    return Self(KIND_UNIMPLEMENTED);
+    return Self(KIND_UNIMPLEMENTED, UnsafeCast.upcast(false));
+}
+
+def invalid_flags(error: SGFlags.ParseError): Self {
+    return Self(KIND_INVALID_FLAGS, UnsafeCast.upcast(error));
+}
+
+def is(self: Self, k: Kind): Bool {
+    return kind(self) == k;
 }
 
 def kind(self: Self): Kind {
     return self.m_kind;
 }
 
+def _data[T](self: Self): T {
+    return UnsafeCast.downcast(self.m_data);
+}
+
 def dump(self: Self): Void {
-    if (self.m_kind == KIND_UNIMPLEMENTED) {
+    if (is(self, KIND_UNIMPLEMENTED)) {
         c.puts(b"UNIMPLEMENTED");
+    }
+
+    if (is(self, KIND_INVALID_FLAGS)) {
+        c.puts(_data[SGFlags.ParseError](self).message);
+        c.puts(SGFlags.USAGE);
     }
 }

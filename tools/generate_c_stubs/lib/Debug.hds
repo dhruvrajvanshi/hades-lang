@@ -1,0 +1,6 @@
+
+extern def dump_int(Int): Void = SG_Debug_dump_int;
+
+extern def dump_string(*Byte): Void = SG_Debug_dump_string;
+extern def dump_newline(): Void = SG_Debug_dump_newline;
+extern def dump_stack_trace(): Void = SG_Debug_dump_stack_trace;

@@ -3,15 +3,23 @@ import Clang as Clang;
 import StubGen.Result as SGResult;
 import StubGen.Error as SGError;
 import lib.Result as Result;
+import StubGen.Flags as SGFlags;
 
-def main(): Void {
-    val result = run();
+def main(argc: Int, argv: **Byte): Void {
+    val result = run(argc, argv);
     if (Result.is_error(result)) {
         SGError.dump(Result.get_error(result));
         c.exit(-1);
+    } else {
+        c.exit(0);
     }
 }
 
-def run(): SGResult.t[Int] {
+def run(argc: Int, argv: **Byte): SGResult.t[Int] {
+    val flags_result = SGFlags.parse(argc, argv);
+    if (Result.is_error(flags_result)) {
+        return Result.error(Result.get_error(flags_result));
+    }
+    val flags = Result.get_value(flags_result);
     return Result.error(SGError.unimplemented());
 }
