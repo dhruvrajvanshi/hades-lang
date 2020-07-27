@@ -1,0 +1,12 @@
+import libc as c;
+
+def assert(condition: Bool): Void {
+    if not condition {
+        panic(b"Assertion failed");
+    }
+}
+
+def panic(message: *Byte): Void {
+    c.puts(message);
+    c.exit(1);
+}
