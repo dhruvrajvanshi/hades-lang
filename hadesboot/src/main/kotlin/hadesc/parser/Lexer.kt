@@ -148,6 +148,15 @@ class Lexer(private val file: SourcePath) {
                     makeToken(tt.ERROR)
                 }
             }
+            c == '|' -> {
+                advance()
+                if (currentChar == '>') {
+                    advance()
+                    makeToken(tt.PIPELINE)
+                } else {
+                    makeToken(tt.ERROR)
+                }
+            }
             SINGLE_CHAR_TOKENS.containsKey(c) -> {
                 advance()
                 makeToken(SINGLE_CHAR_TOKENS.getValue(c))

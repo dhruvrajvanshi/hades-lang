@@ -13,6 +13,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
+import kotlin.math.exp
 
 class HIRGen(
         private val ctx: Context
@@ -304,6 +305,15 @@ class HIRGen(
         is Expression.TypeApplication -> TODO()
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
+        is Expression.PipelineOperator -> lowerPipelineOperator(expression)
+    }
+
+    private fun lowerPipelineOperator(expression: Expression.PipelineOperator): HIRExpression {
+        return buildCall(
+            call = expression,
+            args = listOf(lowerExpression(expression.lhs)),
+            callee = lowerExpression(expression.rhs)
+        )
     }
 
     private fun lowerPointerCast(expression: Expression.PointerCast): HIRExpression {
@@ -529,17 +539,16 @@ class HIRGen(
 
     private fun lowerCallExpression(expression: Expression.Call): HIRExpression = buildCall(
         expression,
-        typeOfExpression(expression),
         callee = lowerExpression(expression.callee),
         args = expression.args.map { lowerExpression(it.expression) }
     )
 
     private fun buildCall(
         call: Expression,
-        type: Type,
         callee: HIRExpression,
         args: List<HIRExpression>
     ): HIRExpression {
+        val type = typeOfExpression(call)
         val typeArgs = ctx.checker.getTypeArgs(call)
         typeArgs?.forEach {
             checkUninferredGenerics(call, it)

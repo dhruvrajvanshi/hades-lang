@@ -47,6 +47,7 @@ data class Token(
 
         PLUS,
         MINUS,
+        PIPELINE,
 
         EQEQ,
 

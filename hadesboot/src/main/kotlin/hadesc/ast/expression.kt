@@ -58,6 +58,12 @@ sealed class Expression : HasLocation {
         val rhs: Expression
     ) : Expression()
 
+    data class PipelineOperator(
+        override val location: SourceLocation,
+        val lhs: Expression,
+        val rhs: Expression
+    ) : Expression()
+
     data class SizeOf(
         override val location: SourceLocation,
         val type: TypeAnnotation

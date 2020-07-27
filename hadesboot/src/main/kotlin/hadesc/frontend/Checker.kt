@@ -482,7 +482,17 @@ class Checker(
             is Expression.TypeApplication -> TODO()
             is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
+            is Expression.PipelineOperator -> inferPipelineOperator(expression)
         })
+    }
+
+    private fun inferPipelineOperator(expression: Expression.PipelineOperator): Type {
+        return inferOrCheckCallLikeExpression(
+            callNode = expression,
+            typeArgs = null,
+            args = listOf(Arg(expression.lhs)),
+            expectedReturnType = null
+        )
     }
 
     private fun inferNewExpression(expression: Expression.New): Type {
@@ -776,6 +786,7 @@ class Checker(
             else -> inferExpression(callNode.callee)
         }
         is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
+        is Expression.PipelineOperator -> inferExpression(callNode.rhs)
         else -> Type.Error
     }
 

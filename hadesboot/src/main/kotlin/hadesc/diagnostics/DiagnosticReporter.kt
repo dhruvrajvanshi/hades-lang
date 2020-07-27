@@ -79,6 +79,7 @@ data class Diagnostic(
         object UnboundInterface : Diagnostic.Kind(Severity.ERROR)
         object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
         object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
+        object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -135,6 +136,7 @@ data class Diagnostic(
             UnboundInterface -> "Unbound interface"
             NotAConstructor -> "Not a constructor"
             UnknownAnnotation -> "Unknown annotation"
+            InvalidPipelineExpression -> "This expression type is not a valid pipeline expression"
         }
 
     }
