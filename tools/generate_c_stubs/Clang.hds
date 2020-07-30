@@ -36,6 +36,17 @@ extern def parse_translation_unit_2(
     *mut TranslationUnit // result
 ): CXErrorCode  = clang_parseTranslationUnit2;
 
+extern def parse_translation_unit(
+    Index,
+    *Byte, // source filename
+    **Byte, // command line args
+    Int, // num_command_line_args,
+    *UnsavedFile, // unsaved_files,
+    Int, // num_unsaved_files,
+    Int // options
+): MutTranslationUnit = clang_parseTranslationUnit;
+
+
 extern def dispose_translation_unit(MutTranslationUnit): Void = clang_disposeTranslationUnit;
 
 type CXErrorCode  = Int;
@@ -52,7 +63,7 @@ def dump_error_code(error: CXErrorCode): Void {
     Debug.dump_string(b"CXError_Success");
   }
   if error == CXError_Failure {
-    Debug.dump_string(b"CXError_Success");
+    Debug.dump_string(b"CXError_Failure");
   }
   if error == CXError_Crashed {
     Debug.dump_string(b"CXError_Crashed");

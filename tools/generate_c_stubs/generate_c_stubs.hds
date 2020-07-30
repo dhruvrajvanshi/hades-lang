@@ -4,6 +4,8 @@ import StubGen.Result as SGResult;
 import StubGen.Error as SGError;
 import hades.Result as Result;
 import StubGen.Flags as SGFlags;
+import libc.errno as Errno;
+import hades.Debug as Debug;
 
 def main(argc: Int, argv: **Byte): Void {
     val result = run(argc, argv);
@@ -18,7 +20,7 @@ def main(argc: Int, argv: **Byte): Void {
 
 def run(argc: Int, argv: **Byte): SGResult.t[Int] {
     val flags_result = SGFlags.parse(argc, argv);
-    if (Result.is_error(flags_result)) {
+    if Result.is_error(flags_result) {
         return flags_result |> Result.get_error |> Result.error;
     }
     val flags = Result.get_value(flags_result);
@@ -26,7 +28,7 @@ def run(argc: Int, argv: **Byte): SGResult.t[Int] {
     val index = Clang.create_index(false, false);
     defer Clang.dispose_index(index);
 
-    val translation_unit_ptr: *mut Clang.MutTranslationUnit = nullptr;
+    val translation_unit: Clang.MutTranslationUnit = nullptr;
 
     val input_path = &flags |> SGFlags.input_path;
 
@@ -38,13 +40,13 @@ def run(argc: Int, argv: **Byte): SGResult.t[Int] {
         nullptr,
         0,
         0,
-        translation_unit_ptr
+        &mut translation_unit
     );
 
-    if (err != Clang.CXError_Success) {
+    if err != Clang.CXError_Success {
         return Result.error(SGError.clang_error(err));
     }
+    defer Clang.dispose_translation_unit(translation_unit);
 
-    defer Clang.dispose_translation_unit(*translation_unit_ptr);
     return Result.error(SGError.unimplemented());
 }
