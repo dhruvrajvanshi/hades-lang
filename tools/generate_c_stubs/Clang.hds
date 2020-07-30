@@ -75,3 +75,40 @@ def dump_error_code(error: CXErrorCode): Void {
     Debug.dump_string(b"CXError_ASTReadError");
   }
 }
+
+type CursorKind = Int;
+
+struct Cursor {
+  val kind: CursorKind;
+  val data: Int;
+  val data_0: *Void;
+  val data_1: *Void;
+  val data_2: *Void;
+}
+
+type ChildVisitResult = Int;
+// Terminates the cursor traversal.
+const CXChildVisit_Break = 0;
+   // Continues the cursor traversal with the next sibling of
+   // the cursor just visited, without visiting its children.
+const CXChildVisit_Continue = 1;
+// Recursively traverse the children of this cursor, using
+// the same visitor and client data.
+const CXChildVisit_Recurse = 2;
+
+type ClientData = *Void;
+
+/// Visitor invoked for each cursor found by a traversal.
+///
+/// This visitor function will be invoked for each cursor found by
+/// clang_visitCursorChildren(). Its first argument is the cursor being
+/// visited, its second argument is the parent visitor for that cursor,
+/// and its third argument is the client data provided to
+/// clang_visitCursorChildren().
+///
+/// The visitor should return one of the \c CXChildVisitResult values
+/// to direct clang_visitCursorChildren().
+type CursorVisitor = *(Cursor, Cursor, ClientData) -> ChildVisitResult;
+
+// returns unsigned int; TODO: change to uInt
+extern def visit_children(Cursor, CursorVisitor, ClientData): Int = clang_visitChildren;
