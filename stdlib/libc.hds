@@ -44,3 +44,9 @@ def is_directory(this: *dirent): Bool {
 
 extern def fread(*Void, Size, Size, *File): Size = fread;
 
+extern def errno(): Int = hdc_get_errno;
+extern def set_errno(Int): Void = hdc_set_errno;
+
+extern def open(*Byte, Int): Int = open;
+extern def close(Int): Int = close;
+
