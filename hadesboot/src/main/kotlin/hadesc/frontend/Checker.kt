@@ -117,6 +117,8 @@ class Checker(
             return true
         }
         return when {
+            source is Type.Error -> true
+            destination is Type.Error -> true
             destination is Type.GenericInstance -> {
                 val existing = genericInstances[destination.id]
                 if (existing != null) {
@@ -610,7 +612,10 @@ class Checker(
 
     private fun inferVarExpresion(expression: Expression.Var): Type {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
-            null -> Type.Error
+            null -> {
+                error(expression.name, Diagnostic.Kind.UnboundVariable)
+                Type.Error
+            }
             else -> typeOfBinding(binding)
         }
     }
