@@ -9,13 +9,27 @@ BUILD_ARTIFACTS=\
 	generate_c_stubs.o \
 	generate_c_stubs
 
-HADES_SOURCES=$(wildcard **/*.hds)
-C_SOURCES=$(wildcard **/*.c)
-STDLIB_C_SOURCES=$(wildcard $(STDLIB_DIR)/**/*.c)
+STDLIB_C_SOURCES=\
+	$(shell find $(STDLIB_DIR) -name '*.c') \
+	$(shell find $(STDLIB_DIR) -name '*.h')
+
+HADES_SOURCES=\
+	$(shell find . -name '*.hds') \
+	$(shell find $(STDLIB_DIR) -name '*.hds') \
+	$(STDLIB_C_SOURCES)
+
+C_SOURCES=$(shell find . -name '*.c')
+
 
 generate_c_stubs: $(HADES_SOURCES) $(C_SOURCES)
-	CC=$(CC) $(HDC) -g --main generate_c_stubs.hds --directories . $(STDLIB_DIR) --output generate_c_stubs \
-		--c-sources $(LIBC_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) --runtime $(RUNTIME_SOURCE) --cflags '-lclang'
+	CC=$(CC) $(HDC) \
+		--main generate_c_stubs.hds \
+		--output generate_c_stubs \
+		-g \
+		--directories . $(STDLIB_DIR) \
+		--c-sources $(LIBC_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) \
+		--runtime $(RUNTIME_SOURCE) \
+		--cflags '-lclang'
 
 clean:
 	- rm $(BUILD_ARTIFACTS)
