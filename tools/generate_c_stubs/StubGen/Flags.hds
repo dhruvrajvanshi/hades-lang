@@ -7,12 +7,16 @@ import hades.UnsafeCast as UnsafeCast;
 import hades.Primitives.Int as MInt;
 
 struct t {
-    val m_input_header: *Byte;
+    val m_input_path: *Byte;
     val m_output_path: *Byte;
 }
 
 struct ParseError {
     val message: *Byte;
+}
+
+def input_path(self: *t): *Byte {
+    return *(self.m_input_path);
 }
 
 

@@ -1,7 +1,66 @@
+import hades.Debug as Debug;
+
 type Index = *mut Void;
+
+struct TranslationUnitImpl {}
+type MutTranslationUnit = *mut TranslationUnitImpl;
+type TranslationUnit = *TranslationUnitImpl;
 
 /// @param exclude_declarations_from_pch: Bool
 /// @param display_diagnostics: Bool
 extern def create_index(Bool, Bool): Index = clang_createIndex;
 
 extern def dispose_index(Index): Void = clang_disposeIndex;
+
+struct UnsavedFile {
+  // The file whose contents have not yet been saved.
+  // This file must already exist in the file system.
+  val filename: *Byte;
+
+  // A buffer containing the unsaved contents of this file.
+  //
+  val contents: *Byte;
+
+  // The length of the unsaved contents of this buffer.
+  val length: Int; // actually a Long; TODO: Fix this when support for proper int sizes is added
+}
+
+extern def parse_translation_unit_2(
+    Index,
+    *Byte, // source filename
+    **Byte, // command line args
+    Int, // num_command_line_args,
+    *UnsavedFile, // unsaved_files,
+    Int, // num_unsaved_files,
+    Int, // options,
+    *mut TranslationUnit // result
+): CXErrorCode  = clang_parseTranslationUnit2;
+
+extern def dispose_translation_unit(MutTranslationUnit): Void = clang_disposeTranslationUnit;
+
+type CXErrorCode  = Int;
+const CXError_Success = 0;
+const CXError_Failure = 1;
+const CXError_Crashed = 2;
+const CXError_InvalidArguments = 3;
+const CXError_ASTReadError = 4;
+
+
+def dump_error_code(error: CXErrorCode): Void {
+  Debug.dump_string(b"libclang: ");
+  if error == CXError_Success {
+    Debug.dump_string(b"CXError_Success");
+  }
+  if error == CXError_Failure {
+    Debug.dump_string(b"CXError_Success");
+  }
+  if error == CXError_Crashed {
+    Debug.dump_string(b"CXError_Crashed");
+  }
+  if error == CXError_InvalidArguments {
+    Debug.dump_string(b"CXError_InvalidArguments");
+  }
+  if error == CXError_ASTReadError {
+    Debug.dump_string(b"CXError_ASTReadError");
+  }
+}

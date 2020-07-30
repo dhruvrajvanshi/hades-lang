@@ -9,6 +9,7 @@ def main(argc: Int, argv: **Byte): Void {
     val result = run(argc, argv);
     if (Result.is_error(result)) {
         result |> Result.get_error |> SGError.dump;
+        c.puts(b"");
         c.exit(-1);
     } else {
         c.exit(0);
@@ -21,5 +22,29 @@ def run(argc: Int, argv: **Byte): SGResult.t[Int] {
         return flags_result |> Result.get_error |> Result.error;
     }
     val flags = Result.get_value(flags_result);
+
+    val index = Clang.create_index(false, false);
+    defer Clang.dispose_index(index);
+
+    val translation_unit_ptr: *mut Clang.MutTranslationUnit = nullptr;
+
+    val input_path = &flags |> SGFlags.input_path;
+
+    val err = Clang.parse_translation_unit_2(
+        index,
+        input_path,
+        nullptr,
+        0,
+        nullptr,
+        0,
+        0,
+        translation_unit_ptr
+    );
+
+    if (err != Clang.CXError_Success) {
+        return Result.error(SGError.clang_error(err));
+    }
+
+    defer Clang.dispose_translation_unit(*translation_unit_ptr);
     return Result.error(SGError.unimplemented());
 }

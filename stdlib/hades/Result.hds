@@ -15,7 +15,7 @@ def ok[Err, T](value: T): Self[T, Err] {
     return Self(false, UnsafeCast.upcast(value));
 }
 
-const TRACE_ON_ERROR = true;
+const TRACE_ON_ERROR = false;
 
 def error[T, Err](err: Err): Self[T, Err] {
     if (TRACE_ON_ERROR) {
