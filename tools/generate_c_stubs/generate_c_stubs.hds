@@ -28,10 +28,9 @@ def run(argc: Int, argv: **Byte): SGResult.t[Int] {
     val index = Clang.create_index(false, false);
     defer Clang.dispose_index(index);
 
-    val translation_unit: Clang.MutTranslationUnit = nullptr;
-
     val input_path = &flags |> SGFlags.input_path;
 
+    val translation_unit: Clang.MutTranslationUnit = nullptr;
     val err = Clang.parse_translation_unit_2(
         index,
         input_path,
@@ -42,11 +41,18 @@ def run(argc: Int, argv: **Byte): SGResult.t[Int] {
         0,
         &mut translation_unit
     );
-
     if err != Clang.CXError_Success {
         return Result.error(SGError.clang_error(err));
     }
     defer Clang.dispose_translation_unit(translation_unit);
 
+    val cursor = Clang.get_translation_unit_cursor(translation_unit);
+
+    Clang.visit_children(cursor, visit_children, nullptr);
+
     return Result.error(SGError.unimplemented());
+}
+
+def visit_children(cursor: Clang.Cursor, parent: Clang.Cursor, data: Clang.ClientData): Clang.ChildVisitResult {
+    return Clang.CXChildVisit_Recurse;
 }

@@ -111,4 +111,7 @@ type ClientData = *Void;
 type CursorVisitor = *(Cursor, Cursor, ClientData) -> ChildVisitResult;
 
 // returns unsigned int; TODO: change to uInt
-extern def visit_children(Cursor, CursorVisitor, ClientData): Int = clang_visitChildren;
+extern def visit_children(Cursor, CursorVisitor, ClientData): ChildVisitResult = clang_visitChildren;
+
+extern def get_translation_unit_cursor(TranslationUnit): Cursor = clang_getTranslationUnitCursor;
+
