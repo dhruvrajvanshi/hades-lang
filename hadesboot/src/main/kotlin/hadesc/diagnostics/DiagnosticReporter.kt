@@ -45,7 +45,7 @@ data class Diagnostic(
         data class TypeNotEqualityComparable(val type: Type) : Diagnostic.Kind(Severity.ERROR)
         data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
         data class NotAPointerType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
-        data class UnboundTypeName(val path: QualifiedPath) : Diagnostic.Kind(Severity.ERROR)
+        data class UnboundTypePath(val path: QualifiedPath) : Diagnostic.Kind(Severity.ERROR)
 
         object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
@@ -128,7 +128,7 @@ data class Diagnostic(
             MissingReturnValue -> "Missing return value"
             InvalidTypeApplication -> "Invalid type application"
             MissingTypeAnnotation -> "Missing type annotation"
-            is UnboundTypeName -> "Unbound type ${path.identifiers.joinToString(".") {it.name.text}}"
+            is UnboundTypePath -> "Unbound type ${path.identifiers.joinToString(".") {it.name.text}}"
             TypeParametersNotAllowedInInterfaceMethods -> "Type parameters are not allowed in interface methods"
             InterfaceMemberMustBeAnExtensionMethod -> "Interface member must be an extension method (try adding a receiver/this parameter)"
             InterfaceMethodReceiverMustBeThisOrThisPtr -> "Interface method receiver must be either This or *This"

@@ -507,7 +507,7 @@ class Checker(
     private fun checkConstructorFunction(path: QualifiedPath): Type {
         return when (val declaration = ctx.resolver.resolveDeclaration(path)) {
             null -> {
-                error(path, Diagnostic.Kind.UnboundTypeName(path))
+                error(path, Diagnostic.Kind.UnboundTypePath(path))
                 Type.Error
             }
             is Declaration.Struct -> {
@@ -945,6 +945,7 @@ class Checker(
     private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
         val binding = ctx.resolver.resolveQualifiedType(annotation.qualifiedPath)
         return if (binding == null) {
+            error(annotation, Diagnostic.Kind.UnboundTypePath(annotation.qualifiedPath))
             Type.Error
         } else {
             return typeOfTypeBinding(binding)
