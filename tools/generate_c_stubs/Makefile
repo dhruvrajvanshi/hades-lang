@@ -2,7 +2,6 @@ HDC=../../hadesboot/build/install/hadesboot/bin/hadesboot
 
 STDLIB_DIR=../../stdlib
 RUNTIME_SOURCE=../../runtime.c
-LIBC_SOURCES=../../stdlib/libc.c
 CC=clang
 
 BUILD_ARTIFACTS=\
@@ -21,13 +20,13 @@ HADES_SOURCES=\
 C_SOURCES=$(shell find . -name '*.c')
 
 
-generate_c_stubs: $(HADES_SOURCES) $(C_SOURCES)
+generate_c_stubs: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 	CC=$(CC) $(HDC) \
 		--main generate_c_stubs.hds \
 		--output generate_c_stubs \
 		-g \
 		--directories . $(STDLIB_DIR) \
-		--c-sources $(LIBC_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) \
+		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES) \
 		--runtime $(RUNTIME_SOURCE) \
 		--cflags '-lclang'
 
