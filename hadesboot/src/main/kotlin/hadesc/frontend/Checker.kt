@@ -542,9 +542,14 @@ class Checker(
             checkExpression(expression.rhs, matchingRule.first)
             matchingRule.second
         } else {
-            inferExpression(expression.rhs)
-            error(expression.location, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
-            Type.Error
+            if ((expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS) &&  lhsType is Type.Ptr) {
+                checkExpression(expression.rhs, lhsType.copy(isMutable = false))
+                Type.Bool
+            } else {
+                inferExpression(expression.rhs)
+                error(expression.location, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+                Type.Error
+            }
         }
     }
 
