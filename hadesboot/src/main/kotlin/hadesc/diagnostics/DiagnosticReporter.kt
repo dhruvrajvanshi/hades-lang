@@ -1,5 +1,7 @@
 package hadesc.diagnostics
 
+import com.diogonunes.jcolor.Ansi.colorize
+import com.diogonunes.jcolor.Attribute
 import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.ast.QualifiedPath
@@ -8,6 +10,8 @@ import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
+import org.w3c.dom.Attr
+import kotlin.streams.toList
 
 data class Diagnostic(
     val sourceLocation: SourceLocation, val kind: Kind
@@ -156,19 +160,29 @@ class DiagnosticReporter {
             hasErrors = true
         }
         errors.add(Diagnostic(location, kind))
-        printErrLn("${kind.severity}: ${location.file.path}:(${location.start.line}:${location.start.column}): ${kind.prettyPrint()}")
+        val severityColor = if (kind.severity == Diagnostic.Severity.ERROR) {
+            Attribute.RED_TEXT()
+        } else {
+            Attribute.YELLOW_TEXT()
+        }
+        val severity = colorize(kind.severity.toString(), severityColor, Attribute.BOLD())
+        val path = colorize(location.file.path.toString(), Attribute.BOLD())
+        val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD());
+        val kind = colorize(kind.prettyPrint(), Attribute.BOLD())
+        printErrLn("${path}:${lineInfo}: ${severity}: ${kind}")
         printLocationLine(location)
-        for (i in 0..location.start.column + location.start.line.toString().length) {
+        for (i in 0..location.start.column - 1) {
             System.err.print(' ')
         }
-        System.err.print("^")
+        System.err.print(colorize("^", Attribute.RED_TEXT(), Attribute.BOLD()))
         if (location.start.line == location.stop.line) {
 
             for (i in 0 until location.stop.column - location.start.column) {
-                System.err.print('~')
+                System.err.print(colorize("~", Attribute.RED_TEXT(), Attribute.BOLD()))
             }
 
         }
+        System.err.println()
         System.err.println()
     }
 
@@ -177,7 +191,9 @@ class DiagnosticReporter {
             it.path.toFile().readLines()
         }
         val startLine = lines[location.start.line - 1]
-        printErrLn("${location.start.line}| $startLine")
+        val lineno = colorize(location.start.line.toString(), Attribute.DIM())
+        printErrLn(" $lineno\t| $startLine")
+        System.err.print(" ${location.start.line.toString().chars().toList().joinToString(" ") { "" }  }\t|")
     }
 
     private fun printErrLn(string: String) {
