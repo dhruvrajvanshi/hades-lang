@@ -26,3 +26,21 @@ const char* bool_to_string(bool value) {
         return "false";
     }
 }
+
+typedef struct {
+    int x;
+    int y;
+    int z;
+} Point3d;
+
+void abi_test_print_3d_point(Point3d p) {
+    printf("%d, %d, %d\n", p.x, p.y, p.z);
+}
+
+Point3d abi_test_make_3d_point(int x, int y, int z) {
+    Point3d point;
+    point.x = x;
+    point.y = y;
+    point.z = z;
+    return point;
+}
