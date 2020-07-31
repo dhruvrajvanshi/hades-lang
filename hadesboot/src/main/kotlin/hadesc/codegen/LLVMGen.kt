@@ -376,9 +376,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         } else {
             irName.text
         }
-        val f = llvmModule.getFunction(name)?.asFunctionValue() ?: llvmModule.addFunction(name, type)
-        LLVM.LLVMSetLinkage(f, LLVM.LLVMExternalLinkage)
-        return f
+        return llvmModule.getFunction(name)?.asFunctionValue() ?: llvmModule.addFunction(name, type)
     }
 
     private fun getDeclaration(def: IRFunctionDef): FunctionValue {
