@@ -1,0 +1,14 @@
+
+struct T {
+    val x: Int;
+    val y: Int;
+    val z: Int;
+}
+
+extern def abi_test_print_3d_point(T): Void = abi_test_print_3d_point;
+extern def abi_test_make_3d_point(Int, Int, Int): T = abi_test_make_3d_point;
+
+def main(): Void {
+    abi_test_print_3d_point(T(1, 2, 3));
+    abi_test_print_3d_point(abi_test_make_3d_point(4, 5, 6));
+}

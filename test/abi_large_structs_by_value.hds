@@ -1,14 +1,21 @@
 
-struct T {
-    val x: Int;
-    val y: Int;
-    val z: Int;
+struct TwoRegisters {
+    val value_1: u64;
+    val value_2: u64;
 }
+extern def make_two_registers(u64, u64): TwoRegisters = make_two_registers;
+extern def print_two_registers(TwoRegisters): Void = print_two_registers;
 
-extern def abi_test_print_3d_point(T): Void = abi_test_print_3d_point;
-extern def abi_test_make_3d_point(Int, Int, Int): T = abi_test_make_3d_point;
+struct ThreeRegisters {
+    val value_1: u64;
+    val value_2: u64;
+    val value_3: u64;
+}
+extern def make_three_registers(u64, u64, u64): ThreeRegisters = make_three_registers;
+extern def print_three_registers(ThreeRegisters): Void = print_three_registers;
+
 
 def main(): Void {
-    abi_test_print_3d_point(T(1, 2, 3));
-    abi_test_print_3d_point(abi_test_make_3d_point(4, 5, 6));
+    print_two_registers(make_two_registers(1, 2));
+    print_three_registers(make_three_registers(1, 2, 4));
 }
