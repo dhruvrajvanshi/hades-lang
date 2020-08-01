@@ -10,6 +10,14 @@ sealed class Type {
     object Void : Type()
     object Bool : Type()
     object CInt : Type()
+    data class Integral(val size: Int, val isSigned: Boolean) : Type()
+    data class FloatingPoint(val size: Int) : Type() {
+        init {
+            require(size == 16 || size == 32 || size == 64) {
+                "Floating type of $size is not allowed"
+            }
+        }
+    }
     object Double : Type()
     object Size : Type()
     data class Ptr(val to: Type, val isMutable: Boolean) : Type()
@@ -62,6 +70,8 @@ sealed class Type {
         Size -> "Size"
         is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
+        is Integral -> "${if(isSigned) "s" else "u" }${size}"
+        is FloatingPoint -> "f${size}"
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
@@ -76,6 +86,8 @@ sealed class Type {
             CInt,
             Size,
             Double,
+            is Integral,
+            is FloatingPoint,
             Bool -> this
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(

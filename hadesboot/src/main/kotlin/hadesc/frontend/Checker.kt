@@ -1021,6 +1021,17 @@ class Checker(
                 "Size" -> Type.Size
                 "Double" -> Type.Double
                 "Void" -> Type.Void
+                "u8" -> Type.Integral(8, false)
+                "s8" -> Type.Integral(8, true)
+                "u16" -> Type.Integral(16, false)
+                "s16" -> Type.Integral(16, true)
+                "u32" -> Type.Integral(32, false)
+                "s32" -> Type.Integral(32, true)
+                "u64" -> Type.Integral(64, false)
+                "s64" -> Type.Integral(64, true)
+                "f16" -> Type.FloatingPoint(16)
+                "f32" -> Type.FloatingPoint(32)
+                "f64" -> Type.FloatingPoint(64)
                 else -> null
             }
         } else {

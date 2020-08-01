@@ -1,5 +1,6 @@
 package llvm
 
+import hadesc.assertions.requireUnreachable
 import org.bytedeco.llvm.LLVM.LLVMTypeRef
 import org.bytedeco.llvm.global.LLVM
 
@@ -23,6 +24,13 @@ fun T.getConstantNullPointer(): Value =
 
 fun IntType(size: Int, context: Context = LLVM.LLVMGetGlobalContext()) =
     LLVM.LLVMIntTypeInContext(context, size)
+
+fun FloatType(size: Int, context: Context) = when(size) {
+    16 -> LLVM.LLVMHalfTypeInContext(context)
+    32 -> LLVM.LLVMFloatTypeInContext(context)
+    64 -> LLVM.LLVMDoubleTypeInContext(context)
+    else -> requireUnreachable()
+}
 
 fun VoidType(context: Context = LLVM.LLVMGetGlobalContext()) =
     LLVM.LLVMVoidTypeInContext(context)

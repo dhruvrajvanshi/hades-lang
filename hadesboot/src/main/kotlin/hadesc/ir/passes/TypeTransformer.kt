@@ -19,6 +19,16 @@ interface TypeTransformer {
         is Type.Application -> lowerTypeApplication(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
         is Type.TypeFunction -> lowerTypeFunction(type)
+        is Type.Integral -> lowerIntegralType(type)
+        is Type.FloatingPoint -> lowerFloatingPointType(type)
+    }
+
+    fun lowerFloatingPointType(type: Type.FloatingPoint): Type {
+        return type
+    }
+
+    fun lowerIntegralType(type: Type.Integral): Type {
+        return type
     }
 
     fun lowerGenericInstance(type: Type.GenericInstance): Type {
