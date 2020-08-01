@@ -40,6 +40,10 @@ class HadesTestSuite {
                             directory.toPath().toString(),
                             file.nameWithoutExtension + ".errors"
                     ).toFile()
+                    val cSourceFile = Paths.get(
+                            directory.toPath().toString(),
+                            file.nameWithoutExtension + ".c"
+                    ).toFile()
                     add(DynamicTest.dynamicTest(file.name) {
                         logger().debug("Running suite file {}", file)
 
@@ -50,13 +54,18 @@ class HadesTestSuite {
                             else
                                 file.nameWithoutExtension
                         )
+                        val cSources = if (cSourceFile.exists()) {
+                            cSourceFile.toString()
+                        } else {
+                            ""
+                        }
                         val compiler = Compiler(
                             arrayOf(
                                 "--output", outputPath.toString(),
                                 "--directories", "stdlib", directory.toString(),
                                 "--main", file.toString(),
                                 "--runtime", "runtime.c",
-                                "--c-sources", "stdlib/libc.c",
+                                "--c-sources", "stdlib/libc.c", cSources,
                                 "--cflags", utilsCLib.toString(), "-D", "DEBUG"
                             )
                         )

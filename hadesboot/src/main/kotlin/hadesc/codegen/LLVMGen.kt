@@ -430,7 +430,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun LLVMValueRef.verify() {
         val validate = LLVM.LLVMVerifyFunction(ref, LLVM.LLVMPrintMessageAction)
         if (validate > 0) {
-            log.debug("Bad function: ${this.dumpToString()}")
+            log.error("Bad function: ${this.dumpToString()}")
             TODO()
         }
     }

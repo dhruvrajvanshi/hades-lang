@@ -70,7 +70,7 @@ sealed class Type {
         Size -> "Size"
         is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
-        is Integral -> "${if(isSigned) "s" else "u" }${size}"
+        is Integral -> "${if(isSigned) "i" else "u" }${size}"
         is FloatingPoint -> "f${size}"
     }
 

@@ -425,29 +425,74 @@ class Checker(
         name: Binder) {
     }
 
+    private fun isPredicateOperator(operator: BinaryOperator): Boolean {
+        return (isEqualityCheckingOperator(operator)
+                || isOrderPredicateOperator(operator))
+    }
+
+    private fun isEqualityCheckingOperator(operator: BinaryOperator): Boolean {
+        return (operator == BinaryOperator.EQUALS
+                || operator == BinaryOperator.NOT_EQUALS)
+    }
+
+    private fun isOrderPredicateOperator(operator: BinaryOperator): Boolean {
+        return (operator == BinaryOperator.GREATER_THAN
+                || operator == BinaryOperator.GREATER_THAN_EQUAL
+                || operator == BinaryOperator.LESS_THAN
+                || operator == BinaryOperator.LESS_THAN_EQUAL)
+    }
+
     private fun checkExpression(expression: Expression, expectedType: Type): Type {
-        val type = when (expression) {
-            is Expression.IntLiteral -> {
-                val type = if (isIntLiteralAssignable(expectedType)) {
-                    expectedType
-                } else {
-                    inferExpression(expression)
+        val type = if (expression is Expression.BinaryOperation) {
+            if (isPredicateOperator(expression.operator)) {
+                val lhsType = inferExpression(expression.lhs)
+                checkExpression(expression.rhs, lhsType)
+                if (isEqualityCheckingOperator(expression.operator)) {
+                    if (!isTypeEqualityComparable(lhsType)) {
+                        error(expression, Diagnostic.Kind.TypeNotEqualityComparable(lhsType))
+                    }
+                } else if (isOrderPredicateOperator(expression.operator)) {
+                    if (!isTypeOrderComparable(lhsType)) {
+                        error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+                    }
                 }
-                checkAssignability(expression, source = type, destination = expectedType)
-                type
+                Type.Bool
+            } else {
+                checkExpression(expression.lhs, expectedType)
+                checkExpression(expression.rhs, expectedType)
             }
-            is Expression.Call -> {
-                checkCallExpression(expression, expectedType)
-            }
-            is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
-            else -> {
-                val inferredType = inferExpression(expression)
-                checkAssignability(expression, source = inferredType, destination = expectedType)
-                expectedType
+        } else {
+            when (expression) {
+                is Expression.IntLiteral -> {
+                    val type = if (isIntLiteralAssignable(expectedType)) {
+                        expectedType
+                    } else {
+                        inferExpression(expression)
+                    }
+                    checkAssignability(expression, source = type, destination = expectedType)
+                    type
+                }
+                is Expression.Call -> {
+                    checkCallExpression(expression, expectedType)
+                }
+                is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
+                else -> {
+                    val inferredType = inferExpression(expression)
+                    checkAssignability(expression, source = inferredType, destination = expectedType)
+                    expectedType
+                }
             }
         }
         typeOfExpressionCache[expression] = type
         return type
+    }
+
+    private fun isTypeOrderComparable(type: Type): Boolean {
+        return type is Type.Integral || type is Type.CInt || type is Type.FloatingPoint || type is Type.Size
+    }
+
+    private fun isTypeEqualityComparable(type: Type): Boolean {
+        return type is Type.Integral || type is Type.CInt || type is Type.Bool || type is Type.Ptr || type is Type.Size
     }
 
     private fun checkNullPtrExpression(expression: Expression.NullPtr, expectedType: Type): Type {
@@ -460,6 +505,7 @@ class Checker(
     private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
         is Type.Size,
         is Type.CInt -> true
+        is Type.Integral -> true
         else -> false
     }
 
@@ -1022,13 +1068,13 @@ class Checker(
                 "Double" -> Type.Double
                 "Void" -> Type.Void
                 "u8" -> Type.Integral(8, false)
-                "s8" -> Type.Integral(8, true)
+                "i8" -> Type.Integral(8, true)
                 "u16" -> Type.Integral(16, false)
-                "s16" -> Type.Integral(16, true)
+                "i16" -> Type.Integral(16, true)
                 "u32" -> Type.Integral(32, false)
-                "s32" -> Type.Integral(32, true)
+                "i32" -> Type.Integral(32, true)
                 "u64" -> Type.Integral(64, false)
-                "s64" -> Type.Integral(64, true)
+                "i64" -> Type.Integral(64, true)
                 "f16" -> Type.FloatingPoint(16)
                 "f32" -> Type.FloatingPoint(32)
                 "f64" -> Type.FloatingPoint(64)

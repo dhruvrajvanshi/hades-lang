@@ -8,13 +8,13 @@ def print_size[T](name: *Byte): Void {
 
 def main(): Void {
     print_size[u8](b"u8");
-    print_size[s8](b"s8");
+    print_size[i8](b"i8");
     print_size[u16](b"u16");
-    print_size[s16](b"s16");
+    print_size[i16](b"i16");
     print_size[u32](b"u32");
-    print_size[s32](b"s32");
+    print_size[i32](b"i32");
     print_size[u64](b"u64");
-    print_size[s64](b"s64");
+    print_size[i64](b"i64");
     print_size[f16](b"f16");
     print_size[f32](b"f32");
     print_size[f64](b"f64");

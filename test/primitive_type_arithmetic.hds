@@ -1,0 +1,30 @@
+import libc as c;
+
+def main(): Void {
+    print_i8(0); line();
+    print_i8(-1); line();
+    print_i8(1); line();
+    print_i8(63); line();
+    print_i8(-64); line();
+    print_i8(1 - 2); line();
+
+    print_u8(127); line();
+    print_u8(0); line();
+}
+
+def line(): Void {
+    c.puts(b"");
+}
+
+extern def print_i8(i8): Void = pta_print_i8;
+extern def print_u8(u8): Void = pta_print_u8;
+
+extern def print_i16(i16): Void = pta_print_i16;
+extern def print_u16(u16): Void = pta_print_u16;
+
+extern def print_i32(i32): Void = pta_print_i32;
+extern def print_u32(u32): Void = pta_print_u32;
+
+extern def print_i64(i64): Void = pta_print_64;
+extern def print_u64(u64): Void = pta_print_64;
+
