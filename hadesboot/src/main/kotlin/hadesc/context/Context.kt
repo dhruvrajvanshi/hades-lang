@@ -9,7 +9,7 @@ import hadesc.frontend.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
-import hadesc.hir.passes.ABISystemVx86_64Transform
+import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
 import hadesc.location.HasLocation
@@ -49,7 +49,7 @@ class Context(
             return
         }
         hirModule = Monomorphization(this).transformModule(hirModule)
-        hirModule = ABISystemVx86_64Transform(hirModule, this).transformModule(hirModule)
+        hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         logger().info(hirModule.prettyPrint())
         val irModule = IRGen(this).generate(hirModule)
 

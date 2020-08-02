@@ -1,5 +1,6 @@
 package hadesc.hir.passes
 
+import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
@@ -14,7 +15,7 @@ import hadesc.types.Type
  * separately compiled C libraries.
  */
 @OptIn(ExperimentalStdlibApi::class)
-class ABISystemVx86_64Transform(val oldModule: HIRModule, val ctx: Context): HIRTransformer {
+class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransformer {
 
     override fun transformExternFunctionDef(definition: HIRDefinition.ExternFunction): Collection<HIRDefinition> {
         val returnType = if (isTypePassedByPointer(definition.returnType)) {
@@ -51,7 +52,7 @@ class ABISystemVx86_64Transform(val oldModule: HIRModule, val ctx: Context): HIR
         if (expression.callee !is HIRExpression.GlobalRef) {
             return super.transformCall(expression)
         }
-        if (oldModule.findGlobalDefinition(expression.callee.name) !is HIRDefinition.ExternFunction) {
+        if (oldModule.findGlobalDefinition(expression.callee.name) is HIRDefinition.Struct) {
             return super.transformCall(expression)
         }
         val returnName = ctx.makeUniqueName()
@@ -116,10 +117,9 @@ class ABISystemVx86_64Transform(val oldModule: HIRModule, val ctx: Context): HIR
         )
     }
 
+    private var indirectReturnPtr: HIRExpression? = null
+    private var indirectParams: MutableMap<Name, HIRParam> = mutableMapOf()
     override fun transformFunctionDef(definition: HIRDefinition.Function): Collection<HIRDefinition> {
-        return super.transformFunctionDef(definition)
-        // TODO: Make all functions (except struct constructor functions)
-        // follow C abi
         val returnType = if (isTypePassedByPointer(definition.returnType)) {
             Type.Void
         } else {
@@ -127,22 +127,28 @@ class ABISystemVx86_64Transform(val oldModule: HIRModule, val ctx: Context): HIR
         }
         val params = buildList {
             if (isTypePassedByPointer(definition.returnType)) {
-                add(HIRParam(
+                val outParam = HIRParam(
                         location = definition.location,
                         type = Type.Ptr(definition.returnType, isMutable = true),
-                        name = ctx.makeUniqueName()))
+                        name = ctx.makeUniqueName())
+                add(outParam)
+                indirectReturnPtr = HIRExpression.ParamRef(definition.location, outParam.type, outParam.name)
             }
+            val indirectParamsValue = mutableMapOf<Name, HIRParam>()
             for (param in definition.params) {
                 if (isTypePassedByPointer(param.type)) {
-                    add(HIRParam(
+                    val indirectParam = HIRParam(
                             location = param.location,
                             type = Type.Ptr(param.type, isMutable = false),
                             name = ctx.makeUniqueName()
-                    ))
+                    )
+                    indirectParamsValue[param.name] = indirectParam
+                    add(indirectParam)
                 } else {
                     add(transformParam(param))
                 }
             }
+            indirectParams = indirectParamsValue
         }
         return listOf(
                 HIRDefinition.Function(
@@ -158,6 +164,29 @@ class ABISystemVx86_64Transform(val oldModule: HIRModule, val ctx: Context): HIR
                         body = transformBlock(definition.body)
                 )
         )
+    }
+
+    override fun transformParamRef(expression: HIRExpression.ParamRef): HIRExpression {
+        val indirectPtr = indirectParams[expression.name]
+        if (indirectPtr != null) {
+            return HIRExpression.Load(
+                    expression.location,
+                    expression.type,
+                    HIRExpression.ParamRef(expression.location, expression.type, indirectPtr.name)
+            )
+        }
+        return super.transformParamRef(expression)
+    }
+
+    override fun transformReturnStatement(statement: HIRStatement.Return): Collection<HIRStatement> {
+        val outParam = indirectReturnPtr
+        if (outParam != null) {
+            return listOf(
+                    HIRStatement.Store(statement.location, ptr = outParam, value = transformExpression(statement.expression)),
+                    HIRStatement.ReturnVoid(statement.location)
+            )
+        }
+        return super.transformReturnStatement(statement)
     }
 
     private fun isTypePassedByPointer(type: Type): Boolean {
