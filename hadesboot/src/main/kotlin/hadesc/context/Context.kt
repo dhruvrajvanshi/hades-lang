@@ -50,7 +50,7 @@ class Context(
         }
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
-        logger().info(hirModule.prettyPrint())
+        logger().debug(hirModule.prettyPrint())
         val irModule = IRGen(this).generate(hirModule)
 
         LLVMGen(this, irModule).use {

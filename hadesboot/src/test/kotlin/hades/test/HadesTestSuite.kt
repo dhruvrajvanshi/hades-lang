@@ -65,6 +65,7 @@ class HadesTestSuite {
                                 "--directories", "stdlib", directory.toString(),
                                 "--main", file.toString(),
                                 "--runtime", "runtime.c",
+                                "--dump-llvm-module",
                                 "--c-sources", "stdlib/libc.c", cSources,
                                 "--cflags", utilsCLib.toString(), "-D", "DEBUG"
                             )
