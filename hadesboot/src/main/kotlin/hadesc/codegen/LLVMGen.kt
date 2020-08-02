@@ -80,7 +80,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val fn = getStructConstructor(definition)
         withinBlock(fn.createBlock("entry")) {
             val instanceType = lowerType(definition.instanceType)
-            val thisPtr = buildAlloca(instanceType, "this")
+            val thisPtr = buildAlloca(instanceType, "this", getStackAlignment())
             var index = -1
             for (field in definition.fields) {
                 index++
@@ -228,9 +228,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerAlloca(statement: IRAlloca) {
         val name = lowerName(statement.name)
-        val ref = builder.buildAlloca(lowerType(statement.type), name)
+        val ref = builder.buildAlloca(lowerType(statement.type), name, getStackAlignment())
         localVariables[statement.name] = ref
     }
+
+    private fun getStackAlignment() = 16
 
     private fun lowerStore(statement: IRStore) {
         builder.buildStore(

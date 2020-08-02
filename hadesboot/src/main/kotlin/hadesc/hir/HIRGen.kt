@@ -13,7 +13,6 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
-import kotlin.math.exp
 
 class HIRGen(
         private val ctx: Context

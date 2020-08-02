@@ -1,11 +1,3 @@
-
-struct TwoRegisters {
-    val value_1: u64;
-    val value_2: u64;
-}
-extern def make_two_registers(u64, u64): TwoRegisters = make_two_registers;
-extern def print_two_registers(TwoRegisters): Void = print_two_registers;
-
 struct ThreeRegisters {
     val value_1: u64;
     val value_2: u64;
@@ -14,8 +6,6 @@ struct ThreeRegisters {
 extern def make_three_registers(u64, u64, u64): ThreeRegisters = make_three_registers;
 extern def print_three_registers(ThreeRegisters): Void = print_three_registers;
 
-
 def main(): Void {
-    print_two_registers(make_two_registers(1, 2));
-    print_three_registers(make_three_registers(1, 2, 4));
+    print_three_registers(make_three_registers(1, 2, 3));
 }
