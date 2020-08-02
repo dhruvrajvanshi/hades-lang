@@ -114,4 +114,29 @@ type CursorVisitor = *(Cursor, Cursor, ClientData) -> ChildVisitResult;
 extern def visit_children(Cursor, CursorVisitor, ClientData): ChildVisitResult = clang_visitChildren;
 
 extern def get_translation_unit_cursor(TranslationUnit): Cursor = clang_getTranslationUnitCursor;
+extern def get_translation_unit_spelling(TranslationUnit): CXString = clang_getTranslationUnitSpelling;
+extern def get_cursor_spelling(Cursor): CXString = clang_getCursorSpelling;
+extern def get_cursor_kind(Cursor): CursorKind  = clang_getCursorKind;
+extern def get_cursor_kind_spelling(CursorKind): CXString = clang_getCursorKindSpelling;
+
+def dump_cursor(cursor: Cursor): Void {
+  val kind = cursor.kind;
+  Debug.dump_string(b"Cursor(kind = ");
+  val kind_spelling = get_cursor_kind_spelling(kind);
+  defer dispose_string(kind_spelling);
+  Debug.dump_string(kind_spelling.data);
+  Debug.dump_string(b", name = ");
+  val name_spelling = get_cursor_spelling(cursor);
+  defer dispose_string(name_spelling);
+  Debug.dump_string(name_spelling.data);
+  Debug.dump_string(b")");
+  Debug.dump_newline();
+}
+
+struct CXString {
+  val data: *u8;
+  val private_flags: u32;
+}
+
+extern def dispose_string(CXString): Void = clang_disposeString;
 

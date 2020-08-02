@@ -28,6 +28,7 @@ generate_c_stubs: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 		--directories . $(STDLIB_DIR) \
 		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES) \
 		--runtime $(RUNTIME_SOURCE) \
+		--dump-llvm-module \
 		--cflags '-lclang'
 
 clean:

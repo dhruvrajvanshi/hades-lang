@@ -45,10 +45,11 @@ def run(argc: Int, argv: **Byte): SGResult.t[Int] {
         return Result.error(SGError.clang_error(err));
     }
     defer Clang.dispose_translation_unit(translation_unit);
-
     val cursor = Clang.get_translation_unit_cursor(translation_unit);
 
-    Clang.visit_children(cursor, visit_children, nullptr);
+    Clang.dump_cursor(cursor);
+
+    // Clang.visit_children(cursor, visit_children, nullptr);
 
     return Result.error(SGError.unimplemented());
 }

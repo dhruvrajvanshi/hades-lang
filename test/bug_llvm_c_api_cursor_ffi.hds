@@ -1,0 +1,19 @@
+struct Cursor {
+  val kind: Int;
+  val data: Int;
+  val data_0: *Void;
+  val data_1: *Void;
+  val data_2: *Void;
+}
+
+extern def make_cursor(Int, Int): Cursor = make_cursor;
+extern def print_cursor(Cursor): Void = print_cursor;
+extern def get_cursor_kind(Cursor): Int = get_cursor_kind;
+extern def print_cursor_kind(Int): Void = print_cursor_kind;
+
+def main(): Void {
+    val cursor = make_cursor(7, 4);
+    print_cursor(cursor);
+    val kind = get_cursor_kind(cursor);
+    print_cursor_kind(kind);
+}
