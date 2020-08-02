@@ -23,13 +23,13 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
         } else definition.returnType
         val params = buildList {
             if (isTypePassedByPointer(definition.returnType)) {
-                add(Type.Ptr(definition.returnType, isMutable = true))
+                add(Type.Ptr(lowerType(definition.returnType), isMutable = true))
             }
             for (originalParamType in definition.params) {
                 if (isTypePassedByPointer(originalParamType)) {
-                    add(Type.Ptr(originalParamType, isMutable = false))
+                    add(Type.Ptr(lowerType(originalParamType), isMutable = false))
                 } else {
-                    add(originalParamType)
+                    add(lowerType(originalParamType))
                 }
             }
         }
@@ -61,11 +61,11 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
                     location = expression.location,
                     name = returnName,
                     isMutable = true,
-                    type = expression.type))
+                    type = lowerType(expression.type)))
         }
         val args = buildList {
             if (isTypePassedByPointer(expression.type)) {
-                add(HIRExpression.AddressOf(expression.location, Type.Ptr(expression.type, isMutable = true), returnName))
+                add(HIRExpression.AddressOf(expression.location, Type.Ptr(lowerType(expression.type), isMutable = true), returnName))
             }
             for (arg in expression.args) {
                 if (isTypePassedByPointer(arg.type)) {
@@ -76,7 +76,7 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
                             type = lowerType(arg.type),
                             isMutable = false))
                     addStatement(HIRStatement.Assignment(arg.location, tempArgName, transformExpression(arg)))
-                    add(HIRExpression.AddressOf(arg.location, Type.Ptr(arg.type, isMutable = false), tempArgName))
+                    add(HIRExpression.AddressOf(arg.location, Type.Ptr(lowerType(arg.type), isMutable = false), tempArgName))
                 } else {
                     add(transformExpression(arg))
                 }
@@ -95,7 +95,7 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
         } else {
             HIRExpression.Call(
                     expression.location,
-                    expression.type,
+                    lowerType(expression.type),
                     transformExpression(expression.callee),
                     args
             )
@@ -120,20 +120,27 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
     private var indirectReturnPtr: HIRExpression? = null
     private var indirectParams: MutableMap<Name, HIRParam> = mutableMapOf()
     override fun transformFunctionDef(definition: HIRDefinition.Function): Collection<HIRDefinition> {
-        val returnType = if (isTypePassedByPointer(definition.returnType)) {
+        val loweredReturnType = lowerType(definition.returnType)
+        val isReturnTypePassedByPointer = isTypePassedByPointer(loweredReturnType)
+        val returnType = if (isReturnTypePassedByPointer) {
             Type.Void
         } else {
-            definition.returnType
+            loweredReturnType
+        }
+        val outParamList = mutableListOf<HIRParam>()
+        if (isReturnTypePassedByPointer) {
+            val outParam = HIRParam(
+                    location = definition.location,
+                    type = Type.Ptr(loweredReturnType, isMutable = true),
+                    name = ctx.makeUniqueName())
+            outParamList.add(outParam)
+            indirectReturnPtr = HIRExpression.ParamRef(
+                    definition.location,
+                    outParam.type,
+                    outParam.name)
         }
         val params = buildList {
-            if (isTypePassedByPointer(definition.returnType)) {
-                val outParam = HIRParam(
-                        location = definition.location,
-                        type = Type.Ptr(definition.returnType, isMutable = true),
-                        name = ctx.makeUniqueName())
-                add(outParam)
-                indirectReturnPtr = HIRExpression.ParamRef(definition.location, outParam.type, outParam.name)
-            }
+            addAll(outParamList)
             val indirectParamsValue = mutableMapOf<Name, HIRParam>()
             for (param in definition.params) {
                 if (isTypePassedByPointer(param.type)) {
@@ -150,6 +157,9 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
             }
             indirectParams = indirectParamsValue
         }
+        val body = transformBlock(definition.body)
+        indirectReturnPtr = null
+        require(params.size == outParamList.size + definition.params.size)
         return listOf(
                 HIRDefinition.Function(
                         location = definition.location,
@@ -161,7 +171,7 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
                                 returnType = returnType,
                                 typeParams = null
                         ),
-                        body = transformBlock(definition.body)
+                        body = body
                 )
         )
     }
@@ -214,6 +224,31 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
         is Type.TypeFunction -> requireUnreachable()
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> requireUnreachable()
+    }
+
+    override fun lowerFunctionType(type: Type.Function): Type {
+        val from = buildList {
+            if (isTypePassedByPointer(type.to)) {
+                add(Type.Ptr(lowerType(type.to), isMutable = true))
+            }
+            for (param in type.from) {
+                if (isTypePassedByPointer(param))  {
+                    add(Type.Ptr(lowerType(param), isMutable = false))
+                } else {
+                    add(lowerType(param))
+                }
+            }
+        }
+        val to = if (isTypePassedByPointer(type.to)) {
+            Type.Void
+        } else {
+            lowerType(type.to)
+        }
+        val result = Type.Function(
+                from,
+                to
+        )
+        return result
     }
 
     private fun abiSizeBytes(type: Type): Int = when (type) {
