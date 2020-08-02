@@ -1,0 +1,7 @@
+
+set(LIBHADES_SOURCES
+        ./core/Context.cpp)
+
+add_library(libhades ${LIBHADES_SOURCES})
+target_link_libraries(libhades LLVM-10)
+target_include_directories(libhades PUBLIC ${HADES_INCLUDE_DIRS})
