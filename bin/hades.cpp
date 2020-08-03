@@ -1,8 +1,6 @@
-#include "llvm/IR/LLVMContext.h"
 #include "hades/core/Context.h"
 
-auto main() -> int {
-    hades::core::Context ctx;
-    ctx.run();
-    return 0;
+auto main(int argc, const char** argv) -> int {
+    auto ctx = hades::core::Context(argc, argv);
+    return ctx.run();
 }

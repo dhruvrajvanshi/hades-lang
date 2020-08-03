@@ -1,9 +1,11 @@
 #include "hades/core/Context.h"
-#include "llvm/ADT/Optional.h"
+#include "hades/data.h"
 
 namespace hades::core {
 
-    auto Context::run() -> void {
-    }
+auto Context::run() -> int { return 1; }
 
-}
+Context::Context(SmallVec<String, 16> args) {}
+Context::Context(int argc, const char** args) {}
+
+} // namespace hades::core
