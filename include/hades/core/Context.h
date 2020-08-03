@@ -1,7 +1,7 @@
 #ifndef HADES_CORE_CONTEXT_H
 #define HADES_CORE_CONTEXT_H
 
-#include "hades/data.h"
+#include "hades/base/data.h"
 
 namespace hades::core {
 

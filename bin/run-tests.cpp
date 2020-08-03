@@ -1,5 +1,5 @@
+#include "hades/base/sys.h"
 #include "hades/core/Context.h"
-#include "hades/sys.h"
 #include "iostream"
 
 namespace fs = hades::fs;
@@ -14,26 +14,27 @@ auto main(int argc, const char **argv) -> int {
   }
   fs::create_directory(test_build_directory);
   for (auto entry : fs::directory_iterator(test_directory)) {
-    if (entry.path().extension() == ".hds") {
-      auto filename_without_extension = entry.path().stem();
-      auto stdout_file = entry.path();
-      stdout_file.replace_extension(".stdout");
-
-      SmallVec<String, 16> args {
-          entry.path(),
-          "--directories", test_directory,
-          "--output", test_build_directory
-      };
-
-      auto ctx = hades::core::Context(args);
-      auto exit_code = ctx.run();
-
-      if (exit_code != 0) {
-        std::cout << "[FAIL]: " << entry << "\n";
-        continue;
-      }
-      std::cout << "[PASS]: " << entry << "\n";
+    if (entry.path().string().find("bug") == String::npos) {
+      continue;
     }
+    if (entry.path().extension() != ".hds") {
+      continue;
+    }
+    auto filename_without_extension = entry.path().stem();
+    auto stdout_file = entry.path();
+    stdout_file.replace_extension(".stdout");
+
+    SmallVec<String, 16> args{entry.path(), "--directories", test_directory,
+                              "--output", test_build_directory};
+
+    auto ctx = hades::core::Context(args);
+    auto exit_code = ctx.run();
+
+    if (exit_code != 0) {
+      std::cout << "[FAIL]: " << entry << "\n";
+      continue;
+    }
+    std::cout << "[PASS]: " << entry << "\n";
   }
   return 0;
 }
