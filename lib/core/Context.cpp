@@ -1,4 +1,6 @@
+
 #include "hades/core/Context.h"
+#include "ContextImpl.h"
 #include "hades/base/data.h"
 
 namespace hades::core {
@@ -18,5 +20,6 @@ auto Context::self_mut() -> ContextImpl& {
 auto Context::self() -> const ContextImpl& {
   return *m_self;
 }
+Context::~Context() = default;
 
 } // namespace hades::core
