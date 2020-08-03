@@ -24,8 +24,11 @@ auto main(int argc, const char **argv) -> int {
     auto stdout_file = entry.path();
     stdout_file.replace_extension(".stdout");
 
-    SmallVec<String, 16> args{entry.path(), "--directories", test_directory,
-                              "--output", test_build_directory};
+    Vec<String> args{
+        "--sources",     entry.path(),        //
+        "--directories", test_directory,      //
+        "--output",      test_build_directory //
+    };
 
     auto ctx = hades::core::Context(args);
     auto exit_code = ctx.run();

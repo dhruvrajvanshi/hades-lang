@@ -17,7 +17,7 @@ private:
 
 public:
   ArrayRef<Declaration *> declarations() {
-    return ArrayRef(&m_declarations);
+    return ArrayRef<Declaration*>(m_declarations);
   }
 };
 

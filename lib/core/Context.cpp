@@ -3,9 +3,20 @@
 
 namespace hades::core {
 
-auto Context::run() -> int { return 1; }
+Context::Context(Vec<String> args): m_self(std::make_unique<ContextImpl>(std::move(args))) {}
 
-Context::Context(SmallVec<String, 16> args) {}
 Context::Context(int argc, const char** args) {}
+
+auto Context::run() -> int {
+  return self_mut().run();
+}
+
+auto Context::self_mut() -> ContextImpl& {
+  return *m_self;
+}
+
+auto Context::self() -> const ContextImpl& {
+  return *m_self;
+}
 
 } // namespace hades::core

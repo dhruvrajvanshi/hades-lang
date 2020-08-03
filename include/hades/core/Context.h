@@ -2,14 +2,19 @@
 #define HADES_CORE_CONTEXT_H
 
 #include "hades/base/data.h"
+#include "hades/core/ContextImpl.h"
 
 namespace hades::core {
-
 class Context {
 public:
-  Context(SmallVec<String, 16> args);
+  Context(Vec<String> args);
   Context(int argc, const char **argv);
+  Context() = delete;
   auto run() -> int;
+private:
+  std::unique_ptr<ContextImpl>m_self;
+  auto self_mut() -> ContextImpl&;
+  auto self() -> const ContextImpl&;
 };
 
 } // namespace hades::core

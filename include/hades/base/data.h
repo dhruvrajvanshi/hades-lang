@@ -9,6 +9,7 @@
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Allocator.h"
+#include "hades/base/Result.h"
 
 namespace hades {
 using String = std::string;
@@ -26,7 +27,30 @@ template <typename ...Ts>
 using PointerUnion = llvm::PointerUnion<Ts...>;
 
 template <typename T>
+using Optional = llvm::Optional<T>;
+
+namespace optional {
+    template <typename T>
+    auto none() -> Optional<T> {
+        return Optional<T>();
+    }
+
+    template <typename T>
+    auto some(T value) -> Optional<T> {
+        return Optional<T>(value);
+    }
+} // namespace optional
+
+template <typename T>
 using ArrayRef = llvm::ArrayRef<T>;
+
+template <typename... Elements>
+using Tuple = std::tuple<Elements...>;
+
+using u32 = uint32_t;
+using u64 = uint64_t;
+using i32 = uint32_t;
+using i64 = uint64_t;
 
 } // namespace hades
 
