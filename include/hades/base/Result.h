@@ -9,49 +9,50 @@
 
 namespace hades {
 template <typename T, typename Error> class Result {
-public:
-  auto is_error() -> bool {
-    return m_is_error;
-  }
-  auto is_ok() -> bool {
-    return !is_error();
-  }
+  bool m_is_error;
+  std::variant<T, Error> m_data;
 
-  auto get_data() -> T {
+public:
+  Result(T value) : m_is_error(false), m_data(std::move(value)){};
+
+  Result(Error error) : m_is_error(true), m_data(std::move(error)){};
+
+  ~Result() = default;
+
+  auto is_error() const -> bool { return m_is_error; }
+  auto is_ok() const -> bool { return !is_error(); }
+
+  auto copy_value() const -> T {
+    static_assert(std::is_copy_constructible_v<T>, "T is not copyable");
     assert(is_ok());
     return std::get<T>(m_data);
   }
-  auto get_error() -> Error {
+
+  auto copy_error() const -> Error {
+    static_assert(std::is_copy_constructible_v<Error>);
     assert(is_error());
     return std::get<Error>(m_data);
   }
 
-  static auto ok(T value) -> Result<T, Error> {
-    return Result(false, value);
-  }
-  static auto error(Error error) -> Result<T, Error> {
-    return Result(true, error);
+  auto get_value() -> T & {
+    assert(is_ok());
+    return std::get<T>(m_data);
   }
 
-private:
-  bool m_is_error;
-  std::variant<T, Error> m_data;
-  Result(bool is_error, T value) : m_is_error(is_error), m_data(std::move(value)) {};
-  Result(bool is_error, Error error) : m_is_error(is_error), m_data(std::move(error)) {};
+  auto get_error() -> Error & {
+    assert(is_error());
+    return std::get<Error>(m_data);
+  }
+
+  template <typename U>
+  auto map(std::function<U(T)> f) -> Result<U, Error> {
+    if (is_error()) {
+      return Result<U, Error>(get_error());
+    } else {
+      return Result<U, Error>(f(std::move(get_value())));
+    }
+  }
 };
-
-namespace result {
-template <typename T, typename Error>
-auto ok(T value) -> Result<T, Error> {
-  return Result<T, Error>::ok(std::move(value));
-}
-
-template <typename T, typename Error>
-auto error(Error error) -> Result<T, Error> {
-  return Result<T, Error>::error(std::move(error));
-}
-
-} // namespace result
 
 } // namespace hades
 

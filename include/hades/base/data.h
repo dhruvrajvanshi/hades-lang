@@ -47,6 +47,9 @@ using ArrayRef = llvm::ArrayRef<T>;
 template <typename... Elements>
 using Tuple = std::tuple<Elements...>;
 
+template <typename T>
+using UniquePtr = std::unique_ptr<T>;
+
 using u32 = uint32_t;
 using u64 = uint64_t;
 using i32 = uint32_t;

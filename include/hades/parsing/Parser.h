@@ -9,10 +9,13 @@
 
 namespace hades {
 
+class ParserImpl;
 class Parser {
 public:
-    SourceFile* parse_source_file();
-    Declaration* parse_declaration();
+  SourceFile *parse_source_file();
+  Declaration *parse_declaration();
+
+private:
 };
 } // namespace hades
 

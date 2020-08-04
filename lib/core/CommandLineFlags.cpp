@@ -43,11 +43,11 @@ auto CommandLineFlags::parse(const Vec<String>& flags) -> Result<CommandLineFlag
   }
 
   if (!errors.empty()) {
-    return Result<CommandLineFlags, FlagParseError>::error(FlagParseError(errors));
+    return Result<CommandLineFlags, FlagParseError>(FlagParseError(errors));
   }
 
   auto result = CommandLineFlags(sources, directories, output.getValue());
-  return Result<CommandLineFlags, FlagParseError>::ok(result);
+  return Result<CommandLineFlags, FlagParseError>(result);
 }
 
 auto find_flag_range(const char *flag_name, const Vec<String> &flags)

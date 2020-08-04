@@ -7,25 +7,29 @@
 
 #include "hades/core/RequestEvaluator.h"
 #include "hades/requests.h"
+#include "hades/base.h"
 
 namespace hades::core {
 namespace req = requests;
 class ContextImpl {
 
   RequestEvaluator m_evaluator;
-  Vec<String> m_args;
+  CommandLineFlags m_flags;
 
 public:
-  ContextImpl(Vec<String> args) : m_evaluator{}, m_args{std::move(args)} {}
+  static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;
   ContextImpl() = delete;
-  ContextImpl(const ContextImpl&) = delete;
-  auto operator=(const ContextImpl&) = delete;
+  ~ContextImpl() = default;
+  ContextImpl(CommandLineFlags flags) : m_evaluator{}, m_flags{flags} {}
+  HADES_DEFAULT_MOVE(ContextImpl)
+  HADES_DELETE_COPY(ContextImpl)
 
   auto run() -> int;
   auto evaluate(req::BuildObjectFileRequest) -> int;
-  auto evaluate(req::GetBuildFlagsRequest) -> Result<CommandLineFlags, FlagParseError>;
-  auto args() const -> const Vec<String>*;
+  auto flags() const -> const CommandLineFlags&;
 };
+static_assert(std::is_move_constructible_v<ContextImpl>);
+static_assert(std::is_move_assignable_v<ContextImpl>);
 
 } // namespace hades::core
 

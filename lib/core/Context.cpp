@@ -5,10 +5,6 @@
 
 namespace hades::core {
 
-Context::Context(Vec<String> args): m_self(std::make_unique<ContextImpl>(std::move(args))) {}
-
-Context::Context(int argc, const char** args) {}
-
 auto Context::run() -> int {
   return self_mut().run();
 }
@@ -20,6 +16,12 @@ auto Context::self_mut() -> ContextImpl& {
 auto Context::self() -> const ContextImpl& {
   return *m_self;
 }
-Context::~Context() = default;
+auto Context::from_args(const Vec<String> & args) -> Result<Context, FlagParseError> {
+  return ContextImpl::from_args(args)
+      .map<Context>([](auto&& impl) -> Context { return Context(std::move(impl)); });
+}
+
+Context::Context(ContextImpl self): m_self{new ContextImpl(std::move(self))} {}
+Context::~Context() noexcept = default;
 
 } // namespace hades::core

@@ -1,4 +1,5 @@
 #include "hades/base/sys.h"
+#include "hades/base/data.h"
 #include "hades/core/Context.h"
 #include "iostream"
 
@@ -30,7 +31,7 @@ auto main(int argc, const char **argv) -> int {
         "--output",      test_build_directory //
     };
 
-    auto ctx = hades::core::Context(args);
+    auto&& ctx = hades::core::Context::from_args(args).get_value();
     auto exit_code = ctx.run();
 
     if (exit_code != 0) {

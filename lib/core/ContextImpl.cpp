@@ -6,22 +6,21 @@
 
 namespace hades::core {
 auto ContextImpl::run() -> int {
-  return evaluate(req::BuildObjectFileRequest(args()));
+  return evaluate(req::BuildObjectFileRequest(&flags()));
 }
 
 auto ContextImpl::evaluate(req::BuildObjectFileRequest request) -> int {
-  auto flags_result = evaluate(req::GetBuildFlagsRequest(request.args));
-  if (flags_result.is_error()) {
-    auto error = flags_result.get_error();
-    std::cerr << error << std::endl;
-    return 1;
-  }
-  auto flags = flags_result.get_data();
   unimplemented();
 }
-auto ContextImpl::evaluate(req::GetBuildFlagsRequest flags_request) -> Result<CommandLineFlags, FlagParseError> {
-  return CommandLineFlags::parse(*flags_request.args);
+
+auto ContextImpl::flags() const -> const CommandLineFlags & { return m_flags; }
+
+auto ContextImpl::from_args(const Vec<String> &args) noexcept
+    -> Result<ContextImpl, FlagParseError> {
+  return CommandLineFlags::parse(args).map<ContextImpl>(
+      [](auto &&flags) -> ContextImpl {
+        return ContextImpl(std::move(flags));
+      });
 }
-auto ContextImpl::args() const -> const Vec<String> * { return &m_args; }
 
 }; // namespace hades::core

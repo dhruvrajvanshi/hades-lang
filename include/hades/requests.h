@@ -15,15 +15,13 @@ template <typename Result>
 class Request {
 };
 
-struct GetBuildFlagsRequest: public Request<Result<CommandLineFlags, FlagParseError>> {
-  const Vec<String>* args;
-  GetBuildFlagsRequest(const Vec<String>* args): args{args} {}
-};
-
 using ExitCode = uint32_t;
 struct BuildObjectFileRequest: public Request<ExitCode> {
-  const Vec<String>* args;
-  BuildObjectFileRequest(const Vec<String>* args): args(args) {}
+private:
+  const CommandLineFlags* m_flags;
+public:
+  BuildObjectFileRequest(const CommandLineFlags* flags): m_flags(flags) {}
+  auto flags() const noexcept -> const CommandLineFlags& { return *m_flags; }
 };
 
 struct GetParsedSourceFileRequest: public Request<SourceFile> {
