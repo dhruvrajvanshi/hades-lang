@@ -49,6 +49,17 @@ auto CommandLineFlags::parse(const Vec<String>& flags) -> Result<CommandLineFlag
   auto result = CommandLineFlags(sources, directories, output.getValue());
   return Result<CommandLineFlags, FlagParseError>(result);
 }
+auto CommandLineFlags::sources() const noexcept -> const Vec<fs::path> & {
+  return m_sources;
+}
+
+auto CommandLineFlags::directories() const noexcept -> const Vec<fs::path> & {
+  return m_directories;
+}
+
+auto CommandLineFlags::output() const noexcept -> const fs::path & {
+  return m_output;
+}
 
 auto find_flag_range(const char *flag_name, const Vec<String> &flags)
 -> Tuple<u32, u32> {

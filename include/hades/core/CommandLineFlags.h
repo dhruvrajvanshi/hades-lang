@@ -42,6 +42,9 @@ public:
 
   HADES_DEFAULT_MOVE(CommandLineFlags)
   HADES_DEFAULT_COPY(CommandLineFlags)
+  auto sources() const noexcept -> const Vec<fs::path>&;
+  auto directories() const noexcept -> const Vec<fs::path>&;
+  auto output() const noexcept -> const fs::path&;
 };
 
 auto operator<<(std::ostream &os, const FlagParseError &self) -> std::ostream &;
