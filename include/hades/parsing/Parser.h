@@ -6,16 +6,23 @@
 #define HADES_PARSING_PARSER_H
 
 #include "hades/ast/SourceFile.h"
+#include "hades/core/Context.h"
+#include "hades/base.h"
 
 namespace hades {
 
 class ParserImpl;
 class Parser {
+  UniquePtr<ParserImpl> m_impl;
+
 public:
-  SourceFile *parse_source_file();
-  Declaration *parse_declaration();
+  Parser(core::Context* ctx, const fs::path *path);
+  ~Parser() noexcept;
+
+  auto parse_source_file() -> const SourceFile *;
 
 private:
+  auto self() -> ParserImpl &;
 };
 } // namespace hades
 

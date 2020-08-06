@@ -6,6 +6,7 @@
 namespace hades::core {
 
 auto Context::run() -> int {
+  self_mut().set_ctx_ptr(this);
   return self_mut().run();
 }
 
@@ -22,6 +23,9 @@ auto Context::from_args(const Vec<String> & args) -> Result<Context, FlagParseEr
 }
 
 Context::Context(ContextImpl self): m_self{new ContextImpl(std::move(self))} {}
+auto Context::allocator() -> llvm::BumpPtrAllocator & {
+  return self_mut().allocator();
+}
 Context::~Context() noexcept = default;
 
 } // namespace hades::core

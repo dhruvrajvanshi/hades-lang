@@ -12,18 +12,17 @@ class Context {
 public:
   Context() = delete;
   ~Context() noexcept;
-  Context(UniquePtr<ContextImpl> self);
   Context(ContextImpl self);
   HADES_DEFAULT_MOVE(Context)
   HADES_DELETE_COPY(Context)
-  static auto from_args(const Vec<String>&) -> Result<Context, FlagParseError>;
+  static auto from_args(const Vec<String> &) -> Result<Context, FlagParseError>;
 
   auto run() -> int;
+  auto allocator() -> llvm::BumpPtrAllocator &;
 
 private:
   auto self_mut() -> ContextImpl &;
   auto self() -> const ContextImpl &;
-
 };
 
 } // namespace hades::core

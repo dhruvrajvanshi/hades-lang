@@ -1,6 +1,5 @@
-#include "hades/core/Context.h"
+#include "hades/base.h"
 
 auto main(int argc, const char** argv) -> int {
-    auto ctx = hades::core::Context(argc, argv);
-    return ctx.run();
+    hades::unimplemented();
 }

@@ -31,7 +31,8 @@ auto main(int argc, const char **argv) -> int {
         "--output",      test_build_directory //
     };
 
-    auto&& ctx = hades::core::Context::from_args(args).get_value();
+    auto ctx_result = hades::core::Context::from_args(args);
+    auto&& ctx = ctx_result.get_value();
     auto exit_code = ctx.run();
 
     if (exit_code != 0) {
