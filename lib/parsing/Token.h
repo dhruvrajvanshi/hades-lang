@@ -5,28 +5,35 @@
 #ifndef HADES_TOKEN_H
 #define HADES_TOKEN_H
 
-#include "hades/core/location.h"
 #include "hades/base/data.h"
+#include "hades/core/location.h"
 
 namespace hades {
 
 class Token {
 public:
   enum class Kind;
+
 private:
   Kind m_kind;
   SourceLocation m_location;
   StringView m_text;
+
 public:
-  Token(Kind kind, SourceLocation m_location, StringView m_text);
+  Token(Kind kind, SourceLocation m_location, StringView m_text) noexcept;
+  auto kind() const noexcept -> Kind;
+  auto is(Kind kind) const noexcept -> bool;
   enum class Kind {
     ERROR,
     ID,
     EXTERN,
     DEF,
+    STRUCT,
 
     LPAREN,
     RPAREN,
+    LBRACE,
+    RBRACE,
 
     EQ,
     EQEQ,

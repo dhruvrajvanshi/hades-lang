@@ -9,10 +9,14 @@ using LineNumber = uint64_t;
 using ColumnNumber = uint64_t;
 
 struct SourcePosition {
+private:
+  LineNumber m_line;
+  LineNumber m_column;
+public:
+  SourcePosition(LineNumber line, LineNumber column);
   LineNumber line();
   ColumnNumber column();
 };
-static_assert(std::is_pod_v<SourcePosition>);
 
 struct SourceLocation {
   const fs::path* path();

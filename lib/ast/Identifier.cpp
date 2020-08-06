@@ -5,7 +5,7 @@
 #include "hades/ast/Identifier.h"
 namespace hades {
 
-Identifier::Identifier(SourceLocation location, const char *name)
+Identifier::Identifier(SourceLocation location, StringView name)
     : m_name(name), m_location(std::move(location)) {}
 
 } // namespace hades

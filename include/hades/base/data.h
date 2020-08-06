@@ -10,6 +10,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Allocator.h"
+#include "llvm/ADT/DenseMap.h"
 #include "hades/base/Result.h"
 
 namespace hades {
@@ -29,6 +30,12 @@ using PointerUnion = llvm::PointerUnion<Ts...>;
 
 template <typename T>
 using Optional = llvm::Optional<T>;
+
+template <typename K, typename V>
+using DenseMap = llvm::DenseMap<K, V>;
+
+template <typename K, typename V>
+using Map = std::unordered_map<K, V>;
 
 namespace optional {
     template <typename T>

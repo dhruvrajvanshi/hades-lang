@@ -12,11 +12,11 @@ namespace hades {
 
 class Identifier {
   friend core::Context;
-  const char *m_name;
+  StringView m_name;
   SourceLocation m_location;
 
 protected:
-  Identifier(SourceLocation location, const char *m_name);
+  Identifier(SourceLocation location, StringView view);
 };
 
 } // namespace hades

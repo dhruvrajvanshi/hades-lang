@@ -16,9 +16,12 @@ set(LIBHADES_PARSING_SOURCES
         parsing/ParserImpl.cpp
         parsing/Parser.cpp
         parsing/Token.cpp
-        parsing/Lexer.cpp)
+        parsing/Lexer.cpp
+        parsing/parse_declaration.cpp
+        )
 add_library(libhades_parsing ${LIBHADES_PARSING_SOURCES})
 target_include_directories(libhades_parsing PUBLIC ${HADES_INCLUDE_DIRS})
+target_link_libraries(libhades_parsing libhades)
 
 set(LIBHADES_AST_SOURCES
         ast/SourceFile.cpp

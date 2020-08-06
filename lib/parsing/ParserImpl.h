@@ -7,20 +7,29 @@
 #include "hades/ast/SourceFile.h"
 #include "hades/base.h"
 #include "hades/core/Context.h"
+#include "Token.h"
+#include "Lexer.h"
 
 namespace hades {
 
 class ParserImpl {
   const fs::path *m_path;
-  core::Context *m_ctx;
+  core::Context* m_ctx;
+  Lexer m_lexer;
+
+  Token m_current_token;
 
 public:
   ParserImpl(core::Context *m_ctx, const fs::path *m_path);
   ~ParserImpl() = default;
   auto parse_source_file() -> const SourceFile *;
 
+  auto parse_declaration() -> const Declaration *;
+
 private:
   auto allocator() -> llvm::BumpPtrAllocator &;
+
+  auto at(Token::Kind kind) const -> bool;
 
   template <typename T, typename ...Args>
   auto allocate(Args&&... args) -> T* {
