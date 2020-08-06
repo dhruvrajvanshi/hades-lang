@@ -22,6 +22,8 @@ private:
 public:
   Token(Kind kind, SourceLocation m_location, StringView m_text) noexcept;
   auto kind() const noexcept -> Kind;
+  auto location() const noexcept -> SourceLocation;
+  auto text() const noexcept -> StringView;
   auto is(Kind kind) const noexcept -> bool;
   enum class Kind {
     ERROR,

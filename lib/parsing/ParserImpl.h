@@ -13,6 +13,7 @@
 namespace hades {
 
 class ParserImpl {
+  using tt = Token::Kind;
   const fs::path *m_path;
   core::Context* m_ctx;
   Lexer m_lexer;
@@ -31,11 +32,22 @@ private:
 
   auto at(Token::Kind kind) const -> bool;
 
+  auto current_token() const -> const Token&;
+
   template <typename T, typename ...Args>
   auto allocate(Args&&... args) -> T* {
     auto* mem = allocator().Allocate(sizeof(T), alignof(T));
     return new(mem) T(std::forward<Args>(args)...);
   }
+
+  auto expect(Token::Kind kind) -> Token;
+
+  auto parse_struct_def() -> const StructDef*;
+  auto advance() -> Token;
+
+  auto parse_identifier() -> Identifier;
+
+  auto ctx() const noexcept -> core::Context&;
 };
 
 } // namespace hades

@@ -7,16 +7,16 @@
 
 #include "hades/core/Context.h"
 #include "hades/core/location.h"
+#include "hades/core/InternedString.h"
 
 namespace hades {
 
 class Identifier {
-  friend core::Context;
-  StringView m_name;
   SourceLocation m_location;
+  InternedString m_name;
 
-protected:
-  Identifier(SourceLocation location, StringView view);
+public:
+  Identifier(SourceLocation location, InternedString view);
 };
 
 } // namespace hades

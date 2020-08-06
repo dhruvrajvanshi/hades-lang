@@ -87,7 +87,7 @@ auto Lexer::start_token() -> void {
 }
 
 auto Lexer::make_token(Token::Kind kind) const -> Token {
-  return Token(kind, hades::SourceLocation(),
+  return Token(kind, SourceLocation(m_path, m_start_pos, m_current_pos),
                lexeme());
 }
 

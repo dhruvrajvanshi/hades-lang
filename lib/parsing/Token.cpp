@@ -13,4 +13,8 @@ auto Token::is(Token::Kind kind) const noexcept -> bool {
   return kind == m_kind;
 }
 
+auto Token::location() const noexcept -> SourceLocation { return m_location; }
+
+auto Token::text() const noexcept -> StringView { return m_text; }
+
 } // namespace hades

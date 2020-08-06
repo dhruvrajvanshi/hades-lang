@@ -4,8 +4,10 @@ set(LIBHADES_SOURCES
         core/ContextImpl.cpp
         core/location.cpp
         core/CommandLineFlags.cpp
+        core/InternedString.cpp
 
         base/Result.cpp
+        base/sys.cpp
         )
 
 add_library(libhades ${LIBHADES_SOURCES} ${HADES_INCLUDE_DIRS})
@@ -25,7 +27,8 @@ target_link_libraries(libhades_parsing libhades)
 
 set(LIBHADES_AST_SOURCES
         ast/SourceFile.cpp
-        ast/Identifier.cpp)
+        ast/Identifier.cpp
+        ast/Declaration.cpp)
 add_library(libhades_ast ${LIBHADES_AST_SOURCES})
 target_include_directories(libhades_ast PUBLIC ${HADES_INCLUDE_DIRS})
 

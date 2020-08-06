@@ -18,6 +18,7 @@ class ContextImpl {
   CommandLineFlags m_flags;
   llvm::BumpPtrAllocator m_allocator;
   Context* m_ctx = nullptr;
+  Map<StringView, String> m_interned_strings;
 
 public:
   static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;
@@ -34,6 +35,8 @@ public:
   auto flags() const -> const CommandLineFlags&;
 
   auto allocator() -> llvm::BumpPtrAllocator &;
+
+  auto intern_string(StringView text) -> InternedString;
 };
 static_assert(std::is_move_constructible_v<ContextImpl>);
 static_assert(std::is_move_assignable_v<ContextImpl>);

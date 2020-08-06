@@ -3,9 +3,11 @@
 //
 
 #include "hades/ast/Identifier.h"
+#include "hades/core/InternedString.h"
+
 namespace hades {
 
-Identifier::Identifier(SourceLocation location, StringView name)
+Identifier::Identifier(SourceLocation location, InternedString name)
     : m_name(name), m_location(std::move(location)) {}
 
 } // namespace hades

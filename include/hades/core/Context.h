@@ -3,6 +3,7 @@
 
 #include "hades/base/data.h"
 #include "hades/core/CommandLineFlags.h"
+#include "hades/core/InternedString.h"
 
 namespace hades::core {
 class ContextImpl;
@@ -19,6 +20,8 @@ public:
 
   auto run() -> int;
   auto allocator() -> llvm::BumpPtrAllocator &;
+
+  auto intern_string(StringView text) -> InternedString;
 
 private:
   auto self_mut() -> ContextImpl &;

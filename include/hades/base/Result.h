@@ -6,6 +6,8 @@
 #define HADES_RESULT_H
 
 #include "variant"
+#include "functional"
+#include "cassert"
 
 namespace hades {
 template <typename T, typename Error> class Result {

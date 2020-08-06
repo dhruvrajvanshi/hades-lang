@@ -25,7 +25,29 @@ auto ParserImpl::allocator() -> llvm::BumpPtrAllocator & {
   return m_ctx->allocator();
 }
 auto ParserImpl::at(Token::Kind kind) const -> bool {
-  return m_current_token.is(kind);
+  return current_token().is(kind);
+}
+
+auto ParserImpl::current_token() const -> const Token & {
+  return m_current_token;
+}
+auto ParserImpl::expect(Token::Kind kind) -> Token {
+  if (!at(kind)) {
+    unimplemented("Unexpected token");
+  }
+  return advance();
+}
+auto ParserImpl::advance() -> Token {
+  auto result = current_token();
+  m_current_token = m_lexer.next_token();
+  return result;
+}
+auto ParserImpl::parse_identifier() -> Identifier {
+  auto token = expect(tt::ID);
+  return Identifier(token.location(), ctx().intern_string(token.text()));
+}
+auto ParserImpl::ctx() const noexcept -> core::Context & {
+  return *m_ctx;
 }
 
 } // namespace hades
