@@ -21,6 +21,12 @@ public:
 
 private:
   auto allocator() -> llvm::BumpPtrAllocator &;
+
+  template <typename T, typename ...Args>
+  auto allocate(Args&&... args) -> T* {
+    auto* mem = allocator().Allocate(sizeof(T), alignof(T));
+    return new(mem) T(std::forward<Args>(args)...);
+  }
 };
 
 } // namespace hades

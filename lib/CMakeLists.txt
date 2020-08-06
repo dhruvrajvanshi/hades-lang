@@ -14,12 +14,15 @@ target_include_directories(libhades PUBLIC ${HADES_INCLUDE_DIRS})
 
 set(LIBHADES_PARSING_SOURCES
         parsing/ParserImpl.cpp
-        parsing/Parser.cpp)
+        parsing/Parser.cpp
+        parsing/Token.cpp
+        parsing/Lexer.cpp)
 add_library(libhades_parsing ${LIBHADES_PARSING_SOURCES})
 target_include_directories(libhades_parsing PUBLIC ${HADES_INCLUDE_DIRS})
 
 set(LIBHADES_AST_SOURCES
-        ast/SourceFile.cpp)
+        ast/SourceFile.cpp
+        ast/Identifier.cpp)
 add_library(libhades_ast ${LIBHADES_AST_SOURCES})
 target_include_directories(libhades_ast PUBLIC ${HADES_INCLUDE_DIRS})
 

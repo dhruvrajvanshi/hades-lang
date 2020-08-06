@@ -6,7 +6,8 @@
 #define HADES_DECLARATION_H
 
 #include "hades/core/location.h"
-#include "type_traits"
+#include "hades/ast/Identifier.h"
+#include "hades/ast/FunctionSignature.h"
 
 namespace hades {
 class Declaration {
@@ -16,7 +17,14 @@ public:
   SourceLocation location() const noexcept { return m_location; }
 };
 
-static_assert(std::is_pod_v<Declaration>);
+class Error: Declaration {
+
+};
+
+class ExternDef : Declaration {
+  Identifier m_extern_name;
+  FunctionSignature m_function_signature;
+};
 
 } // namespace hades
 
