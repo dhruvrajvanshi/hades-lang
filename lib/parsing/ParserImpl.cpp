@@ -20,6 +20,17 @@ auto ParserImpl::parse_source_file() -> const SourceFile * {
   return allocate<SourceFile>(std::move(declarations));
 }
 
+auto ParserImpl::parse_block() -> const Block * {
+  auto start = expect(tt::LBRACE);
+  auto statements = Vec<const Statement*>();
+  while (!at(tt::ENDF) && !at(tt::RBRACE)) {
+    vec::push_back(statements, parse_statement());
+  }
+  auto stop = expect(tt::RBRACE);
+  auto location = make_location(start, stop);
+  return allocate<Block>(location, std::move(statements));
+}
+
 auto ParserImpl::allocator() -> llvm::BumpPtrAllocator & {
   return m_ctx->allocator();
 }

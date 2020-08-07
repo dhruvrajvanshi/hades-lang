@@ -20,7 +20,9 @@ auto ParserImpl::parse_declaration() -> const Declaration * {
 }
 
 auto ParserImpl::parse_function_def() -> const FunctionDef * {
-  unimplemented();
+  const auto* signature = parse_function_signature();
+  const auto* block = parse_block();
+  return allocate<FunctionDef>(signature, block);
 }
 
 auto ParserImpl::parse_extern_def() -> const ExternDef * {

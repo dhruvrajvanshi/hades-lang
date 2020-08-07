@@ -13,12 +13,16 @@ namespace hades {
 class Expression {
 public:
   enum class Kind;
+
 private:
   SourceLocation m_location;
   Kind m_kind;
+
 protected:
   Expression(SourceLocation location, Kind kind) noexcept;
+
 public:
+  auto location() const -> const SourceLocation &;
   enum class Kind {
     ERROR,
     VAR,
@@ -29,6 +33,7 @@ public:
 
 class IntLiteral : public Expression {
   i64 m_value;
+
 public:
 };
 
@@ -38,20 +43,19 @@ class VarExpression : public Expression {
 
 class Arg : public Expression {
   Optional<Identifier> m_label;
-  const Expression* m_value;
+  const Expression *m_value;
 };
 
 class Call : public Expression {
 public:
-  using Args = SmallVec<const Arg*, 4>;
+  using Args = SmallVec<const Arg *, 4>;
+
 private:
-  const Expression* m_callee;
+  const Expression *m_callee;
   Args m_args;
+
 public:
 };
-
-
-
 
 } // namespace hades
 

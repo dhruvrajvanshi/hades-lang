@@ -5,16 +5,20 @@
 
 namespace hades {
 
-FunctionSignature::FunctionSignature(  //
-    SourceLocation location,           //
-    Identifier name,                   //
-    FunctionSignature::Params params,  //
-    Optional<const Type *> return_type //
-    ) noexcept                         //
-    : m_location(location),            //
-      m_name(name),                    //
-      m_params(params),                //
-      m_return_type(return_type)       //
+FunctionSignature::FunctionSignature(   //
+    SourceLocation location,            //
+    Identifier name,                    //
+    FunctionSignature::Params &&params, //
+    Optional<const Type *> return_type  //
+    ) noexcept                          //
+    : m_location(location),             //
+      m_name(name),                     //
+      m_params(params),                 //
+      m_return_type(return_type)        //
 {}
+
+auto FunctionSignature::location() const -> const SourceLocation & {
+  return m_location;
+}
 
 } // namespace hades

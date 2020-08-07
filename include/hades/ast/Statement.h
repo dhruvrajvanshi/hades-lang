@@ -29,6 +29,7 @@ public:
     ERROR,
 
     EXPRESSION,
+    VAL,
   };
 
 };
@@ -37,6 +38,8 @@ class ValStatement : public Statement {
   const Identifier m_name;
   const Optional<const Type*> m_annotation;
   const Expression* m_initializer;
+public:
+  ValStatement(Identifier name, Optional<const Type*> annotation, const Expression* initializer) noexcept;
 };
 
 class ExpressionStatement : public Statement {

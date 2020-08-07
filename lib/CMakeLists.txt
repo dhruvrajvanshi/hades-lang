@@ -20,6 +20,8 @@ set(LIBHADES_PARSING_SOURCES
         parsing/Lexer.cpp
         parsing/parse_declaration.cpp
         parsing/parse_type.cpp
+        parsing/parse_statement.cpp
+        parsing/parse_expression.cpp
         )
 add_library(libhades_parsing ${LIBHADES_PARSING_SOURCES})
 target_include_directories(libhades_parsing PUBLIC ${HADES_INCLUDE_DIRS})
@@ -32,6 +34,9 @@ set(LIBHADES_AST_SOURCES
         ast/Type.cpp
         ast/FunctionSignature.cpp
         ast/Param.cpp
+        ast/Block.cpp
+        ast/Statement.cpp
+        ast/Expression.cpp
         )
 add_library(libhades_ast ${LIBHADES_AST_SOURCES})
 target_include_directories(libhades_ast PUBLIC ${HADES_INCLUDE_DIRS})

@@ -30,6 +30,7 @@ public:
     ERROR,
     EXTERN_DEF,
     STRUCT_DEF,
+    FUNCTION_DEF,
   };
 };
 
@@ -51,6 +52,11 @@ public:
 class FunctionDef : public Declaration {
   const FunctionSignature *m_signature;
   const Block* m_body;
+
+public:
+  FunctionDef(const FunctionSignature* signature, const Block* body) noexcept;
+  auto signature() const -> const FunctionSignature&;
+  auto body() const -> const FunctionSignature&;
 };
 
 class StructMember;

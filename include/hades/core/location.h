@@ -19,6 +19,9 @@ public:
   LineNumber line();
   ColumnNumber column();
 };
+class SourceLocation;
+
+template <typename T> auto get_location(T t) -> const SourceLocation &;
 
 class SourceLocation {
   const fs::path *m_path;
@@ -37,10 +40,26 @@ public:
   static auto between(const fs::path *path, SourceLocation start,
                       SourceLocation stop) noexcept -> SourceLocation;
 
+  template <typename Start, typename Stop>
+  static auto between(Start start, Stop stop) noexcept -> SourceLocation {
+    return between(                 //
+        get_location(start).path(), //
+        get_location(start),        //
+        get_location(stop));
+  }
+
   auto location() const -> const SourceLocation &;
 };
 static_assert(std::is_trivially_copyable_v<SourceLocation>);
 static_assert(std::is_trivially_move_assignable_v<SourceLocation>);
+
+template <typename T> auto get_location(T t) -> const SourceLocation & {
+  if constexpr (std::is_pointer_v<T>) {
+    return t->location();
+  } else {
+    return t.location();
+  }
+}
 
 } // namespace hades
 #endif

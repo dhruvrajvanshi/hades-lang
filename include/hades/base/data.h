@@ -22,7 +22,7 @@ using Twine = llvm::Twine;
 template <typename T, typename Alloc = std::allocator<T>>
 using Vec = std::vector<T, Alloc>;
 
-template <typename T, unsigned Size = 4>
+template <typename T, unsigned Size>
 using SmallVec = llvm::SmallVector<T, Size>;
 
 template <typename... Ts> using PointerUnion = llvm::PointerUnion<Ts...>;
@@ -54,16 +54,25 @@ using u64 = uint64_t;
 using i32 = uint32_t;
 using i64 = uint64_t;
 
+template <typename T>
+struct IsSmallVector : std::false_type {};
+
+template <typename T, int Size>
+struct IsSmallVector<SmallVec<T, Size>> : std::true_type {};
+
+
 namespace vec {
 
 template <typename Vec, typename T>
-auto push_back(Vec vec, T value) -> void {
-  vec.append({value});
+auto push_back(Vec& v, T value) -> void {
+  if constexpr (IsSmallVector<std::decay<Vec>>::value) {
+    v.append({value});
+  } else {
+    v.push_back(value);
+  }
 }
 
-template <typename T> auto push_back(Vec<T> vec, T value) -> void {
-  vec.push_back(value);
-}
+
 
 
 

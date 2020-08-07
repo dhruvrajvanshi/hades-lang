@@ -40,15 +40,22 @@ StructMember::StructMember(SourceLocation location) noexcept
 
 ExternDef::ExternDef(SourceLocation location,
                      const FunctionSignature *signature,
-                     Identifier extern_name) noexcept       //
-    : Declaration(location, Declaration::Kind::EXTERN_DEF), //
-      m_signature{signature},                               //
-      m_extern_name(extern_name)                            //
+                     Identifier extern_name) noexcept //
+    : Declaration(location, Kind::EXTERN_DEF),        //
+      m_signature{signature},                         //
+      m_extern_name(extern_name)                      //
 {}
 
 auto ExternDef::signature() -> const FunctionSignature & {
   return *m_signature;
 }
 auto ExternDef::extern_name() -> const Identifier & { return m_extern_name; }
+
+FunctionDef::FunctionDef(const FunctionSignature *signature,
+                         const Block *body) noexcept
+    : Declaration(
+          SourceLocation::between(signature->location(), body->location()),
+          Kind::FUNCTION_DEF), //
+      m_signature{signature}, m_body{body} {}
 
 } // namespace hades

@@ -70,6 +70,17 @@ private:
 
   auto expect(Token::Kind kind) -> Token;
 
+  auto parse_block() -> const Block*;
+
+  auto parse_statement() -> const Statement*;
+  auto parse_val_statement() -> const ValStatement*;
+  auto parse_expression_statement() -> const ExpressionStatement*;
+
+  auto parse_expression() -> const Expression*;
+  auto parse_int_expression() -> const Expression*;
+  auto parse_var_expression() -> const Expression*;
+  auto parse_call_expression() -> const Expression*;
+
   auto parse_function_signature() -> const FunctionSignature*;
   auto parse_function_signature_param() -> const Param*;
 
@@ -94,12 +105,12 @@ private:
 
   template<typename T1, typename T2>
   auto make_location(
-      const T1& value_1,
-      const T2& value_2) -> SourceLocation {
+      T1 value_1,
+      T2 value_2) -> SourceLocation {
     return {
-        value_1.location().path(),
-        value_1.location().start(),
-        value_2.location().stop()
+        get_location(value_1).path(),
+        get_location(value_1).start(),
+        get_location(value_2).stop()
     };
   }
 

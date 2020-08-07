@@ -23,11 +23,9 @@ auto SourceLocation::start() const noexcept -> SourcePosition {
   return m_start;
 }
 
-auto SourceLocation::stop() const noexcept  -> SourcePosition {
-  return m_stop;
-}
+auto SourceLocation::stop() const noexcept -> SourcePosition { return m_stop; }
 
-auto SourceLocation::path() const noexcept -> const fs::path* {
+auto SourceLocation::path() const noexcept -> const fs::path * {
   return m_path;
 }
 auto SourceLocation::location() const -> const SourceLocation & {
