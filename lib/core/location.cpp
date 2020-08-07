@@ -30,5 +30,8 @@ auto SourceLocation::stop() const noexcept  -> SourcePosition {
 auto SourceLocation::path() const noexcept -> const fs::path* {
   return m_path;
 }
+auto SourceLocation::location() const -> const SourceLocation & {
+  return *this;
+}
 
 } // namespace hades

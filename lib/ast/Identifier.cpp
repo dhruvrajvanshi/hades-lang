@@ -10,4 +10,8 @@ namespace hades {
 Identifier::Identifier(SourceLocation location, InternedString name)
     : m_name(name), m_location(std::move(location)) {}
 
+auto Identifier::location() const -> const SourceLocation & {
+  return m_location;
+}
+
 } // namespace hades

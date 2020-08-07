@@ -41,8 +41,11 @@ class ExternDef : public Declaration {
 
 class StructMember;
 class StructDef : public Declaration {
+public:
+  using Members = SmallVec<const StructMember*, 8>;
+private:
   Identifier m_name;
-  SmallVec<const StructMember *, 8> m_members;
+  Members m_members;
 
 public:
   StructDef(SourceLocation location, Identifier name,
@@ -52,12 +55,18 @@ public:
 
   auto members() const noexcept -> ArrayRef<const StructMember *>;
 };
-class StructMember {};
+class StructMember {
+  SourceLocation m_location;
+public:
+  StructMember(SourceLocation location) noexcept;
+  auto location() const -> SourceLocation;
+};
 class StructField : public StructMember {
   Identifier m_name;
   Optional<const Type *> m_type;
 
 public:
+  StructField(SourceLocation location, Identifier name, Optional<const Type*> type) noexcept;
 };
 
 } // namespace hades

@@ -51,10 +51,15 @@ auto Lexer::next_token() -> Token {
     advance();                                                                 \
     return make_token(kind);                                                   \
   }
+
   PUNCTUATION('{', tt::LBRACE)
   PUNCTUATION('}', tt::RBRACE)
   PUNCTUATION('(', tt::LPAREN)
   PUNCTUATION(')', tt::RPAREN)
+  PUNCTUATION(':', tt::COLON)
+  PUNCTUATION(';', tt::SEMICOLON)
+  PUNCTUATION('*', tt::STAR)
+
 #undef PUNCTUATION
 #define TWO_CHARS(first, kind, second, kind2)                                  \
   if (first_char == first) {                                                   \
@@ -113,8 +118,7 @@ auto Lexer::start_token() -> void {
 }
 
 auto Lexer::make_token(Token::Kind kind) const -> Token {
-  return Token(kind, SourceLocation(m_path, m_start_pos, m_last_pos),
-               lexeme());
+  return Token(kind, SourceLocation(m_path, m_start_pos, m_last_pos), lexeme());
 }
 
 auto Lexer::lexeme() const -> StringView {
@@ -128,8 +132,11 @@ namespace {
 static Map<String, Token::Kind> m_keyword_kinds = {
     {"struct", Token::Kind::STRUCT}, //
     {"def", Token::Kind::DEF},       //
+    {"val", Token::Kind::VAL},       //
+    {"mut", Token::Kind::MUT},       //
     {"extern", Token::Kind::EXTERN}, //
 };
+
 } // namespace
 
 auto Lexer::ident_or_keyword() -> Token {

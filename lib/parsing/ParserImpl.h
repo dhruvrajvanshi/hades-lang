@@ -43,6 +43,23 @@ private:
   auto expect(Token::Kind kind) -> Token;
 
   auto parse_struct_def() -> const StructDef*;
+  auto parse_struct_member() -> const StructMember*;
+  auto parse_struct_field() -> const StructField*;
+
+  auto parse_optional_type_annotation() -> Optional<const Type*>;
+  auto parse_type() -> const Type*;
+  auto parse_var_type() -> const type::Var*;
+  auto parse_pointer_type() -> const type::Pointer*;
+
+  template<typename T1, typename T2>
+  auto make_location(T1 value_1, T2 value_2) -> SourceLocation {
+    return {
+        value_1.location().path(),
+        value_1.location().start(),
+        value_2.location().stop()
+    };
+  }
+
   auto advance() -> Token;
 
   auto parse_identifier() -> Identifier;

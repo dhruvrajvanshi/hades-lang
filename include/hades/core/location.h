@@ -36,10 +36,11 @@ public:
 
   static auto between(const fs::path *path, SourceLocation start,
                       SourceLocation stop) noexcept -> SourceLocation;
+
+  auto location() const -> const SourceLocation &;
 };
 static_assert(std::is_trivially_copyable_v<SourceLocation>);
 static_assert(std::is_trivially_move_assignable_v<SourceLocation>);
-
 
 } // namespace hades
 #endif

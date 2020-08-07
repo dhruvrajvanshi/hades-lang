@@ -22,7 +22,7 @@ private:
 public:
   Token(Kind kind, SourceLocation m_location, StringView m_text) noexcept;
   auto kind() const noexcept -> Kind;
-  auto location() const noexcept -> SourceLocation;
+  auto location() const noexcept -> const SourceLocation&;
   auto text() const noexcept -> StringView;
   auto is(Kind kind) const noexcept -> bool;
   enum class Kind {
@@ -31,16 +31,20 @@ public:
     EXTERN,
     DEF,
     STRUCT,
+    VAL,
+    MUT,
 
     LPAREN,
     RPAREN,
     LBRACE,
     RBRACE,
+    COLON,
+    SEMICOLON,
+    STAR,
 
     EQ,
     EQEQ,
 
-    SEMICOLON,
 
     ENDF,
   };

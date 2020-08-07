@@ -17,6 +17,9 @@ class Identifier {
 
 public:
   Identifier(SourceLocation location, InternedString view);
+
+  auto location() const -> const SourceLocation&;
+  auto name() const -> InternedString;
 };
 
 } // namespace hades

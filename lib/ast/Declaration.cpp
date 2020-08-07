@@ -30,4 +30,11 @@ auto StructDef::members() const noexcept -> ArrayRef<const StructMember *> {
   return m_members;
 }
 
+StructField::StructField(SourceLocation location, Identifier name,
+                         Optional<const Type *> type) noexcept
+    : StructMember(std::move(location)),
+      m_name(std::move(name)), m_type{std::move(type)} {}
+
+StructMember::StructMember(SourceLocation location) noexcept
+    : m_location(std::move(location)) {}
 } // namespace hades
