@@ -34,6 +34,7 @@ private:
   auto make_token(Token::Kind kind) const -> Token;
   auto ident_or_keyword() -> Token;
   auto lexeme() const -> StringView;
+  auto numeric_literal() -> Token;
 };
 
 } // namespace hades

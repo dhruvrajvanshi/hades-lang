@@ -30,8 +30,12 @@ auto is_ident_starter(char c) -> bool {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
+auto is_digit(char c) -> bool {
+  return c >= '0' && c <= '9';
+}
+
 auto is_ident_char(char c) -> bool {
-  return is_ident_starter(c) || (c >= '0' && c <= '9');
+  return is_ident_starter(c) || is_digit(c);
 }
 
 } // namespace
@@ -45,6 +49,9 @@ auto Lexer::next_token() -> Token {
 
   if (is_ident_starter(first_char)) {
     return ident_or_keyword();
+  }
+  if (is_digit(first_char)) {
+    return numeric_literal();
   }
 #define PUNCTUATION(c, kind)                                                   \
   case c:                                                                      \
@@ -153,6 +160,12 @@ auto Lexer::ident_or_keyword() -> Token {
     kind = m_keyword_kinds.at(text);
   }
   return make_token(kind);
+}
+auto Lexer::numeric_literal() -> Token {
+  while (is_digit(current_char())) {
+    advance();
+  }
+  return make_token(tt::INT);
 }
 
 } // namespace hades
