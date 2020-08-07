@@ -15,4 +15,7 @@ Expression::Expression(SourceLocation location, Kind kind) noexcept
 IntLiteral::IntLiteral(SourceLocation location, i64 value) noexcept
     : Expression(location, Kind::INT_LITERAL), m_value{value} {}
 
+VarExpression::VarExpression(Identifier name) noexcept
+    : Expression(name.location(), Kind::VAR), m_name(name) {}
+
 } // namespace hades

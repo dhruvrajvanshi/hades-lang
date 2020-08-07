@@ -10,15 +10,21 @@ using t = ParserImpl;
 
 auto t::parse_expression() -> const Expression * {
   const Expression *head = nullptr;
-  switch (current_token().kind()) {
-  case tt::INT:
-    head = parse_int_literal();
-    break;
+  switch (auto kind = current_token().kind()) {
+#define match(kind, expr) case kind: head = expr; break;
+  match(tt::INT, parse_int_literal())
+  match(tt::ID, parse_var_expression())
   default:
     unimplemented();
+#undef match
   }
   assert(head != nullptr);
   return head;
+}
+
+auto t::parse_var_expression() -> const Expression * {
+  auto identifier = parse_identifier();
+  return allocate<VarExpression>(identifier);
 }
 
 auto t::parse_int_literal() -> const IntLiteral* {

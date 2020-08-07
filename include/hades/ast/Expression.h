@@ -40,6 +40,8 @@ public:
 
 class VarExpression : public Expression {
   Identifier m_name;
+public:
+  VarExpression(Identifier name) noexcept;
 };
 
 class Arg : public Expression {
