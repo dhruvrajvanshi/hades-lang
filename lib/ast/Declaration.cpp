@@ -37,4 +37,18 @@ StructField::StructField(SourceLocation location, Identifier name,
 
 StructMember::StructMember(SourceLocation location) noexcept
     : m_location(std::move(location)) {}
+
+ExternDef::ExternDef(SourceLocation location,
+                     const FunctionSignature *signature,
+                     Identifier extern_name) noexcept       //
+    : Declaration(location, Declaration::Kind::EXTERN_DEF), //
+      m_signature{signature},                               //
+      m_extern_name(extern_name)                            //
+{}
+
+auto ExternDef::signature() -> const FunctionSignature & {
+  return *m_signature;
+}
+auto ExternDef::extern_name() -> const Identifier & { return m_extern_name; }
+
 } // namespace hades

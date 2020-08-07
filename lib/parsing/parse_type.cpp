@@ -37,7 +37,7 @@ auto T::parse_pointer_type() -> const type::Pointer * {
     advance();
     is_mutable = true;
   }
-  auto pointee = parse_type();
+  const auto* pointee = parse_type();
   return allocate<type::Pointer>(make_location(start, pointee->location()), pointee, is_mutable);
 }
 

@@ -12,9 +12,17 @@
 namespace hades {
 
 class FunctionSignature {
+public:
+  using Params = SmallVec<const Param*, 4>;
+private:
+  SourceLocation m_location;
   Identifier m_name;
-  Vec<const Param*> m_params;
-  Type m_return_type;
+  Params m_params;
+  Optional<const Type*> m_return_type;
+public:
+  FunctionSignature(SourceLocation location, Identifier name, Params params, Optional<const Type*> return_type) noexcept;
+
+  static auto add_param(Params&, const Param*) -> void;
 };
 
 } // namespace hades

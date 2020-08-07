@@ -41,6 +41,7 @@ public:
     COLON,
     SEMICOLON,
     STAR,
+    COMMA,
 
     EQ,
     EQEQ,

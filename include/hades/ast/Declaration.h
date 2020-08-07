@@ -35,14 +35,23 @@ public:
 class Error : Declaration {};
 
 class ExternDef : public Declaration {
+  const FunctionSignature *m_signature;
   Identifier m_extern_name;
-  FunctionSignature m_function_signature;
+
+public:
+  ExternDef(SourceLocation location, const FunctionSignature *signature,
+            Identifier extern_name) noexcept;
+
+  auto signature() -> const FunctionSignature &;
+
+  auto extern_name() -> const Identifier &;
 };
 
 class StructMember;
 class StructDef : public Declaration {
 public:
-  using Members = SmallVec<const StructMember*, 8>;
+  using Members = SmallVec<const StructMember *, 8>;
+
 private:
   Identifier m_name;
   Members m_members;
@@ -57,6 +66,7 @@ public:
 };
 class StructMember {
   SourceLocation m_location;
+
 public:
   StructMember(SourceLocation location) noexcept;
   auto location() const -> SourceLocation;
@@ -66,7 +76,8 @@ class StructField : public StructMember {
   Optional<const Type *> m_type;
 
 public:
-  StructField(SourceLocation location, Identifier name, Optional<const Type*> type) noexcept;
+  StructField(SourceLocation location, Identifier name,
+              Optional<const Type *> type) noexcept;
 };
 
 } // namespace hades

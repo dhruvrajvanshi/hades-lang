@@ -30,6 +30,8 @@ set(LIBHADES_AST_SOURCES
         ast/Identifier.cpp
         ast/Declaration.cpp
         ast/Type.cpp
+        ast/FunctionSignature.cpp
+        ast/Param.cpp
         )
 add_library(libhades_ast ${LIBHADES_AST_SOURCES})
 target_include_directories(libhades_ast PUBLIC ${HADES_INCLUDE_DIRS})

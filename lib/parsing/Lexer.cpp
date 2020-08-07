@@ -47,33 +47,37 @@ auto Lexer::next_token() -> Token {
     return ident_or_keyword();
   }
 #define PUNCTUATION(c, kind)                                                   \
-  if (first_char == c) {                                                       \
+  case c:                                                                      \
     advance();                                                                 \
-    return make_token(kind);                                                   \
-  }
-
-  PUNCTUATION('{', tt::LBRACE)
-  PUNCTUATION('}', tt::RBRACE)
-  PUNCTUATION('(', tt::LPAREN)
-  PUNCTUATION(')', tt::RPAREN)
-  PUNCTUATION(':', tt::COLON)
-  PUNCTUATION(';', tt::SEMICOLON)
-  PUNCTUATION('*', tt::STAR)
-
-#undef PUNCTUATION
+    return make_token(kind);
 #define TWO_CHARS(first, kind, second, kind2)                                  \
-  if (first_char == first) {                                                   \
+  case first: {                                                                \
     advance();                                                                 \
     if (current_char() == second) {                                            \
       advance();                                                               \
       return make_token(kind2);                                                \
     } else {                                                                   \
-      return make_token(kind1);                                                \
+      return make_token(kind);                                                 \
     }                                                                          \
-  }                                                                            \
+  }
+  switch (first_char) {
+    PUNCTUATION('{', tt::LBRACE)
+    PUNCTUATION('}', tt::RBRACE)
+    PUNCTUATION('(', tt::LPAREN)
+    PUNCTUATION(')', tt::RPAREN)
+    PUNCTUATION(':', tt::COLON)
+    PUNCTUATION(';', tt::SEMICOLON)
+    PUNCTUATION('*', tt::STAR)
+    PUNCTUATION(',', tt::COMMA)
+
+    TWO_CHARS('=', tt::EQ, '=', tt::EQEQ)
+  default:
+    unimplemented();
+  }
+
+#undef PUNCTUATION                                                             \
                                                                                \
-  TWO_CHARS('=', tt::EQ, '=', tt::EQEQ)
-#undef TWO_CHARS
+    #undef TWO_CHARS
 
   unimplemented();
 }
