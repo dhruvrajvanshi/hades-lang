@@ -9,7 +9,7 @@ auto ParserImpl::parse_declaration() -> const Declaration * {
   auto start_token = current_token();
   switch (start_token.kind()) {
   case tt::DEF:
-    unimplemented();
+    return parse_function_def();
   case tt::STRUCT:
     return parse_struct_def();
   case tt::EXTERN:
@@ -17,6 +17,10 @@ auto ParserImpl::parse_declaration() -> const Declaration * {
   default:
     unimplemented();
   }
+}
+
+auto ParserImpl::parse_function_def() -> const FunctionDef * {
+  unimplemented();
 }
 
 auto ParserImpl::parse_extern_def() -> const ExternDef * {
@@ -65,7 +69,7 @@ auto ParserImpl::parse_function_signature() -> const FunctionSignature * {
   expect(tt::LPAREN);
   auto params = FunctionSignature::Params();
   while (!at(tt::RPAREN) && !at(tt::ENDF)) {
-    FunctionSignature::add_param(params, parse_function_signature_param());
+    vec::push_back(params, parse_function_signature_param());
     if (!at(tt::RPAREN)) {
       expect(tt::COMMA);
     }
@@ -75,7 +79,7 @@ auto ParserImpl::parse_function_signature() -> const FunctionSignature * {
   auto location = make_location(start, return_type.hasValue()
                                            ? return_type.getValue()->location()
                                            : rparen.location());
-  return allocate<FunctionSignature>(location, name, params, return_type);
+  return allocate<FunctionSignature>(location, name, std::move(params), return_type);
 }
 
 auto ParserImpl::parse_function_signature_param() -> const Param * {

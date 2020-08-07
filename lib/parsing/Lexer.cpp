@@ -75,9 +75,8 @@ auto Lexer::next_token() -> Token {
     unimplemented();
   }
 
-#undef PUNCTUATION                                                             \
-                                                                               \
-    #undef TWO_CHARS
+#undef PUNCTUATION
+#undef TWO_CHARS
 
   unimplemented();
 }

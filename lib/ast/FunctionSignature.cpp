@@ -17,9 +17,4 @@ FunctionSignature::FunctionSignature(  //
       m_return_type(return_type)       //
 {}
 
-auto FunctionSignature::add_param(FunctionSignature::Params &params,
-                                  const Param *param) -> void {
-  params.append({std::move(param)});
-}
-
 } // namespace hades

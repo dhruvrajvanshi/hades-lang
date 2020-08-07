@@ -22,7 +22,7 @@ using Twine = llvm::Twine;
 template <typename T, typename Alloc = std::allocator<T>>
 using Vec = std::vector<T, Alloc>;
 
-template <typename T, unsigned Size>
+template <typename T, unsigned Size = 4>
 using SmallVec = llvm::SmallVector<T, Size>;
 
 template <typename... Ts> using PointerUnion = llvm::PointerUnion<Ts...>;
@@ -53,6 +53,21 @@ using u32 = uint32_t;
 using u64 = uint64_t;
 using i32 = uint32_t;
 using i64 = uint64_t;
+
+namespace vec {
+
+template <typename Vec, typename T>
+auto push_back(Vec vec, T value) -> void {
+  vec.append({value});
+}
+
+template <typename T> auto push_back(Vec<T> vec, T value) -> void {
+  vec.push_back(value);
+}
+
+
+
+} // namespace vec
 
 } // namespace hades
 

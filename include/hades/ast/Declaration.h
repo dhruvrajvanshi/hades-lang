@@ -8,6 +8,7 @@
 #include "hades/ast/FunctionSignature.h"
 #include "hades/ast/Identifier.h"
 #include "hades/core/location.h"
+#include "hades/ast/Block.h"
 
 namespace hades {
 class Declaration {
@@ -45,6 +46,11 @@ public:
   auto signature() -> const FunctionSignature &;
 
   auto extern_name() -> const Identifier &;
+};
+
+class FunctionDef : public Declaration {
+  const FunctionSignature *m_signature;
+  const Block* m_body;
 };
 
 class StructMember;

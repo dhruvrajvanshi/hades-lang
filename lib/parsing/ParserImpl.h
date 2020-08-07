@@ -75,6 +75,8 @@ private:
 
   auto parse_extern_def() -> const ExternDef*;
 
+  auto parse_function_def() -> const FunctionDef*;
+
   auto parse_struct_def() -> const StructDef*;
   auto parse_struct_member() -> const StructMember*;
   auto parse_struct_field() -> const StructField*;

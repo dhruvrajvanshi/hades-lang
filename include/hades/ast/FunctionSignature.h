@@ -21,8 +21,6 @@ private:
   Optional<const Type*> m_return_type;
 public:
   FunctionSignature(SourceLocation location, Identifier name, Params params, Optional<const Type*> return_type) noexcept;
-
-  static auto add_param(Params&, const Param*) -> void;
 };
 
 } // namespace hades
