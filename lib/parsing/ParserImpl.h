@@ -77,7 +77,7 @@ private:
   auto parse_expression_statement() -> const ExpressionStatement*;
 
   auto parse_expression() -> const Expression*;
-  auto parse_int_expression() -> const Expression*;
+  auto parse_int_literal() -> const IntLiteral*;
   auto parse_var_expression() -> const Expression*;
   auto parse_call_expression() -> const Expression*;
 

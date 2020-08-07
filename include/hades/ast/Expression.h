@@ -35,6 +35,7 @@ class IntLiteral : public Expression {
   i64 m_value;
 
 public:
+  IntLiteral(SourceLocation, i64 value) noexcept;
 };
 
 class VarExpression : public Expression {
