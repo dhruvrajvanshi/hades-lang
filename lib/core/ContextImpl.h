@@ -18,7 +18,7 @@ class ContextImpl {
   CommandLineFlags m_flags;
   llvm::BumpPtrAllocator m_allocator;
   Context* m_ctx = nullptr;
-  Map<StringView, String> m_interned_strings;
+  Map<StringView, InternedString> m_interned_strings;
 
 public:
   static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;

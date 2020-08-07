@@ -37,6 +37,7 @@ auto is_ident_char(char c) -> bool {
 } // namespace
 auto Lexer::next_token() -> Token {
   skip_whitespace();
+  start_token();
   auto first_char = current_char();
   if (first_char == '\0') {
     return make_token(Token::Kind::ENDF);
@@ -45,6 +46,30 @@ auto Lexer::next_token() -> Token {
   if (is_ident_starter(first_char)) {
     return ident_or_keyword();
   }
+#define PUNCTUATION(c, kind)                                                   \
+  if (first_char == c) {                                                       \
+    advance();                                                                 \
+    return make_token(kind);                                                   \
+  }
+  PUNCTUATION('{', tt::LBRACE)
+  PUNCTUATION('}', tt::RBRACE)
+  PUNCTUATION('(', tt::LPAREN)
+  PUNCTUATION(')', tt::RPAREN)
+#undef PUNCTUATION
+#define TWO_CHARS(first, kind, second, kind2)                                  \
+  if (first_char == first) {                                                   \
+    advance();                                                                 \
+    if (current_char() == second) {                                            \
+      advance();                                                               \
+      return make_token(kind2);                                                \
+    } else {                                                                   \
+      return make_token(kind1);                                                \
+    }                                                                          \
+  }                                                                            \
+                                                                               \
+  TWO_CHARS('=', tt::EQ, '=', tt::EQEQ)
+#undef TWO_CHARS
+
   unimplemented();
 }
 
@@ -73,6 +98,7 @@ auto Lexer::advance() -> char {
   while (current_char() == '\r') {
     m_current++;
   }
+  m_last_pos = {m_current_pos.line(), m_current_pos.column()};
   if (last_char == '\n') {
     m_current_pos = {m_current_pos.line() + 1, 1};
   } else {
@@ -87,7 +113,7 @@ auto Lexer::start_token() -> void {
 }
 
 auto Lexer::make_token(Token::Kind kind) const -> Token {
-  return Token(kind, SourceLocation(m_path, m_start_pos, m_current_pos),
+  return Token(kind, SourceLocation(m_path, m_start_pos, m_last_pos),
                lexeme());
 }
 
@@ -101,7 +127,7 @@ namespace {
 
 static Map<String, Token::Kind> m_keyword_kinds = {
     {"struct", Token::Kind::STRUCT}, //
-    {"def", Token::Kind::DEF}, //
+    {"def", Token::Kind::DEF},       //
     {"extern", Token::Kind::EXTERN}, //
 };
 } // namespace
@@ -116,7 +142,6 @@ auto Lexer::ident_or_keyword() -> Token {
   if (m_keyword_kinds.contains(text)) {
     kind = m_keyword_kinds.at(text);
   }
-
   return make_token(kind);
 }
 

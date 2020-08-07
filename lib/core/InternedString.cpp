@@ -6,11 +6,18 @@
 
 namespace hades {
 
-InternedString::InternedString(const String *text_ptr) noexcept
-    : m_text_ptr(text_ptr) {}
+InternedString::InternedString(const char *text, Length length) noexcept
+    : m_data{text}, m_length{length} {
+  assert(text != nullptr);
+}
 
-const String &InternedString::operator*() const noexcept { return *m_text_ptr; }
+auto InternedString::as_string_view() const -> StringView {
+  return {m_data, m_length};
+}
 
-const String *InternedString::operator->() const noexcept { return m_text_ptr; }
+auto InternedString::data() const -> const char * { return m_data; }
+auto InternedString::operator==(InternedString other) const -> bool {
+  return data() == other.data();
+}
 
 } // namespace hades

@@ -17,6 +17,7 @@ class Lexer {
   u64 m_current = 0;
   SourcePosition m_start_pos = {1, 1};
   SourcePosition m_current_pos = {1, 1};
+  SourcePosition m_last_pos = {1, 1};
 
 
 public:

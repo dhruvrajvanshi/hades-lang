@@ -36,11 +36,16 @@ auto ContextImpl::allocator() -> llvm::BumpPtrAllocator & {
 auto ContextImpl::set_ctx_ptr(Context *ctx) noexcept -> void { m_ctx = ctx; }
 
 auto ContextImpl::intern_string(StringView text) -> InternedString {
-  if (m_interned_strings.contains(text)) {
-    const auto* interned_str = &m_interned_strings.find(text)->second;
-    return { interned_str };
+  if (m_interned_strings.find(text) == m_interned_strings.cend()) {
+    auto* buffer = (char*) allocator().Allocate(text.length() + 1, alignof(char));
+    buffer[text.length()] = '\0';
+    memcpy((void*) buffer, (void*)text.begin(), text.length());
+    auto view = StringView(buffer, text.length());
+    m_interned_strings.insert({view, {buffer, text.length()}});
   }
-  unimplemented();
+  const auto& item = m_interned_strings.find(text);
+  auto interned_str = item->second;
+  return interned_str;
 }
 
 }; // namespace hades::core
