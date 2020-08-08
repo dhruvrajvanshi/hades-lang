@@ -9,6 +9,7 @@
 #include "hades/requests.h"
 #include "hades/context/Context.h"
 #include "hades/core/RequestEvaluator.h"
+#include "hades/analysis/TypeResolver.h"
 
 namespace hades::core {
 namespace req = requests;
@@ -19,6 +20,7 @@ class ContextImpl {
   llvm::BumpPtrAllocator m_allocator;
   Context* m_ctx = nullptr;
   Map<StringView, InternedString> m_interned_strings;
+  UniquePtr<TypeResolver> m_type_resolver;
 
 public:
   static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;
@@ -37,6 +39,8 @@ public:
   auto allocator() -> llvm::BumpPtrAllocator &;
 
   auto intern_string(StringView text) -> InternedString;
+
+  auto type_resolver() -> TypeResolver&;
 };
 static_assert(std::is_move_constructible_v<ContextImpl>);
 static_assert(std::is_move_assignable_v<ContextImpl>);

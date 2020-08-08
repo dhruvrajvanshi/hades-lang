@@ -3,8 +3,8 @@
 //
 
 #include "ContextImpl.h"
-#include "hades/parsing/Parser.h"
 #include "hades/irgen/IRGen.h"
+#include "hades/parsing/Parser.h"
 
 namespace hades::core {
 auto ContextImpl::run() -> int {
@@ -19,7 +19,6 @@ auto ContextImpl::evaluate(req::BuildObjectFileRequest request) -> int {
     const auto *source_file = parser.parse_source_file();
 
     irgen.lower_source_file(source_file);
-
   }
   unimplemented();
 }
@@ -42,15 +41,18 @@ auto ContextImpl::set_ctx_ptr(Context *ctx) noexcept -> void { m_ctx = ctx; }
 
 auto ContextImpl::intern_string(StringView text) -> InternedString {
   if (m_interned_strings.find(text) == m_interned_strings.cend()) {
-    auto* buffer = (char*) allocator().Allocate(text.length() + 1, alignof(char));
+    auto *buffer =
+        (char *)allocator().Allocate(text.length() + 1, alignof(char));
     buffer[text.length()] = '\0';
-    memcpy((void*) buffer, (void*)text.begin(), text.length());
+    memcpy((void *)buffer, (void *)text.begin(), text.length());
     auto view = StringView(buffer, text.length());
     m_interned_strings.insert({view, {buffer, text.length()}});
   }
-  const auto& item = m_interned_strings.find(text);
+  const auto &item = m_interned_strings.find(text);
   auto interned_str = item->second;
   return interned_str;
 }
+
+auto ContextImpl::type_resolver() -> TypeResolver & { return *m_type_resolver; }
 
 }; // namespace hades::core

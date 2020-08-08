@@ -10,7 +10,9 @@ target_link_libraries(libhades_context_impl
             libhades_ast
             libhades_parsing
             libhades_irgen
+            libhades_analysis
         )
+
 target_include_directories(libhades_context_impl
         PRIVATE
         ${LIBHADES_CONTEXT_INCLUDE_DIRS})
@@ -27,6 +29,7 @@ target_link_libraries(libhades_context
             libhades_ast
             libhades_parsing
             libhades_irgen
+            libhades_analysis
         )
 target_include_directories(libhades_context
         PUBLIC
