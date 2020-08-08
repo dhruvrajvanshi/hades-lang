@@ -1,6 +1,7 @@
 
 set(LIBHADES_IRGEN_SOURCES
         IRGen.cpp
+        IRGenImpl.cpp
         )
 
 set(LIBHADES_IRGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -3,10 +3,15 @@
 //
 
 #include "hades/irgen/IRGen.h"
+#include "IRGenImpl.h"
 
 namespace hades {
 
-IRGen::IRGen(core::Context *m_ctx) noexcept : m_ctx(m_ctx) {}
+using t = IRGen;
+
+t::~IRGen() noexcept = default;
+
+t::IRGen(core::Context *ctx) noexcept : m_impl{new IRGenImpl(ctx)} {}
 
 auto IRGen::lower_source_file(const SourceFile *source_file) -> void {
   unimplemented();

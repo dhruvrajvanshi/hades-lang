@@ -7,17 +7,18 @@
 
 #include "hades/ast/SourceFile.h"
 #include "hades/context/Context.h"
+#include "llvm/IR/LLVMContext.h"
 
 namespace hades {
 
+class IRGenImpl;
 class IRGen {
-  core::Context* m_ctx;
+  UniquePtr<IRGenImpl> m_impl;
 public:
-  IRGen(core::Context* m_ctx) noexcept;
+  IRGen(core::Context* ctx) noexcept;
+  ~IRGen() noexcept;
 
   auto lower_source_file(const SourceFile* source_file) -> void;
-
-
 };
 
 } // namespace hades
