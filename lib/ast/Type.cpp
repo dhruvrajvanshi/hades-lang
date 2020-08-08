@@ -6,10 +6,14 @@
 
 namespace hades {
 
-Type::Type(SourceLocation location) noexcept
-    : m_location(std::move(location)) {}
+Type::Type(SourceLocation location, Kind kind) noexcept
+    : m_location(std::move(location)), m_kind(kind) {}
 
 auto Type::location() const -> const SourceLocation & { return m_location; }
+
+auto Type::kind() const -> Type::Kind {
+  return m_kind;
+}
 
 namespace type {
 

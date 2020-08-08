@@ -9,6 +9,7 @@
 
 namespace hades {
 
+template <typename T> constexpr auto assert_is_type() -> void;
 class Type {
 public:
   enum class Kind;
@@ -20,11 +21,31 @@ protected:
   Type(SourceLocation, Kind) noexcept;
 public:
   auto location() const -> const SourceLocation &;
+  auto kind() const -> Kind;
+
   enum class Kind {
     VAR,
     POINTER,
   };
+
+  template <typename T>
+  auto is() -> bool {
+    assert_is_type<T>();
+    return kind() == T::kind;
+  }
+
+  template <typename T>
+  auto as() -> const T& {
+    assert_is_type<T>();
+    assert(is(T::kind));
+    return static_cast<const T&>(*this);
+  }
 };
+
+template <typename T> constexpr auto assert_is_type() -> void {
+  static_assert(std::is_assignable_v<T, Type>);
+  static_assert(std::is_same_v<std::decay<decltype(T::kind)>, Type::Kind>);
+}
 
 namespace type {
 
