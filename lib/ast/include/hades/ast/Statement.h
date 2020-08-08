@@ -5,8 +5,8 @@
 #ifndef HADES_STATEMENT_H
 #define HADES_STATEMENT_H
 
-#include "hades/ast/Expression.h"
-#include "hades/ast/Type.h"
+#include "Expression.h"
+#include "Type.h"
 #include "hades/core/location.h"
 
 namespace hades {

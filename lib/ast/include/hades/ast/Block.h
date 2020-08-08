@@ -5,7 +5,7 @@
 #ifndef HADES_BLOCK_H
 #define HADES_BLOCK_H
 
-#include "hades/ast/Statement.h"
+#include "Statement.h"
 
 namespace hades {
 

@@ -5,9 +5,9 @@
 #ifndef HADES_FUNCTIONSIGNATURE_H
 #define HADES_FUNCTIONSIGNATURE_H
 
-#include "hades/ast/Identifier.h"
-#include "hades/ast/Type.h"
-#include "hades/ast/Param.h"
+#include "Identifier.h"
+#include "Param.h"
+#include "Type.h"
 
 namespace hades {
 

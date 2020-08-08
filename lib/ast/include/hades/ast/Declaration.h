@@ -5,10 +5,10 @@
 #ifndef HADES_DECLARATION_H
 #define HADES_DECLARATION_H
 
-#include "hades/ast/FunctionSignature.h"
-#include "hades/ast/Identifier.h"
+#include "Block.h"
+#include "FunctionSignature.h"
+#include "Identifier.h"
 #include "hades/core/location.h"
-#include "hades/ast/Block.h"
 
 namespace hades {
 class Declaration {

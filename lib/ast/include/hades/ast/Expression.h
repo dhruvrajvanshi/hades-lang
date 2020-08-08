@@ -5,7 +5,7 @@
 #ifndef HADES_AST_EXPRESSION_H
 #define HADES_AST_EXPRESSION_H
 
-#include "hades/ast/Identifier.h"
+#include "Identifier.h"
 #include "hades/core/location.h"
 
 namespace hades {

@@ -5,7 +5,7 @@
 #ifndef HADES_AST_SOURCEFILE_H
 #define HADES_AST_SOURCEFILE_H
 
-#include "hades/ast/Declaration.h"
+#include "Declaration.h"
 #include "hades/base/data.h"
 #include "type_traits"
 

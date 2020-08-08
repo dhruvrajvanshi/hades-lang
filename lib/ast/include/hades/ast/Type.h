@@ -5,7 +5,7 @@
 #ifndef HADES_TYPE_H
 #define HADES_TYPE_H
 
-#include "hades/ast/Identifier.h"
+#include "Identifier.h"
 
 namespace hades {
 
