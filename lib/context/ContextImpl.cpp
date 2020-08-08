@@ -14,11 +14,8 @@ auto ContextImpl::run() -> int {
 auto ContextImpl::evaluate(req::BuildObjectFileRequest request) -> int {
   auto irgen = IRGen(m_ctx);
   for (auto &source_file_path : flags().sources()) {
-    const auto *path_ptr = &source_file_path;
-    auto parser = Parser(m_ctx, path_ptr);
-    const auto *source_file = parser.parse_source_file();
-
-    irgen.lower_source_file(source_file);
+    const auto& source_file = get_source_file(source_file_path);
+    irgen.lower_source_file(&source_file);
   }
   unimplemented();
 }
@@ -54,5 +51,14 @@ auto ContextImpl::intern_string(StringView text) -> InternedString {
 }
 
 auto ContextImpl::type_resolver() -> TypeResolver & { return *m_type_resolver; }
+
+auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
+  if (!m_source_files.contains(fs::absolute(path))) {
+    const auto *path_ptr = &path;
+    auto parser = Parser(m_ctx, path_ptr);
+    m_source_files.insert({ path, parser.parse_source_file() });
+  }
+  return *m_source_files[fs::absolute(path)];
+}
 
 }; // namespace hades::core

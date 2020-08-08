@@ -8,6 +8,7 @@
 #include "hades/analysis/TypeResolutionResult.h"
 #include "hades/ast/Type.h"
 #include "hades/base.h"
+#include "hades/context/Context.h"
 
 namespace hades {
 

@@ -5,6 +5,7 @@
 #include "hades/core/CommandLineFlags.h"
 #include "hades/core/InternedString.h"
 #include "hades/analysis/TypeResolver.h"
+#include "hades/ast/SourceFile.h"
 
 namespace hades::core {
 class ContextImpl;
@@ -25,6 +26,8 @@ public:
   auto intern_string(StringView text) -> InternedString;
 
   auto type_resolver() -> TypeResolver&;
+
+  auto get_source_file(const fs::path&) -> const SourceFile&;
 
 private:
   auto self_mut() -> ContextImpl &;

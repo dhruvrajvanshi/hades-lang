@@ -19,13 +19,14 @@ class ContextImpl {
   llvm::BumpPtrAllocator m_allocator;
   Context* m_ctx = nullptr;
   Map<StringView, InternedString> m_interned_strings;
+  Map<String, const SourceFile*> m_source_files;
   UniquePtr<TypeResolver> m_type_resolver{ new TypeResolver() };
 
 public:
   static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;
   ContextImpl() = delete;
   ~ContextImpl() = default;
-  ContextImpl(CommandLineFlags flags) : m_evaluator{}, m_flags{flags} {}
+  ContextImpl(CommandLineFlags flags) : m_evaluator{}, m_flags{flags}, m_source_files{} {}
   HADES_DEFAULT_MOVE(ContextImpl)
   HADES_DELETE_COPY(ContextImpl)
 
@@ -40,6 +41,8 @@ public:
   auto intern_string(StringView text) -> InternedString;
 
   auto type_resolver() -> TypeResolver&;
+
+  auto get_source_file(const fs::path&) -> const SourceFile&;
 };
 static_assert(std::is_move_constructible_v<ContextImpl>);
 static_assert(std::is_move_assignable_v<ContextImpl>);

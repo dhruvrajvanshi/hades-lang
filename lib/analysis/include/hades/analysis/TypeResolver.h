@@ -10,6 +10,9 @@
 #include "hades/base.h"
 
 namespace hades {
+namespace core {
+  class Context;
+} // namespace core
 class TypeResolverImpl;
 class TypeResolver {
   UniquePtr<TypeResolverImpl> m_impl;
