@@ -13,9 +13,9 @@ auto Context::self_mut() -> ContextImpl & { return *m_self; }
 
 auto Context::self() -> const ContextImpl & { return *m_self; }
 auto Context::from_args(const Vec<String> &args)
-    -> Result<Context, FlagParseError> {
-  return CommandLineFlags::parse(args).map<Context>([](auto flags) {
-    return Context(flags);
+    -> Result<UniquePtr<Context>, FlagParseError> {
+  return CommandLineFlags::parse(args).map<UniquePtr<Context>>([](auto flags) {
+    return std::make_unique<Context>(flags);
   });
 }
 

@@ -36,7 +36,7 @@ auto main(int argc, const char **argv) -> int {
 
     auto ctx_result = hades::core::Context::from_args(args);
     auto&& ctx = ctx_result.get_value();
-    auto exit_code = ctx.run();
+    auto exit_code = ctx->run();
 
     assert(fs::exists(out_file) && "Expected an executable file to exist after compilation");
 
