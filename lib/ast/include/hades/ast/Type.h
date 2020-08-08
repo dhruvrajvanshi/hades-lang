@@ -8,7 +8,7 @@
 #include "Identifier.h"
 
 namespace hades {
-
+template <typename T> constexpr auto is_type() -> bool;
 template <typename T> constexpr auto assert_is_type() -> void;
 class Type {
 public:
@@ -29,22 +29,20 @@ public:
   };
 
   template <typename T>
-  auto is() -> bool {
-    assert_is_type<T>();
+  auto is() const -> bool {
     return kind() == T::kind;
   }
 
   template <typename T>
-  auto as() -> const T& {
-    assert_is_type<T>();
-    assert(is(T::kind));
+  auto as() const -> const T& {
+    assert(T::kind == kind());
     return static_cast<const T&>(*this);
   }
 };
 
-template <typename T> constexpr auto assert_is_type() -> void {
-  static_assert(std::is_assignable_v<T, Type>);
-  static_assert(std::is_same_v<std::decay<decltype(T::kind)>, Type::Kind>);
+template <typename T> constexpr auto is_type() -> bool {
+  return std::is_assignable_v<Type, T>
+    && std::is_same_v<std::decay<decltype(T::kind)>, Type::Kind>;
 }
 
 namespace type {
