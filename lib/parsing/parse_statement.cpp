@@ -29,7 +29,9 @@ auto t::parse_val_statement() -> const ValStatement * {
 }
 
 auto t::parse_expression_statement() -> const ExpressionStatement * {
-  unimplemented();
+  const auto* expr = parse_expression();
+  expect(tt::SEMICOLON);
+  return allocate<ExpressionStatement>(expr);
 }
 
 } // namespace hades

@@ -47,6 +47,9 @@ public:
 
 class ExpressionStatement : public Statement {
   const Expression *m_expression;
+public:
+  ExpressionStatement(const Expression* expression) noexcept;
+  auto expression() const -> const Expression&;
 };
 
 } // namespace hades

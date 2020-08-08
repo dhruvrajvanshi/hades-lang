@@ -25,6 +25,14 @@ auto Arg::value() const -> const Expression & { return *m_value; }
 
 auto Arg::label() const -> const Optional<Identifier> & { return m_label; }
 
+auto Arg::location() const -> SourceLocation {
+  if (label().hasValue()) {
+    return SourceLocation::between(&label().getValue(), &value());
+  } else {
+    return value().location();
+  }
+}
+
 Call::Call(SourceLocation location, const Expression *callee,
            Call::Args &&args) noexcept
     : Expression(location, Kind::CALL), m_callee(callee),

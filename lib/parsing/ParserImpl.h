@@ -79,7 +79,8 @@ private:
   auto parse_expression() -> const Expression*;
   auto parse_int_literal() -> const IntLiteral*;
   auto parse_var_expression() -> const Expression*;
-  auto parse_call_expression() -> const Expression*;
+  auto parse_expression_tail(const Expression* head) -> const Expression*;
+  auto parse_arg() -> const Arg*;
 
   auto parse_function_signature() -> const FunctionSignature*;
   auto parse_function_signature_param() -> const Param*;

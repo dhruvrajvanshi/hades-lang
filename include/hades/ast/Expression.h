@@ -51,6 +51,7 @@ public:
   Arg(Optional<Identifier> label, const Expression* value) noexcept;
   auto label() const -> const Optional<Identifier>&;
   auto value() const -> const Expression&;
+  auto location() const -> SourceLocation;
 };
 
 class Call : public Expression {
