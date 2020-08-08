@@ -10,4 +10,8 @@ Param::Param(SourceLocation location, Optional<Identifier> label, Optional<const
 
 auto Param::location() const noexcept -> const SourceLocation& { return m_location; }
 
+auto Param::type() const noexcept -> const Optional<const Type *> & {
+  return m_type;
+}
+
 } // namespace hades
