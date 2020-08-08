@@ -18,7 +18,7 @@ class TypeResolver {
   UniquePtr<TypeResolverImpl> m_impl;
 
 public:
-  TypeResolver() noexcept;
+  TypeResolver(core::Context*) noexcept;
   ~TypeResolver() noexcept;
   HADES_DEFAULT_MOVE(TypeResolver)
   HADES_DELETE_COPY(TypeResolver)

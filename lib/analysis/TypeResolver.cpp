@@ -6,7 +6,8 @@
 
 namespace hades {
 
-TypeResolver::TypeResolver() noexcept : m_impl{new TypeResolverImpl()} {}
+TypeResolver::TypeResolver(core::Context* ctx) noexcept : m_impl{new TypeResolverImpl(ctx)} {}
+TypeResolver::~TypeResolver() noexcept = default;
 
 auto TypeResolver::self() -> TypeResolverImpl & { return *m_impl.get(); }
 
@@ -15,6 +16,5 @@ auto TypeResolver::resolve_type_var(const type::Var &type_var)
   return self().resolve_type_var(type_var);
 }
 
-TypeResolver::~TypeResolver() noexcept = default;
 
 } // namespace hades

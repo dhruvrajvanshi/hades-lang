@@ -13,12 +13,15 @@
 namespace hades {
 
 class TypeResolverImpl {
+  core::Context* m_ctx;
 public:
-  TypeResolverImpl() noexcept;
+  TypeResolverImpl(core::Context*) noexcept;
   ~TypeResolverImpl() noexcept = default;
   HADES_DEFAULT_MOVE(TypeResolverImpl)
 
   auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
+
+  auto ctx() -> core::Context&;
 };
 
 } // namespace hades

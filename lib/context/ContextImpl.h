@@ -20,7 +20,7 @@ class ContextImpl {
   Context* m_ctx;
   Map<StringView, InternedString> m_interned_strings;
   Map<String, const SourceFile*> m_source_files;
-  UniquePtr<TypeResolver> m_type_resolver{ new TypeResolver() };
+  UniquePtr<TypeResolver> m_type_resolver{ new TypeResolver(m_ctx) };
 
 public:
   ContextImpl() = delete;
