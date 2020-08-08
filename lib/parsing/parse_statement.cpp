@@ -24,7 +24,7 @@ auto t::parse_val_statement() -> const ValStatement * {
   expect(tt::EQ);
   const auto *initializer = parse_expression();
   expect(tt::SEMICOLON);
-  return allocate<ValStatement>(name,
+  return allocate<ValStatement>(make_location(start, initializer), name,
                                 annotation, initializer);
 }
 

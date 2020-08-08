@@ -5,15 +5,16 @@
 #ifndef HADES_STATEMENT_H
 #define HADES_STATEMENT_H
 
-#include "hades/core/location.h"
 #include "hades/ast/Expression.h"
 #include "hades/ast/Type.h"
+#include "hades/core/location.h"
 
 namespace hades {
 
 class Statement {
 public:
   enum class Kind;
+
 private:
   SourceLocation m_location;
   Kind m_kind;
@@ -21,7 +22,7 @@ private:
 protected:
   Statement(SourceLocation location, Kind kind) noexcept;
 
-  auto location() const -> const SourceLocation&;
+  auto location() const -> const SourceLocation &;
   auto kind() const -> Kind;
 
 public:
@@ -31,19 +32,21 @@ public:
     EXPRESSION,
     VAL,
   };
-
 };
 
 class ValStatement : public Statement {
   const Identifier m_name;
-  const Optional<const Type*> m_annotation;
-  const Expression* m_initializer;
+  const Optional<const Type *> m_annotation;
+  const Expression *m_initializer;
+
 public:
-  ValStatement(Identifier name, Optional<const Type*> annotation, const Expression* initializer) noexcept;
+  ValStatement(SourceLocation, Identifier name,
+               Optional<const Type *> annotation,
+               const Expression *initializer) noexcept;
 };
 
 class ExpressionStatement : public Statement {
-  const Expression* m_expression;
+  const Expression *m_expression;
 };
 
 } // namespace hades
