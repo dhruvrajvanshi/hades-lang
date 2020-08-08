@@ -32,6 +32,12 @@ public:
     STRUCT_DEF,
     FUNCTION_DEF,
   };
+
+  template <typename T>
+  auto as() const -> const T& {
+    assert(kind() == T::kind);
+    return static_cast<const T&>(*this);
+  }
 };
 
 class Error : Declaration {};
@@ -41,6 +47,7 @@ class ExternDef : public Declaration {
   Identifier m_extern_name;
 
 public:
+  static constexpr Kind kind = Kind::EXTERN_DEF;
   ExternDef(SourceLocation location, const FunctionSignature *signature,
             Identifier extern_name) noexcept;
 
@@ -54,6 +61,7 @@ class FunctionDef : public Declaration {
   const Block* m_body;
 
 public:
+  static constexpr Kind kind = Kind::FUNCTION_DEF;
   FunctionDef(const FunctionSignature* signature, const Block* body) noexcept;
   auto signature() const -> const FunctionSignature&;
   auto body() const -> const FunctionSignature&;
@@ -62,6 +70,7 @@ public:
 class StructMember;
 class StructDef : public Declaration {
 public:
+  static constexpr Kind kind = Kind::STRUCT_DEF;
   using Members = SmallVec<const StructMember *, 8>;
 
 private:
