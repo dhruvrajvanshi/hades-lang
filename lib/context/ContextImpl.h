@@ -17,20 +17,17 @@ class ContextImpl {
   RequestEvaluator m_evaluator;
   CommandLineFlags m_flags;
   llvm::BumpPtrAllocator m_allocator;
-  Context* m_ctx = nullptr;
+  Context* m_ctx;
   Map<StringView, InternedString> m_interned_strings;
   Map<String, const SourceFile*> m_source_files;
   UniquePtr<TypeResolver> m_type_resolver{ new TypeResolver() };
 
 public:
-  static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;
   ContextImpl() = delete;
   ~ContextImpl() = default;
-  ContextImpl(CommandLineFlags flags) : m_evaluator{}, m_flags{flags}, m_source_files{} {}
+  ContextImpl(Context* ctx, CommandLineFlags flags) : m_evaluator{}, m_flags{flags}, m_ctx{ctx} {}
   HADES_DEFAULT_MOVE(ContextImpl)
   HADES_DELETE_COPY(ContextImpl)
-
-  auto set_ctx_ptr(Context*) noexcept -> void;
 
   auto run() -> int;
   auto evaluate(req::BuildObjectFileRequest) -> int;

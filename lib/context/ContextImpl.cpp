@@ -22,19 +22,9 @@ auto ContextImpl::evaluate(req::BuildObjectFileRequest request) -> int {
 
 auto ContextImpl::flags() const -> const CommandLineFlags & { return m_flags; }
 
-auto ContextImpl::from_args(const Vec<String> &args) noexcept
-    -> Result<ContextImpl, FlagParseError> {
-  return CommandLineFlags::parse(args).map<ContextImpl>(
-      [](auto &&flags) -> ContextImpl {
-        return ContextImpl(std::move(flags));
-      });
-}
-
 auto ContextImpl::allocator() -> llvm::BumpPtrAllocator & {
   return m_allocator;
 }
-
-auto ContextImpl::set_ctx_ptr(Context *ctx) noexcept -> void { m_ctx = ctx; }
 
 auto ContextImpl::intern_string(StringView text) -> InternedString {
   if (m_interned_strings.find(text) == m_interned_strings.cend()) {
