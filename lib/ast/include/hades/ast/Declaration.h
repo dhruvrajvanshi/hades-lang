@@ -51,9 +51,9 @@ public:
   ExternDef(SourceLocation location, const FunctionSignature *signature,
             Identifier extern_name) noexcept;
 
-  auto signature() -> const FunctionSignature &;
+  auto signature() const -> const FunctionSignature &;
 
-  auto extern_name() -> const Identifier &;
+  auto extern_name() const -> const Identifier &;
 };
 
 class FunctionDef : public Declaration {

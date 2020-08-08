@@ -46,10 +46,10 @@ ExternDef::ExternDef(SourceLocation location,
       m_extern_name(extern_name)                      //
 {}
 
-auto ExternDef::signature() -> const FunctionSignature & {
+auto ExternDef::signature() const -> const FunctionSignature & {
   return *m_signature;
 }
-auto ExternDef::extern_name() -> const Identifier & { return m_extern_name; }
+auto ExternDef::extern_name() const -> const Identifier & { return m_extern_name; }
 
 FunctionDef::FunctionDef(const FunctionSignature *signature,
                          const Block *body) noexcept
