@@ -4,6 +4,7 @@
 
 #include "ContextImpl.h"
 #include "hades/parsing/Parser.h"
+#include "hades/irgen/IRGen.h"
 
 namespace hades::core {
 auto ContextImpl::run() -> int {
@@ -11,10 +12,14 @@ auto ContextImpl::run() -> int {
 }
 
 auto ContextImpl::evaluate(req::BuildObjectFileRequest request) -> int {
+  auto irgen = IRGen(m_ctx);
   for (auto &source_file_path : flags().sources()) {
     const auto *path_ptr = &source_file_path;
     auto parser = Parser(m_ctx, path_ptr);
     const auto *source_file = parser.parse_source_file();
+
+    irgen.lower_source_file(source_file);
+
   }
   unimplemented();
 }

@@ -1,7 +1,7 @@
 
 message(STATUS "hades include directories ${HADES_INCLUDE_DIRS}")
 
-set(LIBHADES_LIBS libhades_core libhades_ast libhades_parsing)
+set(LIBHADES_LIBS libhades_core libhades_ast libhades_parsing libhades_context libhades_context_impl)
 
 set(HADES_COMPILER_SOURCES
         hades.cpp)

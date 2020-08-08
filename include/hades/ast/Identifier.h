@@ -5,9 +5,9 @@
 #ifndef HADES_IDENTIFIER_H
 #define HADES_IDENTIFIER_H
 
-#include "hades/core/Context.h"
-#include "hades/core/location.h"
+#include "hades/context/Context.h"
 #include "hades/core/InternedString.h"
+#include "hades/core/location.h"
 
 namespace hades {
 
