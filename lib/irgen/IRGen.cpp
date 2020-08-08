@@ -7,14 +7,12 @@
 
 namespace hades {
 
-using t = IRGen;
+IRGen::~IRGen() noexcept = default;
 
-t::~IRGen() noexcept = default;
-
-t::IRGen(core::Context *ctx) noexcept : m_impl{new IRGenImpl(ctx)} {}
+IRGen::IRGen(core::Context *ctx) noexcept : m_impl{new IRGenImpl(ctx)} {}
 
 auto IRGen::lower_source_file(const SourceFile *source_file) -> void {
-  unimplemented();
+  m_impl->lower_source_file(*source_file);
 }
 
 } // namespace hades
