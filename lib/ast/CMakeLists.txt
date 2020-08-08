@@ -1,4 +1,3 @@
-
 set(LIBHADES_AST_SOURCES
         SourceFile.cpp
         Identifier.cpp
@@ -14,10 +13,12 @@ set(LIBHADES_AST_SOURCES
 set(LIBHADES_AST_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(libhades_ast ${LIBHADES_AST_SOURCES})
+
 target_include_directories(libhades_ast
-        PRIVATE
-        ${HADES_INCLUDE_DIRS}
-        PUBLIC
-        ${LIBHADES_AST_INCLUDE_DIRS}
+        PUBLIC ${LIBHADES_AST_INCLUDE_DIRS})
+
+target_link_libraries(libhades_ast
+        libhades_base
+        libhades_core
+        libhades_context
         )
-target_link_libraries(libhades_ast libhades_base)

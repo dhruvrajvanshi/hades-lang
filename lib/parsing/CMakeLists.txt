@@ -1,4 +1,4 @@
-
+set(LIBHADES_PARSING_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(LIBHADES_PARSING_SOURCES
         ParserImpl.cpp
         Parser.cpp
@@ -10,5 +10,12 @@ set(LIBHADES_PARSING_SOURCES
         parse_expression.cpp
         )
 add_library(libhades_parsing ${LIBHADES_PARSING_SOURCES})
-target_include_directories(libhades_parsing PUBLIC ${HADES_INCLUDE_DIRS})
-target_link_libraries(libhades_parsing libhades_core libhades_ast)
+target_link_libraries(libhades_parsing
+        libhades_base
+        libhades_core
+        libhades_ast
+        libhades_context
+        )
+target_include_directories(libhades_parsing
+        PUBLIC
+        ${LIBHADES_PARSING_INCLUDE_DIRS})
