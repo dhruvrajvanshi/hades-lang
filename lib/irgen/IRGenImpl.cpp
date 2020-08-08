@@ -52,6 +52,8 @@ auto t::lower_struct_def(const StructDef &) -> void {}
 auto t::lower_type(const Type & type) -> llvm::Type * {
   switch (type.kind()) {
   case Type::Kind::VAR: {
+    auto resolved = m_ctx->type_resolver().resolve_type_var(type.as<type::Var>());
+    assert(resolved.is<StructDef>());
     unimplemented();
   }
   case Type::Kind::POINTER: {

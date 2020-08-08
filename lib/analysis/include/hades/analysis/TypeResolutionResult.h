@@ -20,9 +20,9 @@ public:
   template <typename T>
   TypeResolutionResult(const T *value) noexcept : m_impl(value){};
 
-  template <typename T> auto is() const -> bool { return m_impl.is<T>(); }
+  template <typename T> auto is() const -> bool { return m_impl.is<const T*>(); }
 
-  template <typename T> auto as() const -> const T * { return m_impl.as<T>(); }
+  template <typename T> auto as() const -> const T& { return *m_impl.as<const T*>(); }
 };
 
 } // namespace hades

@@ -29,6 +29,10 @@ auto Context::intern_string(StringView text) -> InternedString {
   return self_mut().intern_string(text);
 }
 
+auto Context::type_resolver() -> TypeResolver & {
+  return self_mut().type_resolver();
+}
+
 Context::~Context() noexcept = default;
 
 } // namespace hades::core

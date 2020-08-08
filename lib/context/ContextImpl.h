@@ -19,7 +19,7 @@ class ContextImpl {
   llvm::BumpPtrAllocator m_allocator;
   Context* m_ctx = nullptr;
   Map<StringView, InternedString> m_interned_strings;
-  UniquePtr<TypeResolver> m_type_resolver;
+  UniquePtr<TypeResolver> m_type_resolver{ new TypeResolver() };
 
 public:
   static auto from_args(const Vec<String>&) noexcept -> Result<ContextImpl, FlagParseError>;

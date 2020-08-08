@@ -10,18 +10,19 @@
 #include "hades/base.h"
 
 namespace hades {
- class TypeResolverImpl;
+class TypeResolverImpl;
 class TypeResolver {
-    UniquePtr<TypeResolverImpl> m_impl;
+  UniquePtr<TypeResolverImpl> m_impl;
 
 public:
   TypeResolver() noexcept;
   ~TypeResolver() noexcept;
-    HADES_DEFAULT_MOVE(TypeResolver)
-   private:
-    auto self() -> TypeResolverImpl &;
+  HADES_DEFAULT_MOVE(TypeResolver)
+  HADES_DELETE_COPY(TypeResolver)
+  auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
 
-    auto resolve_type_var(const type::Var *) -> TypeResolutionResult;
+private:
+  auto self() -> TypeResolverImpl&;
 };
 
 } // namespace hades

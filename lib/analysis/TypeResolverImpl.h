@@ -5,6 +5,8 @@
 #ifndef HADES_TYPERESOLVERIMPL_H
 #define HADES_TYPERESOLVERIMPL_H
 
+#include "hades/analysis/TypeResolutionResult.h"
+#include "hades/ast/Type.h"
 #include "hades/base.h"
 
 namespace hades {
@@ -14,6 +16,8 @@ public:
   TypeResolverImpl() noexcept;
   ~TypeResolverImpl() noexcept = default;
   HADES_DEFAULT_MOVE(TypeResolverImpl)
+
+  auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
 };
 
 } // namespace hades

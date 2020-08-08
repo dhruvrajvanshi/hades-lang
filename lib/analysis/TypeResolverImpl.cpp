@@ -8,4 +8,8 @@ namespace hades {
 
 TypeResolverImpl::TypeResolverImpl() noexcept {}
 
+auto TypeResolverImpl::resolve_type_var(const type::Var& t) -> TypeResolutionResult {
+  unimplemented();
+}
+
 } // namespace hades

@@ -18,13 +18,13 @@ public:
 
   template <typename T>
   auto is() const -> bool {
-    return std::get_if<T>() != nullptr;
+    return std::get_if<T, Ts...>(&m_impl) != nullptr;
   }
 
   template <typename T>
   auto as() const -> T& {
-    assert(is<T>());
-    return std::get<T>();
+    assert(is<T>(m_impl));
+    return std::get<T, Ts...>(&m_impl);
   }
 };
 
