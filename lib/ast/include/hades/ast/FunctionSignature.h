@@ -23,7 +23,7 @@ public:
   FunctionSignature(SourceLocation location, Identifier name, Params&& params, Optional<const Type*> return_type) noexcept;
   auto location() const -> const SourceLocation&;
   auto name() const -> const Identifier&;
-  auto params() const -> const Params&;
+  auto params() const -> ArrayRef<const Param*>;
   auto return_type() const -> const Optional<const Type*>&;
 };
 
