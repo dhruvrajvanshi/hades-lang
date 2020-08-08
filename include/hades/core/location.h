@@ -1,8 +1,7 @@
 #ifndef HADES_LOCATION_H
 #define HADES_LOCATION_H
-#include "../../../lib/base/include/hades/base.h"
-#include "hades/base/sys.h"
-#include <cstdint>
+#include "hades/base.h"
+#include "cstdint"
 
 namespace hades {
 

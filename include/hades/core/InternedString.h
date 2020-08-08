@@ -5,7 +5,7 @@
 #ifndef HADES_INTERNEDSTRING_H
 #define HADES_INTERNEDSTRING_H
 
-#include "../../../lib/base/include/hades/base.h"
+#include "hades/base.h"
 #include "hashtable.h"
 
 namespace hades {
