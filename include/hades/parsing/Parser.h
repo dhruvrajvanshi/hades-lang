@@ -5,8 +5,8 @@
 #ifndef HADES_PARSING_PARSER_H
 #define HADES_PARSING_PARSER_H
 
+#include "../../../lib/base/include/hades/base.h"
 #include "hades/ast/SourceFile.h"
-#include "hades/base.h"
 #include "hades/context/Context.h"
 
 namespace hades {

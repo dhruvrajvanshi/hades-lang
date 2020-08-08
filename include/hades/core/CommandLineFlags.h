@@ -5,7 +5,7 @@
 #ifndef HADES_FLAGS_BUILDFLAGS_H
 #define HADES_FLAGS_BUILDFLAGS_H
 
-#include "hades/base.h"
+#include "../../../lib/base/include/hades/base.h"
 #include "hades/base/data.h"
 #include "hades/base/sys.h"
 

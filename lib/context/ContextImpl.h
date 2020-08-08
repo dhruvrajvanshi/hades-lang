@@ -5,10 +5,10 @@
 #ifndef HADES_CONTEXTIMPL_H
 #define HADES_CONTEXTIMPL_H
 
-#include "hades/base.h"
+#include "../base/include/hades/base.h"
+#include "../base/include/hades/requests.h"
 #include "hades/context/Context.h"
 #include "hades/core/RequestEvaluator.h"
-#include "hades/requests.h"
 
 namespace hades::core {
 namespace req = requests;

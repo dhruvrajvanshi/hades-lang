@@ -2,7 +2,7 @@
 #define HADES_SYS
 
 #include "cassert"
-#include "hades/base/data.h"
+#include "data.h"
 #include <filesystem>
 #include <iostream>
 

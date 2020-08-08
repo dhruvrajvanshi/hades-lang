@@ -5,9 +5,9 @@
 #ifndef HADES_PARAM_H
 #define HADES_PARAM_H
 
+#include "../../../lib/base/include/hades/base.h"
 #include "hades/ast/Identifier.h"
 #include "hades/ast/Type.h"
-#include "hades/base.h"
 
 namespace hades {
 

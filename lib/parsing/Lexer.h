@@ -4,8 +4,8 @@
 
 #ifndef HADES_LEXER_H
 #define HADES_LEXER_H
+#include "../base/include/hades/base.h"
 #include "Token.h"
-#include "hades/base.h"
 
 namespace hades {
 

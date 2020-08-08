@@ -1,7 +1,7 @@
 #ifndef HADES_DATA_H
 #define HADES_DATA_H
 
-#include "hades/base/Result.h"
+#include "Result.h"
 #include "memory"
 #include "string"
 #include "string_view"

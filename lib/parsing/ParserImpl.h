@@ -4,10 +4,10 @@
 
 #ifndef HADES_PARSERIMPL_H
 #define HADES_PARSERIMPL_H
+#include "../base/include/hades/base.h"
 #include "Lexer.h"
 #include "Token.h"
 #include "hades/ast/SourceFile.h"
-#include "hades/base.h"
 #include "hades/context/Context.h"
 
 namespace hades {
