@@ -18,4 +18,20 @@ IntLiteral::IntLiteral(SourceLocation location, i64 value) noexcept
 VarExpression::VarExpression(Identifier name) noexcept
     : Expression(name.location(), Kind::VAR), m_name(name) {}
 
+Arg::Arg(Optional<Identifier> label, const Expression *value) noexcept
+    : m_label(std::move(label)), m_value(value) {}
+
+auto Arg::value() const -> const Expression & { return *m_value; }
+
+auto Arg::label() const -> const Optional<Identifier> & { return m_label; }
+
+Call::Call(SourceLocation location, const Expression *callee,
+           Call::Args &&args) noexcept
+    : Expression(location, Kind::CALL), m_callee(callee),
+      m_args(std::move(args)) {}
+
+auto Call::args() const -> const Args & { return m_args; }
+
+auto Call::callee() const -> const Expression & { return *m_callee; }
+
 } // namespace hades

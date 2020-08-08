@@ -44,9 +44,13 @@ public:
   VarExpression(Identifier name) noexcept;
 };
 
-class Arg : public Expression {
+class Arg {
   Optional<Identifier> m_label;
   const Expression *m_value;
+public:
+  Arg(Optional<Identifier> label, const Expression* value) noexcept;
+  auto label() const -> const Optional<Identifier>&;
+  auto value() const -> const Expression&;
 };
 
 class Call : public Expression {
@@ -58,6 +62,10 @@ private:
   Args m_args;
 
 public:
+  Call(SourceLocation location, const Expression* callee, Args&& args) noexcept;
+
+  auto callee() const -> const Expression&;
+  auto args() const -> const Args&;
 };
 
 } // namespace hades
