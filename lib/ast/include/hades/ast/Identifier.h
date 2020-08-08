@@ -5,7 +5,6 @@
 #ifndef HADES_IDENTIFIER_H
 #define HADES_IDENTIFIER_H
 
-#include "hades/context/Context.h"
 #include "hades/core/InternedString.h"
 #include "hades/core/location.h"
 

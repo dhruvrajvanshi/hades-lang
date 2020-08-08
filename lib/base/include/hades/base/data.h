@@ -12,6 +12,7 @@
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Allocator.h"
+#include "Variant.h"
 
 namespace hades {
 using String = std::string;

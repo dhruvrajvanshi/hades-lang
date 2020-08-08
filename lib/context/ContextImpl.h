@@ -9,7 +9,6 @@
 #include "hades/requests.h"
 #include "hades/context/Context.h"
 #include "hades/core/RequestEvaluator.h"
-#include "hades/analysis/TypeResolver.h"
 
 namespace hades::core {
 namespace req = requests;
