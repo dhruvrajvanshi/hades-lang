@@ -64,7 +64,7 @@ public:
   static constexpr Kind kind = Kind::FUNCTION_DEF;
   FunctionDef(const FunctionSignature* signature, const Block* body) noexcept;
   auto signature() const -> const FunctionSignature&;
-  auto body() const -> const FunctionSignature&;
+  auto body() const -> const Block&;
 };
 
 class StructMember;

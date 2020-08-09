@@ -10,7 +10,7 @@ import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 
 class Resolver(private val ctx: Context) {
-    private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeNode>>()
+    private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeTree>>()
     private val sourceFiles = mutableMapOf<SourcePath, SourceFile>()
 
     fun resolve(ident: Identifier): Binding? {
@@ -43,15 +43,15 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    private fun findTypeInScope(ident: Identifier, scopeNode: ScopeNode): TypeBinding? = when (scopeNode) {
-        is ScopeNode.FunctionDef -> {
+    private fun findTypeInScope(ident: Identifier, scopeNode: ScopeTree): TypeBinding? = when (scopeNode) {
+        is ScopeTree.FunctionDef -> {
             findTypeInFunctionDef(ident, scopeNode.declaration)
         }
-        is ScopeNode.SourceFile -> {
+        is ScopeTree.SourceFile -> {
             findTypeInSourceFile(ident, scopeNode.sourceFile)
         }
-        is ScopeNode.Block -> null
-        is ScopeNode.Struct -> {
+        is ScopeTree.Block -> null
+        is ScopeTree.Struct -> {
             val param = scopeNode.declaration.typeParams?.findLast {
                 it.binder.identifier.name == ident.name
             }
@@ -67,7 +67,7 @@ class Resolver(private val ctx: Context) {
                 }
             }
         }
-        is ScopeNode.Enum -> {
+        is ScopeTree.Enum -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
             }
@@ -79,8 +79,8 @@ class Resolver(private val ctx: Context) {
                 else -> null
             }
         }
-        is ScopeNode.MatchArm -> null
-        is ScopeNode.TypeAlias -> {
+        is ScopeTree.MatchArm -> null
+        is ScopeTree.TypeAlias -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
             }
@@ -116,17 +116,17 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    private fun findInScope(ident: Identifier, scope: ScopeNode): Binding? = when (scope) {
-        is ScopeNode.FunctionDef -> findInFunctionDef(ident, scope)
-        is ScopeNode.SourceFile -> findInSourceFile(ident.name, scope.sourceFile)
-        is ScopeNode.Block -> findInBlock(ident, scope)
-        is ScopeNode.Struct -> null
-        is ScopeNode.Enum -> null
-        is ScopeNode.MatchArm -> findInMatchArm(ident, scope)
-        is ScopeNode.TypeAlias -> null
+    private fun findInScope(ident: Identifier, scope: ScopeTree): Binding? = when (scope) {
+        is ScopeTree.FunctionDef -> findInFunctionDef(ident, scope)
+        is ScopeTree.SourceFile -> findInSourceFile(ident.name, scope.sourceFile)
+        is ScopeTree.Block -> findInBlock(ident, scope)
+        is ScopeTree.Struct -> null
+        is ScopeTree.Enum -> null
+        is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
+        is ScopeTree.TypeAlias -> null
     }
 
-    private fun findInMatchArm(ident: Identifier, scope: ScopeNode.MatchArm): Binding? {
+    private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
         return findInPattern(ident, scope.arm.pattern)
     }
 
@@ -151,7 +151,7 @@ class Resolver(private val ctx: Context) {
         is Pattern.Else -> null
     }
 
-    private fun findInBlock(ident: Identifier, scope: ScopeNode.Block): Binding? {
+    private fun findInBlock(ident: Identifier, scope: ScopeTree.Block): Binding? {
         for (member in scope.block.members) {
             val binding = when (member) {
                 is Block.Member.Expression -> null
@@ -219,7 +219,7 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    private fun findInFunctionDef(ident: Identifier, scope: ScopeNode.FunctionDef): Binding? {
+    private fun findInFunctionDef(ident: Identifier, scope: ScopeTree.FunctionDef): Binding? {
         var index = -1
         for (param in scope.declaration.params) {
             index++
@@ -243,7 +243,7 @@ class Resolver(private val ctx: Context) {
 
     private fun getScopeStack(node: HasLocation): ScopeStack {
         val scopes = sourceFileScopes
-            .getOrDefault(node.location.file, emptyList<ScopeNode>())
+            .getOrDefault(node.location.file, emptyList<ScopeTree>())
             .sortedByDescending { it.location }
             .filter { it.location contains node }
 
@@ -255,7 +255,7 @@ class Resolver(private val ctx: Context) {
     }
 
     fun onParseMatchArm(arm: Expression.Match.Arm) {
-        addScopeNode(arm.location.file, ScopeNode.MatchArm(arm))
+        addScopeNode(arm.location.file, ScopeTree.MatchArm(arm))
     }
 
     fun onParseDeclaration(declaration: Declaration) {
@@ -263,20 +263,20 @@ class Resolver(private val ctx: Context) {
             is Declaration.FunctionDef -> {
                 addScopeNode(
                     declaration.location.file,
-                    ScopeNode.FunctionDef(declaration)
+                    ScopeTree.FunctionDef(declaration)
                 )
             }
             is Declaration.Struct -> {
                 addScopeNode(
                     declaration.location.file,
-                    ScopeNode.Struct(declaration)
+                    ScopeTree.Struct(declaration)
                 )
             }
             is Declaration.Enum -> {
-                addScopeNode(declaration.location.file, ScopeNode.Enum(declaration))
+                addScopeNode(declaration.location.file, ScopeTree.Enum(declaration))
             }
             is Declaration.TypeAlias -> {
-                addScopeNode(declaration.location.file, ScopeNode.TypeAlias(declaration))
+                addScopeNode(declaration.location.file, ScopeTree.TypeAlias(declaration))
             }
             else -> {}
         }
@@ -284,14 +284,14 @@ class Resolver(private val ctx: Context) {
 
     fun onParseSourceFile(sourceFile: SourceFile) {
         sourceFiles[sourceFile.location.file] = sourceFile
-        addScopeNode(sourceFile.location.file, ScopeNode.SourceFile(sourceFile))
+        addScopeNode(sourceFile.location.file, ScopeTree.SourceFile(sourceFile))
     }
 
     fun onParseBlock(block: Block) {
-        addScopeNode(block.location.file, ScopeNode.Block(block))
+        addScopeNode(block.location.file, ScopeTree.Block(block))
     }
 
-    private fun addScopeNode(file: SourcePath, scopeNode: ScopeNode) {
+    private fun addScopeNode(file: SourcePath, scopeNode: ScopeTree) {
         sourceFileScopes
             .computeIfAbsent(file) { mutableListOf() }
             .add(scopeNode)
@@ -305,10 +305,10 @@ class Resolver(private val ctx: Context) {
         }
         for (scope in scopeStack.scopes) {
             val binding: Binding? = when (scope) {
-                is ScopeNode.FunctionDef -> null
-                is ScopeNode.Block -> null // Blocks can't have imports yet
-                is ScopeNode.Struct -> null
-                is ScopeNode.SourceFile -> {
+                is ScopeTree.FunctionDef -> null
+                is ScopeTree.Block -> null // Blocks can't have imports yet
+                is ScopeTree.Struct -> null
+                is ScopeTree.SourceFile -> {
                     var binding: Binding? = null
                     for (declaration in scope.sourceFile.declarations) {
                         binding = when (declaration) {
@@ -352,9 +352,9 @@ class Resolver(private val ctx: Context) {
                     }
                     binding
                 }
-                is ScopeNode.MatchArm -> null
-                is ScopeNode.TypeAlias -> null
-                is ScopeNode.Enum -> null
+                is ScopeTree.MatchArm -> null
+                is ScopeTree.TypeAlias -> null
+                is ScopeTree.Enum -> null
             }
             if (binding != null) {
                 return binding
@@ -460,7 +460,7 @@ class Resolver(private val ctx: Context) {
 
     fun getEnclosingFunction(node: HasLocation): Declaration.FunctionDef? {
         for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeNode.FunctionDef) {
+            if (scopeNode is ScopeTree.FunctionDef) {
                 return scopeNode.declaration
             }
         }

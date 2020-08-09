@@ -25,7 +25,7 @@ public:
   auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
 
 private:
-  auto self() -> TypeResolverImpl&;
+  auto self() -> TypeResolverImpl &;
 };
 
 } // namespace hades

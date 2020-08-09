@@ -49,7 +49,9 @@ ExternDef::ExternDef(SourceLocation location,
 auto ExternDef::signature() const -> const FunctionSignature & {
   return *m_signature;
 }
-auto ExternDef::extern_name() const -> const Identifier & { return m_extern_name; }
+auto ExternDef::extern_name() const -> const Identifier & {
+  return m_extern_name;
+}
 
 FunctionDef::FunctionDef(const FunctionSignature *signature,
                          const Block *body) noexcept
@@ -57,5 +59,7 @@ FunctionDef::FunctionDef(const FunctionSignature *signature,
           SourceLocation::between(signature->location(), body->location()),
           Kind::FUNCTION_DEF), //
       m_signature{signature}, m_body{body} {}
+
+auto FunctionDef::body() const -> const Block & { return *m_body; }
 
 } // namespace hades

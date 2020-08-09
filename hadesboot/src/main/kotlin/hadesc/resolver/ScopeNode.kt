@@ -4,20 +4,20 @@ import hadesc.ast.Declaration
 import hadesc.ast.Expression
 import hadesc.location.SourceLocation
 
-sealed class ScopeNode {
+sealed class ScopeTree {
     data class FunctionDef(
             val declaration: Declaration.FunctionDef
-    ) : ScopeNode()
+    ) : ScopeTree()
 
     data class SourceFile(
             val sourceFile: hadesc.ast.SourceFile
-    ) : ScopeNode()
+    ) : ScopeTree()
 
-    data class Block(val block: hadesc.ast.Block) : ScopeNode()
-    data class Struct(val declaration: Declaration.Struct) : ScopeNode()
-    data class Enum(val declaration: Declaration.Enum) : ScopeNode()
-    data class MatchArm(val arm: Expression.Match.Arm) : ScopeNode()
-    data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeNode()
+    data class Block(val block: hadesc.ast.Block) : ScopeTree()
+    data class Struct(val declaration: Declaration.Struct) : ScopeTree()
+    data class Enum(val declaration: Declaration.Enum) : ScopeTree()
+    data class MatchArm(val arm: Expression.Match.Arm) : ScopeTree()
+    data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeTree()
 
     val location
         get(): SourceLocation = when (this) {

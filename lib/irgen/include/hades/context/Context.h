@@ -6,6 +6,7 @@
 #include "hades/core/InternedString.h"
 #include "hades/analysis/TypeResolver.h"
 #include "hades/ast/SourceFile.h"
+#include "hades/base/BumpPtrAllocator.h"
 
 namespace hades::core {
 class ContextImpl;

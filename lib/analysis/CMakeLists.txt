@@ -2,7 +2,8 @@
 set(LIBHADES_ANALYSIS_SOURCES
         TypeResolver.cpp
         TypeResolverImpl.cpp
-        ScopeNode.cpp
+        ScopeTree.cpp
+        ScopeTreeBuilder.cpp
         )
 
 set(LIBHADES_ANALYSIS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
