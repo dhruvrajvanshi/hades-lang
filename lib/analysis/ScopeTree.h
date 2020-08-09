@@ -47,6 +47,20 @@ public:
   auto children() const -> ArrayRef<const ScopeTree *>;
 
   auto set_children(ArrayRef<const ScopeTree *> children) -> void;
+
+  template <typename T>
+  auto narrowest_scope_containing(const T& node) const -> const ScopeTree* {
+    auto node_location = node.location();
+    auto scope_location = location();
+    assert(scope_location.contains(node_location));
+    for (auto* child : children()) {
+      auto child_location = child->location();
+      if (child_location.contains(node_location)) {
+        return child->narrowest_scope_containing(node);
+      }
+    }
+    return this;
+  }
 };
 
 } // namespace hades

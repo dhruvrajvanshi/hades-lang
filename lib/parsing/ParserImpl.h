@@ -108,11 +108,9 @@ private:
   auto make_location(
       T1 value_1,
       T2 value_2) -> SourceLocation {
-    return {
-        get_location(value_1).path(),
-        get_location(value_1).start(),
-        get_location(value_2).stop()
-    };
+    auto start_pos = get_location(value_1).start();
+    auto stop_pos = get_location(value_2).stop();
+    return {get_location(value_1).path(), start_pos, stop_pos};
   }
 
   auto advance() -> Token;

@@ -15,6 +15,8 @@ auto TypeResolverImpl::resolve_type_var(const type::Var &t)
   auto &source_file = ctx().get_source_file(*t.name().location().path());
   auto scope_tree_builder = ScopeTreeBuilder{&allocator()};
   const auto *scope_tree = scope_tree_builder.build_scope_tree(source_file);
+  const auto* node_scope = scope_tree->narrowest_scope_containing(t);
+  auto location = node_scope->location();
   unimplemented();
 }
 

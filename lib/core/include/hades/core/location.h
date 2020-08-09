@@ -25,7 +25,8 @@ public:
 };
 class SourceLocation;
 
-template <typename T> auto get_location(T t) -> const SourceLocation &;
+template <typename T> auto get_location(T* t) -> SourceLocation;
+template <typename T> auto get_location(T& t) -> SourceLocation;
 
 class SourceLocation {
   const fs::path *m_path;
@@ -59,12 +60,11 @@ public:
 static_assert(std::is_trivially_copyable_v<SourceLocation>);
 static_assert(std::is_trivially_move_assignable_v<SourceLocation>);
 
-template <typename T> auto get_location(T t) -> const SourceLocation & {
-  if constexpr (std::is_pointer_v<T>) {
-    return t->location();
-  } else {
-    return t.location();
-  }
+template <typename T> auto get_location(T& t) -> SourceLocation {
+  return t.location();
+}
+template <typename T> auto get_location(T* t) -> SourceLocation {
+  return t->location();
 }
 
 } // namespace hades

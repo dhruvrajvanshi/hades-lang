@@ -12,7 +12,7 @@ extern def get_cursor_kind(Cursor): Int = get_cursor_kind;
 extern def print_cursor_kind(Int): Void = print_cursor_kind;
 
 def main(): Void {
-    val cursor = make_cursor(7, 4);
+    val cursor: Cursor = make_cursor(7, 4);
     print_cursor(cursor);
     val kind = get_cursor_kind(cursor);
     print_cursor_kind(kind);

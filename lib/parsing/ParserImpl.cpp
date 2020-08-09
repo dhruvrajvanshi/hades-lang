@@ -18,7 +18,7 @@ auto ParserImpl::parse_source_file() -> const SourceFile * {
   while (!at(tt::ENDF)) {
     declarations.push_back(parse_declaration());
   }
-  auto last = current_token().location();
+  auto last = expect(tt::ENDF).location();
   return allocate<SourceFile>(
       make_location(first, last),
       std::move(declarations));
