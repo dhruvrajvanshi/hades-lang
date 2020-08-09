@@ -20,7 +20,7 @@ class ContextImpl {
   Context* m_ctx;
   Map<StringView, InternedString> m_interned_strings{};
   Map<String, const SourceFile*> m_source_files{};
-  UniquePtr<TypeResolver> m_type_resolver;
+  UniquePtr<NameResolver> m_type_resolver;
 
 public:
   ContextImpl() = delete;
@@ -37,7 +37,7 @@ public:
 
   auto intern_string(StringView text) -> InternedString;
 
-  auto type_resolver() -> TypeResolver&;
+  auto type_resolver() -> NameResolver &;
 
   auto get_source_file(const fs::path&) -> const SourceFile&;
 };

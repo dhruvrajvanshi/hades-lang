@@ -40,9 +40,9 @@ auto ContextImpl::intern_string(StringView text) -> InternedString {
   return interned_str;
 }
 
-auto ContextImpl::type_resolver() -> TypeResolver & {
+auto ContextImpl::type_resolver() -> NameResolver & {
   if (m_type_resolver == nullptr) {
-    m_type_resolver.reset(new TypeResolver(m_ctx));
+    m_type_resolver.reset(new NameResolver(m_ctx));
   }
   return *m_type_resolver;
 }

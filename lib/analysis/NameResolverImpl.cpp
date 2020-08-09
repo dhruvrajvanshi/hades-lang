@@ -2,15 +2,15 @@
 // Created by dhruv on 08/08/20.
 //
 
-#include "TypeResolverImpl.h"
+#include "NameResolverImpl.h"
 #include "ScopeTreeBuilder.h"
 #include "hades/ast/Declaration.h"
 
 namespace hades {
 
-TypeResolverImpl::TypeResolverImpl(core::Context *ctx) noexcept : m_ctx{ctx} {}
+NameResolverImpl::NameResolverImpl(core::Context *ctx) noexcept : m_ctx{ctx} {}
 
-auto TypeResolverImpl::resolve_type_var(const type::Var &t)
+auto NameResolverImpl::resolve_type_var(const type::Var &t)
     -> TypeResolutionResult {
 #define RESOLVE_BUILTIN(n)                                                     \
   if (t.name().name() == builtin_name_##n) {                                   \
@@ -30,11 +30,11 @@ auto TypeResolverImpl::resolve_type_var(const type::Var &t)
   return resolve_type_var_in_scope(t, *node_scope);
 }
 
-auto TypeResolverImpl::ctx() -> core::Context & { return *m_ctx; }
+auto NameResolverImpl::ctx() -> core::Context & { return *m_ctx; }
 
-auto TypeResolverImpl::allocator() -> BumpPtrAllocator & { return m_allocator; }
+auto NameResolverImpl::allocator() -> BumpPtrAllocator & { return m_allocator; }
 
-auto TypeResolverImpl::resolve_type_var_in_scope(const type::Var &var,
+auto NameResolverImpl::resolve_type_var_in_scope(const type::Var &var,
                                                  const ScopeTree &tree) const
     -> TypeResolutionResult {
   switch (tree.kind()) {
@@ -49,7 +49,7 @@ auto TypeResolverImpl::resolve_type_var_in_scope(const type::Var &var,
   }
 }
 
-auto TypeResolverImpl::resolve_type_var_in_source_file( //
+auto NameResolverImpl::resolve_type_var_in_source_file( //
     const type::Var &var, const SourceFile &source_file) const
     -> TypeResolutionResult {
   for (auto &decl : source_file.declarations()) {

@@ -53,6 +53,7 @@ class VarExpression : public Expression {
 public:
   static constexpr Kind kind = Kind::VAR;
   VarExpression(Identifier name) noexcept;
+  auto name() const -> const Identifier& { return m_name; }
 };
 
 class Arg {

@@ -1,7 +1,7 @@
 
 set(LIBHADES_ANALYSIS_SOURCES
-        TypeResolver.cpp
-        TypeResolverImpl.cpp
+        NameResolver.cpp
+        NameResolverImpl.cpp
         ScopeTree.cpp
         ScopeTreeBuilder.cpp
         )

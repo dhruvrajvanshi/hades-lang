@@ -59,7 +59,7 @@ auto t::lower_function_def(const FunctionDef &def) -> void {
   auto *basic_block = llvm::BasicBlock::Create(m_llvm_ctx, "entry", function);
   builder().SetInsertPoint(basic_block);
 
-  for (auto *statement : def.body().statements()) {
+  for (const auto *statement : def.body().statements()) {
     lower_statement(*statement);
   }
 }
@@ -103,11 +103,15 @@ auto t::lower_expression(const Expression &expr) -> llvm::Value * {
   llvm_unreachable("");
 }
 
-auto t::lower_var_expression(const VarExpression &) -> llvm::Value * {
+auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
   unimplemented();
 }
 
-auto t::lower_call(const Call &) -> llvm::Value * {
+auto t::lower_call(const Call & call) -> llvm::Value * {
+  const auto* callee = lower_expression(call.callee());
+  for (const auto* arg : call.args()) {
+    assert(!arg->label().hasValue());
+  }
   unimplemented();
 }
 
@@ -123,11 +127,11 @@ auto t::lower_type(const Type &type) -> llvm::Type * {
     auto type_var = type.as<type::Var>();
     auto resolved = m_ctx->type_resolver().resolve_type_var(type_var);
     if (resolved.is<StructDef>()) {
-      auto &struct_def = resolved.as<StructDef>();
+      const auto &struct_def = resolved.as<StructDef>();
       return get_struct_def_type(struct_def);
     }
     if (resolved.is<TypeResolutionResult::Int>()) {
-      auto &[width, is_signed] = resolved.as<TypeResolutionResult::Int>();
+      const auto &[width, is_signed] = resolved.as<TypeResolutionResult::Int>();
       return llvm::IntegerType::get(m_llvm_ctx, width);
     }
     if (resolved.is<TypeResolutionResult::Void>()) {
@@ -139,7 +143,7 @@ auto t::lower_type(const Type &type) -> llvm::Type * {
     llvm_unreachable("");
   }
   case Type::Kind::POINTER: {
-    auto &ptr_type = type.as<type::Pointer>();
+    const auto &ptr_type = type.as<type::Pointer>();
     return llvm::PointerType::get(lower_type(*ptr_type.pointee()), 0);
   };
   case Type::Kind::INT: {
@@ -155,12 +159,12 @@ auto t::get_struct_def_type(const StructDef &struct_def) -> llvm::Type * {
     auto *struct_type = llvm::StructType::create(m_llvm_ctx);
     struct_type->setName(struct_def.identifier().name().as_string_ref());
     auto field_types = Vec<llvm::Type *>();
-    for (auto *member : struct_def.members()) {
+    for (const auto *member : struct_def.members()) {
       switch (member->kind()) {
       case StructMember::Kind::FIELD: {
-        auto *field = static_cast<const StructField *>(member);
+        const auto *field = static_cast<const StructField *>(member);
         assert(field->type().hasValue());
-        auto *declared_type = field->type().getValue();
+        const auto *declared_type = field->type().getValue();
         field_types.push_back(lower_type(*declared_type));
       }
       }

@@ -2,8 +2,8 @@
 // Created by dhruv on 08/08/20.
 //
 
-#ifndef HADES_TYPERESOLVERIMPL_H
-#define HADES_TYPERESOLVERIMPL_H
+#ifndef HADES_NAMERESOLVERIMPL_H
+#define HADES_NAMERESOLVERIMPL_H
 
 #include "ScopeTree.h"
 #include "hades/analysis/TypeResolutionResult.h"
@@ -14,7 +14,7 @@
 
 namespace hades {
 
-class TypeResolverImpl {
+class NameResolverImpl {
   core::Context* m_ctx;
   BumpPtrAllocator m_allocator{};
 
@@ -31,9 +31,9 @@ class TypeResolverImpl {
   const TypeResolutionResult::Void* builtin_void = m_allocator.allocate<TypeResolutionResult::Void>(); \
   InternedString builtin_name_void = m_ctx->intern_string("Void");
 public:
-  TypeResolverImpl(core::Context*) noexcept;
-  ~TypeResolverImpl() noexcept = default;
-  HADES_DEFAULT_MOVE(TypeResolverImpl)
+  NameResolverImpl(core::Context*) noexcept;
+  ~NameResolverImpl() noexcept = default;
+  HADES_DEFAULT_MOVE(NameResolverImpl)
 
   auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
 
@@ -48,4 +48,4 @@ private:
 
 } // namespace hades
 
-#endif // HADES_TYPERESOLVERIMPL_H
+#endif // HADES_NAMERESOLVERIMPL_H

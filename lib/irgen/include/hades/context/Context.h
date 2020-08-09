@@ -1,12 +1,12 @@
 #ifndef HADES_CORE_CONTEXT_H
 #define HADES_CORE_CONTEXT_H
 
+#include "hades/analysis/NameResolver.h"
+#include "hades/ast/SourceFile.h"
+#include "hades/base/BumpPtrAllocator.h"
 #include "hades/base/data.h"
 #include "hades/core/CommandLineFlags.h"
 #include "hades/core/InternedString.h"
-#include "hades/analysis/TypeResolver.h"
-#include "hades/ast/SourceFile.h"
-#include "hades/base/BumpPtrAllocator.h"
 
 namespace hades::core {
 class ContextImpl;
@@ -25,7 +25,7 @@ public:
 
   auto intern_string(StringView text) -> InternedString;
 
-  auto type_resolver() -> TypeResolver&;
+  auto type_resolver() -> NameResolver &;
 
   auto get_source_file(const fs::path&) -> const SourceFile&;
 
