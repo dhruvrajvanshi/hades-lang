@@ -26,7 +26,7 @@ public:
 
   auto kind() const -> Kind { return m_kind; }
 
-  template <typename T> auto as() {
+  template <typename T> auto as() const -> const T* {
     assert(kind() == T::kind);
     return static_cast<const T *>(this);
   }

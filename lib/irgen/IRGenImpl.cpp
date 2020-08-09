@@ -77,8 +77,9 @@ auto t::lower_statement(const Statement &statement) -> void {
   }
   llvm_unreachable("");
 }
-auto t::lower_expression_statement(const ExpressionStatement &) -> void {
-  unimplemented();
+auto t::lower_expression_statement(const ExpressionStatement &statement)
+    -> void {
+  lower_expression(statement.expression());
 }
 
 auto t::lower_val_statement(const ValStatement &statement) -> void {
@@ -89,6 +90,28 @@ auto t::lower_val_statement(const ValStatement &statement) -> void {
 }
 
 auto t::lower_expression(const Expression &expr) -> llvm::Value * {
+  switch (expr.kind()) {
+  case Expression::Kind::ERROR:
+    llvm_unreachable("");
+  case Expression::Kind::VAR:
+    return lower_var_expression(*expr.as<VarExpression>());
+  case Expression::Kind::CALL:
+    return lower_call(*expr.as<Call>());
+  case Expression::Kind::INT_LITERAL:
+    return lower_int_literal(*expr.as<IntLiteral>());
+  }
+  llvm_unreachable("");
+}
+
+auto t::lower_var_expression(const VarExpression &) -> llvm::Value * {
+  unimplemented();
+}
+
+auto t::lower_call(const Call &) -> llvm::Value * {
+  unimplemented();
+}
+
+auto t::lower_int_literal(const IntLiteral &) -> llvm::Value * {
   unimplemented();
 }
 
