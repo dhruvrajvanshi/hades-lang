@@ -47,6 +47,7 @@ private:
   auto get_function_signature_type(const FunctionSignature&) -> llvm::FunctionType*;
 
   auto lower_statement(const Statement&) -> void;
+  auto lower_expression(const Expression&) -> llvm::Value*;
 
   auto lower_expression_statement(const ExpressionStatement&) -> void;
   auto lower_val_statement(const ValStatement&) -> void;

@@ -3,20 +3,20 @@
 //
 
 #include "IRGenImpl.h"
-#include "hades/ast/Type.h"
 #include "hades/ast/Declaration.h"
+#include "hades/ast/Type.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace hades {
 using t = IRGenImpl;
 
-auto t::lower_source_file(const SourceFile& source_file) -> void {
-  for (const auto* declaration : source_file.declarations()) {
+auto t::lower_source_file(const SourceFile &source_file) -> void {
+  for (const auto *declaration : source_file.declarations()) {
     lower_declaration(*declaration);
   }
 }
 
-auto t::lower_declaration(const Declaration & decl) -> void {
+auto t::lower_declaration(const Declaration &decl) -> void {
   using k = Declaration::Kind;
   switch (decl.kind()) {
   case k::EXTERN_DEF:
@@ -31,10 +31,9 @@ auto t::lower_declaration(const Declaration & decl) -> void {
   llvm_unreachable("");
 }
 
-auto t::lower_extern_def(const ExternDef & def) -> void {
-}
+auto t::lower_extern_def(const ExternDef &def) -> void {}
 
-auto t::get_extern_def_callee(const ExternDef & def) -> llvm::FunctionCallee * {
+auto t::get_extern_def_callee(const ExternDef &def) -> llvm::FunctionCallee * {
   unimplemented();
 }
 
@@ -47,24 +46,28 @@ auto t::get_function_signature_type(const FunctionSignature &signature)
           signature.params(), [this](const Param *param) -> llvm::Type * {
             return lower_type(*param->type().getValue());
           });
-  return llvm::FunctionType::get(return_type, param_types, /* isVarArgs */ false);
+  return llvm::FunctionType::get(return_type, param_types,
+                                 /* isVarArgs */ false);
 }
 
-auto t::lower_function_def(const FunctionDef & def) -> void {
-  auto* type = get_function_signature_type(def.signature());
+auto t::lower_function_def(const FunctionDef &def) -> void {
+  auto *type = get_function_signature_type(def.signature());
   auto name = def.signature().name().name().as_string_ref();
-  auto* function = llvm::Function::Create(type, llvm::GlobalValue::LinkageTypes::CommonLinkage, 0, name, &llvm_module());
-  auto* basic_block = llvm::BasicBlock::Create(m_llvm_ctx, "entry", function);
+  auto *function = llvm::Function::Create(
+      type, llvm::GlobalValue::LinkageTypes::CommonLinkage, 0, name,
+      &llvm_module());
+  auto *basic_block = llvm::BasicBlock::Create(m_llvm_ctx, "entry", function);
   builder().SetInsertPoint(basic_block);
 
-  for (auto* statement : def.body().statements()) {
+  for (auto *statement : def.body().statements()) {
     lower_statement(*statement);
   }
 }
 
-auto t::lower_statement(const Statement & statement) -> void {
+auto t::lower_statement(const Statement &statement) -> void {
   switch (statement.kind()) {
-  case Statement::Kind::ERROR: llvm_unreachable("");
+  case Statement::Kind::ERROR:
+    llvm_unreachable("");
   case Statement::Kind::EXPRESSION:
     lower_expression_statement(*statement.as<ExpressionStatement>());
     return;
@@ -74,28 +77,34 @@ auto t::lower_statement(const Statement & statement) -> void {
   }
   llvm_unreachable("");
 }
-auto t::lower_expression_statement(const ExpressionStatement &)
--> void {
+auto t::lower_expression_statement(const ExpressionStatement &) -> void {
   unimplemented();
 }
 
-auto t::lower_val_statement(const ValStatement & statement) -> void {
+auto t::lower_val_statement(const ValStatement &statement) -> void {
+  auto *initializer = lower_expression(statement.initializer());
+  auto *ptr = builder().CreateAlloca(initializer->getType(), nullptr,
+                                     statement.name().as_string_ref());
+  builder().CreateStore(initializer, ptr, /* isVolatile */ false);
+}
+
+auto t::lower_expression(const Expression &expr) -> llvm::Value * {
   unimplemented();
 }
 
 auto t::lower_struct_def(const StructDef &) -> void {}
 
-auto t::lower_type(const Type & type) -> llvm::Type * {
+auto t::lower_type(const Type &type) -> llvm::Type * {
   switch (type.kind()) {
   case Type::Kind::VAR: {
     auto type_var = type.as<type::Var>();
     auto resolved = m_ctx->type_resolver().resolve_type_var(type_var);
     if (resolved.is<StructDef>()) {
-      auto& struct_def = resolved.as<StructDef>();
+      auto &struct_def = resolved.as<StructDef>();
       return get_struct_def_type(struct_def);
     }
     if (resolved.is<TypeResolutionResult::Int>()) {
-      auto& [width, is_signed] = resolved.as<TypeResolutionResult::Int>();
+      auto &[width, is_signed] = resolved.as<TypeResolutionResult::Int>();
       return llvm::IntegerType::get(m_llvm_ctx, width);
     }
     if (resolved.is<TypeResolutionResult::Void>()) {
@@ -107,7 +116,7 @@ auto t::lower_type(const Type & type) -> llvm::Type * {
     llvm_unreachable("");
   }
   case Type::Kind::POINTER: {
-    auto& ptr_type = type.as<type::Pointer>();
+    auto &ptr_type = type.as<type::Pointer>();
     return llvm::PointerType::get(lower_type(*ptr_type.pointee()), 0);
   };
   case Type::Kind::INT: {
@@ -118,7 +127,7 @@ auto t::lower_type(const Type & type) -> llvm::Type * {
   llvm_unreachable("");
 }
 
-auto t::get_struct_def_type(const StructDef & struct_def) -> llvm::Type * {
+auto t::get_struct_def_type(const StructDef &struct_def) -> llvm::Type * {
   if (!m_struct_def_types.contains(&struct_def)) {
     auto *struct_type = llvm::StructType::create(m_llvm_ctx);
     struct_type->setName(struct_def.identifier().name().as_string_ref());
@@ -134,7 +143,7 @@ auto t::get_struct_def_type(const StructDef & struct_def) -> llvm::Type * {
       }
     }
     struct_type->setBody(allocator().copy_items(field_types));
-    m_struct_def_types.insert({ &struct_def, struct_type });
+    m_struct_def_types.insert({&struct_def, struct_type});
   }
 
   return m_struct_def_types.at(&struct_def);

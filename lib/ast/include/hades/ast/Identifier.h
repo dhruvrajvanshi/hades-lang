@@ -19,6 +19,10 @@ public:
 
   auto location() const -> const SourceLocation&;
   auto name() const -> InternedString;
+
+  auto as_string_ref() const -> StringRef {
+    return name().as_string_ref();
+  }
 };
 
 } // namespace hades
