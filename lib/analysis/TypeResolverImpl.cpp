@@ -8,14 +8,7 @@
 
 namespace hades {
 
-TypeResolverImpl::TypeResolverImpl(core::Context *ctx) noexcept : m_ctx{ctx} {
-#define INIT_BUILTIN_INT(n, size, is_signed) builtin_name_##n = m_ctx->intern_string(#n);
-  INIT_BUILTIN_INT(u32, 32, false)
-  INIT_BUILTIN_INT(i32, 32, true)
-  INIT_BUILTIN_INT(u64, 64, false)
-  INIT_BUILTIN_INT(i64, 64, true)
-#undef INIT_BUILTIN_INT
-}
+TypeResolverImpl::TypeResolverImpl(core::Context *ctx) noexcept : m_ctx{ctx} {}
 
 auto TypeResolverImpl::resolve_type_var(const type::Var &t)
     -> TypeResolutionResult {
