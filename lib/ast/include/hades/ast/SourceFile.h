@@ -13,10 +13,12 @@ namespace hades {
 
 class SourceFile {
 private:
+  SourceLocation m_location;
   Vec<const Declaration *> m_declarations;
 public:
-  SourceFile(Vec<const Declaration*>);
+  SourceFile(SourceLocation, Vec<const Declaration*>);
   auto declarations() const -> ArrayRef<const Declaration*>;
+  auto location() const -> const SourceLocation&;
 };
 
 static_assert(std::is_move_constructible_v<SourceFile>);

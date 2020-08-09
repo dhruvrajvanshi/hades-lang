@@ -1,7 +1,7 @@
 #ifndef HADES_LOCATION_H
 #define HADES_LOCATION_H
-#include "hades/base.h"
 #include "cstdint"
+#include "hades/base.h"
 
 namespace hades {
 
@@ -15,8 +15,13 @@ private:
 
 public:
   SourcePosition(LineNumber line, LineNumber column);
-  LineNumber line();
-  ColumnNumber column();
+  LineNumber line() const;
+  ColumnNumber column() const;
+  bool operator>(const SourcePosition &) const;
+  bool operator>=(const SourcePosition &) const;
+  bool operator<(const SourcePosition &) const;
+  bool operator<=(const SourcePosition &) const;
+  bool operator==(const SourcePosition &) const;
 };
 class SourceLocation;
 
@@ -35,6 +40,8 @@ public:
   auto path() const noexcept -> const fs::path *;
   auto start() const noexcept -> SourcePosition;
   auto stop() const noexcept -> SourcePosition;
+
+  auto contains(const SourceLocation&) const -> bool;
 
   static auto between(const fs::path *path, SourceLocation start,
                       SourceLocation stop) noexcept -> SourceLocation;

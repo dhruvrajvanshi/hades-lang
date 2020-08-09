@@ -9,25 +9,22 @@
 
 namespace hades {
 
-template <typename... Ts>
-class Variant {
+template <typename... Ts> class Variant {
   std::variant<Ts...> m_impl;
-public:
-  template <typename T>
-  Variant(T value) noexcept : m_impl{value} {}
 
-  template <typename T>
-  auto is() const -> bool {
-    return std::get_if<T, Ts...>(&m_impl) != nullptr;
+public:
+  template <typename T> Variant(T value) noexcept : m_impl{value} {}
+
+  template <typename T> auto is() const -> bool {
+    return std::get_if<T>(&m_impl) != nullptr;
   }
 
-  template <typename T>
-  auto as() const -> T& {
-    assert(is<T>(m_impl));
-    return std::get<T, Ts...>(&m_impl);
+  template <typename T> auto as() const -> const T & {
+    assert(is<T>());
+    return std::get<T>(m_impl);
   }
 };
 
-}
+} // namespace hades
 
 #endif // HADES_VARIANT_H

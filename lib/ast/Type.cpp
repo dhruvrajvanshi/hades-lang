@@ -19,6 +19,7 @@ namespace type {
 
 Var::Var(Identifier ident) noexcept
     : Type(ident.location(), Kind::VAR), m_name(std::move(ident)) {}
+auto Var::name() const -> const Identifier & { return m_name; }
 
 Pointer::Pointer(SourceLocation location, const Type *pointee,
                  bool is_mutable) noexcept

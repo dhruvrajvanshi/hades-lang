@@ -13,11 +13,15 @@ ParserImpl::ParserImpl(core::Context *ctx, const fs::path *path)
     : m_ctx(ctx), m_path(path), m_token_buffer(Lexer(path)) {}
 
 auto ParserImpl::parse_source_file() -> const SourceFile * {
+  auto first = current_token().location();
   auto declarations = Vec<const Declaration *>();
   while (!at(tt::ENDF)) {
     declarations.push_back(parse_declaration());
   }
-  return allocate<SourceFile>(std::move(declarations));
+  auto last = current_token().location();
+  return allocate<SourceFile>(
+      make_location(first, last),
+      std::move(declarations));
 }
 
 auto ParserImpl::parse_block() -> const Block * {

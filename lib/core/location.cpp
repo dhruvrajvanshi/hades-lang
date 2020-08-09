@@ -8,8 +8,31 @@ namespace hades {
 SourcePosition::SourcePosition(LineNumber line, LineNumber column)
     : m_line(line), m_column(column) {}
 
-LineNumber SourcePosition::line() { return m_line; }
-ColumnNumber SourcePosition::column() { return m_column; }
+LineNumber SourcePosition::line() const { return m_line; }
+ColumnNumber SourcePosition::column() const { return m_column; }
+
+bool SourcePosition::operator>(const SourcePosition &that) const {
+  if (line() == that.line()) {
+    return column() > that.column();
+  }
+  return line() > that.line();
+}
+
+bool SourcePosition::operator==(const SourcePosition &that) const {
+  return line() == that.line() && column() == that.column();
+}
+
+bool SourcePosition::operator<(const SourcePosition &that) const {
+  return !(*this > that) && !(*this == that);
+}
+
+bool SourcePosition::operator<=(const SourcePosition & that) const {
+  return *this < that || *this == that;
+}
+
+bool SourcePosition::operator>=(const SourcePosition &that) const {
+  return *this > that || *this == that;
+}
 
 SourceLocation::SourceLocation(const fs::path *path, SourcePosition start,
                                SourcePosition stop) noexcept
@@ -30,6 +53,12 @@ auto SourceLocation::path() const noexcept -> const fs::path * {
 }
 auto SourceLocation::location() const -> const SourceLocation & {
   return *this;
+}
+auto SourceLocation::contains(const SourceLocation &that) const -> bool {
+  if (path() != that.path()) {
+    return false;
+  }
+  return start() <= that.start() && stop() >= that.stop();
 }
 
 } // namespace hades
