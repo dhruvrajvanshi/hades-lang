@@ -43,7 +43,7 @@ auto t::build_function_def_scope_tree(const FunctionDef &def,
 
   auto children = Vec<const ScopeTree *>();
 
-  build_block_scope_tree(def.body(), tree);
+  children.push_back(build_block_scope_tree(def.body(), tree));
 
   tree->set_children(allocator().copy_items(children));
   return tree;

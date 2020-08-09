@@ -50,6 +50,18 @@ auto NameResolverImpl::resolve_in_scope( //
   switch (tree.kind()) {
   case ScopeTree::Kind::SOURCE_FILE:
     return find_in_source_file(var, *tree.as<SourceFile>(), resolution_context);
+  case ScopeTree::Kind::BLOCK: {
+    auto binding = find_in_block(var, *tree.as<Block>(), resolution_context);
+    if (!binding.is<Unresolved>()) {
+      return binding;
+    } else {
+      auto parent = tree.parent();
+      assert(parent.hasValue() &&
+             "Non source file scope node found without parent");
+      return resolve_in_scope(var, *parent.getValue(), resolution_context);
+    }
+
+  }
   default: {
     auto parent = tree.parent();
     assert(parent.hasValue() &&
@@ -75,7 +87,7 @@ auto NameResolverImpl::find_in_source_file(    //
       if (resolution_context == ResolutionContext::TYPE) {
         continue;
       }
-      auto& extern_def = decl->as<ExternDef>();
+      auto &extern_def = decl->as<ExternDef>();
       if (extern_def.signature().name().name() == ident.name()) {
         return NameResolutionResult(&extern_def);
       }
@@ -85,7 +97,7 @@ auto NameResolverImpl::find_in_source_file(    //
       if (resolution_context == ResolutionContext::TYPE) {
         continue;
       }
-      auto& fn_def = decl->as<FunctionDef>();
+      auto &fn_def = decl->as<FunctionDef>();
       if (fn_def.signature().name().name() == ident.name()) {
         return NameResolutionResult(&fn_def);
       }
@@ -94,9 +106,31 @@ auto NameResolverImpl::find_in_source_file(    //
   return NameResolutionResult(&unresolved);
 }
 
-auto NameResolverImpl::resolve_expr_var(const VarExpression & var)
+auto NameResolverImpl::resolve_expr_var(const VarExpression &var)
     -> NameResolutionResult {
   return resolve_name(var.name(), ResolutionContext::VALUE);
+}
+auto NameResolverImpl::find_in_block( //
+    const Identifier &var,            //
+    const Block &block,               //
+    NameResolverImpl::ResolutionContext rc) const -> NameResolutionResult {
+  for (const auto* statement : block.statements()) {
+    switch (statement->kind()) {
+    case Statement::Kind::ERROR:
+      break;
+    case Statement::Kind::EXPRESSION:
+      break;
+    case Statement::Kind::VAL:
+      if (rc == ResolutionContext::VALUE) {
+        const auto* val_statement = statement->as<ValStatement>();
+        if (var.name() == val_statement->name().name()) {
+          return NameResolutionResult(val_statement);
+        }
+      }
+      break;
+    }
+  }
+  return NameResolutionResult(&unresolved);
 }
 
 } // namespace hades

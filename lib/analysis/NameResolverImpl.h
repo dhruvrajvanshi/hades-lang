@@ -63,6 +63,11 @@ private:
       ResolutionContext     //
   ) const -> NameResolutionResult;
 
+  auto find_in_block(const Identifier &, //
+                     const Block &,      //
+                     ResolutionContext   //
+  ) const -> NameResolutionResult;
+
   auto resolve_name(const Identifier &, ResolutionContext)
       -> NameResolutionResult;
 };

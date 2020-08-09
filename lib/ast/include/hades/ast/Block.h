@@ -14,6 +14,8 @@ class Block {
   Vec<const Statement *> m_statements;
 
 public:
+  HADES_DELETE_COPY(Block)
+  HADES_DELETE_MOVE(Block)
   Block(SourceLocation location, Vec<const Statement *> &&) noexcept;
   auto location() const -> const SourceLocation &;
 

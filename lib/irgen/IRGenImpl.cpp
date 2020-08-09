@@ -124,6 +124,13 @@ auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
   if (resolved_var.is<FunctionDef>()) {
     unimplemented();
   }
+  if (resolved_var.is<ValStatement>()) {
+    unimplemented();
+  }
+  if (resolved_var.is<Unresolved>()) {
+    m_ctx->name_resolver().resolve_expr_var(expr);
+    unimplemented();
+  }
   llvm_unreachable("");
 }
 
