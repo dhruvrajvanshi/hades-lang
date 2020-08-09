@@ -17,22 +17,30 @@ class NameResolutionResult {
 public:
   class Int;
   class Void;
+
 private:
-  Variant<const StructDef *, const Int*, const Void*, const Unresolved *> m_impl;
+  Variant<const StructDef *, const Int *, const Void *, const Unresolved *,
+          const ExternDef *, const ValStatement *, const FunctionDef *>
+      m_impl;
 
 public:
   template <typename T>
   NameResolutionResult(const T *value) noexcept : m_impl(value){};
 
-  template <typename T> auto is() const -> bool { return m_impl.is<const T*>(); }
+  template <typename T> auto is() const -> bool {
+    return m_impl.is<const T *>();
+  }
 
-  template <typename T> auto as() const -> const T& { return *m_impl.as<const T*>(); }
+  template <typename T> auto as() const -> const T * {
+    return m_impl.as<const T *>();
+  }
 
 public:
   struct Int {
     u8 width;
     bool is_signed;
-    Int(u8 width, bool is_signed) noexcept : width(width), is_signed(is_signed) {}
+    Int(u8 width, bool is_signed) noexcept
+        : width(width), is_signed(is_signed) {}
   };
 
   struct Void {};

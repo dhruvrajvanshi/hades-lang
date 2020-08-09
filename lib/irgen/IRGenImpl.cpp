@@ -33,25 +33,37 @@ auto t::lower_declaration(const Declaration &decl) -> void {
 
 auto t::lower_extern_def(const ExternDef &def) -> void {}
 
-auto t::get_extern_def_callee(const ExternDef &def) -> llvm::FunctionCallee * {
-  unimplemented();
+auto t::get_extern_def_var(const ExternDef * def) -> llvm::Function * {
+  if (llvm_module().getFunction(def->extern_name().as_string_ref()) == nullptr) {
+    auto *type = get_function_signature_type(&def->signature());
+    auto name = def->extern_name().as_string_ref();
+    llvm::Function::Create(type,
+                           llvm::GlobalValue::LinkageTypes::ExternalLinkage, 0,
+                           name, &llvm_module());
+  }
+
+  return llvm_module().getFunction(def->extern_name().as_string_ref());
 }
 
-auto t::get_function_signature_type(const FunctionSignature &signature)
+auto t::get_function_signature_type(const FunctionSignature * signature)
     -> llvm::FunctionType * {
-  assert(signature.return_type().hasValue());
-  auto *return_type = lower_type(*signature.return_type().getValue());
+  assert(signature->return_type().hasValue());
+  auto& return_type_annotation = *signature->return_type().getValue();
+  auto *return_type = lower_type(return_type_annotation);
   auto param_types =
       allocator().allocate_array_ref<const Param *, llvm::Type *>(
-          signature.params(), [this](const Param *param) -> llvm::Type * {
+          signature->params(), [this](const Param *param) -> llvm::Type * {
             return lower_type(*param->type().getValue());
           });
-  return llvm::FunctionType::get(return_type, param_types,
+  auto fn = llvm::FunctionType::get(return_type, param_types,
                                  /* isVarArgs */ false);
+
+
+  return fn;
 }
 
 auto t::lower_function_def(const FunctionDef &def) -> void {
-  auto *type = get_function_signature_type(def.signature());
+  auto *type = get_function_signature_type(&def.signature());
   auto name = def.signature().name().name().as_string_ref();
   auto *function = llvm::Function::Create(
       type, llvm::GlobalValue::LinkageTypes::CommonLinkage, 0, name,
@@ -105,19 +117,30 @@ auto t::lower_expression(const Expression &expr) -> llvm::Value * {
 
 auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
   auto resolved_var = m_ctx->name_resolver().resolve_expr_var(expr);
-  unimplemented();
+  if (resolved_var.is<ExternDef>()) {
+    const auto* extern_def = resolved_var.as<ExternDef>();
+    return get_extern_def_var(extern_def);
+  }
+  if (resolved_var.is<FunctionDef>()) {
+    unimplemented();
+  }
+  llvm_unreachable("");
 }
 
 auto t::lower_call(const Call & call) -> llvm::Value * {
-  const auto* callee = lower_expression(call.callee());
+  auto* callee = lower_expression(call.callee());
+  auto args = Vec<llvm::Value*>();
+  args.reserve(call.args().size());
   for (const auto* arg : call.args()) {
     assert(!arg->label().hasValue());
+    args.push_back(lower_expression(arg->value()));
   }
-  unimplemented();
+  ArrayRef<llvm::Value*> args_ref = allocator().copy_items<llvm::Value*>(args);
+  return builder().CreateCall(callee, args_ref, make_unique_name().as_string_ref());
 }
 
-auto t::lower_int_literal(const IntLiteral &) -> llvm::Value * {
-  unimplemented();
+auto t::lower_int_literal(const IntLiteral & i) -> llvm::Value * {
+  return llvm::ConstantInt::get(llvm::Type::getInt32Ty(m_llvm_ctx), llvm::APInt(32, i.value()));
 }
 
 auto t::lower_struct_def(const StructDef &) -> void {}
@@ -125,14 +148,14 @@ auto t::lower_struct_def(const StructDef &) -> void {}
 auto t::lower_type(const Type &type) -> llvm::Type * {
   switch (type.kind()) {
   case Type::Kind::VAR: {
-    auto type_var = type.as<type::Var>();
+    auto& type_var = type.as<type::Var>();
     auto resolved = m_ctx->name_resolver().resolve_type_var(type_var);
     if (resolved.is<StructDef>()) {
-      const auto &struct_def = resolved.as<StructDef>();
-      return get_struct_def_type(struct_def);
+      const auto* struct_def = resolved.as<StructDef>();
+      return get_struct_def_type(*struct_def);
     }
     if (resolved.is<NameResolutionResult::Int>()) {
-      const auto &[width, is_signed] = resolved.as<NameResolutionResult::Int>();
+      const auto [width, is_signed] = *resolved.as<NameResolutionResult::Int>();
       return llvm::IntegerType::get(m_llvm_ctx, width);
     }
     if (resolved.is<NameResolutionResult::Void>()) {
@@ -148,7 +171,7 @@ auto t::lower_type(const Type &type) -> llvm::Type * {
     return llvm::PointerType::get(lower_type(*ptr_type.pointee()), 0);
   };
   case Type::Kind::INT: {
-    auto int_ty = type.as<type::Int>();
+    auto& int_ty = type.as<type::Int>();
     return llvm::IntegerType::get(m_llvm_ctx, int_ty.width());
   }
   }
@@ -182,5 +205,12 @@ IRGenImpl::IRGenImpl(core::Context *ctx) noexcept : m_ctx{ctx} {}
 auto IRGenImpl::builder() -> llvm::IRBuilder<> & { return m_builder; }
 
 auto IRGenImpl::llvm_module() -> llvm::Module & { return m_llvm_module; }
+
+auto IRGenImpl::make_unique_name() -> InternedString {
+  u64 value = m_next_name;
+  m_next_name++;
+  auto str = String("$") + std::to_string(value);
+  return m_ctx->intern_string(StringView(str));
+}
 
 } // namespace hades

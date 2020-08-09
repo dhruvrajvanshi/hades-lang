@@ -20,6 +20,8 @@ private:
 protected:
   Type(SourceLocation, Kind) noexcept;
 public:
+  HADES_DELETE_COPY(Type)
+  HADES_DELETE_MOVE(Type)
   auto location() const -> const SourceLocation &;
   auto kind() const -> Kind;
 

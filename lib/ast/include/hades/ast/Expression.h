@@ -22,6 +22,8 @@ protected:
   Expression(SourceLocation location, Kind kind) noexcept;
 
 public:
+  HADES_DELETE_COPY(Expression)
+  HADES_DELETE_MOVE(Expression)
   auto location() const -> const SourceLocation &;
 
   auto kind() const -> Kind { return m_kind; }
@@ -45,6 +47,7 @@ class IntLiteral : public Expression {
 public:
   static constexpr Kind kind = Kind::INT_LITERAL;
   IntLiteral(SourceLocation, i64 value) noexcept;
+  auto value() const -> i64 { return m_value; }
 };
 
 class VarExpression : public Expression {

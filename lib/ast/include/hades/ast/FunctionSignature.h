@@ -20,6 +20,8 @@ private:
   Params m_params;
   Optional<const Type*> m_return_type;
 public:
+  HADES_DELETE_MOVE(FunctionSignature)
+  HADES_DELETE_COPY(FunctionSignature)
   FunctionSignature(SourceLocation location, Identifier name, Params&& params, Optional<const Type*> return_type) noexcept;
   auto location() const -> const SourceLocation&;
   auto name() const -> const Identifier&;

@@ -23,6 +23,7 @@ class IRGenImpl {
   BumpPtrAllocator m_allocator;
   Map<const ExternDef*, llvm::FunctionCallee*> m_extern_def_callees{};
   Map<const StructDef*, llvm::Type*> m_struct_def_types{};
+  u64 m_next_name = 0;
 
 public:
   IRGenImpl(core::Context* ctx) noexcept;
@@ -42,9 +43,9 @@ private:
 
   auto get_struct_def_type(const StructDef&) -> llvm::Type*;
 
-  auto get_extern_def_callee(const ExternDef&) -> llvm::FunctionCallee*;
+  auto get_extern_def_var(const ExternDef*) -> llvm::Function*;
 
-  auto get_function_signature_type(const FunctionSignature&) -> llvm::FunctionType*;
+  auto get_function_signature_type(const FunctionSignature*) -> llvm::FunctionType*;
 
   auto lower_statement(const Statement&) -> void;
   auto lower_expression(const Expression&) -> llvm::Value*;
@@ -56,6 +57,8 @@ private:
   auto lower_val_statement(const ValStatement&) -> void;
 
   auto allocator() -> BumpPtrAllocator& { return m_allocator; }
+
+  auto make_unique_name() -> InternedString;
 };
 
 } // namespace hades

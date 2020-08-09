@@ -71,6 +71,25 @@ auto NameResolverImpl::find_in_source_file(    //
         return NameResolutionResult(&struct_def);
       }
     }
+    if (decl->kind() == Declaration::Kind::EXTERN_DEF) {
+      if (resolution_context == ResolutionContext::TYPE) {
+        continue;
+      }
+      auto& extern_def = decl->as<ExternDef>();
+      if (extern_def.signature().name().name() == ident.name()) {
+        return NameResolutionResult(&extern_def);
+      }
+    }
+
+    if (decl->kind() == Declaration::Kind::FUNCTION_DEF) {
+      if (resolution_context == ResolutionContext::TYPE) {
+        continue;
+      }
+      auto& fn_def = decl->as<FunctionDef>();
+      if (fn_def.signature().name().name() == ident.name()) {
+        return NameResolutionResult(&fn_def);
+      }
+    }
   }
   return NameResolutionResult(&unresolved);
 }

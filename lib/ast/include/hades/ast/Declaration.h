@@ -22,6 +22,8 @@ protected:
   Declaration(SourceLocation location, Kind kind) noexcept;
 
 public:
+  HADES_DELETE_COPY(Declaration)
+  HADES_DELETE_MOVE(Declaration)
   auto location() const noexcept -> const SourceLocation &;
 
   auto kind() const noexcept -> Kind;
@@ -47,6 +49,8 @@ class ExternDef : public Declaration {
   Identifier m_extern_name;
 
 public:
+  HADES_DELETE_COPY(ExternDef)
+  HADES_DELETE_MOVE(ExternDef)
   static constexpr Kind kind = Kind::EXTERN_DEF;
   ExternDef(SourceLocation location, const FunctionSignature *signature,
             Identifier extern_name) noexcept;
