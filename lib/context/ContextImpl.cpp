@@ -40,7 +40,12 @@ auto ContextImpl::intern_string(StringView text) -> InternedString {
   return interned_str;
 }
 
-auto ContextImpl::type_resolver() -> TypeResolver & { return *m_type_resolver; }
+auto ContextImpl::type_resolver() -> TypeResolver & {
+  if (m_type_resolver == nullptr) {
+    m_type_resolver.reset(new TypeResolver(m_ctx));
+  }
+  return *m_type_resolver;
+}
 
 auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
   if (!m_source_files.contains(fs::absolute(path))) {

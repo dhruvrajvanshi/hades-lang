@@ -4,6 +4,7 @@
 
 #include "IRGenImpl.h"
 #include "hades/ast/Type.h"
+#include "hades/ast/Declaration.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace hades {
@@ -33,7 +34,7 @@ auto t::lower_declaration(const Declaration & decl) -> void {
 auto t::lower_extern_def(const ExternDef & def) -> void {
   assert(def.signature().return_type().hasValue());
   auto* return_type = lower_type(*def.signature().return_type().getValue());
-  auto param_types = allocate_array_ref<const Param*, llvm::Type*>(
+  auto param_types = allocator().allocate_array_ref<const Param*, llvm::Type*>(
       def.signature().params(),
       [this](const Param* param) -> llvm::Type* {
         return lower_type(*param->type().getValue());
@@ -52,15 +53,39 @@ auto t::lower_struct_def(const StructDef &) -> void {}
 auto t::lower_type(const Type & type) -> llvm::Type * {
   switch (type.kind()) {
   case Type::Kind::VAR: {
-    auto resolved = m_ctx->type_resolver().resolve_type_var(type.as<type::Var>());
+    auto type_var = type.as<type::Var>();
+    auto resolved = m_ctx->type_resolver().resolve_type_var(type_var);
     assert(resolved.is<StructDef>());
-    unimplemented();
+    auto& struct_def = resolved.as<StructDef>();
+    return get_struct_def_type(struct_def);
   }
   case Type::Kind::POINTER: {
     return llvm::PointerType::get(lower_type(type.as<type::Pointer>()), 0);
   };
   }
   llvm_unreachable("");
+}
+
+auto t::get_struct_def_type(const StructDef & struct_def) -> llvm::Type * {
+  auto* struct_type = llvm::StructType::create(m_llvm_ctx);
+  struct_type->setName(struct_def.identifier().name().as_string_ref());
+  auto field_types = Vec<llvm::Type*>();
+  for (auto* member : struct_def.members()) {
+    switch (member->kind()) {
+    case StructMember::Kind::FIELD: {
+      auto* field = static_cast<const StructField*>(member);
+      assert(field->type().hasValue());
+      auto* declared_type = field->type().getValue();
+      field_types.push_back(lower_type(*declared_type));
+    }
+    }
+  }
+
+  struct_type->setBody(allocator().copy_items(field_types));
+
+  struct_type->print(llvm::outs());
+
+  return struct_type;
 }
 
 IRGenImpl::IRGenImpl(core::Context *ctx) noexcept : m_ctx{ctx} {}

@@ -25,7 +25,10 @@ public:
   InternedString(const char *text, Length length) noexcept;
 
   auto data() const -> const char *;
+  auto length() const -> Length;
+
   auto as_string_view() const -> StringView;
+  auto as_string_ref() const -> StringRef;
 
   auto operator==(InternedString other) const -> bool;
 };

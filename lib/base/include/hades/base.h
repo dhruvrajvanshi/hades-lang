@@ -11,6 +11,9 @@ namespace hades {
 #define HADES_DEFAULT_MOVE(T) T(T&&) = default; \
   auto operator=(T&&) -> T& = default;
 
+#define HADES_DELETE_MOVE(T) T(T&&) = default; \
+  auto operator=(T&&) -> T& = default;
+
 #define HADES_DELETE_COPY(T) T(const T&) = delete; \
   auto operator=(const T&) -> T& = delete;
 

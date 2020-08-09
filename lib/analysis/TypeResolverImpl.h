@@ -16,8 +16,18 @@ namespace hades {
 
 class TypeResolverImpl {
   core::Context* m_ctx;
-  BumpPtrAllocator m_allocator;
+  BumpPtrAllocator m_allocator{};
 
+#define BUILTIN_INT(name, width, is_signed) \
+  const TypeResolutionResult::Int* builtin_##name = m_allocator.allocate<TypeResolutionResult::Int>(width, is_signed); \
+  InternedString builtin_name_##name = InternedString(nullptr, 0);
+
+  BUILTIN_INT(u32, 32, false)
+  BUILTIN_INT(i32, 32, true)
+  BUILTIN_INT(u64, 64, false)
+  BUILTIN_INT(i64, 64, true)
+
+#undef BUILTIN_INT
 public:
   TypeResolverImpl(core::Context*) noexcept;
   ~TypeResolverImpl() noexcept = default;

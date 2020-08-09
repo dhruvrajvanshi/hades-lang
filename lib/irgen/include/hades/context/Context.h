@@ -17,9 +17,8 @@ public:
   Context() = delete;
   ~Context() noexcept;
   Context(CommandLineFlags self);
-  HADES_DEFAULT_MOVE(Context)
   HADES_DELETE_COPY(Context)
-  static auto from_args(const Vec<String> &) -> Result<UniquePtr<Context>, FlagParseError>;
+  HADES_DELETE_MOVE(Context)
 
   auto run() -> int;
   auto allocator() -> llvm::BumpPtrAllocator &;

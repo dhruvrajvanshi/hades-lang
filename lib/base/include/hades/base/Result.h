@@ -15,7 +15,7 @@ template <typename T, typename Error> class Result {
   std::variant<T, Error> m_data;
 
 public:
-  Result(T value) : m_is_error(false), m_data(std::move(value)){};
+  Result(T value) : m_is_error(false), m_data(value){};
 
   Result(Error error) : m_is_error(true), m_data(std::move(error)){};
 

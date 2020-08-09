@@ -26,6 +26,7 @@ public:
   enum class Kind {
     VAR,
     POINTER,
+    INT,
   };
 
   template <typename T>
@@ -66,6 +67,21 @@ public:
 
   auto is_mutable() const -> bool;
   auto pointee() const -> const Type*;
+};
+
+class Int : public Type {
+  bool m_is_signed;
+  u8 m_width;
+
+public:
+  static constexpr Kind kind = Kind::INT;
+  Int(SourceLocation location, bool is_signed, u8 width) noexcept
+      : Type(location, Kind::INT),
+        m_is_signed{is_signed},
+        m_width{width} {};
+
+  auto is_signed() const -> bool { return m_is_signed; }
+  auto width() const -> u8 { return m_width; }
 };
 
 } // namespace type

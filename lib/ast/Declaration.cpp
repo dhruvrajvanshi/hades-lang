@@ -32,11 +32,22 @@ auto StructDef::members() const noexcept -> ArrayRef<const StructMember *> {
 
 StructField::StructField(SourceLocation location, Identifier name,
                          Optional<const Type *> type) noexcept
-    : StructMember(std::move(location)),
+    : StructMember(std::move(location), Kind::FIELD),
       m_name(std::move(name)), m_type{std::move(type)} {}
 
-StructMember::StructMember(SourceLocation location) noexcept
-    : m_location(std::move(location)) {}
+auto StructField::type() const -> Optional<const Type *> {
+  return m_type;
+}
+
+auto StructMember::kind() const -> Kind {
+  return m_kind;
+}
+auto StructMember::location() const -> SourceLocation {
+  return m_location;
+}
+
+StructMember::StructMember(SourceLocation location, Kind kind) noexcept
+    : m_location(location), m_kind{kind} {}
 
 ExternDef::ExternDef(SourceLocation location,
                      const FunctionSignature *signature,

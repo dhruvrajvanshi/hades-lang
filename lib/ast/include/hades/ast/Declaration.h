@@ -86,11 +86,19 @@ public:
   auto members() const noexcept -> ArrayRef<const StructMember *>;
 };
 class StructMember {
+public:
+  enum class Kind;
+private:
+  Kind m_kind;
   SourceLocation m_location;
 
 public:
-  StructMember(SourceLocation location) noexcept;
+  StructMember(SourceLocation location, Kind kind) noexcept;
   auto location() const -> SourceLocation;
+  auto kind() const -> Kind;
+  enum class Kind {
+    FIELD
+  };
 };
 class StructField : public StructMember {
   Identifier m_name;
@@ -99,6 +107,7 @@ class StructField : public StructMember {
 public:
   StructField(SourceLocation location, Identifier name,
               Optional<const Type *> type) noexcept;
+  auto type() const -> Optional<const Type*>;
 };
 
 } // namespace hades

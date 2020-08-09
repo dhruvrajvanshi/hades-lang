@@ -19,7 +19,7 @@ class IRGenImpl {
   llvm::LLVMContext m_llvm_ctx {};
   llvm::Module m_llvm_module {{"hades"}, m_llvm_ctx};
   llvm::IRBuilder<> m_builder { m_llvm_ctx };
-  llvm::BumpPtrAllocator m_allocator;
+  BumpPtrAllocator m_allocator;
 
 public:
   IRGenImpl(core::Context* ctx) noexcept;
@@ -37,22 +37,9 @@ private:
 
   auto lower_type(const Type&) -> llvm::Type*;
 
-  template <typename T, typename ...Args>
-  auto allocate(Args&&... args) -> T* {
-    auto* mem = m_allocator.Allocate(sizeof(T), alignof(T));
-    return new(mem) T(std::forward<Args>(args)...);
-  }
+  auto get_struct_def_type(const StructDef&) -> llvm::Type*;
 
-  template <typename T1, typename T2>
-  auto allocate_array_ref(ArrayRef<T1> input, std::function<T2(T1)> f) -> ArrayRef<T2> {
-      T2* begin = m_allocator.Allocate<T2>();
-      T2* current = begin;
-      for (auto& item : input) {
-          *current = f(item);
-          current++;
-      }
-      return ArrayRef<T2>(begin, input.size());
-  }
+  auto allocator() -> BumpPtrAllocator& { return m_allocator; }
 };
 
 } // namespace hades

@@ -18,15 +18,15 @@ class ContextImpl {
   CommandLineFlags m_flags;
   llvm::BumpPtrAllocator m_allocator;
   Context* m_ctx;
-  Map<StringView, InternedString> m_interned_strings;
-  Map<String, const SourceFile*> m_source_files;
-  UniquePtr<TypeResolver> m_type_resolver{ new TypeResolver(m_ctx) };
+  Map<StringView, InternedString> m_interned_strings{};
+  Map<String, const SourceFile*> m_source_files{};
+  UniquePtr<TypeResolver> m_type_resolver;
 
 public:
   ContextImpl() = delete;
   ~ContextImpl() = default;
-  ContextImpl(Context* ctx, CommandLineFlags flags) : m_evaluator{}, m_flags{flags}, m_ctx{ctx} {}
-  HADES_DEFAULT_MOVE(ContextImpl)
+  ContextImpl(Context* ctx, CommandLineFlags flags) : m_evaluator{}, m_flags{flags}, m_ctx{ctx}, m_type_resolver{nullptr} {}
+  HADES_DELETE_MOVE(ContextImpl)
   HADES_DELETE_COPY(ContextImpl)
 
   auto run() -> int;

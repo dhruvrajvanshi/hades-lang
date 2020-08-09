@@ -14,7 +14,10 @@ class UnresolvedType {};
 static UnresolvedType unresolved_type{};
 
 class TypeResolutionResult {
-  Variant<const StructDef *, const UnresolvedType *> m_impl;
+public:
+  class Int;
+private:
+  Variant<const StructDef *, const Int*, const UnresolvedType *> m_impl;
 
 public:
   template <typename T>
@@ -23,6 +26,13 @@ public:
   template <typename T> auto is() const -> bool { return m_impl.is<const T*>(); }
 
   template <typename T> auto as() const -> const T& { return *m_impl.as<const T*>(); }
+
+public:
+  struct Int {
+    u8 width;
+    bool is_signed;
+    Int(u8 width, bool is_signed) noexcept : width(width), is_signed(is_signed) {}
+  };
 };
 
 } // namespace hades

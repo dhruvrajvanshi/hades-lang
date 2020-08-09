@@ -53,6 +53,7 @@ using u32 = uint32_t;
 using u64 = uint64_t;
 using i32 = uint32_t;
 using i64 = uint64_t;
+using u8 = char;
 
 template <typename T>
 struct IsSmallVector : std::false_type {};
