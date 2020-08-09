@@ -20,6 +20,7 @@ auto TypeResolverImpl::resolve_type_var(const type::Var &t)
   RESOLVE_BUILTIN(u32)
   RESOLVE_BUILTIN(i64)
   RESOLVE_BUILTIN(u64)
+  RESOLVE_BUILTIN(void)
 #undef RESOLVE_BUILTIN
 
   auto &source_file = ctx().get_source_file(*t.name().location().path());

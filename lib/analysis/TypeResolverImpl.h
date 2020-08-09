@@ -28,6 +28,8 @@ class TypeResolverImpl {
   BUILTIN_INT(i64, 64, true)
 
 #undef BUILTIN_INT
+  const TypeResolutionResult::Void* builtin_void = m_allocator.allocate<TypeResolutionResult::Void>(); \
+  InternedString builtin_name_void = m_ctx->intern_string("Void");
 public:
   TypeResolverImpl(core::Context*) noexcept;
   ~TypeResolverImpl() noexcept = default;

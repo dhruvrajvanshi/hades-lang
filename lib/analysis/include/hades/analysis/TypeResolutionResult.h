@@ -16,8 +16,9 @@ static UnresolvedType unresolved_type{};
 class TypeResolutionResult {
 public:
   class Int;
+  class Void;
 private:
-  Variant<const StructDef *, const Int*, const UnresolvedType *> m_impl;
+  Variant<const StructDef *, const Int*, const Void*, const UnresolvedType *> m_impl;
 
 public:
   template <typename T>
@@ -33,6 +34,8 @@ public:
     bool is_signed;
     Int(u8 width, bool is_signed) noexcept : width(width), is_signed(is_signed) {}
   };
+
+  struct Void {};
 };
 
 } // namespace hades

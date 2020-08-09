@@ -55,13 +55,30 @@ auto t::lower_type(const Type & type) -> llvm::Type * {
   case Type::Kind::VAR: {
     auto type_var = type.as<type::Var>();
     auto resolved = m_ctx->type_resolver().resolve_type_var(type_var);
-    assert(resolved.is<StructDef>());
-    auto& struct_def = resolved.as<StructDef>();
-    return get_struct_def_type(struct_def);
+    if (resolved.is<StructDef>()) {
+      auto& struct_def = resolved.as<StructDef>();
+      return get_struct_def_type(struct_def);
+    }
+    if (resolved.is<TypeResolutionResult::Int>()) {
+      auto& [width, is_signed] = resolved.as<TypeResolutionResult::Int>();
+      return llvm::IntegerType::get(m_llvm_ctx, width);
+    }
+    if (resolved.is<TypeResolutionResult::Void>()) {
+      return llvm::Type::getVoidTy(m_llvm_ctx);
+    }
+    if (resolved.is<UnresolvedType>()) {
+      llvm_unreachable("");
+    }
+    llvm_unreachable("");
   }
   case Type::Kind::POINTER: {
-    return llvm::PointerType::get(lower_type(type.as<type::Pointer>()), 0);
+    auto& ptr_type = type.as<type::Pointer>();
+    return llvm::PointerType::get(lower_type(*ptr_type.pointee()), 0);
   };
+  case Type::Kind::INT: {
+    auto int_ty = type.as<type::Int>();
+    return llvm::IntegerType::get(m_llvm_ctx, int_ty.width());
+  }
   }
   llvm_unreachable("");
 }
