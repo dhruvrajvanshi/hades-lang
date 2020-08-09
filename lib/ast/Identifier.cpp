@@ -13,5 +13,8 @@ Identifier::Identifier(SourceLocation location, InternedString name)
 auto Identifier::location() const -> const SourceLocation & {
   return m_location;
 }
+auto Identifier::name() const -> InternedString {
+  return m_name;
+}
 
 } // namespace hades

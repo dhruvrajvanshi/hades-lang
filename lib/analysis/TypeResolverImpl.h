@@ -30,6 +30,8 @@ private:
 
   auto allocator() -> BumpPtrAllocator&;
 
+  auto resolve_type_var_in_scope(const type::Var &, const ScopeTree&) const -> TypeResolutionResult;
+  auto resolve_type_var_in_source_file(const type::Var &, const SourceFile&) const -> TypeResolutionResult;
 };
 
 } // namespace hades
