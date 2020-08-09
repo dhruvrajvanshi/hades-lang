@@ -22,10 +22,15 @@ private:
 protected:
   Statement(SourceLocation location, Kind kind) noexcept;
 
-  auto location() const -> const SourceLocation &;
-  auto kind() const -> Kind;
-
 public:
+  auto location() const -> const SourceLocation & { return m_location; }
+  auto kind() const -> Kind { return m_kind; }
+
+  template <typename T> auto as() const -> const T * {
+    assert(kind() == T::kind);
+    return static_cast<const T *>(this);
+  }
+
   enum class Kind {
     ERROR,
 
@@ -40,6 +45,7 @@ class ValStatement : public Statement {
   const Expression *m_initializer;
 
 public:
+  static constexpr Kind kind = Kind::VAL;
   ValStatement(SourceLocation, Identifier name,
                Optional<const Type *> annotation,
                const Expression *initializer) noexcept;
@@ -47,9 +53,11 @@ public:
 
 class ExpressionStatement : public Statement {
   const Expression *m_expression;
+
 public:
-  ExpressionStatement(const Expression* expression) noexcept;
-  auto expression() const -> const Expression&;
+  static constexpr Kind kind = Kind::EXPRESSION;
+  ExpressionStatement(const Expression *expression) noexcept;
+  auto expression() const -> const Expression &;
 };
 
 } // namespace hades

@@ -11,6 +11,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/DerivedTypes.h"
 
 namespace hades {
 
@@ -20,6 +21,8 @@ class IRGenImpl {
   llvm::Module m_llvm_module {{"hades"}, m_llvm_ctx};
   llvm::IRBuilder<> m_builder { m_llvm_ctx };
   BumpPtrAllocator m_allocator;
+  Map<const ExternDef*, llvm::FunctionCallee*> m_extern_def_callees{};
+  Map<const StructDef*, llvm::Type*> m_struct_def_types{};
 
 public:
   IRGenImpl(core::Context* ctx) noexcept;
@@ -38,6 +41,15 @@ private:
   auto lower_type(const Type&) -> llvm::Type*;
 
   auto get_struct_def_type(const StructDef&) -> llvm::Type*;
+
+  auto get_extern_def_callee(const ExternDef&) -> llvm::FunctionCallee*;
+
+  auto get_function_signature_type(const FunctionSignature&) -> llvm::FunctionType*;
+
+  auto lower_statement(const Statement&) -> void;
+
+  auto lower_expression_statement(const ExpressionStatement&) -> void;
+  auto lower_val_statement(const ValStatement&) -> void;
 
   auto allocator() -> BumpPtrAllocator& { return m_allocator; }
 };

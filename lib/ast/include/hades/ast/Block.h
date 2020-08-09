@@ -11,10 +11,15 @@ namespace hades {
 
 class Block {
   SourceLocation m_location;
-  Vec<const Statement*> m_statements;
+  Vec<const Statement *> m_statements;
+
 public:
-  Block(SourceLocation location, Vec<const Statement*>&&) noexcept;
-  auto location() const -> const SourceLocation&;
+  Block(SourceLocation location, Vec<const Statement *> &&) noexcept;
+  auto location() const -> const SourceLocation &;
+
+  auto statements() const -> ArrayRef<const Statement *> {
+    return ArrayRef<const Statement *>(m_statements);
+  }
 };
 
 } // namespace hades
