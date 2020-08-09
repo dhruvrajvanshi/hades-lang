@@ -104,6 +104,7 @@ auto t::lower_expression(const Expression &expr) -> llvm::Value * {
 }
 
 auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
+  auto resolved_var = m_ctx->name_resolver().resolve_expr_var(expr);
   unimplemented();
 }
 
@@ -125,19 +126,19 @@ auto t::lower_type(const Type &type) -> llvm::Type * {
   switch (type.kind()) {
   case Type::Kind::VAR: {
     auto type_var = type.as<type::Var>();
-    auto resolved = m_ctx->type_resolver().resolve_type_var(type_var);
+    auto resolved = m_ctx->name_resolver().resolve_type_var(type_var);
     if (resolved.is<StructDef>()) {
       const auto &struct_def = resolved.as<StructDef>();
       return get_struct_def_type(struct_def);
     }
-    if (resolved.is<TypeResolutionResult::Int>()) {
-      const auto &[width, is_signed] = resolved.as<TypeResolutionResult::Int>();
+    if (resolved.is<NameResolutionResult::Int>()) {
+      const auto &[width, is_signed] = resolved.as<NameResolutionResult::Int>();
       return llvm::IntegerType::get(m_llvm_ctx, width);
     }
-    if (resolved.is<TypeResolutionResult::Void>()) {
+    if (resolved.is<NameResolutionResult::Void>()) {
       return llvm::Type::getVoidTy(m_llvm_ctx);
     }
-    if (resolved.is<UnresolvedType>()) {
+    if (resolved.is<Unresolved>()) {
       llvm_unreachable("");
     }
     llvm_unreachable("");

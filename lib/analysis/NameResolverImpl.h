@@ -6,7 +6,7 @@
 #define HADES_NAMERESOLVERIMPL_H
 
 #include "ScopeTree.h"
-#include "hades/analysis/TypeResolutionResult.h"
+#include "hades/analysis/NameResolutionResult.h"
 #include "hades/ast/Type.h"
 #include "hades/base.h"
 #include "hades/base/BumpPtrAllocator.h"
@@ -15,11 +15,16 @@
 namespace hades {
 
 class NameResolverImpl {
-  core::Context* m_ctx;
+  core::Context *m_ctx;
   BumpPtrAllocator m_allocator{};
+  enum class ResolutionContext {
+    TYPE,
+    VALUE,
+  };
 
-#define BUILTIN_INT(name, width, is_signed) \
-  const TypeResolutionResult::Int* builtin_##name = m_allocator.allocate<TypeResolutionResult::Int>(width, is_signed); \
+#define BUILTIN_INT(name, width, is_signed)                                    \
+  const NameResolutionResult::Int *builtin_##name =                            \
+      m_allocator.allocate<NameResolutionResult::Int>(width, is_signed);       \
   InternedString builtin_name_##name = m_ctx->intern_string(#name);
 
   BUILTIN_INT(u32, 32, false)
@@ -28,22 +33,38 @@ class NameResolverImpl {
   BUILTIN_INT(i64, 64, true)
 
 #undef BUILTIN_INT
-  const TypeResolutionResult::Void* builtin_void = m_allocator.allocate<TypeResolutionResult::Void>(); \
+  const NameResolutionResult::Void *builtin_void =
+      m_allocator.allocate<NameResolutionResult::Void>();
   InternedString builtin_name_void = m_ctx->intern_string("Void");
+
 public:
-  NameResolverImpl(core::Context*) noexcept;
+  NameResolverImpl(core::Context *) noexcept;
   ~NameResolverImpl() noexcept = default;
   HADES_DEFAULT_MOVE(NameResolverImpl)
 
-  auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
+  auto resolve_type_var(const type::Var &) -> NameResolutionResult;
+
+  auto resolve_expr_var(const VarExpression &) -> NameResolutionResult;
 
 private:
-  auto ctx() -> core::Context&;
+  auto ctx() -> core::Context &;
 
-  auto allocator() -> BumpPtrAllocator&;
+  auto allocator() -> BumpPtrAllocator &;
 
-  auto resolve_type_var_in_scope(const type::Var &, const ScopeTree&) const -> TypeResolutionResult;
-  auto resolve_type_var_in_source_file(const type::Var &, const SourceFile&) const -> TypeResolutionResult;
+  auto resolve_in_scope(  //
+      const Identifier &, //
+      const ScopeTree &,  //
+      ResolutionContext   //
+  ) const -> NameResolutionResult;
+
+  auto find_in_source_file( //
+      const Identifier &,   //
+      const SourceFile &,   //
+      ResolutionContext     //
+  ) const -> NameResolutionResult;
+
+  auto resolve_name(const Identifier &, ResolutionContext)
+      -> NameResolutionResult;
 };
 
 } // namespace hades

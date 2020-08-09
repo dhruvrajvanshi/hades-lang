@@ -2,27 +2,27 @@
 // Created by dhruv on 08/08/20.
 //
 
-#ifndef HADES_TYPERESOLUTIONRESULT_H
-#define HADES_TYPERESOLUTIONRESULT_H
+#ifndef HADES_NAMERESOLUTIONRESULT_H
+#define HADES_NAMERESOLUTIONRESULT_H
 
 #include "hades/ast/Declaration.h"
 #include "hades/base.h"
 
 namespace hades {
-class UnresolvedType {};
+class Unresolved {};
 
-static UnresolvedType unresolved_type{};
+static Unresolved unresolved{};
 
-class TypeResolutionResult {
+class NameResolutionResult {
 public:
   class Int;
   class Void;
 private:
-  Variant<const StructDef *, const Int*, const Void*, const UnresolvedType *> m_impl;
+  Variant<const StructDef *, const Int*, const Void*, const Unresolved *> m_impl;
 
 public:
   template <typename T>
-  TypeResolutionResult(const T *value) noexcept : m_impl(value){};
+  NameResolutionResult(const T *value) noexcept : m_impl(value){};
 
   template <typename T> auto is() const -> bool { return m_impl.is<const T*>(); }
 
@@ -40,4 +40,4 @@ public:
 
 } // namespace hades
 
-#endif // HADES_TYPERESOLUTIONRESULT_H
+#endif // HADES_NAMERESOLUTIONRESULT_H

@@ -25,7 +25,7 @@ public:
 
   auto intern_string(StringView text) -> InternedString;
 
-  auto type_resolver() -> NameResolver &;
+  auto name_resolver() -> NameResolver &;
 
   auto get_source_file(const fs::path&) -> const SourceFile&;
 

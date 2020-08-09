@@ -23,7 +23,7 @@ auto Context::intern_string(StringView text) -> InternedString {
   return self_mut().intern_string(text);
 }
 
-auto Context::type_resolver() -> NameResolver & {
+auto Context::name_resolver() -> NameResolver & {
   return self_mut().type_resolver();
 }
 auto Context::get_source_file(const fs::path &path) -> const SourceFile & {

@@ -5,7 +5,7 @@
 #ifndef HADES_NAMERESOLVER_H
 #define HADES_NAMERESOLVER_H
 
-#include "hades/analysis/TypeResolutionResult.h"
+#include "hades/analysis/NameResolutionResult.h"
 #include "hades/ast/Type.h"
 #include "hades/base.h"
 
@@ -23,7 +23,8 @@ public:
   ~NameResolver() noexcept;
   HADES_DEFAULT_MOVE(NameResolver)
   HADES_DELETE_COPY(NameResolver)
-  auto resolve_type_var(const type::Var &) -> TypeResolutionResult;
+  auto resolve_type_var(const type::Var &) -> NameResolutionResult;
+  auto resolve_expr_var(const VarExpression&) -> NameResolutionResult;
 
 private:
   auto self() -> NameResolverImpl &;
