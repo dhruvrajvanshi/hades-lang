@@ -49,6 +49,12 @@ public:
   ValStatement(SourceLocation, Identifier name,
                Optional<const Type *> annotation,
                const Expression *initializer) noexcept;
+
+  auto name() const -> const Identifier & { return m_name; }
+
+  auto annotation() const -> Optional<const Type *> { return m_annotation; }
+
+  auto initializer() const -> const Expression & { return *m_initializer; }
 };
 
 class ExpressionStatement : public Statement {
