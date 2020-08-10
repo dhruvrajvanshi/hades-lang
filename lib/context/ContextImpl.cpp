@@ -41,10 +41,10 @@ auto ContextImpl::intern_string(StringView text) -> InternedString {
 }
 
 auto ContextImpl::type_resolver() -> NameResolver & {
-  if (m_type_resolver == nullptr) {
-    m_type_resolver.reset(new NameResolver(m_ctx));
+  if (m_name_resolver == nullptr) {
+    m_name_resolver.reset(new NameResolver(m_ctx));
   }
-  return *m_type_resolver;
+  return *m_name_resolver;
 }
 
 auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
@@ -54,6 +54,13 @@ auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
     m_source_files.insert({ fs::absolute(path), parser.parse_source_file() });
   }
   return *m_source_files[fs::absolute(path)];
+}
+
+auto ContextImpl::typer() -> Typer & {
+  if (m_typer == nullptr) {
+    m_typer.reset(new Typer());
+  }
+  return *m_typer;
 }
 
 }; // namespace hades::core
