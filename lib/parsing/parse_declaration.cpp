@@ -94,7 +94,7 @@ auto ParserImpl::parse_function_signature_param() -> const Param * {
     return allocate<Param>(                //
         location,                          //
         name_opt,                          //
-        Optional<const Type *>(annotation) //
+        Optional<const TypeAnnotation *>(annotation) //
     );
   }
   auto name = optional::none<Identifier>();
@@ -103,7 +103,7 @@ auto ParserImpl::parse_function_signature_param() -> const Param * {
   return allocate<Param>( //
       location,           //
       name,               //
-      Optional<const Type *>(annotation));
+      Optional<const TypeAnnotation *>(annotation));
 }
 
 } // namespace hades

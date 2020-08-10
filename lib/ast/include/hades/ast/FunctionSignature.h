@@ -7,7 +7,7 @@
 
 #include "Identifier.h"
 #include "Param.h"
-#include "Type.h"
+#include "TypeAnnotation.h"
 
 namespace hades {
 
@@ -18,15 +18,15 @@ private:
   SourceLocation m_location;
   Identifier m_name;
   Params m_params;
-  Optional<const Type*> m_return_type;
+  Optional<const TypeAnnotation *> m_return_type_annotation;
 public:
   HADES_DELETE_MOVE(FunctionSignature)
   HADES_DELETE_COPY(FunctionSignature)
-  FunctionSignature(SourceLocation location, Identifier name, Params&& params, Optional<const Type*> return_type) noexcept;
+  FunctionSignature(SourceLocation location, Identifier name, Params&& params, Optional<const TypeAnnotation *> return_type) noexcept;
   auto location() const -> const SourceLocation&;
   auto name() const -> const Identifier&;
   auto params() const -> ArrayRef<const Param*>;
-  auto return_type() const -> const Optional<const Type*>&;
+  auto return_type_annotation() const -> const Optional<const TypeAnnotation *>&;
 };
 
 } // namespace hades

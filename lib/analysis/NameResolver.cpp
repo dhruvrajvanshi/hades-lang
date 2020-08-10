@@ -12,7 +12,7 @@ NameResolver::~NameResolver() noexcept = default;
 
 auto NameResolver::self() -> NameResolverImpl & { return *m_impl.get(); }
 
-auto NameResolver::resolve_type_var(const type::Var &type_var)
+auto NameResolver::resolve_type_var(const type_annotation::Var &type_var)
     -> NameResolutionResult {
   return self().resolve_type_var(type_var);
 }

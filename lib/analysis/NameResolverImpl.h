@@ -7,7 +7,7 @@
 
 #include "ScopeTree.h"
 #include "hades/analysis/NameResolutionResult.h"
-#include "hades/ast/Type.h"
+#include "hades/ast/TypeAnnotation.h"
 #include "hades/base.h"
 #include "hades/base/BumpPtrAllocator.h"
 #include "hades/context/Context.h"
@@ -42,7 +42,7 @@ public:
   ~NameResolverImpl() noexcept = default;
   HADES_DEFAULT_MOVE(NameResolverImpl)
 
-  auto resolve_type_var(const type::Var &) -> NameResolutionResult;
+  auto resolve_type_var(const type_annotation::Var &) -> NameResolutionResult;
 
   auto resolve_expr_var(const VarExpression &) -> NameResolutionResult;
 

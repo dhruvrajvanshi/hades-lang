@@ -13,7 +13,7 @@ Statement::Statement(SourceLocation location, Kind kind) noexcept
 ValStatement::ValStatement( //
     SourceLocation location,
     Identifier name,                                //
-    Optional<const Type *> annotation,              //
+    Optional<const TypeAnnotation *> annotation,              //
     const Expression *initializer) noexcept         //
     : Statement(location, Kind::VAL), m_name{name}, //
       m_annotation{annotation},                     //

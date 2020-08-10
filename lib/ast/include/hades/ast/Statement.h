@@ -6,7 +6,7 @@
 #define HADES_STATEMENT_H
 
 #include "Expression.h"
-#include "Type.h"
+#include "TypeAnnotation.h"
 #include "hades/core/location.h"
 
 namespace hades {
@@ -41,18 +41,18 @@ public:
 
 class ValStatement : public Statement {
   const Identifier m_name;
-  const Optional<const Type *> m_annotation;
+  const Optional<const TypeAnnotation *> m_annotation;
   const Expression *m_initializer;
 
 public:
   static constexpr Kind kind = Kind::VAL;
   ValStatement(SourceLocation, Identifier name,
-               Optional<const Type *> annotation,
+               Optional<const TypeAnnotation *> annotation,
                const Expression *initializer) noexcept;
 
   auto name() const -> const Identifier & { return m_name; }
 
-  auto annotation() const -> Optional<const Type *> { return m_annotation; }
+  auto type_annotation() const -> Optional<const TypeAnnotation *> { return m_annotation; }
 
   auto initializer() const -> const Expression & { return *m_initializer; }
 };

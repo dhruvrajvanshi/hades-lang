@@ -4,7 +4,7 @@
 
 #include "IRGenImpl.h"
 #include "hades/ast/Declaration.h"
-#include "hades/ast/Type.h"
+#include "hades/ast/TypeAnnotation.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace hades {
@@ -47,13 +47,13 @@ auto t::get_extern_def_var(const ExternDef * def) -> llvm::Function * {
 
 auto t::get_function_signature_type(const FunctionSignature * signature)
     -> llvm::FunctionType * {
-  assert(signature->return_type().hasValue());
-  auto& return_type_annotation = *signature->return_type().getValue();
+  assert(signature->return_type_annotation().hasValue());
+  auto& return_type_annotation = *signature->return_type_annotation().getValue();
   auto *return_type = lower_type(return_type_annotation);
   auto param_types =
       allocator().allocate_array_ref<const Param *, llvm::Type *>(
           signature->params(), [this](const Param *param) -> llvm::Type * {
-            return lower_type(*param->type().getValue());
+            return lower_type(*param->type_annotation().getValue());
           });
   auto fn = llvm::FunctionType::get(return_type, param_types,
                                  /* isVarArgs */ false);
@@ -152,10 +152,10 @@ auto t::lower_int_literal(const IntLiteral & i) -> llvm::Value * {
 
 auto t::lower_struct_def(const StructDef &) -> void {}
 
-auto t::lower_type(const Type &type) -> llvm::Type * {
+auto t::lower_type(const TypeAnnotation &type) -> llvm::Type * {
   switch (type.kind()) {
-  case Type::Kind::VAR: {
-    auto& type_var = type.as<type::Var>();
+  case TypeAnnotation::Kind::VAR: {
+    auto& type_var = type.as<type_annotation::Var>();
     auto resolved = m_ctx->name_resolver().resolve_type_var(type_var);
     if (resolved.is<StructDef>()) {
       const auto* struct_def = resolved.as<StructDef>();
@@ -173,12 +173,12 @@ auto t::lower_type(const Type &type) -> llvm::Type * {
     }
     llvm_unreachable("");
   }
-  case Type::Kind::POINTER: {
-    const auto &ptr_type = type.as<type::Pointer>();
+  case TypeAnnotation::Kind::POINTER: {
+    const auto &ptr_type = type.as<type_annotation::Pointer>();
     return llvm::PointerType::get(lower_type(*ptr_type.pointee()), 0);
   };
-  case Type::Kind::INT: {
-    auto& int_ty = type.as<type::Int>();
+  case TypeAnnotation::Kind::INT: {
+    auto& int_ty = type.as<type_annotation::Int>();
     return llvm::IntegerType::get(m_llvm_ctx, int_ty.width());
   }
   }
@@ -194,8 +194,8 @@ auto t::get_struct_def_type(const StructDef &struct_def) -> llvm::Type * {
       switch (member->kind()) {
       case StructMember::Kind::FIELD: {
         const auto *field = static_cast<const StructField *>(member);
-        assert(field->type().hasValue());
-        const auto *declared_type = field->type().getValue();
+        assert(field->type_annotation().hasValue());
+        const auto *declared_type = field->type_annotation().getValue();
         field_types.push_back(lower_type(*declared_type));
       }
       }

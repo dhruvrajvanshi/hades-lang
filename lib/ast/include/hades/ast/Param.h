@@ -6,7 +6,7 @@
 #define HADES_PARAM_H
 
 #include "Identifier.h"
-#include "Type.h"
+#include "TypeAnnotation.h"
 #include "hades/base.h"
 
 namespace hades {
@@ -14,13 +14,13 @@ namespace hades {
 class Param {
   SourceLocation m_location;
   Optional<Identifier> m_label;
-  Optional<const Type *> m_type;
+  Optional<const TypeAnnotation *> m_type_annotation;
 
 public:
-  Param(SourceLocation location, Optional<Identifier> label, Optional<const Type *> type) noexcept;
+  Param(SourceLocation location, Optional<Identifier> label, Optional<const TypeAnnotation *> type) noexcept;
 
   auto label() const noexcept -> const Optional<Identifier> &;
-  auto type() const noexcept -> const Optional<const Type *> &;
+  auto type_annotation() const noexcept -> const Optional<const TypeAnnotation *> &;
   auto location() const noexcept -> const SourceLocation&;
 };
 

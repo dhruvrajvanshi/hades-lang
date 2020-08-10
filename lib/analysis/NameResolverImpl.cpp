@@ -10,7 +10,7 @@ namespace hades {
 
 NameResolverImpl::NameResolverImpl(core::Context *ctx) noexcept : m_ctx{ctx} {}
 
-auto NameResolverImpl::resolve_type_var(const type::Var &t)
+auto NameResolverImpl::resolve_type_var(const type_annotation::Var &t)
     -> NameResolutionResult {
   return resolve_name(t.name(), ResolutionContext::TYPE);
 }

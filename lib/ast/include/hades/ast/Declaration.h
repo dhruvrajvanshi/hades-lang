@@ -106,12 +106,12 @@ public:
 };
 class StructField : public StructMember {
   Identifier m_name;
-  Optional<const Type *> m_type;
+  Optional<const TypeAnnotation *> m_type_annotation;
 
 public:
   StructField(SourceLocation location, Identifier name,
-              Optional<const Type *> type) noexcept;
-  auto type() const -> Optional<const Type*>;
+              Optional<const TypeAnnotation *> type) noexcept;
+  auto type_annotation() const -> Optional<const TypeAnnotation *>;
 };
 
 } // namespace hades

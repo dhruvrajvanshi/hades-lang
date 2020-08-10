@@ -93,10 +93,10 @@ private:
   auto parse_struct_member() -> const StructMember*;
   auto parse_struct_field() -> const StructField*;
 
-  auto parse_optional_type_annotation() -> Optional<const Type*>;
-  auto parse_type() -> const Type*;
-  auto parse_var_type() -> const type::Var*;
-  auto parse_pointer_type() -> const type::Pointer*;
+  auto parse_optional_type_annotation() -> Optional<const TypeAnnotation *>;
+  auto parse_type() -> const TypeAnnotation *;
+  auto parse_var_type() -> const type_annotation::Var*;
+  auto parse_pointer_type() -> const type_annotation::Pointer*;
 
   template <int offset>
   auto peek() -> const Token& {

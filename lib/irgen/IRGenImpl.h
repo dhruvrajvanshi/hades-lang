@@ -39,7 +39,7 @@ private:
   auto lower_extern_def(const ExternDef&) -> void;
   auto lower_function_def(const FunctionDef&) -> void;
 
-  auto lower_type(const Type&) -> llvm::Type*;
+  auto lower_type(const TypeAnnotation &) -> llvm::Type*;
 
   auto get_struct_def_type(const StructDef&) -> llvm::Type*;
 

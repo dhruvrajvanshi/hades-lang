@@ -2,7 +2,7 @@ set(LIBHADES_AST_SOURCES
         SourceFile.cpp
         Identifier.cpp
         Declaration.cpp
-        Type.cpp
+        TypeAnnotation.cpp
         FunctionSignature.cpp
         Param.cpp
         Block.cpp

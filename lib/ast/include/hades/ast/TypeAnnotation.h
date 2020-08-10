@@ -2,15 +2,15 @@
 // Created by dhruv on 06/08/20.
 //
 
-#ifndef HADES_TYPE_H
-#define HADES_TYPE_H
+#ifndef HADES_TYPEANNOTATION_H
+#define HADES_TYPEANNOTATION_H
 
 #include "Identifier.h"
 
 namespace hades {
 template <typename T> constexpr auto is_type() -> bool;
 template <typename T> constexpr auto assert_is_type() -> void;
-class Type {
+class TypeAnnotation {
 public:
   enum class Kind;
 private:
@@ -18,10 +18,10 @@ private:
   Kind m_kind;
 
 protected:
-  Type(SourceLocation, Kind) noexcept;
+  TypeAnnotation(SourceLocation, Kind) noexcept;
 public:
-  HADES_DELETE_COPY(Type)
-  HADES_DELETE_MOVE(Type)
+  HADES_DELETE_COPY(TypeAnnotation)
+  HADES_DELETE_MOVE(TypeAnnotation)
   auto location() const -> const SourceLocation &;
   auto kind() const -> Kind;
 
@@ -44,13 +44,13 @@ public:
 };
 
 template <typename T> constexpr auto is_type() -> bool {
-  return std::is_assignable_v<Type, T>
-    && std::is_same_v<std::decay<decltype(T::kind)>, Type::Kind>;
+  return std::is_assignable_v<TypeAnnotation, T>
+    && std::is_same_v<std::decay<decltype(T::kind)>, TypeAnnotation::Kind>;
 }
 
-namespace type {
+namespace type_annotation {
 
-class Var : public Type {
+class Var : public TypeAnnotation {
   Identifier m_name;
 
 public:
@@ -60,25 +60,25 @@ public:
   auto name() const -> const Identifier&;
 };
 
-class Pointer : public Type {
-  const Type* m_pointee;
+class Pointer : public TypeAnnotation {
+  const TypeAnnotation * m_pointee;
   bool m_is_mutable;
 public:
   static constexpr Kind kind = Kind::POINTER;
-  Pointer(SourceLocation location, const Type* pointee, bool is_mutable) noexcept;
+  Pointer(SourceLocation location, const TypeAnnotation * pointee, bool is_mutable) noexcept;
 
   auto is_mutable() const -> bool;
-  auto pointee() const -> const Type*;
+  auto pointee() const -> const TypeAnnotation *;
 };
 
-class Int : public Type {
+class Int : public TypeAnnotation {
   bool m_is_signed;
   u8 m_width;
 
 public:
   static constexpr Kind kind = Kind::INT;
   Int(SourceLocation location, bool is_signed, u8 width) noexcept
-      : Type(location, Kind::INT),
+      : TypeAnnotation(location, Kind::INT),
         m_is_signed{is_signed},
         m_width{width} {};
 
@@ -86,8 +86,8 @@ public:
   auto width() const -> u8 { return m_width; }
 };
 
-} // namespace type
+} // namespace type_annotation
 
 } // namespace hades
 
-#endif // HADES_TYPE_H
+#endif // HADES_TYPEANNOTATION_H

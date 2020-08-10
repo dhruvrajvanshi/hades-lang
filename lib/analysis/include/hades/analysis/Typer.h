@@ -5,7 +5,7 @@
 #ifndef HADES_TYPER_H
 #define HADES_TYPER_H
 
-#include "hades/ast/Type.h"
+#include "hades/ast/TypeAnnotation.h"
 
 namespace hades {
 

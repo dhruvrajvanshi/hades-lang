@@ -31,12 +31,12 @@ auto StructDef::members() const noexcept -> ArrayRef<const StructMember *> {
 }
 
 StructField::StructField(SourceLocation location, Identifier name,
-                         Optional<const Type *> type) noexcept
+                         Optional<const TypeAnnotation *> type) noexcept
     : StructMember(std::move(location), Kind::FIELD),
-      m_name(std::move(name)), m_type{std::move(type)} {}
+      m_name(std::move(name)), m_type_annotation{std::move(type)} {}
 
-auto StructField::type() const -> Optional<const Type *> {
-  return m_type;
+auto StructField::type_annotation() const -> Optional<const TypeAnnotation *> {
+  return m_type_annotation;
 }
 
 auto StructMember::kind() const -> Kind {
