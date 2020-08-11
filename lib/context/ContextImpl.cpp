@@ -22,23 +22,10 @@ auto ContextImpl::evaluate(req::BuildObjectFileRequest request) -> int {
 
 auto ContextImpl::flags() const -> const CommandLineFlags & { return m_flags; }
 
-auto ContextImpl::allocator() -> llvm::BumpPtrAllocator & {
+auto ContextImpl::allocator() -> BumpPtrAllocator & {
   return m_allocator;
 }
 
-auto ContextImpl::intern_string(StringView text) -> InternedString {
-  if (m_interned_strings.find(text) == m_interned_strings.cend()) {
-    auto *buffer =
-        (char *)allocator().Allocate(text.length() + 1, alignof(char));
-    buffer[text.length()] = '\0';
-    memcpy((void *)buffer, (void *)text.begin(), text.length());
-    auto view = StringView(buffer, text.length());
-    m_interned_strings.insert({view, {buffer, text.length()}});
-  }
-  const auto &item = m_interned_strings.find(text);
-  auto interned_str = item->second;
-  return interned_str;
-}
 
 auto ContextImpl::type_resolver() -> NameResolver & {
   if (m_name_resolver == nullptr) {
@@ -62,5 +49,7 @@ auto ContextImpl::typer() -> Typer & {
   }
   return *m_typer;
 }
+
+auto ContextImpl::interner() -> Interner & { return m_interner; }
 
 }; // namespace hades::core

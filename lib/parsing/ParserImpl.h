@@ -56,7 +56,7 @@ public:
   auto parse_declaration() -> const Declaration *;
 
 private:
-  auto allocator() -> llvm::BumpPtrAllocator &;
+  auto allocator() -> BumpPtrAllocator &;
 
   auto at(Token::Kind kind) const -> bool;
 
@@ -64,7 +64,7 @@ private:
 
   template <typename T, typename ...Args>
   auto allocate(Args&&... args) -> T* {
-    auto* mem = allocator().Allocate(sizeof(T), alignof(T));
+    auto* mem = allocator().allocate(sizeof(T), alignof(T));
     return new(mem) T(std::forward<Args>(args)...);
   }
 

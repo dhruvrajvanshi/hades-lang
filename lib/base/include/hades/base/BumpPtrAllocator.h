@@ -19,6 +19,10 @@ public:
     return new(mem) T(std::forward<Args>(args)...);
   }
 
+  auto allocate(size_t size, size_t align) -> void* {
+    return m_impl.Allocate(size, align);
+  }
+
   template <typename T1, typename T2>
   auto allocate_array_ref(ArrayRef<T1> input, std::function<T2(T1)> f) -> ArrayRef<T2> {
     T2* begin = m_impl.Allocate<T2>();

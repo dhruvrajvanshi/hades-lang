@@ -8,6 +8,7 @@
 #include "hades/base/data.h"
 #include "hades/core/CommandLineFlags.h"
 #include "hades/core/InternedString.h"
+#include "hades/core/Interner.h"
 
 namespace hades::core {
 class ContextImpl;
@@ -22,13 +23,13 @@ public:
   HADES_DELETE_MOVE(Context)
 
   auto run() -> int;
-  auto allocator() -> llvm::BumpPtrAllocator &;
-
-  auto intern_string(StringView text) -> InternedString;
+  auto allocator() -> BumpPtrAllocator &;
 
   auto name_resolver() -> NameResolver &;
 
-  auto typer() -> Typer&;
+  auto typer() -> Typer &;
+
+  auto interner() -> Interner &;
 
   auto get_source_file(const fs::path&) -> const SourceFile&;
 

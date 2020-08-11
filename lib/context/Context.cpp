@@ -14,12 +14,8 @@ auto Context::self() -> const ContextImpl & { return *m_self; }
 Context::Context(CommandLineFlags flags)
     : m_self{new ContextImpl(this, flags)} {}
 
-auto Context::allocator() -> llvm::BumpPtrAllocator & {
+auto Context::allocator() -> BumpPtrAllocator & {
   return self_mut().allocator();
-}
-
-auto Context::intern_string(StringView text) -> InternedString {
-  return self_mut().intern_string(text);
 }
 
 auto Context::name_resolver() -> NameResolver & {
@@ -30,6 +26,7 @@ auto Context::get_source_file(const fs::path &path) -> const SourceFile & {
 }
 
 auto Context::typer() -> Typer & { return self_mut().typer(); }
+auto Context::interner() -> Interner & { return self_mut().interner(); }
 
 Context::~Context() noexcept = default;
 

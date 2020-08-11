@@ -10,6 +10,7 @@
 #include "hades/context/Context.h"
 #include "hades/core/RequestEvaluator.h"
 #include "hades/requests.h"
+#include "hades/core/Interner.h"
 
 namespace hades::core {
 namespace req = requests;
@@ -17,19 +18,19 @@ class ContextImpl {
 
   RequestEvaluator m_evaluator;
   CommandLineFlags m_flags;
-  llvm::BumpPtrAllocator m_allocator;
+  BumpPtrAllocator m_allocator;
   Context *m_ctx;
-  Map<StringView, InternedString> m_interned_strings{};
   Map<String, const SourceFile *> m_source_files{};
   UniquePtr<NameResolver> m_name_resolver;
   UniquePtr<Typer> m_typer;
+  Interner m_interner;
 
 public:
   ContextImpl() = delete;
   ~ContextImpl() = default;
   ContextImpl(Context *ctx, CommandLineFlags flags)
       : m_evaluator{}, m_flags{flags}, m_ctx{ctx},
-        m_name_resolver{nullptr}, m_typer{nullptr} {}
+        m_name_resolver{nullptr}, m_typer{nullptr}, m_interner{Interner(&m_allocator)} {}
   HADES_DELETE_MOVE(ContextImpl)
   HADES_DELETE_COPY(ContextImpl)
 
@@ -37,13 +38,13 @@ public:
   auto evaluate(req::BuildObjectFileRequest) -> int;
   auto flags() const -> const CommandLineFlags &;
 
-  auto allocator() -> llvm::BumpPtrAllocator &;
-
-  auto intern_string(StringView text) -> InternedString;
+  auto allocator() -> BumpPtrAllocator &;
 
   auto type_resolver() -> NameResolver &;
 
   auto typer() -> Typer &;
+
+  auto interner() -> Interner &;
 
   auto get_source_file(const fs::path &) -> const SourceFile &;
 };

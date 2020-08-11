@@ -35,7 +35,7 @@ auto ParserImpl::parse_block() -> const Block * {
   return allocate<Block>(location, std::move(statements));
 }
 
-auto ParserImpl::allocator() -> llvm::BumpPtrAllocator & {
+auto ParserImpl::allocator() -> BumpPtrAllocator & {
   return m_ctx->allocator();
 }
 auto ParserImpl::at(Token::Kind kind) const -> bool {
@@ -59,7 +59,7 @@ auto ParserImpl::advance() -> Token {
 
 auto ParserImpl::parse_identifier() -> Identifier {
   auto token = expect(tt::ID);
-  return Identifier(token.location(), ctx().intern_string(token.text()));
+  return Identifier(token.location(), ctx().interner().intern_string(token.text()));
 }
 
 auto ParserImpl::ctx() const noexcept -> core::Context & { return *m_ctx; }

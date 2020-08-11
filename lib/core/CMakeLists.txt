@@ -3,6 +3,7 @@ set(LIBHADES_CORE_SOURCES
         location.cpp
         CommandLineFlags.cpp
         InternedString.cpp
+        Interner.cpp
         )
 set(LIBHADES_CORE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 

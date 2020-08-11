@@ -218,7 +218,7 @@ auto IRGenImpl::make_unique_name() -> InternedString {
   u64 value = m_next_name;
   m_next_name++;
   auto str = String("$") + std::to_string(value);
-  return m_ctx->intern_string(StringView(str));
+  return m_ctx->interner().intern_string(StringView(str));
 }
 
 } // namespace hades

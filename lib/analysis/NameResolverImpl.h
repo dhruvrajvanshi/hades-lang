@@ -25,7 +25,7 @@ class NameResolverImpl {
 #define BUILTIN_INT(name, width, is_signed)                                    \
   const NameResolutionResult::Int *builtin_##name =                            \
       m_allocator.allocate<NameResolutionResult::Int>(width, is_signed);       \
-  InternedString builtin_name_##name = m_ctx->intern_string(#name);
+  InternedString builtin_name_##name = m_ctx->interner().intern_string(#name);
 
   BUILTIN_INT(u32, 32, false)
   BUILTIN_INT(i32, 32, true)
@@ -35,7 +35,7 @@ class NameResolverImpl {
 #undef BUILTIN_INT
   const NameResolutionResult::Void *builtin_void =
       m_allocator.allocate<NameResolutionResult::Void>();
-  InternedString builtin_name_void = m_ctx->intern_string("Void");
+  InternedString builtin_name_void = m_ctx->interner().intern_string("Void");
 
 public:
   NameResolverImpl(core::Context *) noexcept;

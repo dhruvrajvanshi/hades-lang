@@ -3,6 +3,7 @@
 
 #include "hades/base/sys.h"
 #include "hades/base/data.h"
+#include "hades/base/BumpPtrAllocator.h"
 
 namespace hades {
 
