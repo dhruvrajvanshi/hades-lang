@@ -37,7 +37,7 @@ auto ContextImpl::type_resolver() -> NameResolver & {
 auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
   if (!m_source_files.contains(fs::absolute(path))) {
     const auto *path_ptr = &path;
-    auto parser = Parser(m_ctx, path_ptr);
+    auto parser = Parser(&allocator(), &interner(), path_ptr);
     m_source_files.insert({ fs::absolute(path), parser.parse_source_file() });
   }
   return *m_source_files[fs::absolute(path)];

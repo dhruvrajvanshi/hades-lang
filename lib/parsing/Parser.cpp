@@ -6,8 +6,8 @@
 
 namespace hades {
 
-Parser::Parser(core::Context *ctx, const fs::path *path)
-    : m_impl{new ParserImpl(ctx, path)} {}
+Parser::Parser(BumpPtrAllocator* allocator, Interner* interner, const fs::path *path)
+    : m_impl{new ParserImpl(allocator, interner, path)} {}
 
 auto Parser::parse_source_file() -> const SourceFile * {
   return self().parse_source_file();

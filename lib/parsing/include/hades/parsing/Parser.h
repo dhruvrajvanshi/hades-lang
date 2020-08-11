@@ -16,7 +16,7 @@ class Parser {
   UniquePtr<ParserImpl> m_impl;
 
 public:
-  Parser(core::Context* ctx, const fs::path *path);
+  Parser(BumpPtrAllocator*, Interner*, const fs::path *path);
   ~Parser() noexcept;
 
   auto parse_source_file() -> const SourceFile *;

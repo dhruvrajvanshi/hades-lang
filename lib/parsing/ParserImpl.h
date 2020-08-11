@@ -46,11 +46,15 @@ public:
 class ParserImpl {
   using tt = Token::Kind;
   const fs::path *m_path;
-  core::Context* m_ctx;
+  BumpPtrAllocator* m_allocator;
+  Interner* m_interner;
   TokenBuffer<MAX_LOOKAHEAD> m_token_buffer;
 public:
-  ParserImpl(core::Context *m_ctx, const fs::path *m_path);
+  ParserImpl(BumpPtrAllocator*, Interner*, const fs::path *m_path);
   ~ParserImpl() = default;
+  HADES_DELETE_COPY(ParserImpl)
+  HADES_DELETE_MOVE(ParserImpl)
+
   auto parse_source_file() -> const SourceFile *;
 
   auto parse_declaration() -> const Declaration *;
@@ -116,8 +120,6 @@ private:
   auto advance() -> Token;
 
   auto parse_identifier() -> Identifier;
-
-  auto ctx() const noexcept -> core::Context&;
 };
 #undef MAX_LOOKAHEAD
 

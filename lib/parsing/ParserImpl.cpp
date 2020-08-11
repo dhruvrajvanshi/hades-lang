@@ -9,8 +9,8 @@ namespace hades {
 
 using tt = Token::Kind;
 
-ParserImpl::ParserImpl(core::Context *ctx, const fs::path *path)
-    : m_ctx(ctx), m_path(path), m_token_buffer(Lexer(path)) {}
+ParserImpl::ParserImpl(BumpPtrAllocator* allocator, Interner* interner, const fs::path *path)
+    : m_allocator(allocator), m_interner(interner), m_path(path), m_token_buffer(Lexer(path)) {}
 
 auto ParserImpl::parse_source_file() -> const SourceFile * {
   auto first = current_token().location();
@@ -36,7 +36,7 @@ auto ParserImpl::parse_block() -> const Block * {
 }
 
 auto ParserImpl::allocator() -> BumpPtrAllocator & {
-  return m_ctx->allocator();
+  return *m_allocator;
 }
 auto ParserImpl::at(Token::Kind kind) const -> bool {
   return current_token().is(kind);
@@ -59,9 +59,7 @@ auto ParserImpl::advance() -> Token {
 
 auto ParserImpl::parse_identifier() -> Identifier {
   auto token = expect(tt::ID);
-  return Identifier(token.location(), ctx().interner().intern_string(token.text()));
+  return Identifier(token.location(), m_interner->intern_string(token.text()));
 }
-
-auto ParserImpl::ctx() const noexcept -> core::Context & { return *m_ctx; }
 
 } // namespace hades
