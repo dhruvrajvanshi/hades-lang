@@ -125,10 +125,11 @@ auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
     unimplemented();
   }
   if (resolved_var.is<ValStatement>()) {
+    const auto* val_statement = resolved_var.as<ValStatement>();
+    const auto* type = ctx().typer().type_of_val_statement(*val_statement);
     unimplemented();
   }
   if (resolved_var.is<Unresolved>()) {
-    m_ctx->name_resolver().resolve_expr_var(expr);
     unimplemented();
   }
   llvm_unreachable("");

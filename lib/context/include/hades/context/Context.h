@@ -2,6 +2,7 @@
 #define HADES_CORE_CONTEXT_H
 
 #include "hades/analysis/NameResolver.h"
+#include "hades/analysis/Typer.h"
 #include "hades/ast/SourceFile.h"
 #include "hades/base/BumpPtrAllocator.h"
 #include "hades/base/data.h"
@@ -26,6 +27,8 @@ public:
   auto intern_string(StringView text) -> InternedString;
 
   auto name_resolver() -> NameResolver &;
+
+  auto typer() -> Typer&;
 
   auto get_source_file(const fs::path&) -> const SourceFile&;
 

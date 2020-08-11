@@ -59,6 +59,14 @@ private:
   auto allocator() -> BumpPtrAllocator& { return m_allocator; }
 
   auto make_unique_name() -> InternedString;
+
+  auto ctx() -> core::Context& {
+    return *m_ctx;
+  }
+
+  auto llvm_ctx() -> llvm::LLVMContext* {
+    return &m_llvm_ctx;
+  }
 };
 
 } // namespace hades

@@ -6,4 +6,8 @@
 
 namespace hades {
 
+auto Typer::type_of_val_statement(const ValStatement &) const -> const Type * {
+  unimplemented();
+}
+
 } // namespace hades
