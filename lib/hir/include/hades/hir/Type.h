@@ -5,6 +5,7 @@
 #ifndef HADES_TYPE_H
 #define HADES_TYPE_H
 #include "hades/base.h"
+#include "hades/core/QualifiedName.h"
 
 namespace hades {
 
@@ -27,19 +28,13 @@ public:
     TYPE_CONSTRUCTOR,
   };
 
-  auto kind() const -> Kind {
-    return m_kind;
-  }
+  auto kind() const -> Kind { return m_kind; }
 
-  template <typename T>
-  auto is() const -> bool {
-    return T::kind() == kind();
-  }
+  template <typename T> auto is() const -> bool { return T::kind() == kind(); }
 
-  template <typename T>
-  auto as() const -> const T* {
+  template <typename T> auto as() const -> const T * {
     assert(is<T>());
-    return static_cast<const T*>(this);
+    return static_cast<const T *>(this);
   }
 };
 
@@ -54,13 +49,9 @@ public:
                const Type *return_type) noexcept
       : Type(kind), m_param_types(param_types), m_return_type(return_type) {}
 
-  auto param_types() const -> ArrayRef<const Type*> {
-    return m_param_types;
-  }
+  auto param_types() const -> ArrayRef<const Type *> { return m_param_types; }
 
-  auto return_type() const -> const Type* {
-    return m_return_type;
-  }
+  auto return_type() const -> const Type * { return m_return_type; }
 };
 
 class PointerType : public Type {
@@ -90,12 +81,17 @@ public:
 class VoidType : public Type {
 public:
   static constexpr Kind kind = Kind::VOID;
-  VoidType() noexcept : Type(kind) {};
+  VoidType() noexcept : Type(kind){};
 };
 
 class TypeConstructorType : public Type {
+  QualifiedName m_name;
+
 public:
   static constexpr Kind kind = Kind::TYPE_CONSTRUCTOR;
+  TypeConstructorType(QualifiedName name) noexcept : Type(kind), m_name(name) {}
+
+  auto name() const -> QualifiedName { return m_name; }
 };
 
 } // namespace hades

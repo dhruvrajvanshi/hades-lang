@@ -189,6 +189,20 @@ auto IRGenImpl::make_unique_name() -> InternedString {
   auto str = String("$") + std::to_string(value);
   return m_ctx->interner().intern_string(StringView(str));
 }
-auto IRGenImpl::lower_type(const Type &) -> llvm::Type * { unimplemented(); }
+auto IRGenImpl::lower_type(const Type & type) -> llvm::Type * {
+  switch (type.kind()) {
+  case Type::Kind::INT:
+    unimplemented();
+  case Type::Kind::POINTER:
+    unimplemented();
+  case Type::Kind::FUNCTION:
+    unimplemented();
+  case Type::Kind::VOID:
+    return llvm::Type::getVoidTy(*llvm_ctx());
+  case Type::Kind::TYPE_CONSTRUCTOR:
+    unimplemented();
+  }
+  llvm_unreachable("");
+}
 
 } // namespace hades

@@ -21,5 +21,8 @@ auto NameResolver::resolve_expr_var(const VarExpression &var)
     -> NameResolutionResult {
   return self().resolve_expr_var(var);
 }
+auto NameResolver::qualified_struct_name(const StructDef * struct_def) -> QualifiedName {
+  return self().qualified_struct_name(struct_def);
+}
 
 } // namespace hades

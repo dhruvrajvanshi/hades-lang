@@ -45,7 +45,7 @@ auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
 
 auto ContextImpl::typer() -> Typer & {
   if (m_typer == nullptr) {
-    m_typer.reset(new Typer(&name_resolver()));
+    m_typer.reset(new Typer(&name_resolver(), &allocator()));
   }
   return *m_typer;
 }

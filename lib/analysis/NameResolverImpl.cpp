@@ -132,5 +132,14 @@ auto NameResolverImpl::find_in_block( //
   }
   return NameResolutionResult(&unresolved);
 }
+auto NameResolverImpl::qualified_struct_name(const StructDef * def)
+    -> QualifiedName {
+  // TODO: Take into account the canonical name of the source file that this
+  //  struct is declared in.
+  auto names = Vec<InternedString> {
+      def->identifier().name()
+  };
+  return QualifiedName(allocator().copy_items<InternedString>(names));
+}
 
 } // namespace hades

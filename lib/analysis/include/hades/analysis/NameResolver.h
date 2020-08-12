@@ -25,6 +25,7 @@ public:
   HADES_DELETE_COPY(NameResolver)
   auto resolve_type_var(const type_annotation::Var &) -> NameResolutionResult;
   auto resolve_expr_var(const VarExpression&) -> NameResolutionResult;
+  auto qualified_struct_name(const StructDef*) -> QualifiedName;
 
 private:
   auto self() -> NameResolverImpl &;

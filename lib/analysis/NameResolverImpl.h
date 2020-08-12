@@ -24,8 +24,8 @@ class NameResolverImpl {
   };
 
 #define BUILTIN_INT(name, width, is_signed)                                    \
-  const Type *builtin_##name =                            \
-      m_allocator.allocate<IntType>(width, is_signed);       \
+  const Type *builtin_##name =                                                 \
+      m_allocator.allocate<IntType>(width, is_signed);                         \
   InternedString builtin_name_##name = m_ctx->interner().intern_string(#name);
 
   BUILTIN_INT(u32, 32, false)
@@ -34,8 +34,7 @@ class NameResolverImpl {
   BUILTIN_INT(i64, 64, true)
 
 #undef BUILTIN_INT
-  const Type *builtin_void =
-      m_allocator.allocate<VoidType>();
+  const Type *builtin_void = m_allocator.allocate<VoidType>();
   InternedString builtin_name_void = m_ctx->interner().intern_string("Void");
 
 public:
@@ -46,6 +45,8 @@ public:
   auto resolve_type_var(const type_annotation::Var &) -> NameResolutionResult;
 
   auto resolve_expr_var(const VarExpression &) -> NameResolutionResult;
+
+  auto qualified_struct_name(const StructDef *) -> QualifiedName;
 
 private:
   auto ctx() -> core::Context &;
