@@ -99,6 +99,7 @@ auto t::lower_val_statement(const ValStatement &statement) -> void {
   auto *ptr = builder().CreateAlloca(initializer->getType(), nullptr,
                                      statement.name().as_string_ref());
   builder().CreateStore(initializer, ptr, /* isVolatile */ false);
+  m_val_statement_pointers.insert({ &statement, ptr });
 }
 
 auto t::lower_expression(const Expression &expr) -> llvm::Value * {
@@ -126,8 +127,11 @@ auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
   }
   if (resolved_var.is<ValStatement>()) {
     const auto* val_statement = resolved_var.as<ValStatement>();
-    const auto* type = ctx().typer().type_of_val_statement(*val_statement);
-    unimplemented();
+    assert(m_val_statement_pointers.contains(val_statement));
+    auto* ptr = m_val_statement_pointers.at(val_statement);
+    assert(ptr->getType()->isPointerTy());
+    auto* element_type = ptr->getType()->getPointerElementType();
+    return builder().CreateLoad(element_type, ptr, make_unique_name().as_string_ref());
   }
   if (resolved_var.is<Unresolved>()) {
     unimplemented();

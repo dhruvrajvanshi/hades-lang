@@ -24,6 +24,7 @@ class IRGenImpl {
   BumpPtrAllocator m_allocator;
   Map<const ExternDef*, llvm::FunctionCallee*> m_extern_def_callees{};
   Map<const StructDef*, llvm::Type*> m_struct_def_types{};
+  Map<const ValStatement*, llvm::Value*> m_val_statement_pointers{};
   u64 m_next_name = 0;
 
 public:

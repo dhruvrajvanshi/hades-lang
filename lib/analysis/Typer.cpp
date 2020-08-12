@@ -6,7 +6,10 @@
 
 namespace hades {
 
-auto Typer::type_of_val_statement(const ValStatement &) -> const Type * {
+auto Typer::type_of_val_statement(const ValStatement & statement) -> const Type * {
+  if (statement.type_annotation().hasValue()) {
+    return annotation_to_type(*statement.type_annotation().getValue());
+  }
   unimplemented();
 }
 
