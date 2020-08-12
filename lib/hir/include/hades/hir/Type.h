@@ -23,8 +23,24 @@ public:
     INT,
     POINTER,
     FUNCTION,
-    VOID
+    VOID,
+    TYPE_CONSTRUCTOR,
   };
+
+  auto kind() const -> Kind {
+    return m_kind;
+  }
+
+  template <typename T>
+  auto is() const -> bool {
+    return T::kind() == kind();
+  }
+
+  template <typename T>
+  auto as() const -> const T* {
+    assert(is<T>());
+    return static_cast<const T*>(this);
+  }
 };
 
 class FunctionType : public Type {
@@ -75,6 +91,11 @@ class VoidType : public Type {
 public:
   static constexpr Kind kind = Kind::VOID;
   VoidType() noexcept : Type(kind) {};
+};
+
+class TypeConstructorType : public Type {
+public:
+  static constexpr Kind kind = Kind::TYPE_CONSTRUCTOR;
 };
 
 } // namespace hades
