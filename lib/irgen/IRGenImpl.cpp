@@ -49,13 +49,13 @@ auto t::get_function_signature_type(const FunctionSignature * signature)
     -> llvm::FunctionType * {
   assert(signature->return_type_annotation().hasValue());
   auto& return_type_annotation = *signature->return_type_annotation().getValue();
-  auto *return_type = lower_type(return_type_annotation);
+  auto *return_type = lower_type(*ctx().typer().annotation_to_type(return_type_annotation));
   auto param_types =
       allocator().allocate_array_ref<const Param *, llvm::Type *>(
           signature->params(), [this](const Param *param) -> llvm::Type * {
-            return lower_type(*param->type_annotation().getValue());
+            return lower_type(*ctx().typer().annotation_to_type(*param->type_annotation().getValue()));
           });
-  auto fn = llvm::FunctionType::get(return_type, param_types,
+  auto* fn = llvm::FunctionType::get(return_type, param_types,
                                  /* isVarArgs */ false);
 
 
@@ -153,39 +153,6 @@ auto t::lower_int_literal(const IntLiteral & i) -> llvm::Value * {
 
 auto t::lower_struct_def(const StructDef &) -> void {}
 
-auto t::lower_type(const TypeAnnotation &type) -> llvm::Type * {
-  switch (type.kind()) {
-  case TypeAnnotation::Kind::VAR: {
-    auto& type_var = type.as<type_annotation::Var>();
-    auto resolved = m_ctx->name_resolver().resolve_type_var(type_var);
-    if (resolved.is<StructDef>()) {
-      const auto* struct_def = resolved.as<StructDef>();
-      return get_struct_def_type(*struct_def);
-    }
-    if (resolved.is<NameResolutionResult::Int>()) {
-      const auto [width, is_signed] = *resolved.as<NameResolutionResult::Int>();
-      return llvm::IntegerType::get(m_llvm_ctx, width);
-    }
-    if (resolved.is<NameResolutionResult::Void>()) {
-      return llvm::Type::getVoidTy(m_llvm_ctx);
-    }
-    if (resolved.is<Unresolved>()) {
-      llvm_unreachable("");
-    }
-    llvm_unreachable("");
-  }
-  case TypeAnnotation::Kind::POINTER: {
-    const auto &ptr_type = type.as<type_annotation::Pointer>();
-    return llvm::PointerType::get(lower_type(*ptr_type.pointee()), 0);
-  };
-  case TypeAnnotation::Kind::INT: {
-    auto& int_ty = type.as<type_annotation::Int>();
-    return llvm::IntegerType::get(m_llvm_ctx, int_ty.width());
-  }
-  }
-  llvm_unreachable("");
-}
-
 auto t::get_struct_def_type(const StructDef &struct_def) -> llvm::Type * {
   if (!m_struct_def_types.contains(&struct_def)) {
     auto *struct_type = llvm::StructType::create(m_llvm_ctx);
@@ -197,7 +164,9 @@ auto t::get_struct_def_type(const StructDef &struct_def) -> llvm::Type * {
         const auto *field = static_cast<const StructField *>(member);
         assert(field->type_annotation().hasValue());
         const auto *declared_type = field->type_annotation().getValue();
-        field_types.push_back(lower_type(*declared_type));
+        field_types.push_back(
+            lower_type(*ctx().typer().annotation_to_type(*declared_type))
+        );
       }
       }
     }
@@ -220,5 +189,6 @@ auto IRGenImpl::make_unique_name() -> InternedString {
   auto str = String("$") + std::to_string(value);
   return m_ctx->interner().intern_string(StringView(str));
 }
+auto IRGenImpl::lower_type(const Type &) -> llvm::Type * { unimplemented(); }
 
 } // namespace hades

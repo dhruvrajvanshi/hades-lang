@@ -8,6 +8,7 @@
 #include "hades/base.h"
 #include "hades/context/Context.h"
 #include "hades/ast/SourceFile.h"
+#include "hades/hir/Type.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
@@ -39,7 +40,7 @@ private:
   auto lower_extern_def(const ExternDef&) -> void;
   auto lower_function_def(const FunctionDef&) -> void;
 
-  auto lower_type(const TypeAnnotation &) -> llvm::Type*;
+  auto lower_type(const Type &) -> llvm::Type*;
 
   auto get_struct_def_type(const StructDef&) -> llvm::Type*;
 

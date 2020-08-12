@@ -23,6 +23,7 @@ public:
     INT,
     POINTER,
     FUNCTION,
+    VOID
   };
 };
 
@@ -68,6 +69,12 @@ public:
   auto size() const -> u8 { return m_size; }
 
   auto is_signed() const -> bool { return m_is_signed; }
+};
+
+class VoidType : public Type {
+public:
+  static constexpr Kind kind = Kind::VOID;
+  VoidType() noexcept : Type(kind) {};
 };
 
 } // namespace hades
