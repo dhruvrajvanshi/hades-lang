@@ -23,11 +23,10 @@ auto t::lower_source_file(const SourceFile &source_file) -> void {
     llvm_module().print(llvm::errs(), nullptr);
     unimplemented("Broken module");
   }
-  LLVMInitializeAllTargetInfos();
-  LLVMInitializeAllTargets();
-  LLVMInitializeAllTargetMCs();
-  LLVMInitializeAllAsmParsers();
-  LLVMInitializeAllAsmPrinters();
+  LLVMInitializeX86TargetInfo();
+  LLVMInitializeX86Target();
+  LLVMInitializeX86TargetMC();
+  LLVMInitializeX86AsmPrinter();
   auto* target_triple = LLVMGetDefaultTargetTriple();
   auto* cpu = "generic";
   auto* features = "";
@@ -37,7 +36,7 @@ auto t::lower_source_file(const SourceFile &source_file) -> void {
       target_triple,
       cpu,
       features,
-      LLVMCodeGenLevelNone,
+      LLVMCodeGenLevelLess,
       LLVMRelocPIC,
       LLVMCodeModelDefault
       );
@@ -105,6 +104,9 @@ auto t::get_function_signature_type(const FunctionSignature * signature)
 auto t::lower_function_def(const FunctionDef &def) -> void {
   auto *type = get_function_signature_type(&def.signature());
   auto name = def.signature().name().name().as_string_ref();
+  if (name == "main") {
+    name = "hades_main";
+  }
   auto *function = llvm::Function::Create(
       type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, 0, name,
       &llvm_module());
