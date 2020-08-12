@@ -130,6 +130,7 @@ auto t::lower_statement(const Statement &statement) -> void {
     return;
   case Statement::Kind::RETURN:
     lower_return_statement(*statement.as<ReturnStatement>());
+    return;
   }
   llvm_unreachable("");
 }
