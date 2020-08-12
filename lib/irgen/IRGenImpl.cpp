@@ -9,7 +9,6 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm-c/TargetMachine.h"
 #include "llvm-c/Analysis.h"
-#include "llvm-c/Core.h"
 #include "llvm-c/Target.h"
 
 namespace hades {
@@ -107,6 +106,7 @@ auto t::lower_function_def(const FunctionDef &def) -> void {
   auto *function = llvm::Function::Create(
       type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, 0, name,
       &llvm_module());
+  m_current_function = function;
   auto *basic_block = llvm::BasicBlock::Create(m_llvm_ctx, "entry", function);
   builder().SetInsertPoint(basic_block);
 
@@ -180,6 +180,11 @@ auto t::lower_var_expression(const VarExpression & expr) -> llvm::Value * {
     assert(ptr->getType()->isPointerTy());
     auto* element_type = ptr->getType()->getPointerElementType();
     return builder().CreateLoad(element_type, ptr, make_unique_name().as_string_ref());
+  }
+  if (resolved_var.is<Param>()) {
+    assert(m_current_function != nullptr);
+    const auto* param = resolved_var.as<Param>();
+    return m_current_function->getArg(param->index());
   }
   if (resolved_var.is<Unresolved>()) {
     unimplemented();

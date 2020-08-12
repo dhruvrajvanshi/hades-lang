@@ -20,8 +20,8 @@ auto ParserImpl::parse_declaration() -> const Declaration * {
 }
 
 auto ParserImpl::parse_function_def() -> const FunctionDef * {
-  const auto* signature = parse_function_signature();
-  const auto* block = parse_block();
+  const auto *signature = parse_function_signature();
+  const auto *block = parse_block();
   return allocate<FunctionDef>(signature, block);
 }
 
@@ -70,30 +70,34 @@ auto ParserImpl::parse_function_signature() -> const FunctionSignature * {
   auto name = parse_identifier();
   expect(tt::LPAREN);
   auto params = FunctionSignature::Params();
+  auto index = 0;
   while (!at(tt::RPAREN) && !at(tt::ENDF)) {
-    vec::push_back(params, parse_function_signature_param());
+    vec::push_back(params, parse_function_signature_param(index));
     if (!at(tt::RPAREN)) {
       expect(tt::COMMA);
     }
+    index++;
   }
   auto rparen = expect(tt::RPAREN);
   auto return_type = parse_optional_type_annotation();
   auto location = make_location(start, return_type.hasValue()
                                            ? return_type.getValue()->location()
                                            : rparen.location());
-  return allocate<FunctionSignature>(location, name, std::move(params), return_type);
+  return allocate<FunctionSignature>(location, name, std::move(params),
+                                     return_type);
 }
 
-auto ParserImpl::parse_function_signature_param() -> const Param * {
+auto ParserImpl::parse_function_signature_param(u8 index) -> const Param * {
   if (at(tt::ID) && peek<1>().is(tt::COLON)) {
     auto name = parse_identifier();
     expect(tt::COLON);
     const auto *annotation = parse_type();
     auto name_opt = Optional<Identifier>(name);
     auto location = make_location(name, annotation->location());
-    return allocate<Param>(                //
-        location,                          //
-        name_opt,                          //
+    return allocate<Param>(                          //
+        location,                                    //
+        index,                                       //
+        name_opt,                                    //
         Optional<const TypeAnnotation *>(annotation) //
     );
   }
@@ -102,6 +106,7 @@ auto ParserImpl::parse_function_signature_param() -> const Param * {
   auto location = make_location(annotation->location(), annotation->location());
   return allocate<Param>( //
       location,           //
+      index,              //
       name,               //
       Optional<const TypeAnnotation *>(annotation));
 }

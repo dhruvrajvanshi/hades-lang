@@ -88,7 +88,7 @@ private:
   auto parse_arg() -> const Arg*;
 
   auto parse_function_signature() -> const FunctionSignature*;
-  auto parse_function_signature_param() -> const Param*;
+  auto parse_function_signature_param(u8 index) -> const Param*;
 
   auto parse_extern_def() -> const ExternDef*;
 

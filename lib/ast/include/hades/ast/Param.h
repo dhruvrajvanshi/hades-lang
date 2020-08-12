@@ -13,13 +13,15 @@ namespace hades {
 
 class Param {
   SourceLocation m_location;
+  u8 m_index;
   Optional<Identifier> m_label;
   Optional<const TypeAnnotation *> m_type_annotation;
 
 public:
-  Param(SourceLocation location, Optional<Identifier> label, Optional<const TypeAnnotation *> type) noexcept;
+  Param(SourceLocation location, u8 index, Optional<Identifier> label, Optional<const TypeAnnotation *> type) noexcept;
 
-  auto label() const noexcept -> const Optional<Identifier> &;
+  auto label() const noexcept -> const Optional<Identifier> & { return m_label; }
+  auto index() const -> u8 { return m_index; }
   auto type_annotation() const noexcept -> const Optional<const TypeAnnotation *> &;
   auto location() const noexcept -> const SourceLocation&;
 };

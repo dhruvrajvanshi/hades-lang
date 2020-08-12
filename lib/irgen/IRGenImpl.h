@@ -27,6 +27,8 @@ class IRGenImpl {
   Map<const ValStatement*, llvm::Value*> m_val_statement_pointers{};
   u64 m_next_name = 0;
 
+  llvm::Function * m_current_function = nullptr;
+
 public:
   IRGenImpl(core::Context* ctx) noexcept;
   ~IRGenImpl() noexcept = default;

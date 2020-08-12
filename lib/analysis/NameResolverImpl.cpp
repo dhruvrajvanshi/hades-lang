@@ -98,6 +98,14 @@ auto NameResolverImpl::find_in_source_file(    //
         continue;
       }
       auto &fn_def = decl->as<FunctionDef>();
+      for (const auto* param : fn_def.signature().params()) {
+        if (!param->label().hasValue()) {
+          continue;
+        }
+        if (param->label().getValue().name() == ident.name()) {
+          return NameResolutionResult(param);
+        }
+      }
       if (fn_def.signature().name().name() == ident.name()) {
         return NameResolutionResult(&fn_def);
       }
@@ -116,10 +124,9 @@ auto NameResolverImpl::find_in_block( //
     NameResolverImpl::ResolutionContext rc) const -> NameResolutionResult {
   for (const auto* statement : block.statements()) {
     switch (statement->kind()) {
-    case Statement::Kind::ERROR:
-      break;
-    case Statement::Kind::EXPRESSION:
-      break;
+    case Statement::Kind::ERROR: break;
+    case Statement::Kind::EXPRESSION: break;
+    case Statement::Kind::RETURN: break;
     case Statement::Kind::VAL:
       if (rc == ResolutionContext::VALUE) {
         const auto* val_statement = statement->as<ValStatement>();

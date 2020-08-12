@@ -16,7 +16,8 @@ class NameResolutionResult {
 public:
 private:
   Variant<const StructDef *, const Type *, const Unresolved *,
-          const ExternDef *, const ValStatement *, const FunctionDef *>
+          const ExternDef *, const ValStatement *, const FunctionDef *,
+          const Param *>
       m_impl;
 
   static Unresolved s_unresolved;
