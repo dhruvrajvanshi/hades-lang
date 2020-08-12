@@ -7,7 +7,6 @@ A systems level programming language that compiles to LLVM
 - [x] Structs
 - [x] Generic types
 - [x] Extension Methods
-- [ ] Automatic Refcounting
 - [ ] Closures
 - [ ] Named function arguments
 - [x] Interfaces
@@ -33,25 +32,32 @@ Plugin isn't published yet. It's in `ide/vscode-hades` Figure it out.
 Instructions to come in the future.
 
 ## Why?
-Because building compilers is fun. The goal is to make a language
-that I would like to use instead of Java for writing server and
-GUI apps but allows me to drop down to a lower level if I
-need to write, for example, a scripting language
-interpreter witha a garbage collector.
+I think there's a lot of room for experimentation in the systems languages space.
+This language aims to sit between C and Rust, hopefully leaning
+towards Rust in terms of safety and towards C in terms of simplicity.
 
-1. The idiomatic high level application code should be memory
-   safe (possibly dropping to runtime checks to do this) if
-   not possible at compile time. Refcounting/Optional GC.
-   
-2. The idiomatic low level code should allow flexibility of
-   C/C++ while still being providing higher level safe
-   primitives when possible.
-   
-3. We should have 80% of Rust's safety at compile time while
-   and provide the remaining 20% using runtime checks/adress sanizier/
-   thread sanitizer in debug builds
-   (maybe even production builds if the runtime overhead isn't too
-   much).
+Takes inspiration from following languages:
+- C++
+- Rust
+- Haskell
+
+And a host of experimental and niche languages like Zig, Lobster, C3, and Odin.
+
+Here's a short list of things which I think Hades aims to improve over its influences
+
+### C++ 
+* Error messages: C++, due to the nature of templates, is very hard to produce good error messages for.
+C++ templates bodies are checked per use site. i.e. Template bodies don't show type errors. In fact it depends
+on this behaviour for overload resolution (SFINAE).
+
+Hades has constrained generics in the form of interfaces (similar to Rust/Haskell in this regard).
+
+### Rust
+* Ergonomics. I think it's worth sacrifising some performance to improve ergonomics. Hades doesn't aim
+  to provide the memory and aliasing safety guarantees that Rust provides. If we can enforce some of that with
+  runtime checks while being more ergonomic than lifetime annotations, that would be nice.
+
+
 
 ## What does it look like?
 
