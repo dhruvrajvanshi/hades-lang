@@ -6,6 +6,11 @@
 #include "hades/ast/Declaration.h"
 #include "hades/ast/TypeAnnotation.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm-c/TargetMachine.h"
+#include "llvm-c/Analysis.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/Target.h"
 
 namespace hades {
 using t = IRGenImpl;
@@ -13,6 +18,41 @@ using t = IRGenImpl;
 auto t::lower_source_file(const SourceFile &source_file) -> void {
   for (const auto *declaration : source_file.declarations()) {
     lower_declaration(*declaration);
+  }
+  if (llvm::verifyModule(llvm_module(), &llvm::errs())) {
+    llvm_module().print(llvm::errs(), nullptr);
+    unimplemented("Broken module");
+  }
+  LLVMInitializeAllTargetInfos();
+  LLVMInitializeAllTargets();
+  LLVMInitializeAllTargetMCs();
+  LLVMInitializeAllAsmParsers();
+  LLVMInitializeAllAsmPrinters();
+  auto* target_triple = LLVMGetDefaultTargetTriple();
+  auto* cpu = "generic";
+  auto* features = "";
+  auto* target = LLVMGetFirstTarget();
+  auto* target_machine = LLVMCreateTargetMachine(
+      target,
+      target_triple,
+      cpu,
+      features,
+      LLVMCodeGenLevelNone,
+      LLVMRelocPIC,
+      LLVMCodeModelDefault
+      );
+  u8* object_file_path = "a.o";
+  auto* message = LLVMPrintModuleToString((LLVMModuleRef) &llvm_module());
+
+  u8* error_mesage = (u8*) malloc(1024);
+  if (LLVMTargetMachineEmitToFile(
+      target_machine,
+      (LLVMModuleRef) &llvm_module(),
+      object_file_path,
+      LLVMObjectFile,
+      nullptr
+      )) {
+    unimplemented("");
   }
 }
 
@@ -66,13 +106,16 @@ auto t::lower_function_def(const FunctionDef &def) -> void {
   auto *type = get_function_signature_type(&def.signature());
   auto name = def.signature().name().name().as_string_ref();
   auto *function = llvm::Function::Create(
-      type, llvm::GlobalValue::LinkageTypes::CommonLinkage, 0, name,
+      type, llvm::GlobalValue::LinkageTypes::ExternalLinkage, 0, name,
       &llvm_module());
   auto *basic_block = llvm::BasicBlock::Create(m_llvm_ctx, "entry", function);
   builder().SetInsertPoint(basic_block);
 
   for (const auto *statement : def.body().statements()) {
     lower_statement(*statement);
+  }
+  if (basic_block->getTerminator() == nullptr) {
+    builder().CreateRetVoid();
   }
 }
 
@@ -148,6 +191,20 @@ auto t::lower_call(const Call & call) -> llvm::Value * {
     args.push_back(lower_expression(arg->value()));
   }
   ArrayRef<llvm::Value*> args_ref = allocator().copy_items<llvm::Value*>(args);
+  llvm::FunctionType* function_type;
+  if (callee->getType()->isFunctionTy()) {
+    function_type = static_cast<llvm::FunctionType *>(callee->getType());
+  } else if (callee->getType()->isPointerTy()) {
+    auto *element_type =
+        static_cast<llvm::PointerType *>(callee->getType())->getElementType();
+    assert(element_type->isFunctionTy());
+    function_type = static_cast<llvm::FunctionType *>(element_type);
+  } else {
+    llvm_unreachable("");
+  }
+  if (function_type->getReturnType()->isVoidTy()) {
+    return builder().CreateCall(callee, args_ref);
+  }
   return builder().CreateCall(callee, args_ref, make_unique_name().as_string_ref());
 }
 
