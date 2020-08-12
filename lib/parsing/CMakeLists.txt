@@ -14,7 +14,6 @@ target_link_libraries(libhades_parsing
         libhades_base
         libhades_core
         libhades_ast
-        libhades_context
         )
 target_include_directories(libhades_parsing
         PUBLIC
