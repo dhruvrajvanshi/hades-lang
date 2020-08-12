@@ -63,7 +63,7 @@ auto CommandLineFlags::output() const noexcept -> const fs::path & {
 
 auto find_flag_range(const char *flag_name, const Vec<String> &flags)
 -> Tuple<u32, u32> {
-  auto start = 0;
+  usize start = 0;
   while (start < flags.size()) {
     if (flags[start] == flag_name) {
       start++;

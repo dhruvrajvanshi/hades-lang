@@ -54,6 +54,8 @@ using u64 = uint64_t;
 using i32 = uint32_t;
 using i64 = uint64_t;
 using u8 = char;
+using usize = size_t;
+using ssize = ssize_t;
 
 template <typename T>
 struct IsSmallVector : std::false_type {};
