@@ -18,4 +18,5 @@ target_link_libraries(libhades_analysis
         libhades_core
         libhades_ast
         libhades_hir
+        libhades_context
         )

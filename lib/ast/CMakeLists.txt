@@ -20,5 +20,4 @@ target_include_directories(libhades_ast
 target_link_libraries(libhades_ast
         libhades_base
         libhades_core
-        libhades_context
         )

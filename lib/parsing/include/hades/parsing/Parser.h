@@ -7,7 +7,7 @@
 
 #include "hades/base.h"
 #include "hades/ast/SourceFile.h"
-#include "hades/context/Context.h"
+#include "hades/core/Interner.h"
 
 namespace hades {
 

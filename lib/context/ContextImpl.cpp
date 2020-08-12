@@ -27,7 +27,7 @@ auto ContextImpl::allocator() -> BumpPtrAllocator & {
 }
 
 
-auto ContextImpl::type_resolver() -> NameResolver & {
+auto ContextImpl::name_resolver() -> NameResolver & {
   if (m_name_resolver == nullptr) {
     m_name_resolver.reset(new NameResolver(m_ctx));
   }
@@ -45,7 +45,7 @@ auto ContextImpl::get_source_file(const fs::path & path) -> const SourceFile& {
 
 auto ContextImpl::typer() -> Typer & {
   if (m_typer == nullptr) {
-    m_typer.reset(new Typer());
+    m_typer.reset(new Typer(&name_resolver()));
   }
   return *m_typer;
 }

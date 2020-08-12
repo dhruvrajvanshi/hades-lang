@@ -40,7 +40,7 @@ public:
 
   auto allocator() -> BumpPtrAllocator &;
 
-  auto type_resolver() -> NameResolver &;
+  auto name_resolver() -> NameResolver &;
 
   auto typer() -> Typer &;
 

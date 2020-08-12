@@ -19,7 +19,7 @@ auto Context::allocator() -> BumpPtrAllocator & {
 }
 
 auto Context::name_resolver() -> NameResolver & {
-  return self_mut().type_resolver();
+  return self_mut().name_resolver();
 }
 auto Context::get_source_file(const fs::path &path) -> const SourceFile & {
   return self_mut().get_source_file(path);

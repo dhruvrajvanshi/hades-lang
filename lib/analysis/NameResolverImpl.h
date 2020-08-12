@@ -11,6 +11,7 @@
 #include "hades/base.h"
 #include "hades/base/BumpPtrAllocator.h"
 #include "hades/context/Context.h"
+#include "hades/hir/Type.h"
 
 namespace hades {
 
@@ -23,8 +24,8 @@ class NameResolverImpl {
   };
 
 #define BUILTIN_INT(name, width, is_signed)                                    \
-  const NameResolutionResult::Int *builtin_##name =                            \
-      m_allocator.allocate<NameResolutionResult::Int>(width, is_signed);       \
+  const Type *builtin_##name =                            \
+      m_allocator.allocate<IntType>(width, is_signed);       \
   InternedString builtin_name_##name = m_ctx->interner().intern_string(#name);
 
   BUILTIN_INT(u32, 32, false)
@@ -33,8 +34,8 @@ class NameResolverImpl {
   BUILTIN_INT(i64, 64, true)
 
 #undef BUILTIN_INT
-  const NameResolutionResult::Void *builtin_void =
-      m_allocator.allocate<NameResolutionResult::Void>();
+  const Type *builtin_void =
+      m_allocator.allocate<VoidType>();
   InternedString builtin_name_void = m_ctx->interner().intern_string("Void");
 
 public:
