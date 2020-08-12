@@ -12,4 +12,5 @@ target_include_directories(libhades_hir PUBLIC ${LIBHADES_HIR_INCLUDE_DIRS})
 target_link_libraries(libhades_hir
         libhades_base
         libhades_core
+        libhades_ast
         )

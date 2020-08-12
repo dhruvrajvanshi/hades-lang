@@ -82,6 +82,8 @@ private:
   Members m_members;
 
 public:
+  HADES_DELETE_MOVE(StructDef)
+  HADES_DELETE_COPY(StructDef)
   StructDef(SourceLocation location, Identifier name,
             SmallVec<const StructMember *, 8> members) noexcept;
 

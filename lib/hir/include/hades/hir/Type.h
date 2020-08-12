@@ -4,8 +4,10 @@
 
 #ifndef HADES_TYPE_H
 #define HADES_TYPE_H
+
 #include "hades/base.h"
 #include "hades/core/QualifiedName.h"
+#include "hades/ast/Declaration.h"
 
 namespace hades {
 
@@ -26,11 +28,12 @@ public:
     FUNCTION,
     VOID,
     TYPE_CONSTRUCTOR,
+    STRUCT_REF,
   };
 
   auto kind() const -> Kind { return m_kind; }
 
-  template <typename T> auto is() const -> bool { return T::kind() == kind(); }
+  template <typename T> auto is() const -> bool { return T::kind == kind(); }
 
   template <typename T> auto as() const -> const T * {
     assert(is<T>());
@@ -92,6 +95,25 @@ public:
   TypeConstructorType(QualifiedName name) noexcept : Type(kind), m_name(name) {}
 
   auto name() const -> QualifiedName { return m_name; }
+};
+
+class StructRefType : public Type {
+  QualifiedName m_name;
+  const StructDef *m_struct_def;
+
+public:
+  static constexpr Kind kind = Kind::STRUCT_REF;
+
+  StructRefType(QualifiedName name, const StructDef *struct_def) noexcept
+      : Type(kind), m_name(name), m_struct_def(struct_def) {}
+
+  auto name() const -> QualifiedName {
+    return m_name;
+  }
+
+  auto struct_def() const -> const StructDef& {
+    return *m_struct_def;
+  }
 };
 
 } // namespace hades

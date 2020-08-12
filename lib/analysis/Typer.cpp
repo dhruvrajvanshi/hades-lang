@@ -28,7 +28,7 @@ auto Typer::var_annotation_to_type(const type_annotation::Var & var) -> const Ty
   }
   if (resolved.is<StructDef>()) {
     auto name = resolver().qualified_struct_name(resolved.as<StructDef>());
-    return allocator().allocate<TypeConstructorType>(name);
+    return allocator().allocate<StructRefType>(name, resolved.as<StructDef>());
   }
   unimplemented();
 }
@@ -36,8 +36,8 @@ auto Typer::allocator() -> BumpPtrAllocator & {
   return *m_allocator;
 }
 
-auto Typer::pointer_annotation_to_type(const type_annotation::Pointer &) -> const Type * {
-  unimplemented();
+auto Typer::pointer_annotation_to_type(const type_annotation::Pointer & annotation) -> const Type * {
+  return allocator().allocate<PointerType>(annotation_to_type(*annotation.pointee()));
 }
 
 } // namespace hades

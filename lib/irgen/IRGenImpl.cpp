@@ -192,15 +192,17 @@ auto IRGenImpl::make_unique_name() -> InternedString {
 auto IRGenImpl::lower_type(const Type & type) -> llvm::Type * {
   switch (type.kind()) {
   case Type::Kind::INT:
-    unimplemented();
+    return llvm::IntegerType::get(*llvm_ctx(), type.as<IntType>()->size());
   case Type::Kind::POINTER:
-    unimplemented();
+    return lower_type(*type.as<PointerType>()->pointee())->getPointerTo();
   case Type::Kind::FUNCTION:
     unimplemented();
   case Type::Kind::VOID:
     return llvm::Type::getVoidTy(*llvm_ctx());
   case Type::Kind::TYPE_CONSTRUCTOR:
     unimplemented();
+  case Type::Kind::STRUCT_REF:
+    return get_struct_def_type(type.as<StructRefType>()->struct_def());
   }
   llvm_unreachable("");
 }
