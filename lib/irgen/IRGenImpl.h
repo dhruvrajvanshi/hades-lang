@@ -57,6 +57,7 @@ private:
 
   auto lower_expression_statement(const ExpressionStatement&) -> void;
   auto lower_val_statement(const ValStatement&) -> void;
+  auto lower_return_statement(const ReturnStatement &) -> void;
 
   auto allocator() -> BumpPtrAllocator& { return m_allocator; }
 

@@ -79,6 +79,7 @@ private:
   auto parse_statement() -> const Statement*;
   auto parse_val_statement() -> const ValStatement*;
   auto parse_expression_statement() -> const ExpressionStatement*;
+  auto parse_return_statement() -> const ReturnStatement *;
 
   auto parse_expression() -> const Expression*;
   auto parse_int_literal() -> const IntLiteral*;

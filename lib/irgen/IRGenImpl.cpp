@@ -41,9 +41,6 @@ auto t::lower_source_file(const SourceFile &source_file) -> void {
       LLVMCodeModelDefault
       );
   u8* object_file_path = "a.o";
-  auto* message = LLVMPrintModuleToString((LLVMModuleRef) &llvm_module());
-
-  u8* error_mesage = (u8*) malloc(1024);
   if (LLVMTargetMachineEmitToFile(
       target_machine,
       (LLVMModuleRef) &llvm_module(),
@@ -131,6 +128,8 @@ auto t::lower_statement(const Statement &statement) -> void {
   case Statement::Kind::VAL:
     lower_val_statement(*statement.as<ValStatement>());
     return;
+  case Statement::Kind::RETURN:
+    lower_return_statement(*statement.as<ReturnStatement>());
   }
   llvm_unreachable("");
 }
@@ -145,6 +144,10 @@ auto t::lower_val_statement(const ValStatement &statement) -> void {
                                      statement.name().as_string_ref());
   builder().CreateStore(initializer, ptr, /* isVolatile */ false);
   m_val_statement_pointers.insert({ &statement, ptr });
+}
+
+auto t::lower_return_statement(const ReturnStatement & statement) -> void {
+  builder().CreateRet(lower_expression(*statement.value()));
 }
 
 auto t::lower_expression(const Expression &expr) -> llvm::Value * {

@@ -15,7 +15,7 @@ auto main(int argc, const char **argv) -> int {
   }
   fs::create_directory(test_build_directory);
   for (auto entry : fs::directory_iterator(test_directory)) {
-    if (entry.path().string().find("bug") == String::npos) {
+    if (entry.path().string().find("abi_large") == String::npos) {
       continue;
     }
     if (entry.path().extension() != ".hds") {

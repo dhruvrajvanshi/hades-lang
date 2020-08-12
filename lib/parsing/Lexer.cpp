@@ -145,6 +145,7 @@ static Map<String, Token::Kind> m_keyword_kinds = {
     {"val", Token::Kind::VAL},       //
     {"mut", Token::Kind::MUT},       //
     {"extern", Token::Kind::EXTERN}, //
+    {"return", Token::Kind::RETURN}, //
 };
 
 } // namespace

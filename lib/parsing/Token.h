@@ -35,6 +35,7 @@ public:
     STRUCT,
     VAL,
     MUT,
+    RETURN,
 
     LPAREN,
     RPAREN,

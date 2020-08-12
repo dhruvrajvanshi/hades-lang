@@ -12,9 +12,19 @@ auto t::parse_statement() -> const Statement * {
   switch (current_token().kind()) {
   case tt::VAL:
     return parse_val_statement();
+  case tt::RETURN:
+    return parse_return_statement();
   default:
     return parse_expression_statement();
   }
+}
+
+auto t::parse_return_statement() -> const ReturnStatement * {
+  auto start = expect(tt::RETURN);
+  const auto* value = parse_expression();
+  auto location = make_location(start, value);
+  expect(tt::SEMICOLON);
+  return allocate<ReturnStatement>(location, value);
 }
 
 auto t::parse_val_statement() -> const ValStatement * {

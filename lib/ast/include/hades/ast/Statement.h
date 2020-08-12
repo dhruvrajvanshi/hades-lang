@@ -36,6 +36,7 @@ public:
 
     EXPRESSION,
     VAL,
+    RETURN,
   };
 };
 
@@ -52,7 +53,9 @@ public:
 
   auto name() const -> const Identifier & { return m_name; }
 
-  auto type_annotation() const -> Optional<const TypeAnnotation *> { return m_annotation; }
+  auto type_annotation() const -> Optional<const TypeAnnotation *> {
+    return m_annotation;
+  }
 
   auto initializer() const -> const Expression & { return *m_initializer; }
 };
@@ -64,6 +67,19 @@ public:
   static constexpr Kind kind = Kind::EXPRESSION;
   ExpressionStatement(const Expression *expression) noexcept;
   auto expression() const -> const Expression &;
+};
+
+class ReturnStatement : public Statement {
+  const Expression *m_value;
+
+public:
+  static constexpr Kind kind = Kind::RETURN;
+  ReturnStatement(SourceLocation location, const Expression *value) noexcept
+      : Statement(location, kind), m_value{value} {};
+
+  auto value() const -> const Expression * {
+    return m_value;
+  }
 };
 
 } // namespace hades
