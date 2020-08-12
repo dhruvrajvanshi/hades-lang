@@ -6,21 +6,20 @@
 #define HADES_NAMERESOLUTIONRESULT_H
 
 #include "hades/ast/Declaration.h"
-#include "hades/hir/Type.h"
 #include "hades/base.h"
+#include "hades/hir/Type.h"
 
 namespace hades {
 class Unresolved {};
 
-static Unresolved unresolved{};
-
 class NameResolutionResult {
 public:
-
 private:
   Variant<const StructDef *, const Type *, const Unresolved *,
           const ExternDef *, const ValStatement *, const FunctionDef *>
       m_impl;
+
+  static Unresolved s_unresolved;
 
 public:
   template <typename T>
@@ -33,6 +32,8 @@ public:
   template <typename T> auto as() const -> const T * {
     return m_impl.as<const T *>();
   }
+
+  static auto unresolved() -> NameResolutionResult { return {&s_unresolved}; }
 };
 
 } // namespace hades

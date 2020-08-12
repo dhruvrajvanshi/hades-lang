@@ -103,7 +103,7 @@ auto NameResolverImpl::find_in_source_file(    //
       }
     }
   }
-  return NameResolutionResult(&unresolved);
+  return NameResolutionResult::unresolved();
 }
 
 auto NameResolverImpl::resolve_expr_var(const VarExpression &var)
@@ -130,7 +130,7 @@ auto NameResolverImpl::find_in_block( //
       break;
     }
   }
-  return NameResolutionResult(&unresolved);
+  return NameResolutionResult::unresolved();
 }
 auto NameResolverImpl::qualified_struct_name(const StructDef * def)
     -> QualifiedName {
