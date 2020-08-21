@@ -477,7 +477,22 @@ class Resolver(private val ctx: Context) {
     }
 
     fun extensionDefsInScope(node: HasLocation): Sequence<Declaration.ExtensionDef> = sequence {
-        for (declaration in sourceFileOf(node).declarations) {
+        val declarations = sourceFileOf(node).declarations
+        yieldAll(extensionDefsInDeclarations(declarations, includeImports = true))
+    }
+
+    private fun extensionDefsInDeclarations(declarations: List<Declaration>, includeImports: Boolean): Sequence<Declaration.ExtensionDef> = sequence<Declaration.ExtensionDef> {
+        for (declaration in declarations) {
+            if (includeImports && declaration is Declaration.ImportAs) {
+                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                if (sourceFile != null) {
+                    yieldAll(extensionDefsInDeclarations(
+                        sourceFile.declarations,
+                        // extensions are not transitively included
+                        includeImports = false
+                    ))
+                }
+            }
             if (declaration !is Declaration.ExtensionDef) {
                 continue
             }

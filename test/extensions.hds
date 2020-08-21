@@ -1,22 +1,4 @@
-import libc as c;
-
-extension BoolPrinter for Bool {
-    def print(this): Void {
-        if this {
-            c.puts(b"true");
-        } else {
-            c.puts(b"false");
-        }
-    }
-
-    def print_ptr(*this): Void {
-        return (*this).print();
-    }
-
-    def print_mut_ptr(*mut this): Void {
-        return this.print_ptr();
-    }
-}
+import submodule.print_bool_extensions as PrintBoolExtensions;
 
 struct Box[T] {
     val value: T;
