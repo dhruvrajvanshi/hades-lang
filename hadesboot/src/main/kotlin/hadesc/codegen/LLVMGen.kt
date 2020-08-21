@@ -529,7 +529,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         log.debug(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
-        val process = builder.start()
+        val process = builder
+            .inheritIO()
+            .start()
         val exitCode = process.waitFor()
         assert(exitCode == 0) {
             log.error(process.inputStream.readAllBytes().toString(StandardCharsets.UTF_8))
