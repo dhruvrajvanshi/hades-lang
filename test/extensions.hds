@@ -1,0 +1,36 @@
+
+extension BoolPrinter for Bool {
+    def print(this): Void {
+        if this {
+            c.puts(b"true");
+        } else {
+            c.puts(b"false");
+        }
+    }
+
+    def print_ptr(*this): Void {
+        return (*this).print();
+    }
+
+    def print_mut_ptr(*mut this): Void {
+        return this.print_ptr();
+    }
+}
+
+struct Box[T] {
+    val value;
+}
+
+def main(): Void {
+    true.print();
+    val f = false;
+    (&f).print();
+    (&mut f).print();
+    Box(true).print();
+}
+
+extension BoolBoxPrinter for Box[Bool] {
+    def print(this): Void {
+        this.value.print();
+    }
+}
