@@ -34,12 +34,12 @@ extern def strtoul(*Byte, **Byte, Int): Size = strtoul;
 extern def hdc_dirent_name(*dirent): *Byte = hdc_dirent_name;
 extern def hdc_dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;
 
-def name(this: *dirent): *Byte {
-    return hdc_dirent_name(this);
+def name(self: *dirent): *Byte {
+    return hdc_dirent_name(self);
 }
 
-def is_directory(this: *dirent): Bool {
-    return hdc_dirent_is_directory(this);
+def is_directory(self: *dirent): Bool {
+    return hdc_dirent_is_directory(self);
 }
 
 extern def fread(*Void, Size, Size, *File): Size = fread;
