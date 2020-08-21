@@ -45,29 +45,26 @@
 					"include": "#type-alias"
 				},
 				{
-					"include": "#module-def"
+					"include": "#extension-def"
 				}
 			]
 		},
-		"module-def": {
-			"begin": "\\b(module\\s+)",
-			"end": "(?<=[}])|(?=(def|const|struct|interface|module))",
+		"extension-def": {
+			"begin": "\\b(extension)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s+(for)\\b",
+			"end": "(?<=[}])",
 			"beginCaptures": {
-				"1": { "name": "keyword" }
+				"1": { "name": "keyword.hades" },
+				"2": { "name": "entity.name.class" },
+				"3": { "name": "keyword.hades" }
 			},
 			"patterns": [
-				{
-					"begin": "(?<=module\\s+)([a-zA-Z_][a-zA-Z0-9]*)\\b",
-					"end": "(?=[{=])",
-					"beginCaptures": {
-						"1": { "name": "entity.name.class" }
-					}
-				},
 				{
 					"begin": "([{])",
 					"end": "([}])",
 					"patterns": [
-						{ "include": "#declarations" }
+						{
+							"include": "#function-def"
+						}
 					]
 				}
 			]
@@ -157,8 +154,12 @@
 			]
 		},
 		"function-def-signature-param-list": {
-			"begin": "(\\()",
+			"begin": "(\\((\\*?)(mut\\s+)?(this)?)",
 			"end": "\\)",
+			"beginCaptures": {
+				"3": {"name": "keyword.control"},
+				"4": {"name": "keyword.hades"}
+			},
 			"patterns": [
 				{
 					"include": "#param"
