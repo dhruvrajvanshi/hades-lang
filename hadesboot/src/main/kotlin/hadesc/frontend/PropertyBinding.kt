@@ -22,4 +22,11 @@ sealed class PropertyBinding {
     ): PropertyBinding() {
         val member get(): Declaration.Struct.Member.Field = structDecl.members[memberIndex] as Declaration.Struct.Member.Field
     }
+    data class ExtensionDef(
+        val extensionDef: Declaration.ExtensionDef,
+        val functionIndex: Int,
+        val type: Type
+    ) : PropertyBinding() {
+        val functionDef get() = extensionDef.functionDefs[functionIndex]
+    }
 }

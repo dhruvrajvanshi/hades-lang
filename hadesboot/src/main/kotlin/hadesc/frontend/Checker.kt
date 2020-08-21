@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.exhaustive
 import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
@@ -40,9 +41,69 @@ class Checker(
             return elementPointerBinding
         }
 
+        val extensionBinding = resolveExtensionBinding(expression)
+        if (extensionBinding != null) {
+            return extensionBinding
+        }
+
         error(expression.property, Diagnostic.Kind.NoSuchProperty(
             inferExpression(expression.lhs), expression.property.name))
         return null
+    }
+
+    private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
+        for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
+            if (isExtensionForType(extensionDef, inferExpression(expression.lhs))) {
+                val binding = findExtensionMethodBinding(extensionDef, expression)
+                if (binding != null) {
+                    return binding
+                }
+            }
+        }
+        return null
+    }
+
+    private fun findExtensionMethodBinding(extensionDef: Declaration.ExtensionDef, expression: Expression.Property): PropertyBinding.ExtensionDef? {
+        val thisType = annotationToType(extensionDef.forType)
+        var index = -1
+        for (functionDef in extensionDef.functionDefs) {
+            index++
+            if (functionDef.signature.thisParamFlags == null) {
+                continue
+            }
+            if (expression.property.name != functionDef.name.identifier.name) {
+                continue
+            }
+            val expectedThisType = if (functionDef.signature.thisParamFlags.isPointer) {
+                Type.Ptr(
+                    thisType,
+                    isMutable = functionDef.signature.thisParamFlags.isMutable
+                )
+            } else {
+                thisType
+            }
+            if (!isTypeAssignableTo(source = inferExpression(expression.lhs), destination = expectedThisType)) {
+                continue
+            }
+            val methodType = Type.Function(
+                from = functionDef.params.mapIndexed { paramIndex, param ->
+                    typeOfParam(functionDef, paramIndex)
+                },
+                to = annotationToType(functionDef.signature.returnType)
+            )
+            return PropertyBinding.ExtensionDef(
+                extensionDef,
+                index,
+                methodType
+            )
+        }
+        return null
+    }
+
+    private fun isExtensionForType(extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
+        val forType = annotationToType(extensionDef.forType)
+        return isTypeAssignableTo(source = type, destination = forType)
+                || isTypeAssignableTo(source = type, destination = Type.Ptr(forType, isMutable = false))
     }
 
     private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructFieldPointer? {
@@ -191,7 +252,7 @@ class Checker(
 
     private val checkedDeclarationSet = MutableNodeMap<Declaration, Unit>()
     fun checkDeclaration(declaration: Declaration) = checkedDeclarationSet.getOrPut(declaration) {
-        when (declaration) {
+        exhaustive(when (declaration) {
             is Declaration.Error -> {}
             is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
             is Declaration.FunctionDef -> checkFunctionDefDeclaration(declaration)
@@ -200,6 +261,26 @@ class Checker(
             is Declaration.Struct -> checkStructDeclaration(declaration)
             is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
+            is Declaration.ExtensionDef -> checkExtensionDef(declaration)
+        })
+    }
+
+    var thisParamType: Type? = null
+    private fun checkExtensionDef(declaration: Declaration.ExtensionDef) {
+        val forType = annotationToType(declaration.forType)
+        for (functionDef in declaration.functionDefs) {
+            val thisParamFlags = functionDef.signature.thisParamFlags
+            require(thisParamType == null)
+            if (thisParamFlags != null) {
+                thisParamType = if (thisParamFlags.isPointer) {
+                    Type.Ptr(
+                        forType,
+                        isMutable = thisParamFlags.isMutable
+                    )
+                } else forType
+            }
+            checkFunctionDefDeclaration(functionDef)
+            thisParamType = null
         }
     }
 
@@ -531,8 +612,17 @@ class Checker(
             is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
-            is Expression.This -> TODO()
+            is Expression.This -> inferThisExpression(expression)
         })
+    }
+
+    private fun inferThisExpression(expression: Expression.This): Type {
+        val thisType = thisParamType
+        if (thisType == null) {
+            error(expression, Diagnostic.Kind.UnboundThis)
+            return Type.Error
+        }
+        return thisType
     }
 
     private fun inferPipelineOperator(expression: Expression.PipelineOperator): Type {
@@ -649,6 +739,7 @@ class Checker(
                 is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
                 is PropertyBinding.StructField -> binding.type
                 is PropertyBinding.StructFieldPointer -> binding.type
+                is PropertyBinding.ExtensionDef -> binding.type
                 null -> Type.Error
             }
 

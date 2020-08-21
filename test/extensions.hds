@@ -1,3 +1,4 @@
+import libc as c;
 
 extension BoolPrinter for Bool {
     def print(this): Void {
@@ -24,8 +25,8 @@ struct Box[T] {
 def main(): Void {
     true.print();
     val f = false;
-    (&f).print();
-    (&mut f).print();
+    (&f).print_ptr();
+    (&mut f).print_mut_ptr();
     Box(true).print();
 }
 

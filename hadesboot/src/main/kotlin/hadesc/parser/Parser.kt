@@ -907,6 +907,7 @@ class Parser(
                     if (at(tt.STAR)) {
                         advance()
                         isThisPtr = true
+                        hasThis = true
                         if (at(tt.MUT)) {
                             isThisMut = true
                             advance()

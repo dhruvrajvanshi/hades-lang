@@ -5,6 +5,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.exhaustive
+import hadesc.frontend.PropertyBinding
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
@@ -473,5 +474,14 @@ class Resolver(private val ctx: Context) {
 
     fun resolveGlobalName(binder: Binder): QualifiedName {
         return sourceFileOf(binder).moduleName.append(binder.identifier.name)
+    }
+
+    fun extensionDefsInScope(node: HasLocation): Sequence<Declaration.ExtensionDef> = sequence {
+        for (declaration in sourceFileOf(node).declarations) {
+            if (declaration !is Declaration.ExtensionDef) {
+                continue
+            }
+            yield(declaration as Declaration.ExtensionDef)
+        }
     }
 }

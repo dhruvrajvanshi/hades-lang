@@ -438,6 +438,7 @@ class HIRGen(
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
+        is PropertyBinding.ExtensionDef -> TODO()
     }
 
     private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {
