@@ -21,8 +21,7 @@ jobs:
       JVM_OPTS: -Xmx3200m
       TERM: dumb
 
-    steps
-      - run: apt install openjdk-11-jdk gcc
+    steps:
       - checkout
       # Download and cache dependencies
       - restore_cache:
@@ -30,7 +29,7 @@ jobs:
             - v1-dependencies-{{ checksum "build.gradle" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-
+      - run: apt install openjdk-11-jdk gcc
       - run: gradle wrapper --gradle-version 6.3
       - run: ./gradlew dependencies
 
