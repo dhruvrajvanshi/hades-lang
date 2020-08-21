@@ -69,6 +69,8 @@ class HadesTestSuite {
                                 "--c-sources", "stdlib/libc.c", cSources,
                                 "--cflags", utilsCLib.toString(), "-D", "DEBUG"
                             )
+                            .filter { it.isNotBlank() }
+                            .toTypedArray()
                         )
                         val diagnostics = compiler.run()
                         if (expectedStdoutFile.exists()) {
