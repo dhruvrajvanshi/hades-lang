@@ -8,6 +8,7 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import llvm.*
+import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
@@ -505,7 +506,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
-        val cc = System.getenv("CC") ?: "gcc"
+        val cc = System.getenv("CC") ?: if (SystemUtils.IS_OS_MAC_OSX) "clang" else "gcc"
         log.info("Linking using $cc")
         val commandParts = mutableListOf(
             cc,
