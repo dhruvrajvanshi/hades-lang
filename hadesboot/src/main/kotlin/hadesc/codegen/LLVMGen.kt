@@ -527,7 +527,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (outputFile.exists()) {
             outputFile.delete()
         }
-        log.debug(commandParts.joinToString(" "))
+        log.info(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
         val process = builder
             .inheritIO()
