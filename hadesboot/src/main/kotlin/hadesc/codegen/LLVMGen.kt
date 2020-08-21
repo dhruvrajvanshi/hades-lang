@@ -534,10 +534,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             .start()
         val exitCode = process.waitFor()
         assert(exitCode == 0) {
-            log.error(process.inputStream.readAllBytes().toString(StandardCharsets.UTF_8))
-            log.error(process.errorStream.readAllBytes().toString(StandardCharsets.UTF_8))
             log.error("Module: ", LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
-            "gcc exited with code $exitCode"
+            "$cc exited with code $exitCode"
         }
     }
 
