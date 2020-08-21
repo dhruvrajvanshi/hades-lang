@@ -50,7 +50,6 @@ compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
     kotlinOptions {
         freeCompilerArgs += "-XXLanguage:+InlineClasses"
-        freeCompilerArgs += "-Xopt-in=org.mylibrary.OptInAnnotation "
         freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
