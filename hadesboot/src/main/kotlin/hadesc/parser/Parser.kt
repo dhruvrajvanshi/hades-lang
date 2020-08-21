@@ -9,7 +9,6 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 

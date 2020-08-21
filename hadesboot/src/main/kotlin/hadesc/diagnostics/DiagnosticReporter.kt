@@ -10,7 +10,6 @@ import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
-import org.w3c.dom.Attr
 import kotlin.streams.toList
 
 data class Diagnostic(
@@ -168,10 +167,10 @@ class DiagnosticReporter {
         val severity = colorize(kind.severity.toString(), severityColor, Attribute.BOLD())
         val path = colorize(location.file.path.toString(), Attribute.BOLD())
         val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD());
-        val kind = colorize(kind.prettyPrint(), Attribute.BOLD())
-        printErrLn("${path}:${lineInfo}: ${severity}: ${kind}")
+        val coloredKind = colorize(kind.prettyPrint(), Attribute.BOLD())
+        printErrLn("${path}:${lineInfo}: ${severity}: $coloredKind")
         printLocationLine(location)
-        for (i in 0..location.start.column - 1) {
+        for (i in 0 until location.start.column) {
             System.err.print(' ')
         }
         System.err.print(colorize("^", Attribute.RED_TEXT(), Attribute.BOLD()))

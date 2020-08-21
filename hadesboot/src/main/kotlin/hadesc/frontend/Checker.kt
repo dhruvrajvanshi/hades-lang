@@ -86,7 +86,7 @@ class Checker(
                 continue
             }
             val methodType = Type.Function(
-                from = functionDef.params.mapIndexed { paramIndex, param ->
+                from = functionDef.params.mapIndexed { paramIndex, _ ->
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType)
@@ -435,7 +435,7 @@ class Checker(
 
     private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
         val lhsType = inferExpression(statement.lhs)
-        val rhsType = checkExpression(statement.value, lhsType)
+        checkExpression(statement.value, lhsType)
         val field = resolvePropertyBinding(statement.lhs)
         if (field !is PropertyBinding.StructField) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
@@ -928,7 +928,7 @@ class Checker(
 
     private fun getCalleeType(callNode: Expression): Type = when(callNode) {
         is Expression.Call -> when (callNode.callee) {
-            is Expression.Property -> when (val binding = resolvePropertyBinding(callNode.callee)) {
+            is Expression.Property -> when (resolvePropertyBinding(callNode.callee)) {
                 else -> inferExpression(callNode.callee)
             }
             else -> inferExpression(callNode.callee)

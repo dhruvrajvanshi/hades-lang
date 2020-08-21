@@ -1,11 +1,9 @@
 package hadesc.resolver
 
 import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.exhaustive
-import hadesc.frontend.PropertyBinding
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
@@ -500,7 +498,7 @@ class Resolver(private val ctx: Context) {
             if (declaration !is Declaration.ExtensionDef) {
                 continue
             }
-            yield(declaration as Declaration.ExtensionDef)
+            yield(declaration)
         }
     }
 }
