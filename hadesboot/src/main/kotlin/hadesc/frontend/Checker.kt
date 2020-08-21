@@ -53,7 +53,7 @@ class Checker(
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
         for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
-            if (isExtensionForType(extensionDef, inferExpression(expression.lhs))) {
+            if (isExtensionForType(expression.location, extensionDef, inferExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
                     return binding
@@ -64,7 +64,6 @@ class Checker(
     }
 
     private fun findExtensionMethodBinding(extensionDef: Declaration.ExtensionDef, expression: Expression.Property): PropertyBinding.ExtensionDef? {
-        val thisType = annotationToType(extensionDef.forType)
         var index = -1
         for (functionDef in extensionDef.functionDefs) {
             index++
@@ -74,6 +73,8 @@ class Checker(
             if (expression.property.name != functionDef.name.identifier.name) {
                 continue
             }
+
+            val (thisType, substitution) = instantiateTypeAndSubstitution(expression.location, annotationToType(extensionDef.forType), extensionDef.typeParams)
             val expectedThisType = if (functionDef.signature.thisParamFlags.isPointer) {
                 Type.Ptr(
                     thisType,
@@ -87,9 +88,9 @@ class Checker(
             }
             val methodType = Type.Function(
                 from = functionDef.params.mapIndexed { paramIndex, _ ->
-                    typeOfParam(functionDef, paramIndex)
+                    typeOfParam(functionDef, paramIndex).applySubstitution(substitution)
                 },
-                to = annotationToType(functionDef.signature.returnType)
+                to = annotationToType(functionDef.signature.returnType).applySubstitution(substitution)
             )
             return PropertyBinding.ExtensionDef(
                 extensionDef,
@@ -100,11 +101,30 @@ class Checker(
         return null
     }
 
-    private fun isExtensionForType(extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
-        val forType = annotationToType(extensionDef.forType)
-        return isTypeAssignableTo(source = type, destination = forType)
-                || isTypeAssignableTo(source = type, destination = Type.Ptr(forType, isMutable = false))
+    private fun instantiateTypeAndSubstitution(
+        location: SourceLocation,
+        type: Type,
+        typeParams: List<TypeParam>?
+    ): Pair<Type, Substitution> {
+        if (typeParams == null) return type to emptyMap()
+        val substitution = instantiateSubstitution(typeParams.map { Type.Param(it.binder) }, location)
+        return type.applySubstitution(substitution) to substitution
     }
+
+    private fun isExtensionForType(location: SourceLocation, extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
+        val forType = annotationToType(extensionDef.forType)
+        return isTypeAssignableTo(
+            source = type,
+            destination = instantiateType(location, forType, extensionDef.typeParams)
+        ) || isTypeAssignableTo(
+            source = type,
+            destination = Type.Ptr(instantiateType(location, forType, extensionDef.typeParams), isMutable = false))
+    }
+
+    private fun instantiateType(location: SourceLocation, type: Type, typeParams: List<TypeParam>?): Type {
+        return instantiateTypeAndSubstitution(location, type, typeParams).first
+    }
+
 
     private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructFieldPointer? {
         val lhsType = inferExpression(expression.lhs)
