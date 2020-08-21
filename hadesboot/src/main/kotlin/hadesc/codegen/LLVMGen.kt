@@ -527,7 +527,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (outputFile.exists()) {
             outputFile.delete()
         }
-        log.info(commandParts.joinToString(" "))
+        log.debug(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
         val process = builder
             .inheritIO()
@@ -537,7 +537,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             log.error(process.inputStream.readAllBytes().toString(StandardCharsets.UTF_8))
             log.error(process.errorStream.readAllBytes().toString(StandardCharsets.UTF_8))
             log.error("Module: ", LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
-            "$cc exited with code $exitCode"
+            "${commandParts.joinToString(" ")} exited with code $exitCode"
         }
     }
 
