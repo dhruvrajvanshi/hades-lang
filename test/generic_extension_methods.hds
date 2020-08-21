@@ -1,0 +1,21 @@
+import libc as c;
+
+def main(): Void {
+    c.puts(Pair(b"first", b"second").first());
+    c.puts(Pair(b"first", b"second").second());
+}
+
+struct Pair[First, Second] {
+    val m_first: First;
+    val m_second: Second;
+}
+
+extension PairExtensions[First, Second] for Pair[First, Second] {
+    def first(this): First {
+        return this.m_first;
+    }
+
+    def second(this): Second {
+        return this.m_second;
+    }
+}
