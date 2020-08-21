@@ -11,11 +11,11 @@ def main(): Void {
     u.print_int(get(buf, 0));
 }
 
-def get_ptr[T](this: Buffer[T], index: Size): *T {
-    return memory.pointer_add(this.m_pointer, index);
+def get_ptr[T](self: Buffer[T], index: Size): *T {
+    return memory.pointer_add(self.m_pointer, index);
 }
 
-def get[T](this: Buffer[T], index: Size): T {
-    return *get_ptr(this, index);
+def get[T](self: Buffer[T], index: Size): T {
+    return *get_ptr(self, index);
 }
 
