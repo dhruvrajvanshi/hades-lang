@@ -29,7 +29,7 @@ jobs:
             - v1-dependencies-{{ checksum "build.gradle" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-      - run: apt install -y openjdk-11-jdk gcc
+      - run: apt install -y openjdk-8-jdk gcc
       - run: gradle wrapper --gradle-version 6.3
       - run: ./gradlew dependencies
 
