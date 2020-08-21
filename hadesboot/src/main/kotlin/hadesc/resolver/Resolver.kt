@@ -256,6 +256,10 @@ class Resolver(private val ctx: Context) {
         return sourceFileOf(declaration).moduleName.append(declaration.binder.identifier.name)
     }
 
+    fun qualifiedName(name: Binder): QualifiedName {
+        return sourceFileOf(name).moduleName.append(name.identifier.name)
+    }
+
     fun onParseMatchArm(arm: Expression.Match.Arm) {
         addScopeNode(arm.location.file, ScopeTree.MatchArm(arm))
     }

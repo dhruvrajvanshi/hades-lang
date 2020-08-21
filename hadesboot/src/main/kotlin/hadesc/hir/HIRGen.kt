@@ -6,6 +6,7 @@ import hadesc.ast.*
 import hadesc.frontend.PropertyBinding
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.ir.IRVariable
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -37,7 +38,21 @@ class HIRGen(
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
-        is Declaration.ExtensionDef -> TODO()
+        is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
+    }
+
+    private var currentExtensionDef: Declaration.ExtensionDef? = null
+    private fun lowerExtensionDef(declaration: Declaration.ExtensionDef): List<HIRDefinition> {
+        require(currentExtensionDef == null)
+        currentExtensionDef = declaration
+        val list = mutableListOf<HIRDefinition>()
+        for (functionDef in declaration.functionDefs) {
+            list.add(lowerFunctionDef(
+                    functionDef,
+                    ctx.resolver.qualifiedName(declaration.name).append(functionDef.name.identifier.name)))
+        }
+        currentExtensionDef = null
+        return list
     }
 
     private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {
@@ -77,25 +92,47 @@ class HIRGen(
         )
     }
 
-    private fun lowerFunctionDef(declaration: Declaration.FunctionDef): HIRDefinition.Function {
+    private var currentFunctionDef: Declaration.FunctionDef? = null
+    private fun lowerFunctionDef(
+            declaration: Declaration.FunctionDef,
+            qualifiedName: QualifiedName? = null
+    ): HIRDefinition.Function {
+        require(currentFunctionDef == null)
+        currentFunctionDef = declaration
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
+        val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
+        val body = lowerBlock(declaration.body, addReturnVoid)
+        currentFunctionDef = null
         return HIRDefinition.Function(
                 location = declaration.location,
-                signature = lowerFunctionSignature(declaration.signature),
-                body = lowerBlock(declaration.body, addReturnVoid)
+                signature = signature,
+                body = body
         )
     }
 
-    private fun lowerFunctionSignature(signature: FunctionSignature): HIRFunctionSignature {
+    private fun lowerFunctionSignature(
+            signature: FunctionSignature,
+            qualifiedName: QualifiedName? = null
+    ): HIRFunctionSignature {
         val returnType = lowerTypeAnnotation(signature.returnType)
-        val name = lowerGlobalName(signature.name)
+        val name = qualifiedName ?: lowerGlobalName(signature.name)
+        val params = mutableListOf<HIRParam>()
+        if (signature.thisParamFlags != null) {
+            require(qualifiedName != null)
+            params.add(HIRParam(
+                    signature.location,
+                    name = ctx.makeName("this"),
+                    type = thisParamType()
+            ))
+        }
+        params.addAll(signature.params.map { lowerParam(it) })
         return HIRFunctionSignature(
                 location = signature.location,
                 name = name,
                 typeParams = signature.typeParams?.map { lowerTypeParam(it) },
                 constraintParams = null,
-                params = signature.params.map { lowerParam(it) },
+                params = params,
                 returnType = returnType
         )
     }
@@ -306,7 +343,25 @@ class HIRGen(
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
-        is Expression.This -> TODO()
+        is Expression.This -> lowerThisExpression(expression)
+    }
+
+    private fun thisParamType(): Type {
+        val functionDef = requireNotNull(currentFunctionDef)
+        val extensionDef = requireNotNull(currentExtensionDef)
+        val extensionForType = lowerTypeAnnotation(extensionDef.forType)
+        val thisParamFlags = requireNotNull(functionDef.signature.thisParamFlags)
+        return if (thisParamFlags.isPointer)
+            Type.Ptr(extensionForType, isMutable = thisParamFlags.isMutable)
+        else extensionForType
+    }
+
+    private fun lowerThisExpression(expression: Expression.This): HIRExpression {
+        return HIRExpression.ParamRef(
+                expression.location,
+                thisParamType(),
+                name = ctx.makeName("this")
+        )
     }
 
     private fun lowerPipelineOperator(expression: Expression.PipelineOperator): HIRExpression {
@@ -438,7 +493,7 @@ class HIRGen(
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
-        is PropertyBinding.ExtensionDef -> TODO()
+        is PropertyBinding.ExtensionDef -> requireUnreachable()
     }
 
     private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {
@@ -539,11 +594,31 @@ class HIRGen(
         }
     }
 
-    private fun lowerCallExpression(expression: Expression.Call): HIRExpression = buildCall(
-        expression,
-        callee = lowerExpression(expression.callee),
-        args = expression.args.map { lowerExpression(it.expression) }
-    )
+    private fun lowerCallExpression(expression: Expression.Call): HIRExpression {
+        if (expression.callee is Expression.Property) {
+            val binding = ctx.checker.resolvePropertyBinding(expression.callee)
+            if (binding is PropertyBinding.ExtensionDef) {
+                val extensionDefName = ctx.resolver.qualifiedName(binding.extensionDef.name)
+                val extensionMethod = binding.extensionDef.functionDefs[binding.functionIndex]
+                val fullName = extensionDefName.append(extensionMethod.name.identifier.name)
+                return buildCall(
+                        expression,
+                        callee = HIRExpression.GlobalRef(
+                                expression.location,
+                                typeOfExpression(expression),
+                                fullName
+                        ),
+                        args = listOf(lowerExpression(expression.callee.lhs))
+                                + expression.args.map { lowerExpression(it.expression) }
+                )
+            }
+        }
+        return buildCall(
+                expression,
+                callee = lowerExpression(expression.callee),
+                args = expression.args.map { lowerExpression(it.expression) }
+        )
+    }
 
     private fun buildCall(
         call: Expression,
