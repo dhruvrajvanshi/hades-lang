@@ -85,6 +85,12 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
         }
+        is ScopeTree.ExtensionDef -> {
+            val param = scopeNode.declaration.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }
+            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -123,6 +129,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.Enum -> null
         is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
         is ScopeTree.TypeAlias -> null
+        is ScopeTree.ExtensionDef -> null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
@@ -282,6 +289,9 @@ class Resolver(private val ctx: Context) {
             is Declaration.TypeAlias -> {
                 addScopeNode(declaration.location.file, ScopeTree.TypeAlias(declaration))
             }
+            is Declaration.ExtensionDef -> {
+                addScopeNode(declaration.location.file, ScopeTree.ExtensionDef(declaration))
+            }
             else -> {}
         }
     }
@@ -360,6 +370,7 @@ class Resolver(private val ctx: Context) {
                 is ScopeTree.MatchArm -> null
                 is ScopeTree.TypeAlias -> null
                 is ScopeTree.Enum -> null
+                is ScopeTree.ExtensionDef -> null
             }
             if (binding != null) {
                 return binding
