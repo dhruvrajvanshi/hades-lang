@@ -211,6 +211,7 @@ class Resolver(private val ctx: Context) {
                 }
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
+                is Declaration.ExtensionDef -> null
             }
             if (binding != null) {
                 return binding
@@ -345,6 +346,7 @@ class Resolver(private val ctx: Context) {
                                 }
                             }
                             is Declaration.TypeAlias -> null
+                            is Declaration.ExtensionDef -> null
                         }
                         if (binding != null) {
                             break
@@ -390,6 +392,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Struct -> decl.binder.identifier.name == declName
                 is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
+                is Declaration.ExtensionDef -> false
             })
             if (match) {
                 return decl
@@ -449,6 +452,7 @@ class Resolver(private val ctx: Context) {
                 } else {
                     null
                 }
+                is Declaration.ExtensionDef -> null
             }
             if (decl != null) {
                 return decl

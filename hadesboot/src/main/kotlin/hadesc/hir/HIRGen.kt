@@ -37,6 +37,7 @@ class HIRGen(
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
+        is Declaration.ExtensionDef -> TODO()
     }
 
     private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {
@@ -305,6 +306,7 @@ class HIRGen(
         is Expression.Match -> TODO()
         is Expression.New -> TODO()
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
+        is Expression.This -> TODO()
     }
 
     private fun lowerPipelineOperator(expression: Expression.PipelineOperator): HIRExpression {

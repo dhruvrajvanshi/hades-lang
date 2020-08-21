@@ -123,6 +123,10 @@ sealed class Expression : HasLocation {
         val typeArgs: List<TypeAnnotation>?,
         val args: List<Arg>
     ) : Expression()
+
+    data class This(
+            override val location: SourceLocation
+    ) : Expression()
 }
 
 data class Arg(

@@ -531,6 +531,7 @@ class Checker(
             is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
+            is Expression.This -> TODO()
         })
     }
 

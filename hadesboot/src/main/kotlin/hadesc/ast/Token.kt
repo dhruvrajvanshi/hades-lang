@@ -35,6 +35,8 @@ data class Token(
         DEFER,
         TYPE,
         WHERE,
+        THIS,
+        EXTENSION,
 
         NOT,
         AND,

@@ -9,13 +9,14 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
         tt.INTERFACE, tt.IMPLEMENT, tt.AT_SYMBOL,
-        tt.TYPE
+        tt.TYPE, tt.EXTENSION
 )
 private val statementPredictors = setOf(
     tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
@@ -103,16 +104,32 @@ class Parser(
             tt.CONST -> parseConstDef()
             tt.ENUM -> parseEnumDeclaration()
             tt.TYPE -> parseTypeAliasDeclaration()
-            tt.AT_SYMBOL -> {
-                val decorators = parseDecorators()
-                parseStructDeclaration(decorators)
-            }
+            tt.EXTENSION -> parseExtensionDef()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseExtensionDef(): Declaration.ExtensionDef {
+        val start = expect(tt.EXTENSION)
+        val binder = parseBinder()
+        expect(tt.FOR)
+        val forType = parseTypeAnnotation()
+        expect(tt.LBRACE)
+        val functions = mutableListOf<Declaration.FunctionDef>()
+        while (!at(tt.EOF) && !at(tt.RBRACE)) {
+            functions.add(parseDeclarationFunctionDef())
+        }
+        val end = expect(tt.RBRACE)
+        return Declaration.ExtensionDef(
+                makeLocation(start, end),
+                binder,
+                forType,
+                functions
+        )
     }
 
     private fun parseDecorators(): List<Decorator> = buildList {
@@ -167,7 +184,7 @@ class Parser(
         val start = expect(tt.DEF)
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
-        val params = parseParams()
+        val (thisParamFlags, params) = parseParams()
         expect(tt.COLON)
         val returnType = parseTypeAnnotation()
         val whereClause = parseOptionalWhereClause()
@@ -175,6 +192,7 @@ class Parser(
             makeLocation(start, returnType),
             binder,
             typeParams,
+            thisParamFlags,
             params,
             returnType,
             whereClause
@@ -733,6 +751,9 @@ class Parser(
                         args
                 )
             }
+            tt.THIS -> {
+                Expression.This(advance().location)
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -871,7 +892,10 @@ class Parser(
         return Expression.Var(identifier)
     }
 
-    private fun parseParams(lparen: Token? = null): List<Param> {
+    private fun parseParams(lparen: Token? = null): Pair<FunctionSignature.ThisParamFlags?, List<Param>> {
+        var hasThis = false
+        var isThisPtr = false
+        var isThisMut = false
         val params = buildList {
             lparen ?: expect(tt.LPAREN)
             var first = true
@@ -880,12 +904,33 @@ class Parser(
                     expect(tt.COMMA)
                 } else {
                     first = false
+                    if (at(tt.STAR)) {
+                        advance()
+                        isThisPtr = true
+                        if (at(tt.MUT)) {
+                            isThisMut = true
+                            advance()
+                        }
+                        expect(tt.THIS)
+                        continue
+                    }
+                    if (at(tt.THIS)) {
+                        hasThis = true
+                        advance()
+                        continue
+                    }
                 }
                 add(parseParam())
             }
             expect(tt.RPAREN)
         }
-        return params
+        val thisParamFlags = if (hasThis) {
+            FunctionSignature.ThisParamFlags(
+                    isPointer = isThisPtr,
+                    isMutable = isThisMut
+            )
+        } else null
+        return thisParamFlags to params
     }
 
     private fun parseParam(): Param {

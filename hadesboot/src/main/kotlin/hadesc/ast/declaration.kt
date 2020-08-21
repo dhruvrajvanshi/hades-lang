@@ -74,6 +74,13 @@ sealed class Declaration : HasLocation {
             val typeParams: List<TypeParam>?,
             val rhs: TypeAnnotation
     ) : Declaration()
+
+    data class ExtensionDef(
+            override val location: SourceLocation,
+            val name: Binder,
+            val forType: TypeAnnotation,
+            val functionDefs: List<FunctionDef>
+    ) : Declaration()
 }
 
 
