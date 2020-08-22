@@ -1,3 +1,4 @@
+type CInt = i32;
 
 struct Application {}
 struct Window {}
@@ -6,7 +7,7 @@ struct Widget {}
 struct Container {}
 struct Button {}
 
-const APPLICATION_FLAGS_NONE = 0;
+const APPLICATION_FLAGS_NONE: CInt = 0;
 extern def application_new(*Byte, CInt): *Application = gtk_application_new;
 extern def object_unref(*Application): Void = gtk_object_unref;
 extern def application_window_new(*Application): *Window = gtk_application_window_new;
@@ -42,35 +43,43 @@ def CALLBACK[T](ptr: *T): *Void {
     return pointer_cast[Void](ptr);
 }
 
-def as_widget[T](this: *T): *Widget {
-    return WIDGET(this);
+extension WidgetExtensions[T] for *T {
+    def as_widget(this): *Widget {
+        return WIDGET(this);
+    }
+
+    def as_container(this): *Container {
+        return CONTAINER(this);
+    }
 }
 
-def as_container[T](this: *T): *Container {
-    return CONTAINER(this);
+extension ApplicationExtensions for Application {
+    def new_window(*this): *Window {
+        return application_window_new(this);
+    }
 }
 
-def new_window(this: *Application): *Window {
-    return application_window_new(this);
+extension WindowExtensions for Window {
+    def set_title(*this, title: *Byte): *Window {
+        window_set_title(this, title);
+        return this;
+    }
+
+    def set_default_size(*this, x: CInt, y: CInt): *Window {
+        window_set_default_size(this, x, y);
+        return this;
+    }
 }
 
-def set_title(this: *Window, title: *Byte): *Window {
-    window_set_title(this, title);
-    return this;
+extension ContainerExtensions for Container {
+    def add(*this, widget: *Widget): *Container {
+        container_add(this, widget);
+        return this;
+    }
 }
 
-def set_default_size(this: *Window, x: CInt, y: CInt): *Window {
-    window_set_default_size(this, x, y);
-    return this;
+extension WidgetExtensions for Widget {
+    def show_all(*this): Void {
+        widget_show_all(this);
+    }
 }
-
-def add[T](this: *Container, widget: *T): *Container {
-    container_add(this, widget.as_widget());
-    return this;
-}
-
-def show_all(this: *Widget): Void {
-    widget_show_all(this);
-}
-
-
