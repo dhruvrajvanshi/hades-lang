@@ -65,3 +65,10 @@ extern def perror(*Byte): Void = perror;
 
 extern def listen(CInt, CInt): CInt = listen;
 
+struct sockaddr {}
+struct socklen_t {}
+extern def accept(CInt, *mut sockaddr, *mut socklen_t): CInt = accept;
+extern def close(CInt): CInt = close;
+
+
+
