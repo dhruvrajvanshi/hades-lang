@@ -23,3 +23,15 @@ void hdc_set_errno(int value) {
     errno = value;
 }
 
+FILE* hdc_stdout() {
+    return stdout;
+}
+
+FILE* hdc_stdin() {
+    return stdin;
+}
+
+FILE* hdc_stderr() {
+    return stderr;
+}
+
