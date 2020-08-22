@@ -1,40 +1,61 @@
 import libc as c;
 import hades.memory as mem;
 
-extern def bind_socket(u16): i32 = make_socket;
+extern def bind_socket(u16): i32 = bind_socket;
 
-type CInt = Int;
+type FileDescriptor = c.FileDescriptor;
+
+type CInt = c.CInt;
 
 const MAXMSG: Size = 1024;
 const PORT: u16 = 6666;
-
-def handle_request(fd: CInt): CInt {
-    c.puts(b"read_from_client");
-    val buffer = c.malloc(MAXMSG);
-    defer c.free(buffer);
-
-    val nbytes = c.read(fd, buffer, MAXMSG);
-    if (nbytes < 0) {
-        c.perror(b"read");
-        c.exit(1);
-    }
-    if (nbytes == 0) {
-        val response = b"lol\r\n\r\n";
-        val size = c.strlen(response);
-        c.write(fd, pointer_cast[Void](response), size);
-        return -1;
-    } else {
-        // Data read.
-        log_info(b"Server: got message:");
-        log_info(pointer_cast[Byte](buffer));
-        return 0;
-    }
-    return -1;
-}
+const MAX_PENDING_CONNECTIONS: CInt = 1;
+const ERROR_EXIT: i32 = 1;
 
 def main(): Void {
     val socket = bind_socket(PORT);
-    log_info(b"socket bound on port: ");
+    log_info(b"socket bound");
+
+    val listen_result = c.listen(socket, MAX_PENDING_CONNECTIONS);
+    if listen_result < 0 {
+        c.perror(b"listen");
+        c.exit(ERROR_EXIT);
+    }
+
+    log_info(b"listening on socket");
+
+    while true {
+        log_info(b"waiting for client connection");
+        val response_fd = c.accept(socket, nullptr, nullptr);
+        if response_fd < 0 {
+            c.perror(b"accept");
+            c.exit(ERROR_EXIT);
+        }
+        log_info(b"received connection");
+        handle_connection(socket, response_fd);
+    }
+}
+
+def handle_connection(request_fd: FileDescriptor, response_fd: FileDescriptor): Void {
+    log_info(b"handle connection");
+    
+    val response_body = b"hello\n";
+    val body_length_str = size_to_string(c.strlen(response_body));
+    defer mem.free(body_length_str);
+
+    http_write_line(response_fd, b"HTTP/1.1 200 OK");
+    http_write(response_fd, b"Content-length: ");
+    http_write_line(response_fd, body_length_str);
+
+    http_write_line(response_fd, b"");
+
+    http_write(response_fd, response_body);
+    
+    val close_result = c.close(response_fd);
+    if close_result < 0 {
+        c.perror(b"close");
+        c.exit(ERROR_EXIT);
+    }
 }
 
 def log_info(bytes: *Byte): Void {
@@ -42,3 +63,19 @@ def log_info(bytes: *Byte): Void {
     c.fputs(bytes, c.stderr());
     c.fputs(b"\n", c.stderr());
 }
+
+def http_write(response_fd: FileDescriptor, text: *Byte): Void {
+    val result = c.write(response_fd, pointer_cast[Void](text), c.strlen(text));
+    if result < 0 {
+        c.perror(b"http_write/write");
+        c.exit(ERROR_EXIT);
+    }
+}
+
+def http_write_line(response_fd: FileDescriptor, text: *Byte): Void {
+    http_write(response_fd, text);
+    http_write(response_fd, b"\r\n");
+}
+
+/// allocates a new string; caller needs to free
+extern def size_to_string(Size): *mut Byte = size_to_string;
