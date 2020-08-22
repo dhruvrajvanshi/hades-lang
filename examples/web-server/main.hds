@@ -1,0 +1,6 @@
+import libc as c;
+def main(): Void {
+    while true {
+        c.sleep(1000);
+    }
+}
