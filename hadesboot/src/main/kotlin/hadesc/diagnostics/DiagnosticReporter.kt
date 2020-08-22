@@ -83,6 +83,7 @@ data class Diagnostic(
         object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
         object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
         object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
+        object OnlyFunctionDefsAllowedInsideExtensionDefs : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -140,6 +141,7 @@ data class Diagnostic(
             NotAConstructor -> "Not a constructor"
             UnknownAnnotation -> "Unknown annotation"
             InvalidPipelineExpression -> "This expression type is not a valid pipeline expression"
+            OnlyFunctionDefsAllowedInsideExtensionDefs -> "Only function definitions are allowed inside extensions."
         }
 
     }

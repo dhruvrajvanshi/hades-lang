@@ -302,7 +302,12 @@ class Checker(
     var thisParamType: Type? = null
     private fun checkExtensionDef(declaration: Declaration.ExtensionDef) {
         val forType = annotationToType(declaration.forType)
-        for (functionDef in declaration.functionDefs) {
+        for (decl in declaration.declarations) {
+            if (decl !is Declaration.FunctionDef) {
+                error(decl.startLoc, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideExtensionDefs)
+                continue
+            }
+            val functionDef: Declaration.FunctionDef = decl
             val thisParamFlags = functionDef.signature.thisParamFlags
             require(thisParamType == null)
             if (thisParamFlags != null) {

@@ -119,9 +119,9 @@ class Parser(
         expect(tt.FOR)
         val forType = parseTypeAnnotation()
         expect(tt.LBRACE)
-        val functions = mutableListOf<Declaration.FunctionDef>()
+        val functions = mutableListOf<Declaration>()
         while (!at(tt.EOF) && !at(tt.RBRACE)) {
-            functions.add(parseDeclarationFunctionDef())
+            functions.add(parseDeclaration())
         }
         val end = expect(tt.RBRACE)
         return Declaration.ExtensionDef(

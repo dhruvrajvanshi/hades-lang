@@ -4,6 +4,16 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
 sealed class Declaration : HasLocation {
+    /**
+     * Location of the first few tokens for error reporting
+     * Useful for larger declarations where we wan't to report
+     * an error for the entire declaration but the full declaration
+     * is just to noisy of an error span. For example, an error like,
+     * "Only function defs are allowed inside extensions" should ideally
+     * only highlight the first token or two for a struct declaration.
+     */
+    open val startLoc get() = location
+
     data class Error(override val location: SourceLocation) : Declaration()
     data class ImportAs(
         val modulePath: QualifiedPath,
@@ -11,6 +21,9 @@ sealed class Declaration : HasLocation {
     ) : Declaration() {
         override val location: SourceLocation
             get() = SourceLocation.between(modulePath, asName)
+
+        override val startLoc: SourceLocation
+            get() = modulePath.location
     }
 
     data class FunctionDef(
@@ -22,6 +35,8 @@ sealed class Declaration : HasLocation {
         val name get() = signature.name
         val typeParams get() = signature.typeParams
         val params get() = signature.params
+        override val startLoc: SourceLocation
+            get() = signature.name.location
     }
 
     data class ConstDefinition(
@@ -29,7 +44,10 @@ sealed class Declaration : HasLocation {
         val name: Binder,
         val annotation: TypeAnnotation?,
         val initializer: Expression
-    ) : Declaration()
+    ) : Declaration() {
+        override val startLoc: SourceLocation
+            get() = name.location
+    }
 
     data class ExternFunctionDef(
         override val location: SourceLocation,
@@ -37,7 +55,10 @@ sealed class Declaration : HasLocation {
         val paramTypes: List<TypeAnnotation>,
         val returnType: TypeAnnotation,
         val externName: Identifier
-    ) : Declaration()
+    ) : Declaration() {
+        override val startLoc: SourceLocation
+            get() = binder.location
+    }
 
     data class Struct(
         override val location: SourceLocation,
@@ -46,6 +67,8 @@ sealed class Declaration : HasLocation {
         val typeParams: List<TypeParam>? = null,
         val members: List<Member>
     ) : Declaration() {
+        override val startLoc: SourceLocation
+            get() = binder.location
 
         sealed class Member {
             data class Field(
@@ -62,10 +85,14 @@ sealed class Declaration : HasLocation {
         val typeParams: List<TypeParam>?,
         val cases: List<Case>
     ) : Declaration() {
+        override val startLoc: SourceLocation
+            get() = name.location
+
         data class Case(
             val name: Binder,
             val params: List<TypeAnnotation>
         )
+
     }
 
     data class TypeAlias(
@@ -80,8 +107,10 @@ sealed class Declaration : HasLocation {
             val name: Binder,
             val typeParams: List<TypeParam>?,
             val forType: TypeAnnotation,
-            val functionDefs: List<FunctionDef>
-    ) : Declaration()
+            val declarations: List<Declaration>
+    ) : Declaration() {
+        val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
+    }
 }
 
 
