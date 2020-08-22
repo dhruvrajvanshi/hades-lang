@@ -331,7 +331,9 @@ class Checker(
             is Type.Bool,
             is Type.Size,
             is Type.Double,
-            is Type.Ptr
+            is Type.Ptr,
+            is Type.Integral,
+            is Type.FloatingPoint
             -> {}
             else -> {
                 error(declaration.name, Diagnostic.Kind.NotAConst)
