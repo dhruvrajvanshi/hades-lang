@@ -21,6 +21,7 @@ sealed class Options {
             } else {
                 emptyList()
             }
+            val libs = args.getMany("-l")
             val cSources = args.getList("--c-sources").map { Path.of(it) }
             val debugSymbols = args.contains("-g")
             directories.forEach {
@@ -35,7 +36,8 @@ sealed class Options {
                 debugSymbols = debugSymbols,
                 cSources = cSources,
                 lib = lib,
-                dumpLLVMModule = args.getBool("--dump-llvm-module")
+                dumpLLVMModule = args.getBool("--dump-llvm-module"),
+                libs = libs
             )
         }
 
@@ -59,6 +61,10 @@ sealed class Options {
                 toList().stream().skip(indexOf(long) + 1L).takeWhile { !it.startsWith("--") }.toList()
             }
         }
+
+        private fun Array<String>.getMany(flag: String): List<String> {
+            return this.filter { it.startsWith(flag) }.map { it.replaceFirst(flag, "")  }
+        }
     }
 }
 
@@ -71,7 +77,8 @@ data class BuildOptions(
     val debugSymbols: Boolean,
     val cSources: List<Path>,
     val lib: Boolean,
-    val dumpLLVMModule: Boolean
+    val dumpLLVMModule: Boolean,
+    val libs: List<String>
 ) : Options()
 
 class Compiler(
