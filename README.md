@@ -81,7 +81,7 @@ def main(): Void {
 
 A bigger example
 
-```swift
+```scala
 // A struct has a packed layout like C
 struct Pair[A, B] {
   val first: A;
@@ -101,15 +101,40 @@ def print_pair_second[T](pair: Pair[T, *Byte]): Void {
   c.puts(pair.second);
 }
 
-// extension methods are defined by having `this` 
-// as the first parameter.
-def print_second[T](this: *Pair[T, *Byte]): Void {
-  c.puts(*this.second); // this.second gives pointer to the second field of the struct. Dereference it using prefix *
+// extension methods can be defined for any type including types from
+// different libraries
+
+// some/nested_module.hds
+extension PairExtensions[T] for Pair[T, *Byte] {
+    // `*this` means this extension takes its receiver by pointer
+    // Use `*mut this` to treat receiver pointer as mutable
+    // and `this` to take it as value
+    def print_second(*this): Void {
+      c.puts(*this.second); // this.second gives pointer to the second field of the struct. Dereference it using prefix *
+    }
 }
+
+// in another file
+
+// Importing a module brings extensions exported by that module
+// into scope. This isn't transitive i.e. extensions imported by
+// nested_module would not be available here. You have to separately
+// import those.
+import some.nested_module as nested_module;
+
+def main(): Void {
+    val x = Pair(true, b"x");
+    // because extension method is declared as *this,
+    // we have to take pointer to x to pass it to the method.
+    (&x).print_second();
+}
+
+
+
 ```
 
 Interfaces
-```swift
+```scala
 
 interface Printable {
   // interfaces can refer to the type they

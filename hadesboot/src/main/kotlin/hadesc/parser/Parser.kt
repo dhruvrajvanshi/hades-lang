@@ -9,7 +9,6 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
@@ -116,17 +115,19 @@ class Parser(
     private fun parseExtensionDef(): Declaration.ExtensionDef {
         val start = expect(tt.EXTENSION)
         val binder = parseBinder()
+        val typeParams = parseOptionalTypeParams()
         expect(tt.FOR)
         val forType = parseTypeAnnotation()
         expect(tt.LBRACE)
-        val functions = mutableListOf<Declaration.FunctionDef>()
+        val functions = mutableListOf<Declaration>()
         while (!at(tt.EOF) && !at(tt.RBRACE)) {
-            functions.add(parseDeclarationFunctionDef())
+            functions.add(parseDeclaration())
         }
         val end = expect(tt.RBRACE)
         return Declaration.ExtensionDef(
                 makeLocation(start, end),
                 binder,
+                typeParams,
                 forType,
                 functions
         )

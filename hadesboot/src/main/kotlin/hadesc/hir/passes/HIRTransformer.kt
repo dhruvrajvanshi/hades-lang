@@ -7,9 +7,9 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
 interface HIRTransformer: TypeTransformer {
-    fun transformModule(module: HIRModule): HIRModule {
+    fun transformModule(oldModule: HIRModule): HIRModule {
         val definitions = mutableListOf<HIRDefinition>()
-        for (definition in module.definitions) {
+        for (definition in oldModule.definitions) {
             definitions.addAll(transformDefinition(definition))
         }
         return HIRModule(definitions)

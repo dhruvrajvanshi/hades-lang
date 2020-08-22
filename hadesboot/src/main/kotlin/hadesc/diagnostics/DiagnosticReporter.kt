@@ -10,7 +10,6 @@ import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
-import org.w3c.dom.Attr
 import kotlin.streams.toList
 
 data class Diagnostic(
@@ -32,7 +31,7 @@ data class Diagnostic(
         object TypeAnnotationExpected : Kind(Severity.ERROR)
         object StatementExpected : Kind(Severity.ERROR)
         object ExpressionExpected : Kind(Severity.ERROR)
-        object UnboundVariable : Kind(Severity.ERROR)
+        data class UnboundVariable(val name: Name): Kind(Severity.ERROR)
         object UnboundThis : Diagnostic.Kind(Severity.ERROR)
         object AmbiguousExpression : Diagnostic.Kind(Severity.ERROR)
         object NotAConst : Diagnostic.Kind(Severity.ERROR)
@@ -84,6 +83,7 @@ data class Diagnostic(
         object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
         object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
         object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
+        object OnlyFunctionDefsAllowedInsideExtensionDefs : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -91,7 +91,7 @@ data class Diagnostic(
             ExpressionExpected -> "Expression expected"
             StatementExpected -> "Statement expected"
             is UnexpectedToken -> "Unexpected token ${found.text}; Expected $expected"
-            UnboundVariable -> "Unbound variable"
+            is UnboundVariable -> "Unbound variable: ${name.text}"
             is TypeNotCallable -> "Type ${type.prettyPrint()} is not callable"
             is MissingArgs -> "Missing args; $required required"
             is TooManyArgs -> "Too many args; $required required"
@@ -141,6 +141,7 @@ data class Diagnostic(
             NotAConstructor -> "Not a constructor"
             UnknownAnnotation -> "Unknown annotation"
             InvalidPipelineExpression -> "This expression type is not a valid pipeline expression"
+            OnlyFunctionDefsAllowedInsideExtensionDefs -> "Only function definitions are allowed inside extensions."
         }
 
     }
@@ -168,10 +169,10 @@ class DiagnosticReporter {
         val severity = colorize(kind.severity.toString(), severityColor, Attribute.BOLD())
         val path = colorize(location.file.path.toString(), Attribute.BOLD())
         val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD());
-        val kind = colorize(kind.prettyPrint(), Attribute.BOLD())
-        printErrLn("${path}:${lineInfo}: ${severity}: ${kind}")
+        val coloredKind = colorize(kind.prettyPrint(), Attribute.BOLD())
+        printErrLn("${path}:${lineInfo}: ${severity}: $coloredKind")
         printLocationLine(location)
-        for (i in 0..location.start.column - 1) {
+        for (i in 0 until location.start.column) {
             System.err.print(' ')
         }
         System.err.print(colorize("^", Attribute.RED_TEXT(), Attribute.BOLD()))
