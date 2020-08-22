@@ -485,6 +485,9 @@
 			"patterns": [
 				{
 					"include": "#comments"
+				},
+				{
+					"include": "#expressions"
 				}
 			]
 		},
