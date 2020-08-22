@@ -1,6 +1,8 @@
 import gtk as Gtk;
 import libc as c;
 
+type CInt = c.CInt;
+
 def main(argc: CInt, argv: **Byte): Void {
   val app = Gtk.application_new(b"org.gtk.example", Gtk.APPLICATION_FLAGS_NONE);
   val status = run(app, argc, argv);
@@ -41,6 +43,6 @@ def make_window(app: *Gtk.Application): *Gtk.Window {
   connect_exit_button(button, window);
 
   button_box.as_container()
-    .add(button);
+    .add(button.as_widget());
   return window;
 }
