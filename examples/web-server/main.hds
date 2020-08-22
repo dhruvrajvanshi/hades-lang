@@ -1,6 +1,44 @@
 import libc as c;
-def main(): Void {
-    while true {
-        c.sleep(1000);
+import hades.memory as mem;
+
+extern def bind_socket(u16): i32 = make_socket;
+
+type CInt = Int;
+
+const MAXMSG: Size = 1024;
+const PORT: u16 = 6666;
+
+def handle_request(fd: CInt): CInt {
+    c.puts(b"read_from_client");
+    val buffer = c.malloc(MAXMSG);
+    defer c.free(buffer);
+
+    val nbytes = c.read(fd, buffer, MAXMSG);
+    if (nbytes < 0) {
+        c.perror(b"read");
+        c.exit(1);
     }
+    if (nbytes == 0) {
+        val response = b"lol\r\n\r\n";
+        val size = c.strlen(response);
+        c.write(fd, pointer_cast[Void](response), size);
+        return -1;
+    } else {
+        // Data read.
+        log_info(b"Server: got message:");
+        log_info(pointer_cast[Byte](buffer));
+        return 0;
+    }
+    return -1;
+}
+
+def main(): Void {
+    val socket = bind_socket(PORT);
+    log_info(b"socket bound on port: ");
+}
+
+def log_info(bytes: *Byte): Void {
+    c.fputs(b"INFO: ", c.stderr());
+    c.fputs(bytes, c.stderr());
+    c.fputs(b"\n", c.stderr());
 }
