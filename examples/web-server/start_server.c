@@ -44,7 +44,7 @@ int start_server () {
 
   /* Create the socket and set it up to accept connections. */
   perror("creating socket");
-  sock = make_socket (PORT);
+  sock = bind_socket (PORT);
   perror("socket created");
   if (listen (sock, 1) < 0)
     {
