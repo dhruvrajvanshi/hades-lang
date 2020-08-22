@@ -40,5 +40,7 @@ jobs:
       # run tests!
       - run: ./gradlew :hadesboot:test
       - run: ./test.sh
+      - run: ./gradlew install
+      - run: make --directory examples/web-server
       - store_test_results:
           path: ./hadesboot/build/test-results
