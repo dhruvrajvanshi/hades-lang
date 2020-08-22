@@ -127,10 +127,25 @@ class HIRGen(
             ))
         }
         params.addAll(signature.params.map { lowerParam(it) })
+
+        var typeParams: MutableList<HIRTypeParam>? = mutableListOf()
+        val extensionDef = currentExtensionDef
+        if (extensionDef != null) {
+            extensionDef.typeParams?.map { lowerTypeParam(it) }?.let {
+                typeParams?.addAll(it)
+            }
+        }
+        signature.typeParams?.map { lowerTypeParam(it) }?.let {
+            typeParams?.addAll(it)
+        }
+        if (extensionDef?.typeParams == null && signature.typeParams == null) {
+            typeParams = null
+        }
+
         return HIRFunctionSignature(
                 location = signature.location,
                 name = name,
-                typeParams = signature.typeParams?.map { lowerTypeParam(it) },
+                typeParams = typeParams,
                 constraintParams = null,
                 params = params,
                 returnType = returnType

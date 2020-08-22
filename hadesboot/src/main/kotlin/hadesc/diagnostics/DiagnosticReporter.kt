@@ -31,7 +31,7 @@ data class Diagnostic(
         object TypeAnnotationExpected : Kind(Severity.ERROR)
         object StatementExpected : Kind(Severity.ERROR)
         object ExpressionExpected : Kind(Severity.ERROR)
-        object UnboundVariable : Kind(Severity.ERROR)
+        data class UnboundVariable(val name: Name): Kind(Severity.ERROR)
         object UnboundThis : Diagnostic.Kind(Severity.ERROR)
         object AmbiguousExpression : Diagnostic.Kind(Severity.ERROR)
         object NotAConst : Diagnostic.Kind(Severity.ERROR)
@@ -90,7 +90,7 @@ data class Diagnostic(
             ExpressionExpected -> "Expression expected"
             StatementExpected -> "Statement expected"
             is UnexpectedToken -> "Unexpected token ${found.text}; Expected $expected"
-            UnboundVariable -> "Unbound variable"
+            is UnboundVariable -> "Unbound variable: ${name.text}"
             is TypeNotCallable -> "Type ${type.prettyPrint()} is not callable"
             is MissingArgs -> "Missing args; $required required"
             is TooManyArgs -> "Too many args; $required required"

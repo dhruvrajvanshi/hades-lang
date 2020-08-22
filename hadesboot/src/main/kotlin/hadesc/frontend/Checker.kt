@@ -74,7 +74,7 @@ class Checker(
                 continue
             }
 
-            val (thisType, substitution) = instantiateTypeAndSubstitution(expression.location, annotationToType(extensionDef.forType), extensionDef.typeParams)
+            val thisType = instantiateType(expression.location, annotationToType(extensionDef.forType), extensionDef.typeParams)
             val expectedThisType = if (functionDef.signature.thisParamFlags.isPointer) {
                 Type.Ptr(
                     thisType,
@@ -86,12 +86,26 @@ class Checker(
             if (!isTypeAssignableTo(source = inferExpression(expression.lhs), destination = expectedThisType)) {
                 continue
             }
-            val methodType = Type.Function(
-                from = functionDef.params.mapIndexed { paramIndex, _ ->
-                    typeOfParam(functionDef, paramIndex).applySubstitution(substitution)
+            val receiverType = if (functionDef.signature.thisParamFlags.isPointer) {
+                Type.Ptr(
+                    annotationToType(extensionDef.forType),
+                    isMutable = functionDef.signature.thisParamFlags.isMutable
+                )
+            } else {
+                annotationToType(extensionDef.forType)
+            }
+            var methodType: Type = Type.Function(
+                from = listOf(receiverType) + functionDef.params.mapIndexed { paramIndex, _ ->
+                    typeOfParam(functionDef, paramIndex)
                 },
-                to = annotationToType(functionDef.signature.returnType).applySubstitution(substitution)
+                to = annotationToType(functionDef.signature.returnType)
             )
+            if (extensionDef.typeParams != null) {
+                methodType = Type.TypeFunction(
+                    extensionDef.typeParams.map { Type.Param(it.binder) },
+                    methodType
+                )
+            }
             return PropertyBinding.ExtensionDef(
                 extensionDef,
                 index,
@@ -444,7 +458,7 @@ class Checker(
                 Unit
             }
             null -> {
-                error(statement.name, Diagnostic.Kind.UnboundVariable)
+                error(statement.name, Diagnostic.Kind.UnboundVariable(statement.name.name))
             }
             else -> {
                 // TODO: Show a more helpful diagnostic here
@@ -467,7 +481,7 @@ class Checker(
         } else {
             val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
             if (binding == null) {
-                error(statement.lhs.lhs, Diagnostic.Kind.UnboundVariable)
+                error(statement.lhs.lhs, Diagnostic.Kind.UnboundVariable(statement.lhs.lhs.name.name))
                 return
             }
             if (binding !is Binding.ValBinding) {
@@ -771,7 +785,7 @@ class Checker(
     private fun inferVarExpresion(expression: Expression.Var): Type {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
             null -> {
-                error(expression.name, Diagnostic.Kind.UnboundVariable)
+                error(expression.name, Diagnostic.Kind.UnboundVariable(expression.name.name))
                 Type.Error
             }
             else -> typeOfBinding(binding)
@@ -926,7 +940,11 @@ class Checker(
                 functionType.typeParams,
                 callNode.location
             )
-            checkCallArgs(functionType, callNode, explicitTypeArgs, args, substitution)
+            val receiver = getCallReceiver(callNode)
+            val argsWithReceiver = if (receiver == null)
+                args.map { it.expression }
+            else listOf(receiver) + args.map { it.expression }
+            checkCallArgs(functionType, callNode, explicitTypeArgs, argsWithReceiver, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
                 checkAssignability(
@@ -944,6 +962,19 @@ class Checker(
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
 
+    }
+
+    private fun getCallReceiver(callNode: Expression): Expression? {
+        if (callNode !is Expression.Call) {
+            return null
+        }
+        if (callNode.callee !is Expression.Property) {
+            return null
+        }
+        if (resolvePropertyBinding(callNode.callee) !is PropertyBinding.ExtensionDef) {
+            return null
+        }
+        return callNode.callee.lhs
     }
 
     private fun getCalleeType(callNode: Expression): Type = when(callNode) {
@@ -989,7 +1020,7 @@ class Checker(
             functionType: FunctionTypeComponents,
             callNode: HasLocation,
             typeArgs: List<Type>?,
-            args: List<Arg>,
+            args: List<Expression>,
             substitution: Substitution
     ) {
         val length = min(functionType.from.size, args.size)
@@ -1001,10 +1032,10 @@ class Checker(
         for (i in 0 until length) {
             val expectedType = functionType.from[i].applySubstitution(substitution)
             val arg = args[i]
-            checkExpression(arg.expression, expectedType)
+            checkExpression(arg, expectedType)
         }
         for (arg in args.drop(length)) {
-            inferExpression(arg.expression)
+            inferExpression(arg)
         }
 
         checkArgumentLength(callNode, args, functionType)
@@ -1012,7 +1043,7 @@ class Checker(
 
     private fun checkArgumentLength(
             callNode: HasLocation,
-            args: List<Arg>,
+            args: List<Expression>,
             functionType: FunctionTypeComponents
     ) {
         if (args.size < functionType.from.size) {
