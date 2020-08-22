@@ -1,0 +1,13 @@
+
+const twenty_three: u16 = 23;
+const fourty: u32 = 40;
+
+def main(): Void {
+    print_u16(twenty_three);
+    print_u32(fourty);
+}
+
+extern def print_u16(u16): Void = print_u16;
+extern def print_u32(u32): Void = print_u32;
+
+
