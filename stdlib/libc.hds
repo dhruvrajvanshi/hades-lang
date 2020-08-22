@@ -1,6 +1,8 @@
+// TODO: do something better here. This isn't portable.
+type CInt = i32;
 
 extern def puts(*Byte): Void = puts;
-extern def exit(Int): Void = exit;
+extern def exit(CInt): Void = exit;
 extern def malloc(Size): *mut Void = malloc;
 extern def free(*mut Void): Void = free;
 extern def strlen(*Byte): Size = strlen;
@@ -8,7 +10,7 @@ extern def strcmp(*Byte, *Byte): Bool = strcmp;
 extern def strcpy(*mut Byte, *Byte): *mut Byte = strcpy;
 extern def memcpy(*Void, *Void, Size): Void = memcpy;
 extern def strlen(*Byte): Size = strlen;
-extern def memcmp(*Void, *Void, Size): Int = memcmp;
+extern def memcmp(*Void, *Void, Size): CInt = memcmp;
 extern def floor(Double): Double = floor;
 /// we don't have variadics right now
 /// there isn't a better way to type this
@@ -30,7 +32,7 @@ extern def closedir(*Dir): Void = closedir;
 extern def readdir(*Dir): *dirent = readdir;
 extern def getline(*mut *mut Byte, *mut Size, *File): Size = getline;
 extern def fgetc(*File): Byte = fgetc;
-extern def strtoul(*Byte, **Byte, Int): Size = strtoul;
+extern def strtoul(*Byte, **Byte, CInt): Size = strtoul;
 
 extern def hdc_dirent_name(*dirent): *Byte = hdc_dirent_name;
 extern def hdc_dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;
@@ -45,19 +47,21 @@ def is_directory(self: *dirent): Bool {
 
 extern def fread(*Void, Size, Size, *File): Size = fread;
 
-type FileDescriptor = Int;
+type FileDescriptor = CInt;
 extern def read(FileDescriptor, *mut Void, Size): Size = read;
 extern def write(FileDescriptor, *Void, Size): Size = write;
 
-extern def errno(): Int = hdc_get_errno;
-extern def set_errno(Int): Void = hdc_set_errno;
+extern def errno(): CInt = hdc_get_errno;
+extern def set_errno(CInt): Void = hdc_set_errno;
 
-extern def open(*Byte, Int): Int = open;
-extern def close(Int): Int = close;
+extern def open(*Byte, CInt): CInt = open;
+extern def close(CInt): CInt = close;
 
 extern def stdout(): *File = hdc_stdout;
 extern def stdin(): *File = hdc_stdin;
 extern def stderr(): *File = hdc_stderr;
 
 extern def perror(*Byte): Void = perror;
+
+extern def listen(CInt, CInt): CInt = listen;
 
