@@ -15,7 +15,6 @@ import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 import java.nio.charset.StandardCharsets
 
-@OptIn(ExperimentalStdlibApi::class)
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
     private val log = logger()
@@ -46,7 +45,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return LLVM.LLVMABISizeOfType(dataLayout, type.ref)
     }
 
-    private fun lowerDefinition(definition: IRDefinition): Unit {
+    private fun lowerDefinition(definition: IRDefinition) {
 //        logger().debug("LLVMGen::lowerDefinition")
         return when (definition) {
             is IRFunctionDef -> lowerFunctionDef(definition)
@@ -476,7 +475,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.UntaggedUnion -> {
             val maxSizedType = type.members
                     .map { lowerType(it) }
-                    .maxBy { sizeOfType(it) }
+                    .maxByOrNull { sizeOfType(it) }
             requireNotNull(maxSizedType)
         }
         is Type.Integral -> IntType(type.size, llvmCtx)

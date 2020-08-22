@@ -263,7 +263,7 @@ class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransfo
         Type.Size -> 8
 
         is Type.UntaggedUnion -> {
-            type.members.map { abiSizeBytes(it) }.max() ?: 0
+            type.members.map { abiSizeBytes(it) }.maxOrNull() ?: 0
         }
         is Type.Constructor -> {
             val def = oldModule.findGlobalDefinition(type.name)

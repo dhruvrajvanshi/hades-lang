@@ -12,7 +12,6 @@ import hadesc.hir.HIRGen
 import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
-import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -21,7 +20,6 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import java.nio.file.Path
 
-@OptIn(ExperimentalStdlibApi::class)
 class Context(
     val options: BuildOptions
 ) {
@@ -123,22 +121,9 @@ class Context(
         collectedFiles.values.forEach(action)
     }
 
-    fun getSourceFileOf(node: HasLocation): SourceFile {
-        return requireNotNull(collectedFiles[node.location.file]) {
-            "No source file found for ${node.location.file}"
-        }
-    }
-
     private var _nameIndex = 0
     fun makeUniqueName(): Name {
         _nameIndex++
         return makeName("$_nameIndex")
     }
-
-
-    public val dropInterfaceName = QualifiedName(listOf(
-        makeName("hades"),
-        makeName("drop"),
-        makeName("Drop")
-    ))
 }
