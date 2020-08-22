@@ -2,7 +2,7 @@ HDC=../../hadesboot/build/install/hadesboot/bin/hadesboot
 
 STDLIB_DIR=../../stdlib
 RUNTIME_SOURCE=../../runtime.c
-CC=clang
+CC=cc
 
 BUILD_ARTIFACTS=\
 	web-server.o \
