@@ -517,6 +517,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         commandParts.add("-o")
         commandParts.add(ctx.options.output.toString())
+        commandParts.addAll(ctx.options.libs.map { "-l$it" })
         commandParts.addAll(ctx.options.cSources.map { it.toString() })
         commandParts.add(ctx.options.runtime.toString())
         commandParts.add(objectFilePath)
