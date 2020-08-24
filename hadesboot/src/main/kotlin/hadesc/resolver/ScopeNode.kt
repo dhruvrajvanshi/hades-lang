@@ -19,6 +19,7 @@ sealed class ScopeTree {
     data class MatchArm(val arm: Expression.Match.Arm) : ScopeTree()
     data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeTree()
     data class ExtensionDef(val declaration: Declaration.ExtensionDef) : ScopeTree()
+    data class Closure(val closure: Expression.Closure) : ScopeTree()
 
     val location
         get(): SourceLocation = when (this) {
@@ -30,5 +31,6 @@ sealed class ScopeTree {
             is MatchArm -> arm.location
             is TypeAlias -> declaration.location
             is ExtensionDef -> declaration.location
+            is Closure -> closure.location
         }
 }

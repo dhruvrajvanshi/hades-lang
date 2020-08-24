@@ -18,7 +18,7 @@ def main(): Void {
     });
 
     c.puts(b"closure application returned value");
-    c.puts(second);
+    c.puts(result);
 }
 
 def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first: (T1) -> Void, print_second: (T2) -> T2R): T2R {

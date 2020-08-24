@@ -21,7 +21,7 @@ class Checker(
         private val ctx: Context
 ) {
     private var reportErrors = false
-    private val returnTypeStack = Stack<Type>()
+    private val returnTypeStack = Stack<Type?>()
     private val genericInstances = mutableMapOf<Long, Type>()
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
@@ -524,7 +524,11 @@ class Checker(
     private fun checkReturnStatement(statement: Statement.Return) {
         if (statement.value != null) {
             val returnType = returnTypeStack.peek()
-            checkExpression(statement.value, returnType)
+            if (returnType != null) {
+                checkExpression(statement.value, returnType)
+            } else {
+                inferExpression(statement.value)
+            }
         }
     }
 
@@ -598,6 +602,7 @@ class Checker(
                     checkCallExpression(expression, expectedType)
                 }
                 is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
+                is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(expression, source = inferredType, destination = expectedType)
@@ -607,6 +612,50 @@ class Checker(
         }
         typeOfExpressionCache[expression] = type
         return type
+    }
+
+    private val closureParamTypes = mutableMapOf<Binder, Type>()
+    private fun checkOrInferClosureExpression(expression: Expression.Closure, expectedType: Type?): Type {
+        val expectedReturnType = if (expectedType != null) {
+            getFunctionTypeComponents(expectedType)?.to
+        } else null
+        returnTypeStack.push(expectedReturnType)
+        val expectedParamTypes = expectedType?.let { getFunctionTypeComponents(it) }
+        var index = -1
+        for (param in expression.params) {
+            index++
+            val expectedParamType = expectedParamTypes?.from?.getOrNull(index)
+            if (param.annotation != null) {
+                val annotatedType = annotationToType(param.annotation)
+                if (expectedParamType != null && !isTypeAssignableTo(source = annotatedType, destination = expectedParamType)) {
+                    error(param.annotation, Diagnostic.Kind.TypeNotAssignable(source = annotatedType, destination = expectedParamType))
+                }
+                closureParamTypes[param.binder] = annotatedType
+            } else if (expectedParamType != null) {
+                closureParamTypes[param.binder] = expectedParamType
+            } else {
+                error(param, Diagnostic.Kind.MissingTypeAnnotation)
+            }
+        }
+
+        return when (expression.body) {
+            is ClosureBody.Block -> {
+                if (expectedReturnType == null) {
+                    // TODO: We can infer block return types using the return statement
+                    //       inside the closure if it exists. For now, we can just show an error
+                    error(expression.body.block.startToken, Diagnostic.Kind.ReturnTypeNotInferred)
+                }
+                checkBlock(expression.body.block)
+                expectedReturnType ?: Type.Error
+            }
+            is ClosureBody.Expression -> {
+                if (expectedReturnType != null) {
+                    checkExpression(expression.body.expression, expectedReturnType)
+                } else {
+                    inferExpression(expression.body.expression)
+                }
+            }
+        }
     }
 
     private fun isTypeOrderComparable(type: Type): Boolean {
@@ -656,7 +705,7 @@ class Checker(
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
-            is Expression.Closure -> TODO()
+            is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
         })
     }
 
@@ -811,6 +860,11 @@ class Checker(
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+        is Binding.ClosureParam -> typeOfClosureParam(binding)
+    }
+
+    private fun typeOfClosureParam(binding: Binding.ClosureParam): Type {
+        return closureParamTypes[binding.param.binder] ?: Type.Error
     }
 
     private fun typeOfGlobalConstBinding(binding: Binding.GlobalConst): Type {

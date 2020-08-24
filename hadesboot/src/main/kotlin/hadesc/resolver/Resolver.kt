@@ -91,6 +91,7 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
         }
+        is ScopeTree.Closure -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -130,6 +131,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
+        is ScopeTree.Closure -> findInClosure(ident, scope)
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
@@ -226,6 +228,17 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
+    private fun findInClosure(ident: Identifier, scope: ScopeTree.Closure): Binding? {
+        var index = -1
+        for (param in scope.closure.params) {
+            index++
+            if (param.binder.identifier.name == ident.name) {
+                return Binding.ClosureParam(index, scope.closure)
+            }
+        }
+        return null
+    }
+
     private fun findInFunctionDef(ident: Identifier, scope: ScopeTree.FunctionDef): Binding? {
         var index = -1
         for (param in scope.declaration.params) {
@@ -267,6 +280,10 @@ class Resolver(private val ctx: Context) {
 
     fun onParseMatchArm(arm: Expression.Match.Arm) {
         addScopeNode(arm.location.file, ScopeTree.MatchArm(arm))
+    }
+
+    fun onParseClosure(closure: Expression.Closure) {
+        addScopeNode(closure.location.file, ScopeTree.Closure(closure))
     }
 
     fun onParseDeclaration(declaration: Declaration) {
@@ -322,6 +339,7 @@ class Resolver(private val ctx: Context) {
                 is ScopeTree.FunctionDef -> null
                 is ScopeTree.Block -> null // Blocks can't have imports yet
                 is ScopeTree.Struct -> null
+                is ScopeTree.Closure -> null
                 is ScopeTree.SourceFile -> {
                     var binding: Binding? = null
                     for (declaration in scope.sourceFile.declarations) {

@@ -84,6 +84,7 @@ data class Diagnostic(
         object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
         object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
         object OnlyFunctionDefsAllowedInsideExtensionDefs : Diagnostic.Kind(Severity.ERROR)
+        object ReturnTypeNotInferred : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -142,6 +143,7 @@ data class Diagnostic(
             UnknownAnnotation -> "Unknown annotation"
             InvalidPipelineExpression -> "This expression type is not a valid pipeline expression"
             OnlyFunctionDefsAllowedInsideExtensionDefs -> "Only function definitions are allowed inside extensions."
+            ReturnTypeNotInferred -> "Return type of this function cannot be inferred. Add an explicit annotation."
         }
 
     }

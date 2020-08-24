@@ -571,6 +571,7 @@ class HIRGen(
         )
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+        is Binding.ClosureParam -> TODO()
     }
 
     private fun lowerByteString(expression: Expression.ByteString): HIRExpression {

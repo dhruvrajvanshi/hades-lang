@@ -410,7 +410,7 @@ class Parser(
         val start = expect(tt.LBRACE)
         val members = parseBlockMembers()
         val stop = expect(tt.RBRACE)
-        val result = Block(makeLocation(start, stop), members)
+        val result = Block(makeLocation(start, stop), startToken = start, members)
         ctx.resolver.onParseBlock(result)
         return result
     }
@@ -773,12 +773,14 @@ class Parser(
             ClosureBody.Block(parseBlock())
         } else ClosureBody.Expression(parseExpression())
 
-        return Expression.Closure(
+        val closure = Expression.Closure(
             makeLocation(start, body),
             params,
             returnType,
             body
         )
+        ctx.resolver.onParseClosure(closure)
+        return closure
     }
 
     private fun parseMatchArm(): Expression.Match.Arm {
