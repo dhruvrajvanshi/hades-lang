@@ -1,0 +1,15 @@
+import libc as c;
+import example.logging as log;
+
+def assert(condition: Bool, message: *Byte): Void {
+    if not condition {
+        log.fatal(b"Assertion failed");
+        c.perror(message);
+        c.exit(1);
+    }
+}
+
+def unreachable(message: *Byte): Void {
+    c.perror(message);
+    c.exit(2);
+}

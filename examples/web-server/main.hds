@@ -1,5 +1,10 @@
 import libc as c;
 import hades.memory as mem;
+import example.StringView as StringView;
+import example.http.Request as HTTPRequest;
+import example.logging as log;
+import example.panic as Panic;
+const panic_with_errno = Panic.panic_with_errno;
 
 extern def bind_socket(u16): i32 = bind_socket;
 
@@ -10,26 +15,25 @@ type CInt = c.CInt;
 const MAXMSG: Size = 1024;
 const PORT: u16 = 5000;
 const MAX_PENDING_CONNECTIONS: CInt = 1;
-const ERROR_EXIT: i32 = 1;
 
 def main(): Void {
     val socket = bind_socket(PORT);
-    log_info(b"socket bound");
+    log.info(b"socket bound");
 
     val listen_result = c.listen(socket, MAX_PENDING_CONNECTIONS);
     if listen_result < 0 {
         panic_with_errno(b"main/listen");
     }
 
-    log_info(b"listening on socket");
+    log.info(b"listening on socket");
 
     while true {
-        log_info(b"waiting for client connection");
+        log.info(b"waiting for client connection");
         val fd = c.accept(socket, nullptr, nullptr);
         if fd < 0 {
             panic_with_errno(b"accept");
         }
-        log_info(b"received connection");
+        log.info(b"received connection");
         handle_connection(fd);
     }
 }
@@ -37,7 +41,7 @@ def main(): Void {
 const MAX_REQUEST_SIZE: Size = 4096;
 
 def handle_connection(fd: FileDescriptor): Void {
-    log_info(b"handle connection");
+    log.info(b"handle connection");
 
     val request_text_buffer = c.malloc(MAX_REQUEST_SIZE * size_of[Byte]);
     defer mem.free(request_text_buffer);
@@ -49,8 +53,11 @@ def handle_connection(fd: FileDescriptor): Void {
     
     val request_text = pointer_cast[Byte](request_text_buffer);
 
-    log_info(b"Got request: ");
-    log_info(request_text);
+    val request_str = StringView.t(request_text, read_bytes);
+    val request = HTTPRequest.from_string_view(request_str);
+
+    log.info(b"Got request: ");
+    log.info(request_text);
     
     val response_body = b"hello\n";
     val body_length_str = size_to_string(c.strlen(response_body));
@@ -66,52 +73,20 @@ def handle_connection(fd: FileDescriptor): Void {
     
     val close_result = c.close(fd);
     if close_result < 0 {
-        panic(b"handle_connection/close(fd)");
+        panic_with_errno(b"handle_connection/close(fd)");
     }
-}
-
-def panic(message: *Byte): Void {
-    log_fatal(message);
-    log_fatal(b"Exiting");
-    c.exit(ERROR_EXIT);
-}
-
-def log_fatal(text: *Byte): Void {
-    log(b"FATAL", text);
-}
-
-def log_info(text: *Byte): Void {
-    log(b"INFO", text);
-}
-
-def log_error(text: *Byte): Void {
-    log(b"ERROR", text);
-}
-
-def log(tag: *Byte, text: *Byte): Void {
-    c.fputs(tag, c.stderr());
-    c.fputs(b": ", c.stderr());
-    c.fputs(text, c.stderr());
-    c.fputs(b"\n", c.stderr());   
 }
 
 def http_write(response_fd: FileDescriptor, text: *Byte): Void {
     val result = c.write(response_fd, pointer_cast[Void](text), c.strlen(text));
     if result < 0 {
-        c.perror(b"http_write/write");
-        c.exit(ERROR_EXIT);
+        panic_with_errno(b"http_write/write");
     }
 }
 
 def http_write_line(response_fd: FileDescriptor, text: *Byte): Void {
     http_write(response_fd, text);
     http_write(response_fd, b"\r\n");
-}
-
-def panic_with_errno(message: *Byte): Void {
-    c.perror(message);
-    log_fatal(b"Exiting");
-    c.exit(ERROR_EXIT);
 }
 
 /// allocates a new string; caller needs to free

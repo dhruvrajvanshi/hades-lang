@@ -1,0 +1,31 @@
+import libc as c;
+import hades.memory as mem;
+
+def fatal(text: *Byte): Void {
+    log(b"FATAL", text);
+}
+
+def info(text: *Byte): Void {
+    log(b"INFO", text);
+}
+
+def error(text: *Byte): Void {
+    log(b"ERROR", text);
+}
+
+def debug(text: *Byte): Void {
+    log(b"DEBUG", text);
+}
+
+def log_value[T](tag: *Byte, value: T, copy_to_c: *(T) -> *mut Byte): Void {
+    val c_str = copy_to_c(value);
+    defer mem.free(c_str);
+    log(tag, c_str);
+}
+
+def log(tag: *Byte, text: *Byte): Void {
+    c.fputs(tag, c.stderr());
+    c.fputs(b": ", c.stderr());
+    c.fputs(text, c.stderr());
+    c.fputs(b"\n", c.stderr());   
+}
