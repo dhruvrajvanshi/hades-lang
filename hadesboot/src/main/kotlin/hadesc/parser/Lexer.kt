@@ -55,7 +55,7 @@ val SINGLE_CHAR_TOKENS = mapOf(
     '[' to tt.LSQB,
     ']' to tt.RSQB,
     '&' to tt.AMPERSAND,
-    '@' to tt.AT_SYMBOL
+    '@' to tt.AT_SYMBOL,
 )
 
 class Lexer(private val file: SourcePath) {
@@ -156,7 +156,7 @@ class Lexer(private val file: SourcePath) {
                     advance()
                     makeToken(tt.PIPELINE)
                 } else {
-                    makeToken(tt.ERROR)
+                    makeToken(tt.VBAR)
                 }
             }
             SINGLE_CHAR_TOKENS.containsKey(c) -> {

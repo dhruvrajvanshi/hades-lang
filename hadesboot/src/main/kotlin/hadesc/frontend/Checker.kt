@@ -656,6 +656,7 @@ class Checker(
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
+            is Expression.Closure -> TODO()
         })
     }
 

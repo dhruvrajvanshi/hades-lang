@@ -755,12 +755,30 @@ class Parser(
             tt.THIS -> {
                 Expression.This(advance().location)
             }
+            tt.VBAR -> parseClosureExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         return parseExpressionTail(head)
+    }
+
+    private fun parseClosureExpression(): Expression {
+        val start = expect(tt.VBAR)
+        val params = parseSeperatedList(seperator = tt.COMMA, terminator = tt.VBAR) { parseParam() }
+        expect(tt.VBAR)
+        val returnType = parseOptionalAnnotation()
+        val body = if (at(tt.LBRACE)) {
+            ClosureBody.Block(parseBlock())
+        } else ClosureBody.Expression(parseExpression())
+
+        return Expression.Closure(
+            makeLocation(start, body),
+            params,
+            returnType,
+            body
+        )
     }
 
     private fun parseMatchArm(): Expression.Match.Arm {

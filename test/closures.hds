@@ -2,7 +2,7 @@ import libc as c;
 
 def main(): Void {
     val capture = b"capture";
-    val result = print_both_and_return_first(true, b"hello", |b| {
+    val result = print_both_and_return_second(true, b"hello", |b| {
         c.puts(capture);
         c.puts(b"printing boolean");
         if b {
