@@ -616,29 +616,42 @@ class Checker(
 
     private val closureParamTypes = mutableMapOf<Binder, Type>()
     private fun checkOrInferClosureExpression(expression: Expression.Closure, expectedType: Type?): Type {
-        val expectedReturnType = if (expectedType != null) {
-            getFunctionTypeComponents(expectedType)?.to
-        } else null
+        val functionTypeComponents = expectedType?.let { getFunctionTypeComponents(it) }
+        val expectedReturnType = functionTypeComponents?.to ?: expression.returnType?.let { annotationToType(it) }
+        if (functionTypeComponents != null && expression.returnType != null) {
+            checkAssignability(
+                expression.returnType,
+                source = annotationToType(expression.returnType), destination = functionTypeComponents.to)
+        }
         returnTypeStack.push(expectedReturnType)
         val expectedParamTypes = expectedType?.let { getFunctionTypeComponents(it) }
         var index = -1
+        val paramTypes = mutableListOf<Type>()
         for (param in expression.params) {
             index++
             val expectedParamType = expectedParamTypes?.from?.getOrNull(index)
-            if (param.annotation != null) {
+            val type = if (param.annotation != null) {
                 val annotatedType = annotationToType(param.annotation)
-                if (expectedParamType != null && !isTypeAssignableTo(source = annotatedType, destination = expectedParamType)) {
-                    error(param.annotation, Diagnostic.Kind.TypeNotAssignable(source = annotatedType, destination = expectedParamType))
+                if (expectedParamType != null) {
+                    checkAssignability(
+                        node = param.annotation,
+                        // params are contravariant
+                        destination = annotatedType,
+                        source = expectedParamType
+                    )
                 }
-                closureParamTypes[param.binder] = annotatedType
+                annotatedType
             } else if (expectedParamType != null) {
-                closureParamTypes[param.binder] = expectedParamType
+                expectedParamType
             } else {
                 error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                Type.Error
             }
+            closureParamTypes[param.binder] = type
+            paramTypes.add(type)
         }
 
-        return when (expression.body) {
+        val returnType = when (expression.body) {
             is ClosureBody.Block -> {
                 if (expectedReturnType == null) {
                     // TODO: We can infer block return types using the return statement
@@ -656,6 +669,10 @@ class Checker(
                 }
             }
         }
+        return Type.Function(
+            from = paramTypes,
+            to = returnType
+        )
     }
 
     private fun isTypeOrderComparable(type: Type): Boolean {
