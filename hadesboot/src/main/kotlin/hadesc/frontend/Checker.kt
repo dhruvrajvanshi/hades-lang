@@ -614,7 +614,8 @@ class Checker(
     }
 
     private fun isTypeEqualityComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.CInt || type is Type.Bool || type is Type.Ptr || type is Type.Size
+        return type is Type.Integral || type is Type.CInt || type is Type.Bool ||
+                type is Type.Ptr || type is Type.Size || type is Type.Byte
     }
 
     private fun checkNullPtrExpression(expression: Expression.NullPtr, expectedType: Type): Type {
@@ -628,6 +629,7 @@ class Checker(
         is Type.Size,
         is Type.CInt -> true
         is Type.Integral -> true
+        is Type.Byte -> true
         else -> false
     }
 
@@ -1346,6 +1348,9 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
         (op.EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
         (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
         (op.EQUALS to Type.Size) to (Type.Size to Type.Bool),
-        (op.NOT_EQUALS to Type.Size) to (Type.Size to Type.Bool)
+        (op.NOT_EQUALS to Type.Size) to (Type.Size to Type.Bool),
+
+        (op.EQUALS to Type.Byte) to (Type.Byte to Type.Bool),
+        (op.NOT_EQUALS to Type.Byte) to (Type.Byte to Type.Bool),
 )
 
