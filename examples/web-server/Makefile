@@ -6,7 +6,8 @@ CC=cc
 
 BUILD_ARTIFACTS=\
 	web-server.o \
-	web-server
+	web-server \
+	test-build
 
 STDLIB_C_SOURCES=\
 	$(shell find $(STDLIB_DIR) -name '*.c') \
@@ -18,16 +19,30 @@ HADES_SOURCES=\
 	$(STDLIB_C_SOURCES)
 
 C_SOURCES=$(shell find . -name '*.c')
+TEST_SOURCES=$(shell find . -name '*_test.hds')
 
+HADESC_FLAGS=-g \
+		--directories . $(STDLIB_DIR) \
+		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES) \
+		--runtime $(RUNTIME_SOURCE)
 
 web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 	CC=$(CC) $(HDC) \
 		--main main.hds \
 		--output web-server \
-		-g \
-		--directories . $(STDLIB_DIR) \
-		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES) \
-		--runtime $(RUNTIME_SOURCE) \
+		$(HADESC_FLAGS) \
+
+test: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) $(TEST_SOURCES)
+	mkdir -p test-build; \
+	for source in $(TEST_SOURCES); \
+	do \
+		CC=$(CC) $(HDC) \
+			--main $$source \
+			--output test-build/$$source.bin \
+			$(HADESC_FLAGS);	\
+		./test-build/$$source.bin; \
+	done;
+
 
 clean:
 	- rm $(BUILD_ARTIFACTS)

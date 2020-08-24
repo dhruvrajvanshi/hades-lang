@@ -1,0 +1,18 @@
+import example.logging as log;
+import libc as c;
+
+const ERROR_EXIT: i32 = 1;
+
+def panic_with_errno(message: *Byte): Void {
+    c.perror(message);
+    log.fatal(b"Exiting");
+    c.exit(ERROR_EXIT);
+}
+
+def panic(message: *Byte): Void {
+    log.fatal(message);
+    log.fatal(b"Exiting");
+    c.exit(ERROR_EXIT);
+}
+
+

@@ -1,0 +1,16 @@
+import example.assert as Assert;
+import example.http.Request as HTTPRequest;
+import example.http.Method as HTTPMethod;
+import example.StringView as StringView;
+import example.logging as log;
+
+const sv = StringView.from_c_string;
+const assert = Assert.assert;
+
+def main(): Void {
+    val request_1 = HTTPRequest.from_string_view(b"HTTP/1.1 GET /test\r\n" |> StringView.from_c_string);
+
+    assert(request_1.method().equals(HTTPMethod.GET()), b"Should parse GET method from status correctly");
+    assert(request_1.uri().equals(sv(b"/test")), b"Should parse URI correctly");
+
+}

@@ -1,0 +1,28 @@
+import example.http.Method as Method;
+import example.StringView as StringView;
+import example.logging as log;
+
+import example.assert as Assert;
+const assert = Assert.assert;
+
+struct t {
+    val m_uri: StringView.t;
+    val m_method: Method.t;
+}
+
+def from_string_view(text: StringView.t): t {
+    assert(text.starts_with_c(b"HTTP/1.1"), b"Unhandled HTTP version");
+    val method = text.drop_first_word().take_first_word();
+    val uri = text.drop_first_word().drop_first_word().take_first_word();
+    return t(uri, Method.from_string_view(method));
+}
+
+extension RequestExtensions for t {
+    def method(this): Method.t {
+        return this.m_method;
+    }
+    
+    def uri(this): StringView.t {
+        return this.m_uri;
+    }
+}

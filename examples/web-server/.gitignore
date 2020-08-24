@@ -1,4 +1,5 @@
 web-server
 web-server.o
 web-server.o.ll
-web-server.dSYM
+*.dSYM
+test-build
