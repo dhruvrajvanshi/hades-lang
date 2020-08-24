@@ -13,6 +13,7 @@ import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
+import java.io.File
 import java.nio.charset.StandardCharsets
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
@@ -541,6 +542,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val objectFilePath get() = ctx.options.output.toString() + ".o"
 
     private fun writeModuleToFile() {
+        if (ctx.options.output.toAbsolutePath().parent == null ||
+            !ctx.options.output.toAbsolutePath().toFile().exists()) {
+            ctx.options.output.toAbsolutePath().toFile().mkdirs()
+        } else {
+            require(ctx.options.output.parent.toAbsolutePath().toFile().isDirectory)
+        }
         log.debug("Writing object file")
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()
