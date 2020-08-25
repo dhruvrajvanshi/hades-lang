@@ -3,14 +3,21 @@ import libc as c;
 interface Printable[Self] {
     def print(self: Self, file: *c.File): Void;
 }
+// struct Printable[Self] {
+//     val print: (Self, *c.File, *Void) -> Void;
+//     val ctx: *Void;
+// }
 
 implementation printable_bool: Printable[Bool] {
     def print(self: Bool, file: *c.File): Void {
         if self {
             c.fputs(b"true", file);
+        } else {
+            c.fputs(b"false", file);
         }
     }
 }
+// const printable_bool: Printable[Bool] = { printable_bool.print; nullptr; }
 
 implementation printable_box[T]: Printable[Box[T]] where(printable_t: Printable[T]) {
     def print(self: Box[T], file: *c.File): Void {
@@ -19,6 +26,9 @@ implementation printable_box[T]: Printable[Box[T]] where(printable_t: Printable[
         c.fputs(b")");
     }
 }
+
+// def printable_box.print(printable_box): Void {}
+// const printable_box: Pritable[Box] = { printable_box.print, printable_bool }
 
 struct Box[T] {
     val value: T;
@@ -31,14 +41,26 @@ def print_alias[T](value: T) where(printable_t: Printable[T]): Void {
     print(value);
 }
 
+// def print[T](value: T, printable_t: *Printable[T]): Void {
+//     printable_t.print(value, c.stdout(), printable_t.ctx);
+// }
+
 def println[T](value: T) where(printable_t: Printable[T]): Void {
     print(value);
-    c.fputs(b"\n");
+    c.fputs(b"\n", c.stdout());
 }
+
+// def println[T](value: T, printable_t: Printable[T]): Void {
+//     print(value, printable_t);
+//     c.fputs(b"\n", c.stdout());
+// }
 
 def main(): Void {
     println(true);
+    // println[Bool](true, &printable_bool)
     println(false);
+
+    // println[Box[Bool]](Box(true), &printable_box[T]);
     println(Box(true));
     println(Box(false));
 }
