@@ -118,6 +118,15 @@ sealed class Declaration : HasLocation {
             val params: List<TypeParam>,
             val signatures: List<FunctionSignature>
     ) : Declaration()
+
+    data class ImplementationDef(
+            override val location: SourceLocation,
+            val name: Binder,
+            val typeParams: List<TypeParam>?,
+            val typeAnnotation: TypeAnnotation,
+            val whereClause: WhereClause?,
+            val body: List<Declaration>,
+    ) : Declaration()
 }
 
 

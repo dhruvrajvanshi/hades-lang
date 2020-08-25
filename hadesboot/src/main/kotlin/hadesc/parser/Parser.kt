@@ -105,12 +105,37 @@ class Parser(
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.EXTENSION -> parseExtensionDef()
             tt.INTERFACE -> parseInterfaceDef()
+            tt.IMPLEMENTATION -> parseImplementationDef()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseImplementationDef(): Declaration {
+        val start = expect(tt.IMPLEMENTATION)
+        val name = parseBinder()
+        val typeParams = parseOptionalTypeParams()
+        expect(tt.COLON)
+        val annotation = parseTypeAnnotation()
+        val whereClause = parseOptionalWhereClause()
+        expect(tt.LBRACE)
+        val defs = buildList {
+            while (!at(tt.EOF) && !at(tt.RBRACE)) {
+                add(parseDeclaration())
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.ImplementationDef(
+                makeLocation(start, stop),
+                name,
+                typeParams,
+                annotation,
+                whereClause,
+                defs
+        )
     }
 
     private fun parseInterfaceDef(): Declaration {

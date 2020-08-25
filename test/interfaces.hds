@@ -45,7 +45,8 @@ def print_alias[T](value: T) where(printable_t: Printable[T]): Void {
 //     printable_t.print(value, c.stdout(), printable_t.ctx);
 // }
 
-def println[T](value: T) where(printable_t: Printable[T]): Void {
+def println[T](value: T): Void
+    where(printable_t: Printable[T]) {
     print(value);
     c.fputs(b"\n", c.stdout());
 }

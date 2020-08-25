@@ -219,6 +219,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
                 is Declaration.InterfaceDef -> TODO()
+                is Declaration.ImplementationDef -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -362,6 +363,7 @@ class Resolver(private val ctx: Context) {
                             is Declaration.TypeAlias -> null
                             is Declaration.ExtensionDef -> null
                             is Declaration.InterfaceDef -> TODO()
+                            is Declaration.ImplementationDef -> TODO()
                         }
                         if (binding != null) {
                             break
@@ -410,6 +412,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
                 is Declaration.ExtensionDef -> false
                 is Declaration.InterfaceDef -> TODO()
+                is Declaration.ImplementationDef -> TODO()
             })
             if (match) {
                 return decl
@@ -471,6 +474,7 @@ class Resolver(private val ctx: Context) {
                 }
                 is Declaration.ExtensionDef -> null
                 is Declaration.InterfaceDef -> TODO()
+                is Declaration.ImplementationDef -> TODO()
             }
             if (decl != null) {
                 return decl

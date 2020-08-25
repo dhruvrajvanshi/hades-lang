@@ -297,6 +297,7 @@ class Checker(
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
             is Declaration.InterfaceDef -> TODO()
+            is Declaration.ImplementationDef -> TODO()
         })
     }
 
