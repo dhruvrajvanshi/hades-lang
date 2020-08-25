@@ -29,6 +29,7 @@ sealed class Type {
 
     data class Function(
         val from: List<Type>,
+        val whereParams: List<Type>?,
         val to: Type
     ) : Type()
 
@@ -92,6 +93,7 @@ sealed class Type {
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
                 from = this.from.map { it.recurse() },
+                whereParams = this.whereParams?.map { it.recurse() },
                 to = this.to.recurse()
             )
             is ParamRef -> {

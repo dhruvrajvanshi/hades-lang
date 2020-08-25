@@ -52,7 +52,8 @@ interface TypeTransformer {
 
     fun lowerFunctionType(type: Type.Function): Type = Type.Function(
             from = type.from.map { lowerType(it) },
-            to = lowerType(type.to)
+            to = lowerType(type.to),
+            whereParams = type.whereParams?.map { lowerType(it) }
     )
 
     fun lowerSizeType(type: Type): Type = type

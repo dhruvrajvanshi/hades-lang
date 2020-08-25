@@ -74,7 +74,8 @@ class Checker(
                             ?: Type.Error
 
                 },
-                to = annotationToType(memberSignature.returnType).applySubstitution(substitution)
+                to = annotationToType(memberSignature.returnType).applySubstitution(substitution),
+                whereParams = null
         )
         return PropertyBinding.WhereParamRef(
                 interfaceDef,
@@ -130,7 +131,10 @@ class Checker(
                 from = listOf(receiverType) + functionDef.params.mapIndexed { paramIndex, _ ->
                     typeOfParam(functionDef, paramIndex)
                 },
-                to = annotationToType(functionDef.signature.returnType)
+                to = annotationToType(functionDef.signature.returnType),
+                whereParams = functionDef.signature.whereClause?.params?.map {
+                    it.annotation?.let { annot -> annotationToType(annot) } ?: Type.Error
+                }
             )
             if (extensionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
@@ -933,7 +937,7 @@ class Checker(
             )
         }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
-        val functionType = Type.Function(from = fieldTypes, to = instanceType)
+        val functionType = Type.Function(from = fieldTypes, to = instanceType, whereParams = null)
         val type = if (binding.declaration.typeParams == null) {
             functionType
         } else {
@@ -979,7 +983,8 @@ class Checker(
         return Type.Ptr(
                 to = Type.Function(
                         from = declaration.paramTypes.map { annotationToType(it) },
-                        to = annotationToType(declaration.returnType)
+                        to = annotationToType(declaration.returnType),
+                        whereParams = null
                 ),
                 isMutable = false
         )
@@ -989,7 +994,11 @@ class Checker(
         val functionType = Type.Function(
                 from = declaration.params.map { param ->
                     param.annotation?.let { annotationToType(it) } ?: Type.Error },
-                to = annotationToType(declaration.signature.returnType)
+                to = annotationToType(declaration.signature.returnType),
+                whereParams = declaration.signature.whereClause?.params?.map {
+                    it.annotation?.let { annot -> annotationToType(annot) }
+                            ?: Type.Error
+                }
         )
         val typeParams = declaration.typeParams
         val type = if (typeParams != null) {
@@ -1225,7 +1234,8 @@ class Checker(
     private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {
         return Type.Function(
             from = annotation.from.map { annotationToType(it) },
-            to = annotationToType(annotation.to)
+            to = annotationToType(annotation.to),
+            whereParams = null
         )
     }
 

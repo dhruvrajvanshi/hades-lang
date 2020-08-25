@@ -39,8 +39,12 @@ class HIRGen(
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
-        is Declaration.InterfaceDef -> TODO()
+        is Declaration.InterfaceDef -> lowerInterfaceDef(declaration)
         is Declaration.ImplementationDef -> TODO()
+    }
+
+    private fun lowerInterfaceDef(declaration: Declaration.InterfaceDef): List<HIRDefinition> {
+        TODO()
     }
 
     private var currentExtensionDef: Declaration.ExtensionDef? = null
