@@ -14,6 +14,7 @@ import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
+import kotlin.math.exp
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -25,7 +26,6 @@ class Checker(
     private val genericInstances = mutableMapOf<Long, Type>()
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
-
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
         if (modulePropertyBinding != null) {
             return PropertyBinding.Global(modulePropertyBinding)
@@ -34,6 +34,11 @@ class Checker(
         val fieldBinding = resolveStructFieldBinding(expression)
         if (fieldBinding != null) {
             return fieldBinding
+        }
+
+        val interfaceProperty = resolveInterfaceProperty(expression)
+        if (interfaceProperty != null) {
+            return interfaceProperty
         }
 
         val elementPointerBinding = resolveElementPointerBinding(expression)
@@ -49,6 +54,33 @@ class Checker(
         error(expression.property, Diagnostic.Kind.NoSuchProperty(
             inferExpression(expression.lhs), expression.property.name))
         return null
+    }
+
+    private fun resolveInterfaceProperty(expression: Expression.Property): PropertyBinding? {
+        if (expression.lhs !is Expression.Var) {
+            return null
+        }
+        ctx.resolver.resolve(expression.lhs.name) ?: return null
+        val lhsType = inferExpression(expression.lhs)
+        val interfaceDef = getInterfaceDefOfType(lhsType) ?: return null
+        val memberIndex = interfaceDef.signatures.indexOfFirst { it.name.identifier.name == expression.property.name }
+        val memberSignature = interfaceDef.signatures[memberIndex]
+        val interfaceTypeArgs = if (lhsType is Type.Application) lhsType.args else emptyList()
+        val substitution = interfaceDef.params.zip(interfaceTypeArgs).map {
+            it.first.binder.location to it.second }.toMap()
+        val type = Type.Function(
+                from = memberSignature.params.map {
+                    it.annotation?.let { annot -> annotationToType(annot).applySubstitution(substitution) }
+                            ?: Type.Error
+
+                },
+                to = annotationToType(memberSignature.returnType).applySubstitution(substitution)
+        )
+        return PropertyBinding.WhereParamRef(
+                interfaceDef,
+                memberIndex,
+                type = type
+        )
     }
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
@@ -191,11 +223,24 @@ class Checker(
         return when (lhsType) {
             is Type.Constructor -> {
                 val decl = ctx.resolver.resolveDeclaration(lhsType.name)
-                require(decl is Declaration.Struct)
-                decl
+                if (decl is Declaration.Struct) decl
+                else null
             }
             is Type.Application -> {
                 getStructDeclOfType(lhsType.callee)
+            }
+            else -> null
+        }
+    }
+    private fun getInterfaceDefOfType(lhsType: Type): Declaration.InterfaceDef? {
+        return when (lhsType) {
+            is Type.Constructor -> {
+                val decl = ctx.resolver.resolveDeclaration(lhsType.name)
+                if (decl is Declaration.InterfaceDef) decl
+                else null
+            }
+            is Type.Application -> {
+                getInterfaceDefOfType(lhsType.callee)
             }
             else -> null
         }
@@ -830,6 +875,7 @@ class Checker(
                 is PropertyBinding.StructField -> binding.type
                 is PropertyBinding.StructFieldPointer -> binding.type
                 is PropertyBinding.ExtensionDef -> binding.type
+                is PropertyBinding.WhereParamRef -> binding.type
                 null -> Type.Error
             }
 
@@ -1236,6 +1282,18 @@ class Checker(
         else annotationToType(binding.declaration.rhs)
     }
 
+    private fun typeOfInterfaceTypeBinding(binding: TypeBinding.Interface): Type {
+        val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
+        val typeConstructor = Type.Constructor(binder = binding.declaration.name, name = qualifiedName)
+
+        return Type.TypeFunction(
+            params = binding.declaration.params.map { Type.Param(it.binder) },
+            body = Type.Application(
+                    typeConstructor,
+                    args = binding.declaration.params.map { Type.ParamRef(it.binder) }
+            )
+        )
+    }
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
         val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
         val typeConstructor = Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
@@ -1295,7 +1353,7 @@ class Checker(
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.Enum -> TODO()
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
-            is TypeBinding.Interface -> Type.InterfaceConstructor(binding.declaration.name)
+            is TypeBinding.Interface -> typeOfInterfaceTypeBinding(binding)
         }
     }
 

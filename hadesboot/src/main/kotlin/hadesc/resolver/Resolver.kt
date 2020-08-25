@@ -92,6 +92,9 @@ class Resolver(private val ctx: Context) {
             if (param != null) TypeBinding.TypeParam(param.binder) else null
         }
         is ScopeTree.InterfaceDef -> {
+            if (scopeNode.declaration.name.identifier.name == ident.name) {
+                TypeBinding.Interface(scopeNode.declaration)
+            }
             scopeNode.declaration.params.find {
                 it.binder.identifier.name == ident.name
             }?.let { TypeBinding.TypeParam(it.binder) }

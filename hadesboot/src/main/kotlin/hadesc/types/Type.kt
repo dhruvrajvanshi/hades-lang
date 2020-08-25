@@ -33,7 +33,6 @@ sealed class Type {
     ) : Type()
 
     data class Constructor(val binder: Binder?, val name: QualifiedName) : Type()
-    data class InterfaceConstructor(val binder: Binder) : Type()
 
     data class ParamRef(val name: Binder) : Type()
 
@@ -73,7 +72,6 @@ sealed class Type {
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
         is Integral -> "${if(isSigned) "i" else "u" }${size}"
         is FloatingPoint -> "f${size}"
-        is InterfaceConstructor -> binder.identifier.name.text
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
@@ -110,7 +108,6 @@ sealed class Type {
                     params,
                     body.recurse()
             )
-            is InterfaceConstructor -> this
         }
     }
 
