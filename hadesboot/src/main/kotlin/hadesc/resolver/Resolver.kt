@@ -91,6 +91,11 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder) else null
         }
+        is ScopeTree.InterfaceDef -> {
+            scopeNode.declaration.params.find {
+                it.binder.identifier.name == ident.name
+            }?.let { TypeBinding.TypeParam(it.binder) }
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -130,6 +135,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
+        is ScopeTree.InterfaceDef -> null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
@@ -294,6 +300,9 @@ class Resolver(private val ctx: Context) {
             is Declaration.ExtensionDef -> {
                 addScopeNode(declaration.location.file, ScopeTree.ExtensionDef(declaration))
             }
+            is Declaration.InterfaceDef -> {
+                addScopeNode(declaration.location.file, ScopeTree.InterfaceDef(declaration))
+            }
             else -> {}
         }
     }
@@ -362,8 +371,8 @@ class Resolver(private val ctx: Context) {
                             }
                             is Declaration.TypeAlias -> null
                             is Declaration.ExtensionDef -> null
-                            is Declaration.InterfaceDef -> TODO()
-                            is Declaration.ImplementationDef -> TODO()
+                            is Declaration.InterfaceDef -> null
+                            is Declaration.ImplementationDef -> null
                         }
                         if (binding != null) {
                             break
@@ -371,10 +380,7 @@ class Resolver(private val ctx: Context) {
                     }
                     binding
                 }
-                is ScopeTree.MatchArm -> null
-                is ScopeTree.TypeAlias -> null
-                is ScopeTree.Enum -> null
-                is ScopeTree.ExtensionDef -> null
+                else -> null
             }
             if (binding != null) {
                 return binding
