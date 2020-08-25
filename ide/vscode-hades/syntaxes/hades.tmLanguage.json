@@ -42,6 +42,9 @@
 					"include": "#interface-def"
 				},
 				{
+					"include": "#implementation-def"
+				},
+				{
 					"include": "#type-alias"
 				},
 				{
@@ -93,10 +96,10 @@
 		},
 		"function-signature": {
 			"begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "[=;}]",
+			"end": "(?=[={;])",
 			"beginCaptures": {
 				"1": {
-					"name": "keyword.hades"
+					"name": "keyword"
 				},
 				"2": {
 					"name": "entity.name.function.hades"
@@ -105,22 +108,186 @@
 			"patterns": [
 				{
 					"include": "#comments"
+				},
+				{
+					"include": "#type-parameter-list"
+				},
+				{
+					"include": "#parameter-list"
+				},
+				{
+					"include": "#where-parameter-list"
+				}
+			]
+		},
+		"where-parameter-list": {
+			"begin": "\\b(where)\\b",
+			"end": "(?<=\\))",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#parameter-list"
+				}
+			]
+		},
+		"parameter-list": {
+			"begin": "\\(",
+			"end": "\\)",
+			"patterns": [
+				{
+					"match": "\\b(\\*)?(mut\\s+)?(this)\\b",
+					"captures": {
+						"2": { "name": "keyword.control" },
+						"3": { "name": "keyword" }
+					}
+				},
+				{
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\:)",
+					"captures": {
+						"1": { "name": "variable.parameter" }
+					}
+				},
+				{
+					"include": "#colon-and-type-annotation"
+				},
+				{
+					"include": "#comments"
+				}
+			]
+		},
+		"colon-and-type-annotation": {
+			"begin": "\\:",
+			"end": "(?=([,\\)={;])|where|def)",
+			"patterns": [
+				{
+					"include": "#type-annotations"
+				}
+			]
+		},
+		"type-parameter-list": {
+			"begin": "(\\[)",
+			"end": "(\\])",
+			"patterns": [
+				{
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+					"captures": {
+						"1": { "name": "entity.name.class" }
+					}
+				},
+				{
+					"include": "#comments"
+				}
+			]
+		},
+		"implementation-def": {
+			"begin": "\\b(implementation)\\b",
+			"end": "(?<=[}])",
+			"beginCaptures": {
+				"1": { "name": "keyword" }
+			},
+			"patterns": [
+				{
+					"begin": "(?<=(\\bimplementation\\s+))([a-zA-Z_][a-zA-Z0-9_]*)",
+					"end": "(?=\\:)",
+					"beginCaptures": {
+						"2": { "name": "entity.name.class" }
+					}
+				},
+				{
+					"include": "#colon-and-type-annotation"
+				},
+				{
+					"include": "#where-parameter-list"
+				},
+				{
+					"begin": "(?=\\[)",
+					"end": "(?<=\\])",
+					"patterns": [
+						{
+							"include": "#type-parameter-list"
+						},
+						{
+							"include": "#comments"
+						}
+					]
+				},
+				{
+					"begin": "{",
+					"end": "}",
+					"patterns": [
+						{
+							"include": "#function-def"
+						},
+						{
+							"include": "#comments"
+						}
+					]
 				}
 			]
 		},
 		"interface-def": {
-			"begin": "\\b(interface)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "([}])",
+			"begin": "\\b(interface)\\b",
+			"end": "(?<=[}])",
 			"beginCaptures": {
-				"1": { "name": "keyword" },
-				"2": { "name": "entity.name.class" }
+				"1": { "name": "keyword" }
 			},
 			"patterns": [
 				{
-					"include": "#function-signature"
+					"include": "#comments"
 				},
 				{
-					"include": "#comments"
+					"begin": "(?<=\\binterface\\s+)([a-zA-Z_][a-zA-Z0-9_]*)",
+					"end": "(?<=[}])",
+					"beginCaptures": {
+						"1": { "name": "entity.name.class" }
+					},
+					"patterns": [
+						{
+							"include": "#commends"
+						},
+						{
+							"begin": "([\\[])",
+							"end": "([\\]]\\s+)",
+							"patterns": [
+								{
+									"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+									"captures": {
+										"1": { "name": "variable.parameter" }
+									}
+									
+								}
+							]
+						},
+						{
+							"begin": "(?<=[{])",
+							"end": "([}])",
+							"patterns": [
+								{
+									"include": "#function-signature"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		"type-annotations": {
+			"patterns": [
+				{
+					"match": "\\b(Bool|Void|Size|u8|i8|i16|u16|i32|u32|i64|u64|f32|f64)",
+					"captures": {
+						"1": { "name": "constant.language" }
+					}
+				},
+				{
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+					"captures": {
+						"1": { "name": "entity.name.class" }
+					}
 				}
 			]
 		},
@@ -133,7 +300,7 @@
 			}
 		},
 		"function-def": {
-			"begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"begin": "\\b(?=def)\\b",
 			"end": "(?<=[}])",
 			"beginCaptures": {
 				"1": {
@@ -145,41 +312,12 @@
 			},
 			"patterns": [
 				{
-					"include": "#function-def-signature"
+					"include": "#function-signature"
 				},
 				{
 					"include": "#block"
 				}
 			]
-		},
-		"function-def-signature": {
-			"begin": "(?<=(def)\\s+([a-zA=Z_][a-zA-Z0-9_]*))",
-			"end": "(?=[{])",
-			"patterns": [
-				{
-					"include": "#function-def-signature-param-list"
-				}
-			]
-		},
-		"function-def-signature-param-list": {
-			"begin": "(\\((\\*?)(mut\\s+)?(this)?)",
-			"end": "\\)",
-			"beginCaptures": {
-				"3": {"name": "keyword.control"},
-				"4": {"name": "keyword.hades"}
-			},
-			"patterns": [
-				{
-					"include": "#param"
-				}
-			]
-		},
-		"param": {
-			"begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "(?=[,)])",
-			"beginCaptures": {
-				"1": { "name": "variable.parameter" }
-			}
 		},
 		"import-as": {
 			"begin": "\\b(import)\\s+([a-zA-Z_][a-zA-Z0-9]*)\\b(\\.[a-zA-Z_][a-zA-Z0-9_]*)*\\s+(as)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
@@ -437,6 +575,9 @@
 				}
 			},
 			"patterns": [
+				{
+					"include": "#colon-and-type-annotation"
+				},
 				{
 					"include": "#expressions"
 				}
