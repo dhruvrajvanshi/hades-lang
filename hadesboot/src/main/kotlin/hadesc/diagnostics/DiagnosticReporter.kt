@@ -49,6 +49,7 @@ data class Diagnostic(
         data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
         data class NotAPointerType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
         data class UnboundTypePath(val path: QualifiedPath) : Diagnostic.Kind(Severity.ERROR)
+        data class DuplicateDeclaration(val existingBindingLocation: SourceLocation) : Diagnostic.Kind(Severity.ERROR)
 
         object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
@@ -84,6 +85,9 @@ data class Diagnostic(
         object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
         object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
         object OnlyFunctionDefsAllowedInsideExtensionDefs : Diagnostic.Kind(Severity.ERROR)
+        object MissingInterfaceThisParam : Diagnostic.Kind(Severity.ERROR)
+        object ReceiverParamsNotAllowedInInterfaceFunctions : Diagnostic.Kind(Severity.ERROR)
+        object TypeParamsNotAllowedInInterfaceFunctions : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -142,6 +146,10 @@ data class Diagnostic(
             UnknownAnnotation -> "Unknown annotation"
             InvalidPipelineExpression -> "This expression type is not a valid pipeline expression"
             OnlyFunctionDefsAllowedInsideExtensionDefs -> "Only function definitions are allowed inside extensions."
+            MissingInterfaceThisParam -> "interface defs must have a This type param"
+            ReceiverParamsNotAllowedInInterfaceFunctions -> "Receiver params not are allowed in interface functions"
+            TypeParamsNotAllowedInInterfaceFunctions -> "Type params are not allowed in interface functions"
+            is DuplicateDeclaration -> "Duplicate binding. Previously defined at $existingBindingLocation."
         }
 
     }

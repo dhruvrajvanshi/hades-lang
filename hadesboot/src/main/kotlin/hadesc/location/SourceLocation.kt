@@ -47,7 +47,9 @@ data class Position(
     }
 }
 
-inline class SourcePath(val path: Path)
+inline class SourcePath(val path: Path) {
+    override fun toString(): String = path.toString()
+}
 
 
 data class SourceLocation(

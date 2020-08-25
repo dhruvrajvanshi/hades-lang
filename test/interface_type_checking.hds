@@ -1,0 +1,11 @@
+
+interface NoParams {
+}
+
+interface I[This] {
+    def foo(): Void;
+    def foo(): Void; // duplicate function
+
+    def f1(this): Void; // this param not allowed in interfaces
+    def f2[T](): Void; // type params not allowed in interface functions
+}

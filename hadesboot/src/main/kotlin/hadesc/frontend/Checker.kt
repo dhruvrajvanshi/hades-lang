@@ -296,9 +296,32 @@ class Checker(
             is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
-            is Declaration.InterfaceDef -> TODO()
+            is Declaration.InterfaceDef -> checkInterfaceDef(declaration)
             is Declaration.ImplementationDef -> TODO()
         })
+    }
+
+    private fun checkInterfaceDef(declaration: Declaration.InterfaceDef) {
+        declaration.params.forEach { checkTypeParam(it) }
+        if (declaration.params.isEmpty()) {
+            error(declaration.name, Diagnostic.Kind.MissingInterfaceThisParam)
+        }
+        val methodSet = mutableMapOf<Name, SourceLocation>()
+        declaration.signatures.forEach {
+            checkFunctionSignature(it)
+            val existingBindingLocation = methodSet[it.name.identifier.name]
+            if (existingBindingLocation != null) {
+                error(it.name, Diagnostic.Kind.DuplicateDeclaration(existingBindingLocation))
+            }
+            methodSet[it.name.identifier.name] = it.location
+            if (it.thisParamFlags != null) {
+                error(it.name, Diagnostic.Kind.ReceiverParamsNotAllowedInInterfaceFunctions)
+            }
+            it.typeParams?.forEach { typeParam ->
+                error(typeParam, Diagnostic.Kind.TypeParamsNotAllowedInInterfaceFunctions)
+            }
+
+        }
     }
 
     var thisParamType: Type? = null

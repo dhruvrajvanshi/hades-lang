@@ -1,0 +1,4 @@
+test/interface_type_checking.hds:2: MissingInterfaceThisParam
+test/interface_type_checking.hds:7: DuplicateDeclaration
+test/interface_type_checking.hds:9: ReceiverParamsNotAllowedInInterfaceFunctions
+test/interface_type_checking.hds:10: TypeParamsNotAllowedInInterfaceFunctions
