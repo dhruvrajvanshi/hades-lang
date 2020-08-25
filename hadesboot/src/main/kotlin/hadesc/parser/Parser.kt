@@ -189,7 +189,13 @@ class Parser(
 
     private fun parseOptionalWhereClause(): WhereClause? {
         return if (at(tt.WHERE)) {
-            TODO()
+            val start = advance()
+            expect(tt.LPAREN)
+            val params = parseSeperatedList(seperator = tt.COMMA, terminator = tt.RPAREN) {
+                parseParam()
+            }
+            val stop = expect(tt.RPAREN)
+            WhereClause(makeLocation(start, stop), params)
         } else {
             null
         }

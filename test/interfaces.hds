@@ -34,10 +34,10 @@ struct Box[T] {
     val value: T;
 }
 
-def print[T](value: T) where(printable_t: Printable[T]): Void {
+def print[T](value: T): Void where(printable_t: Printable[T]) {
     printable_t.print(value, c.stdout());
 }
-def print_alias[T](value: T) where(printable_t: Printable[T]): Void {
+def print_alias[T](value: T): Void where(printable_t: Printable[T]) {
     print(value);
 }
 
