@@ -56,7 +56,7 @@ class Resolver(private val ctx: Context) {
             }
             when {
                 param != null -> {
-                    TypeBinding.TypeParam(param.binder, param.bound)
+                    TypeBinding.TypeParam(param.binder)
                 }
                 ident.name == scopeNode.declaration.binder.identifier.name -> {
                     TypeBinding.Struct(scopeNode.declaration)
@@ -71,7 +71,7 @@ class Resolver(private val ctx: Context) {
                 it.binder.identifier.name == ident.name
             }
             when {
-                param != null -> TypeBinding.TypeParam(param.binder, param.bound)
+                param != null -> TypeBinding.TypeParam(param.binder)
                 ident.name == scopeNode.declaration.name.identifier.name -> {
                     TypeBinding.Enum(scopeNode.declaration)
                 }
@@ -83,13 +83,13 @@ class Resolver(private val ctx: Context) {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
             }
-            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
+            if (param != null) TypeBinding.TypeParam(param.binder) else null
         }
         is ScopeTree.ExtensionDef -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
             }
-            if (param != null) TypeBinding.TypeParam(param.binder, param.bound) else null
+            if (param != null) TypeBinding.TypeParam(param.binder) else null
         }
     }
 
@@ -97,7 +97,7 @@ class Resolver(private val ctx: Context) {
         val typeParams = declaration.typeParams ?: return null
         typeParams.forEach {
             if (it.binder.identifier.name == ident.name) {
-                return TypeBinding.TypeParam(it.binder, it.bound)
+                return TypeBinding.TypeParam(it.binder)
             }
         }
         return null
@@ -218,6 +218,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
+                is Declaration.InterfaceDef -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -360,6 +361,7 @@ class Resolver(private val ctx: Context) {
                             }
                             is Declaration.TypeAlias -> null
                             is Declaration.ExtensionDef -> null
+                            is Declaration.InterfaceDef -> TODO()
                         }
                         if (binding != null) {
                             break
@@ -407,6 +409,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
                 is Declaration.ExtensionDef -> false
+                is Declaration.InterfaceDef -> TODO()
             })
             if (match) {
                 return decl
@@ -467,6 +470,7 @@ class Resolver(private val ctx: Context) {
                     null
                 }
                 is Declaration.ExtensionDef -> null
+                is Declaration.InterfaceDef -> TODO()
             }
             if (decl != null) {
                 return decl

@@ -26,7 +26,7 @@ data class Token(
         POINTER_CAST,
         MUT,
         INTERFACE,
-        IMPLEMENT,
+        IMPLEMENTATION,
         FOR,
         MATCH,
         ENUM,

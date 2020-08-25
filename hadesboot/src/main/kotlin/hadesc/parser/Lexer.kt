@@ -30,6 +30,7 @@ val KEYWORDS = mapOf(
     "pointer_cast" to tt.POINTER_CAST,
     "mut" to tt.MUT,
     "interface" to tt.INTERFACE,
+    "implementation" to tt.IMPLEMENTATION,
     "for" to tt.FOR,
     "match" to tt.MATCH,
     "enum" to tt.ENUM,

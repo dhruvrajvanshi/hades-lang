@@ -9,7 +9,7 @@ sealed class TypeBinding {
             val declaration: Declaration.Struct
     ) : TypeBinding()
 
-    data class TypeParam(val binder: Binder, val bound: InterfaceRef?) : TypeBinding()
+    data class TypeParam(val binder: Binder) : TypeBinding()
 
     data class Enum(
             val declaration: Declaration.Enum

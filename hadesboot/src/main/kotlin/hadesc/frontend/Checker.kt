@@ -296,6 +296,7 @@ class Checker(
             is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
+            is Declaration.InterfaceDef -> TODO()
         })
     }
 

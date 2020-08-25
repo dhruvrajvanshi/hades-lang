@@ -14,7 +14,7 @@ internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
-        tt.INTERFACE, tt.IMPLEMENT, tt.AT_SYMBOL,
+        tt.INTERFACE, tt.IMPLEMENTATION, tt.AT_SYMBOL,
         tt.TYPE, tt.EXTENSION
 )
 private val statementPredictors = setOf(
@@ -104,12 +104,33 @@ class Parser(
             tt.ENUM -> parseEnumDeclaration()
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.EXTENSION -> parseExtensionDef()
+            tt.INTERFACE -> parseInterfaceDef()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseInterfaceDef(): Declaration {
+        val start = expect(tt.INTERFACE)
+        val binder = parseBinder()
+        val typeParams = parseOptionalTypeParams() ?: emptyList()
+        expect(tt.LBRACE)
+        val signatures = buildList {
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                add(parseFunctionSignature())
+                expect(tt.SEMICOLON)
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.InterfaceDef(
+                makeLocation(start, stop),
+                binder,
+                typeParams,
+                signatures
+        )
     }
 
     private fun parseExtensionDef(): Declaration.ExtensionDef {
@@ -143,42 +164,10 @@ class Parser(
 
     private fun parseOptionalWhereClause(): WhereClause? {
         return if (at(tt.WHERE)) {
-            val start = advance()
-            val constraints = parseSeperatedList(tt.COMMA, terminator = tt.LBRACE) {
-                parseWhereClauseConstraint()
-            }
-            val stop: HasLocation = constraints.lastOrNull() ?: start
-            WhereClause(
-                location = makeLocation(start, stop),
-                constraints = constraints
-            )
+            TODO()
         } else {
             null
         }
-    }
-
-    private fun parseWhereClauseConstraint(): WhereClauseConstraint {
-        val ident = parseIdentifier()
-        expect(tt.COLON)
-        val interfaceRef = parseInterfaceRef()
-        return WhereClauseConstraint(
-            ident,
-            interfaceRef
-        )
-    }
-
-    private fun parseInterfaceRef(): InterfaceRef {
-        val path = parseQualifiedPath()
-        val typeArgs = if (at(tt.LSQB)) {
-            advance()
-            val args = parseSeperatedList(tt.COLON, tt.RSQB) { parseTypeAnnotation() }
-            expect(tt.RSQB)
-            args
-        } else null
-        return InterfaceRef(
-                path,
-                typeArgs
-        )
     }
 
     private fun parseFunctionSignature(): FunctionSignature {
@@ -399,11 +388,7 @@ class Parser(
 
     private fun parseTypeParam(): TypeParam {
         val binder = parseBinder()
-        val bound = if (at(tt.COLON)) {
-            advance()
-            parseInterfaceRef()
-        } else null
-        return TypeParam(binder, bound)
+        return TypeParam(binder)
     }
 
     private fun parseBlock(): Block {
