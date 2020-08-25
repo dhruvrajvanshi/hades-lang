@@ -482,7 +482,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Integral -> IntType(type.size, llvmCtx)
         is Type.FloatingPoint -> FloatType(type.size, llvmCtx)
         is Type.TypeFunction -> requireUnreachable()
-
+        is Type.InterfaceConstructor -> TODO()
     }
 
     private var nextLiteralIndex = 0

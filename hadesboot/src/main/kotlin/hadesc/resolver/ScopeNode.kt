@@ -20,6 +20,7 @@ sealed class ScopeTree {
     data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeTree()
     data class ExtensionDef(val declaration: Declaration.ExtensionDef) : ScopeTree()
     data class InterfaceDef(val declaration: Declaration.InterfaceDef) : ScopeTree()
+    data class ImplementationDef(val declaration: Declaration.ImplementationDef) : ScopeTree()
 
     val location
         get(): SourceLocation = when (this) {
@@ -32,5 +33,6 @@ sealed class ScopeTree {
             is TypeAlias -> declaration.location
             is ExtensionDef -> declaration.location
             is InterfaceDef -> declaration.location
+            is ImplementationDef -> declaration.location
         }
 }

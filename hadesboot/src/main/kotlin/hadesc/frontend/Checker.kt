@@ -297,8 +297,30 @@ class Checker(
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
             is Declaration.InterfaceDef -> checkInterfaceDef(declaration)
-            is Declaration.ImplementationDef -> TODO()
+            is Declaration.ImplementationDef -> checkImplementationDef(declaration)
         })
+    }
+
+    private fun checkImplementationDef(implDef: Declaration.ImplementationDef) {
+        val interfaceType = annotationToType(implDef.typeAnnotation)
+        implDef.typeParams?.forEach {
+            checkTypeParam(it)
+        }
+        implDef.whereClause?.let { checkWhereClause(it) }
+        for (declaration in implDef.body) {
+            checkDeclaration(declaration)
+            if (declaration !is Declaration.FunctionDef) {
+                error(declaration, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideImplDefs)
+            }
+        }
+    }
+
+    private fun checkWhereClause(whereClause: WhereClause) {
+        whereClause.params.forEach {
+            if (it.annotation == null) {
+                error(it, Diagnostic.Kind.MissingTypeAnnotation)
+            }
+        }
     }
 
     private fun checkInterfaceDef(declaration: Declaration.InterfaceDef) {
@@ -835,6 +857,11 @@ class Checker(
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
+        is Binding.WhereParam -> typeOfWhereParamBinding(binding)
+    }
+
+    private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {
+        return binding.param.annotation?.let { annotationToType(it) } ?: Type.Error
     }
 
     private fun typeOfGlobalConstBinding(binding: Binding.GlobalConst): Type {
@@ -1268,6 +1295,7 @@ class Checker(
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.Enum -> TODO()
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
+            is TypeBinding.Interface -> Type.InterfaceConstructor(binding.declaration.name)
         }
     }
 

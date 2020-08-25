@@ -21,6 +21,11 @@ interface TypeTransformer {
         is Type.TypeFunction -> lowerTypeFunction(type)
         is Type.Integral -> lowerIntegralType(type)
         is Type.FloatingPoint -> lowerFloatingPointType(type)
+        is Type.InterfaceConstructor -> lowerInterfaceConstructorType(type)
+    }
+
+    fun lowerInterfaceConstructorType(type: Type.InterfaceConstructor): Type {
+        return Type.InterfaceConstructor(type.binder)
     }
 
     fun lowerFloatingPointType(type: Type.FloatingPoint): Type {

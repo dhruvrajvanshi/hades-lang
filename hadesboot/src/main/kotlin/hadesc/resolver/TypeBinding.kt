@@ -18,4 +18,8 @@ sealed class TypeBinding {
     data class TypeAlias(
             val declaration: Declaration.TypeAlias
     ) : TypeBinding()
+
+    data class Interface(
+            val declaration: Declaration.InterfaceDef
+    ) : TypeBinding()
 }

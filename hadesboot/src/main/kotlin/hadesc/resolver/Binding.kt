@@ -19,6 +19,13 @@ sealed class Binding {
         val param get() = declaration.params[index]
     }
 
+    data class WhereParam(
+            val index: Int,
+            val declaration: WhereBindingDeclaration
+    ) : Binding() {
+        val param get() = declaration.params[index]
+    }
+
     data class ValBinding(
             val statement: Statement.Val
     ) : Binding()
@@ -39,4 +46,14 @@ sealed class Binding {
     }
 
     data class Pattern(val pattern: hadesc.ast.Pattern.Name) : Binding()
+}
+
+sealed class WhereBindingDeclaration {
+    data class FunctionDef(val declaration: Declaration.FunctionDef) : WhereBindingDeclaration()
+    data class ImplementationDef(val declaration: Declaration.ImplementationDef) : WhereBindingDeclaration()
+
+    val params get() = when(this) {
+        is FunctionDef -> declaration.signature.whereClause?.params ?: listOf()
+        is ImplementationDef -> declaration.whereClause?.params ?: listOf()
+    }
 }

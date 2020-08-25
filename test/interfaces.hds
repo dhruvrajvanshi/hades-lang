@@ -21,9 +21,9 @@ implementation printable_bool: Printable[Bool] {
 
 implementation printable_box[T]: Printable[Box[T]] where(printable_t: Printable[T]) {
     def print(self: Box[T], file: *c.File): Void {
-        c.fputs(b"Box(");
+        c.fputs(b"Box(", file);
         print_alias(self.value); // because print might refer to this function;
-        c.fputs(b")");
+        c.fputs(b")", file);
     }
 }
 

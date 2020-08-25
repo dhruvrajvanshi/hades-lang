@@ -88,6 +88,7 @@ data class Diagnostic(
         object MissingInterfaceThisParam : Diagnostic.Kind(Severity.ERROR)
         object ReceiverParamsNotAllowedInInterfaceFunctions : Diagnostic.Kind(Severity.ERROR)
         object TypeParamsNotAllowedInInterfaceFunctions : Diagnostic.Kind(Severity.ERROR)
+        object OnlyFunctionDefsAllowedInsideImplDefs : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -150,6 +151,7 @@ data class Diagnostic(
             ReceiverParamsNotAllowedInInterfaceFunctions -> "Receiver params not are allowed in interface functions"
             TypeParamsNotAllowedInInterfaceFunctions -> "Type params are not allowed in interface functions"
             is DuplicateDeclaration -> "Duplicate binding. Previously defined at $existingBindingLocation."
+            OnlyFunctionDefsAllowedInsideImplDefs -> "Only functions are allowed inside implementation definitions"
         }
 
     }

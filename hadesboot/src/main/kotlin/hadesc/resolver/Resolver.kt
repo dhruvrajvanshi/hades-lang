@@ -96,6 +96,11 @@ class Resolver(private val ctx: Context) {
                 it.binder.identifier.name == ident.name
             }?.let { TypeBinding.TypeParam(it.binder) }
         }
+        is ScopeTree.ImplementationDef -> {
+            scopeNode.declaration.typeParams?.find {
+                it.binder.identifier.name == ident.name
+            }?.let { TypeBinding.TypeParam(it.binder) }
+        }
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -116,6 +121,8 @@ class Resolver(private val ctx: Context) {
                 TypeBinding.Enum(declaration)
             } else if (declaration is Declaration.TypeAlias && declaration.name.identifier.name == ident.name) {
                 TypeBinding.TypeAlias(declaration)
+            } else if (declaration is Declaration.InterfaceDef && declaration.name.identifier.name == ident.name) {
+                TypeBinding.Interface(declaration)
             } else {
                 null
             }
@@ -136,6 +143,18 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
         is ScopeTree.InterfaceDef -> null
+        is ScopeTree.ImplementationDef -> findInImplementationDef(ident, scope)
+    }
+
+    private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
+        var index = -1
+        scope.declaration.whereClause?.params?.forEach { param ->
+            index++
+            if (param.binder.identifier.name == ident.name) {
+                return Binding.WhereParam(index, WhereBindingDeclaration.ImplementationDef(scope.declaration))
+            }
+        }
+        return null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
@@ -224,8 +243,8 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
-                is Declaration.InterfaceDef -> TODO()
-                is Declaration.ImplementationDef -> TODO()
+                is Declaration.InterfaceDef -> null
+                is Declaration.ImplementationDef -> null
             }
             if (binding != null) {
                 return binding
@@ -242,6 +261,14 @@ class Resolver(private val ctx: Context) {
                 return Binding.FunctionParam(index, scope.declaration)
             }
         }
+        index = -1
+        scope.declaration.signature.whereClause?.params?.forEach { param ->
+            index++
+            if (param.binder.identifier.name == ident.name) {
+                return Binding.WhereParam(index, WhereBindingDeclaration.FunctionDef(scope.declaration))
+            }
+        }
+
         return if (
             scope.declaration.typeParams == null &&
             ident.name == scope.declaration.name.identifier.name
@@ -302,6 +329,9 @@ class Resolver(private val ctx: Context) {
             }
             is Declaration.InterfaceDef -> {
                 addScopeNode(declaration.location.file, ScopeTree.InterfaceDef(declaration))
+            }
+            is Declaration.ImplementationDef -> {
+                addScopeNode(declaration.location.file, ScopeTree.ImplementationDef(declaration))
             }
             else -> {}
         }
@@ -417,8 +447,8 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
                 is Declaration.ExtensionDef -> false
-                is Declaration.InterfaceDef -> TODO()
-                is Declaration.ImplementationDef -> TODO()
+                is Declaration.InterfaceDef -> decl.name.identifier.name == declName
+                is Declaration.ImplementationDef -> false
             })
             if (match) {
                 return decl
