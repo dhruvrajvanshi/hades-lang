@@ -58,7 +58,7 @@ data class Diagnostic(
         object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
         object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
-        object NoImplementationFound : Diagnostic.Kind(Severity.ERROR)
+        data class NoImplementationFound(val requiredInstanceType: Type) : Diagnostic.Kind(Severity.ERROR)
         object PatternExpected : Diagnostic.Kind(Severity.ERROR)
         object ExpectedEnumType : Diagnostic.Kind(Severity.ERROR)
         object NestedPatternsNotAllowed : Diagnostic.Kind(Severity.ERROR)
@@ -117,7 +117,7 @@ data class Diagnostic(
             InterfaceMemberExpected -> "interface member expected"
             NotAnInterface -> "Not an interface"
             UnboundThisType -> "This type not allowed here"
-            NoImplementationFound -> "No implementation found"
+            is NoImplementationFound -> "No implementation found for ${requiredInstanceType.prettyPrint()}"
             PatternExpected -> "Pattern expected"
             TooFewTypeArgs -> "Too few type arguments"
             ExpectedEnumType -> "Expected an enum type"

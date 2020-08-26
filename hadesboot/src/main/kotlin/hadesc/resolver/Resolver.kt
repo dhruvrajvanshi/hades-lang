@@ -8,6 +8,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 
+@OptIn(ExperimentalStdlibApi::class)
 class Resolver(private val ctx: Context) {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeTree>>()
     private val sourceFiles = mutableMapOf<SourcePath, SourceFile>()
@@ -554,6 +555,30 @@ class Resolver(private val ctx: Context) {
                 }
             }
             if (declaration !is Declaration.ExtensionDef) {
+                continue
+            }
+            yield(declaration)
+        }
+    }
+
+    fun implementationDefsInScope(node: HasLocation): List<Declaration.ImplementationDef> = buildList {
+        val declarations = sourceFileOf(node).declarations
+        addAll(implementationDefsInDeclarations(declarations, includeImports = true))
+    }
+
+    private fun implementationDefsInDeclarations(declarations: List<Declaration>, includeImports: Boolean): Sequence<Declaration.ImplementationDef> = sequence {
+        for (declaration in declarations) {
+            if (includeImports && declaration is Declaration.ImportAs) {
+                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                if (sourceFile != null) {
+                    yieldAll(implementationDefsInDeclarations(
+                            sourceFile.declarations,
+                            // extensions are not transitively included
+                            includeImports = false
+                    ))
+                }
+            }
+            if (declaration !is Declaration.ImplementationDef) {
                 continue
             }
             yield(declaration)

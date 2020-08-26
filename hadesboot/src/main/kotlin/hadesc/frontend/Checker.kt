@@ -11,6 +11,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
+import hadesc.resolver.WhereBindingDeclaration
 import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
@@ -285,7 +286,7 @@ class Checker(
                 isTypeAssignableTo(source.callee, destination.callee)
                         && source.args.size == destination.args.size
                         && source.args.zip(destination.args).all {
-                            isTypeAssignableTo(it.first, it.second)
+                            isTypeAssignableTo(source = it.first, destination = it.second)
                         }
             }
 
@@ -368,7 +369,13 @@ class Checker(
         whereClause.params.forEach {
             if (it.annotation == null) {
                 error(it, Diagnostic.Kind.MissingTypeAnnotation)
+            } else {
+                val interfaceDef = getInterfaceDefOfType(annotationToType(it.annotation))
+                if (interfaceDef == null) {
+                    error(it.annotation, Diagnostic.Kind.NotAnInterface)
+                }
             }
+
         }
     }
 
@@ -501,6 +508,7 @@ class Checker(
                 annotationToType(it.annotation)
             }
         }
+        signature.whereClause?.let { checkWhereClause(it) }
         annotationToType(signature.returnType)
     }
 
@@ -1016,7 +1024,8 @@ class Checker(
     data class FunctionTypeComponents(
             val from: List<Type>,
             val to: Type,
-            val typeParams: List<Type.Param>?
+            val typeParams: List<Type.Param>?,
+            val whereClauseTypes: List<Type>?
     )
 
     private fun inferCallExpression(expression: Expression.Call): Type {
@@ -1069,6 +1078,12 @@ class Checker(
                         destination = expectedReturnType
                 )
             }
+            if (functionType.whereClauseTypes != null) {
+                checkInterfaceInstances(
+                        callNode,
+                        functionType.whereClauseTypes.map { it.applySubstitution(substitution) }
+                )
+            }
             if (functionType.typeParams != null) {
                 getTypeArgsCache[callNode] = functionType.typeParams.map {
                     requireNotNull(substitution[it.binder.location])
@@ -1078,6 +1093,48 @@ class Checker(
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
 
+    }
+
+    private fun checkInterfaceInstances(callNode: Expression, requiredInstances: List<Type>) {
+        for (requiredInstance in requiredInstances) {
+            val instance = findImplementationInstance(callNode, requiredInstance)
+            if (instance == null) {
+                error(callNode, Diagnostic.Kind.NoImplementationFound(reduceGenericInstances(requiredInstance)))
+            }
+        }
+    }
+
+    private fun findImplementationInstance(callNode: Expression, requiredInstance: Type): Declaration.ImplementationDef? {
+        val implementationDefs = ctx.resolver.implementationDefsInScope(callNode)
+        for (implementationDef in implementationDefs) {
+            if (requiredInstance !is Type.Application) {
+                continue
+            }
+
+            if (requiredInstance.callee !is Type.Constructor) {
+                continue
+            }
+
+            val substitution = instantiateSubstitution(implementationDef.typeParams?.map { Type.Param(it.binder) }, callNode.location)
+            val implType = annotationToType(implementationDef.typeAnnotation).applySubstitution(substitution)
+            if (!isTypeAssignableTo(source = implType, destination = requiredInstance)) {
+                continue
+            }
+
+            if (implementationDef.whereClause != null) {
+                if (!implementationDef.whereClause.params.all {
+                            if (it.annotation == null) false
+                            else {
+                                findImplementationInstance(callNode, annotationToType(it.annotation).applySubstitution(substitution)) != null
+                            }
+                        }) {
+                    continue
+                }
+            }
+
+            return implementationDef
+        }
+        return null
     }
 
     private fun getCallReceiver(callNode: Expression): Expression? {
@@ -1179,18 +1236,15 @@ class Checker(
                     FunctionTypeComponents(
                             from = type.from,
                             to = type.to,
-                            typeParams = typeParams
+                            typeParams = typeParams,
+                            whereClauseTypes = type.whereParams
                     )
                 is Type.TypeFunction -> {
                     return recurse(type.body, type.params)
                 }
                 is Type.GenericInstance -> recurse(reduceGenericInstances(type), null)
                 is Type.Error -> {
-                    return FunctionTypeComponents(
-                        from = emptyList(),
-                        to = Type.Error,
-                        typeParams = null
-                    )
+                    return null
                 }
                 else -> null
             }
