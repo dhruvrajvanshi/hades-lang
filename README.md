@@ -73,7 +73,7 @@ Local variables
 ```scala
 
 def main(): Void {
-  val x: *Byte = b"Hello world"; # the type annotation can be omitted
+  val x: *Byte = b"Hello world"; // the type annotation can be omitted
   c.puts(x);
 }
 
