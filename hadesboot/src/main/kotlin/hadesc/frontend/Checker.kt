@@ -1,6 +1,7 @@
 package hadesc.frontend
 
 import hadesc.Name
+import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -22,7 +23,7 @@ class Checker(
 ) {
     private var reportErrors = false
     private val returnTypeStack = Stack<Type>()
-    private val genericInstances = mutableMapOf<Long, Type>()
+    private val typeAnalyzer = TypeAnalyzer()
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
@@ -256,68 +257,7 @@ class Checker(
     }
 
     private fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
-        if (source == destination) {
-            return true
-        }
-        return when {
-            source is Type.Error -> true
-            destination is Type.Error -> true
-            destination is Type.GenericInstance -> {
-                val existing = genericInstances[destination.id]
-                if (existing != null) {
-                    isTypeAssignableTo(source, destination = existing)
-                } else {
-                    genericInstances[destination.id] = source
-                    true
-                }
-            }
-            source is Type.GenericInstance -> {
-                val existing = genericInstances[source.id]
-                if (existing != null) {
-                    isTypeAssignableTo(existing, destination = destination)
-                } else {
-                    genericInstances[source.id] = destination
-                    true
-                }
-            }
-            destination is Type.Application && source is Type.Application -> {
-                isTypeAssignableTo(source.callee, destination.callee)
-                        && source.args.size == destination.args.size
-                        && source.args.zip(destination.args).all {
-                            isTypeAssignableTo(source = it.first, destination = it.second)
-                        }
-            }
-
-            destination is Type.ParamRef && source is Type.ParamRef -> {
-                destination.name.identifier.name == source.name.identifier.name
-            }
-            destination is Type.Ptr && source is Type.Ptr -> {
-                val ptrTypeAssignable = isTypeAssignableTo(source.to, destination.to)
-                if (destination.isMutable && !source.isMutable) {
-                    false
-                } else {
-                    ptrTypeAssignable
-                }
-
-            }
-            destination is Type.Application && source is Type.Application -> {
-                isTypeAssignableTo(source = source.callee, destination = destination.callee)
-                        && source.args.zip(destination.args).all {
-                    isTypeAssignableTo(source = it.first, destination = it.second)
-                }
-            }
-            destination is Type.Constructor && source is Type.Constructor -> {
-                destination.name == source.name
-            }
-            destination is Type.Function && source is Type.Function -> {
-                destination.from.size == source.from.size
-                        && isTypeAssignableTo(source = source.to, destination = destination.to)
-                        && source.from.zip(destination.from).all { (sourceParam, destParam) ->
-                            isTypeAssignableTo(source = destParam, destination = sourceParam)
-                        }
-            }
-            else -> false
-        }
+        return typeAnalyzer.isTypeAssignableTo(source = source, destination = destination)
     }
 
     private val typeOfExpressionCache = MutableNodeMap<Expression, Type>()
@@ -1431,7 +1371,7 @@ class Checker(
     fun reduceGenericInstances(type: Type): Type {
         return object : TypeTransformer {
             override fun lowerGenericInstance(type: Type.GenericInstance): Type {
-                val existing = genericInstances[type.id]
+                val existing = typeAnalyzer.getInstantiatedType(type)
                 return if (existing != null) {
                     lowerType(existing)
                 } else {
