@@ -1,7 +1,6 @@
 package hadesc.frontend
 
 import hadesc.ast.Declaration
-import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 
@@ -32,10 +31,10 @@ sealed class PropertyBinding {
     }
 
     data class WhereParamRef(
-            val interfaceDef: Declaration.InterfaceDef,
+            val traitDef: Declaration.TraitDef,
             val memberIndex: Int,
             val type: Type
     ) : PropertyBinding() {
-        val member = interfaceDef.signatures[memberIndex]
+        val member = traitDef.signatures[memberIndex]
     }
 }

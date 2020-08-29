@@ -1,6 +1,6 @@
 import libc as c;
 
-interface Printable[Self] {
+trait Printable[Self] {
     def print(self: Self, file: *c.File): Void;
 }
 // struct Printable[Self] {

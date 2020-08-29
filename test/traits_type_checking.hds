@@ -1,8 +1,8 @@
 
-interface NoParams {
+trait NoParams {
 }
 
-interface I[This] {
+trait I[This] {
     def foo(): Void;
     def foo(): Void; // duplicate function
 

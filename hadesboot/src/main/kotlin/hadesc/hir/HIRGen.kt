@@ -6,7 +6,6 @@ import hadesc.ast.*
 import hadesc.frontend.PropertyBinding
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
-import hadesc.ir.IRVariable
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -39,11 +38,11 @@ class HIRGen(
         is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
-        is Declaration.InterfaceDef -> lowerInterfaceDef(declaration)
+        is Declaration.TraitDef -> lowerInterfaceDef(declaration)
         is Declaration.ImplementationDef -> TODO()
     }
 
-    private fun lowerInterfaceDef(declaration: Declaration.InterfaceDef): List<HIRDefinition> {
+    private fun lowerInterfaceDef(declaration: Declaration.TraitDef): List<HIRDefinition> {
         TODO()
     }
 

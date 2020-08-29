@@ -92,9 +92,9 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder) else null
         }
-        is ScopeTree.InterfaceDef -> {
+        is ScopeTree.TraitDef -> {
             if (scopeNode.declaration.name.identifier.name == ident.name) {
-                TypeBinding.Interface(scopeNode.declaration)
+                TypeBinding.Trait(scopeNode.declaration)
             }
             scopeNode.declaration.params.find {
                 it.binder.identifier.name == ident.name
@@ -125,8 +125,8 @@ class Resolver(private val ctx: Context) {
                 TypeBinding.Enum(declaration)
             } else if (declaration is Declaration.TypeAlias && declaration.name.identifier.name == ident.name) {
                 TypeBinding.TypeAlias(declaration)
-            } else if (declaration is Declaration.InterfaceDef && declaration.name.identifier.name == ident.name) {
-                TypeBinding.Interface(declaration)
+            } else if (declaration is Declaration.TraitDef && declaration.name.identifier.name == ident.name) {
+                TypeBinding.Trait(declaration)
             } else {
                 null
             }
@@ -146,7 +146,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
-        is ScopeTree.InterfaceDef -> null
+        is ScopeTree.TraitDef -> null
         is ScopeTree.ImplementationDef -> findInImplementationDef(ident, scope)
     }
 
@@ -247,7 +247,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
-                is Declaration.InterfaceDef -> null
+                is Declaration.TraitDef -> null
                 is Declaration.ImplementationDef -> null
             }
             if (binding != null) {
@@ -331,8 +331,8 @@ class Resolver(private val ctx: Context) {
             is Declaration.ExtensionDef -> {
                 addScopeNode(declaration.location.file, ScopeTree.ExtensionDef(declaration))
             }
-            is Declaration.InterfaceDef -> {
-                addScopeNode(declaration.location.file, ScopeTree.InterfaceDef(declaration))
+            is Declaration.TraitDef -> {
+                addScopeNode(declaration.location.file, ScopeTree.TraitDef(declaration))
             }
             is Declaration.ImplementationDef -> {
                 addScopeNode(declaration.location.file, ScopeTree.ImplementationDef(declaration))
@@ -405,7 +405,7 @@ class Resolver(private val ctx: Context) {
                             }
                             is Declaration.TypeAlias -> null
                             is Declaration.ExtensionDef -> null
-                            is Declaration.InterfaceDef -> null
+                            is Declaration.TraitDef -> null
                             is Declaration.ImplementationDef -> null
                         }
                         if (binding != null) {
@@ -451,7 +451,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
                 is Declaration.ExtensionDef -> false
-                is Declaration.InterfaceDef -> decl.name.identifier.name == declName
+                is Declaration.TraitDef -> decl.name.identifier.name == declName
                 is Declaration.ImplementationDef -> false
             })
             if (match) {
@@ -513,7 +513,7 @@ class Resolver(private val ctx: Context) {
                     null
                 }
                 is Declaration.ExtensionDef -> null
-                is Declaration.InterfaceDef -> TODO()
+                is Declaration.TraitDef -> TODO()
                 is Declaration.ImplementationDef -> TODO()
             }
             if (decl != null) {

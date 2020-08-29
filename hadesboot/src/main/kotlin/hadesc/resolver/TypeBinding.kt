@@ -2,7 +2,6 @@ package hadesc.resolver
 
 import hadesc.ast.Binder
 import hadesc.ast.Declaration
-import hadesc.ast.InterfaceRef
 
 sealed class TypeBinding {
     data class Struct(
@@ -19,7 +18,7 @@ sealed class TypeBinding {
             val declaration: Declaration.TypeAlias
     ) : TypeBinding()
 
-    data class Interface(
-            val declaration: Declaration.InterfaceDef
+    data class Trait(
+            val declaration: Declaration.TraitDef
     ) : TypeBinding()
 }

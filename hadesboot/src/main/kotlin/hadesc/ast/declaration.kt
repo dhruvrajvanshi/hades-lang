@@ -112,7 +112,7 @@ sealed class Declaration : HasLocation {
         val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
     }
 
-    data class InterfaceDef(
+    data class TraitDef(
             override val location: SourceLocation,
             val name: Binder,
             val params: List<TypeParam>,

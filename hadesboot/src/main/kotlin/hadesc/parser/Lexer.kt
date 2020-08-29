@@ -29,7 +29,7 @@ val KEYWORDS = mapOf(
     "size_of" to tt.SIZE_OF,
     "pointer_cast" to tt.POINTER_CAST,
     "mut" to tt.MUT,
-    "interface" to tt.INTERFACE,
+    "trait" to tt.TRAIT,
     "implementation" to tt.IMPLEMENTATION,
     "for" to tt.FOR,
     "match" to tt.MATCH,

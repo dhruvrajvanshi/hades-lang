@@ -1,11 +1,11 @@
 import submodule.test_utils as utils;
 
-implement Printable for Int {
+trait Printable for Int {
     def print(this: Int): Void {
         utils.print_int(this);
     }
 }
 
-interface Printable {
+trait Printable {
     def print(this: This): Void;
 }

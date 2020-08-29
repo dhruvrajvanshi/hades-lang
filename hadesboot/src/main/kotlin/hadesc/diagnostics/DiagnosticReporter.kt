@@ -55,8 +55,7 @@ data class Diagnostic(
         object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
         object TooManyTypeArgs : Diagnostic.Kind(Severity.ERROR)
         object TooFewTypeArgs : Diagnostic.Kind(Severity.ERROR)
-        object InterfaceMemberExpected : Diagnostic.Kind(Severity.ERROR)
-        object NotAnInterface : Diagnostic.Kind(Severity.ERROR)
+        object NotATrait : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
         data class NoImplementationFound(val requiredInstanceType: Type) : Diagnostic.Kind(Severity.ERROR)
         object PatternExpected : Diagnostic.Kind(Severity.ERROR)
@@ -76,18 +75,15 @@ data class Diagnostic(
         object MissingReturnValue : Diagnostic.Kind(Severity.ERROR)
         object InvalidTypeApplication : Diagnostic.Kind(Severity.ERROR)
         object MissingTypeAnnotation : Diagnostic.Kind(Severity.ERROR)
-        object TypeParametersNotAllowedInInterfaceMethods : Diagnostic.Kind(Severity.ERROR)
-        object InterfaceMemberMustBeAnExtensionMethod : Diagnostic.Kind(Severity.ERROR)
-        object InterfaceMethodReceiverMustBeThisOrThisPtr : Diagnostic.Kind(Severity.ERROR)
+        object TypeParametersNotAllowedInTraitMethods : Diagnostic.Kind(Severity.ERROR)
         object WhereClauseMustReferToATypeParam : Diagnostic.Kind(Severity.ERROR)
-        object UnboundInterface : Diagnostic.Kind(Severity.ERROR)
         object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
         object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
         object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
         object OnlyFunctionDefsAllowedInsideExtensionDefs : Diagnostic.Kind(Severity.ERROR)
-        object MissingInterfaceThisParam : Diagnostic.Kind(Severity.ERROR)
-        object ReceiverParamsNotAllowedInInterfaceFunctions : Diagnostic.Kind(Severity.ERROR)
-        object TypeParamsNotAllowedInInterfaceFunctions : Diagnostic.Kind(Severity.ERROR)
+        object MissingTraitThisParam : Diagnostic.Kind(Severity.ERROR)
+        object ReceiverParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
+        object TypeParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
         object OnlyFunctionDefsAllowedInsideImplDefs : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
@@ -114,8 +110,7 @@ data class Diagnostic(
             is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
             AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
             is TooManyTypeArgs -> "Too many type args"
-            InterfaceMemberExpected -> "interface member expected"
-            NotAnInterface -> "Not an interface"
+            NotATrait -> "Not a trait"
             UnboundThisType -> "This type not allowed here"
             is NoImplementationFound -> "No implementation found for ${requiredInstanceType.prettyPrint()}"
             PatternExpected -> "Pattern expected"
@@ -138,20 +133,17 @@ data class Diagnostic(
             InvalidTypeApplication -> "Invalid type application"
             MissingTypeAnnotation -> "Missing type annotation"
             is UnboundTypePath -> "Unbound type ${path.identifiers.joinToString(".") {it.name.text}}"
-            TypeParametersNotAllowedInInterfaceMethods -> "Type parameters are not allowed in interface methods"
-            InterfaceMemberMustBeAnExtensionMethod -> "Interface member must be an extension method (try adding a receiver/this parameter)"
-            InterfaceMethodReceiverMustBeThisOrThisPtr -> "Interface method receiver must be either This or *This"
+            TypeParametersNotAllowedInTraitMethods -> "Type parameters are not allowed in trait methods"
             WhereClauseMustReferToATypeParam -> "Where clause must refer to a type parameter"
-            UnboundInterface -> "Unbound interface"
             NotAConstructor -> "Not a constructor"
             UnknownAnnotation -> "Unknown annotation"
             InvalidPipelineExpression -> "This expression type is not a valid pipeline expression"
             OnlyFunctionDefsAllowedInsideExtensionDefs -> "Only function definitions are allowed inside extensions."
-            MissingInterfaceThisParam -> "interface defs must have a This type param"
-            ReceiverParamsNotAllowedInInterfaceFunctions -> "Receiver params not are allowed in interface functions"
-            TypeParamsNotAllowedInInterfaceFunctions -> "Type params are not allowed in interface functions"
+            ReceiverParamsNotAllowedInTraitFunctions -> "Receiver params not are allowed in trait functions"
+            TypeParamsNotAllowedInTraitFunctions -> "Type params are not allowed in trait functions"
             is DuplicateDeclaration -> "Duplicate binding. Previously defined at $existingBindingLocation."
             OnlyFunctionDefsAllowedInsideImplDefs -> "Only functions are allowed inside implementation definitions"
+            MissingTraitThisParam -> "Trait definition must have at least 1 type parameter"
         }
 
     }

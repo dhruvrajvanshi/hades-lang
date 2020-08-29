@@ -19,7 +19,7 @@ sealed class ScopeTree {
     data class MatchArm(val arm: Expression.Match.Arm) : ScopeTree()
     data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeTree()
     data class ExtensionDef(val declaration: Declaration.ExtensionDef) : ScopeTree()
-    data class InterfaceDef(val declaration: Declaration.InterfaceDef) : ScopeTree()
+    data class TraitDef(val declaration: Declaration.TraitDef) : ScopeTree()
     data class ImplementationDef(val declaration: Declaration.ImplementationDef) : ScopeTree()
 
     val location
@@ -32,7 +32,7 @@ sealed class ScopeTree {
             is MatchArm -> arm.location
             is TypeAlias -> declaration.location
             is ExtensionDef -> declaration.location
-            is InterfaceDef -> declaration.location
+            is TraitDef -> declaration.location
             is ImplementationDef -> declaration.location
         }
 }

@@ -62,7 +62,7 @@ Hades has constrained generics in the form of interfaces (similar to Rust/Haskel
 ## What does it look like?
 
 Hello world
-```python
+```scala
 import libc as c;
 def main(): Void {
     c.puts(b"Hello world");
@@ -70,7 +70,7 @@ def main(): Void {
 ```
 
 Local variables
-```python
+```scala
 
 def main(): Void {
   val x: *Byte = b"Hello world"; # the type annotation can be omitted
@@ -92,7 +92,7 @@ def main(): Void {
   if true {
     val pair = Pair(1, b"text"); // Type arguments to Pair are inferred
     print_pair_second(pair); // function arguments are passed as value (a copy of pair is sent to print_pair
-    let pair_ptr = &pair; // you can take address of local variables and pass them as pointers
+    val pair_ptr = &pair; // you can take address of local variables and pass them as pointers
     pair.print_second(); // this is an extension function call
   }
 }
@@ -133,10 +133,11 @@ def main(): Void {
 
 ```
 
-Interfaces
+Traits
+
 ```scala
 
-interface Printable {
+trait Printable {
   // interfaces can refer to the type they
   // are implemented for using the This type
   def print(this: *This): Void;
@@ -144,7 +145,7 @@ interface Printable {
 
 // Interfaces are implemented outside the type declaration
 // this means you can make builtin types implement new interfaces
-implement Printable for Bool {
+implementation PrintableBool: Printable[Bool] {
   def print(this: *Bool): Void {
     if *this {
       c.puts(b"true");

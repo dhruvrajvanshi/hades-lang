@@ -1,0 +1,4 @@
+test/traits_type_checking.hds:2: MissingTraitThisParam
+test/traits_type_checking.hds:7: DuplicateDeclaration
+test/traits_type_checking.hds:9: ReceiverParamsNotAllowedInTraitFunctions
+test/traits_type_checking.hds:10: TypeParamsNotAllowedInTraitFunctions
