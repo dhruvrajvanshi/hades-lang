@@ -43,7 +43,7 @@ class IRGen(
         val constructorType = Type.Function(
                 from = definition.fields.map { it.second },
                 to = instanceType,
-                whereParams = null
+                traitRequirements = null
         )
         module.addStructDef(
             constructorType,

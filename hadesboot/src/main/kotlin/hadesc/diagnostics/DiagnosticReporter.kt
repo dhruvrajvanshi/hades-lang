@@ -3,6 +3,7 @@ package hadesc.diagnostics
 import com.diogonunes.jcolor.Ansi.colorize
 import com.diogonunes.jcolor.Attribute
 import hadesc.Name
+import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
 import hadesc.ast.QualifiedPath
 import hadesc.ast.Token
@@ -57,7 +58,7 @@ data class Diagnostic(
         object TooFewTypeArgs : Diagnostic.Kind(Severity.ERROR)
         object NotATrait : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
-        data class NoImplementationFound(val requiredInstanceType: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class NoImplementationFound(val requirement: TraitRequirement) : Diagnostic.Kind(Severity.ERROR)
         object PatternExpected : Diagnostic.Kind(Severity.ERROR)
         object ExpectedEnumType : Diagnostic.Kind(Severity.ERROR)
         object NestedPatternsNotAllowed : Diagnostic.Kind(Severity.ERROR)
@@ -113,7 +114,7 @@ data class Diagnostic(
             is TooManyTypeArgs -> "Too many type args"
             NotATrait -> "Not a trait"
             UnboundThisType -> "This type not allowed here"
-            is NoImplementationFound -> "No implementation found for ${requiredInstanceType.prettyPrint()}"
+            is NoImplementationFound -> "No implementation found for ${requirement.prettyPrint()}"
             PatternExpected -> "Pattern expected"
             TooFewTypeArgs -> "Too few type arguments"
             ExpectedEnumType -> "Expected an enum type"

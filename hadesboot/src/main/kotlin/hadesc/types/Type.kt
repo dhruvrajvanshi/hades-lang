@@ -1,5 +1,6 @@
 package hadesc.types
 
+import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -30,9 +31,9 @@ sealed class Type {
     }
 
     data class Function(
-        val from: List<Type>,
-        val whereParams: List<Type>?,
-        val to: Type
+            val from: List<Type>,
+            val traitRequirements: List<TraitRequirement>?,
+            val to: Type
     ) : Type()
 
     data class Constructor(val binder: Binder?, val name: QualifiedName) : Type()
@@ -94,7 +95,9 @@ sealed class Type {
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is Function -> Function(
                 from = this.from.map { it.recurse() },
-                whereParams = this.whereParams?.map { it.recurse() },
+                traitRequirements = this.traitRequirements?.map {
+                    TraitRequirement(it.traitRef, it.arguments.map { t -> t.recurse() })
+                },
                 to = this.to.recurse()
             )
             is ParamRef -> {

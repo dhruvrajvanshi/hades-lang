@@ -24,7 +24,7 @@ sealed class Binding {
             val index: Int,
             val declaration: WhereBindingDeclaration
     ) : Binding() {
-        val param get() = declaration.params[index]
+        val traitRequirement get() = declaration.traitRequirements[index]
     }
 
     data class ValBinding(
@@ -57,8 +57,8 @@ sealed class WhereBindingDeclaration {
     data class FunctionDef(val declaration: Declaration.FunctionDef) : WhereBindingDeclaration()
     data class ImplementationDef(val declaration: Declaration.ImplementationDef) : WhereBindingDeclaration()
 
-    val params get() = when(this) {
-        is FunctionDef -> declaration.signature.whereClause?.params ?: listOf()
-        is ImplementationDef -> declaration.whereClause?.params ?: listOf()
+    val traitRequirements get() = when(this) {
+        is FunctionDef -> declaration.signature.whereClause?.traitRequirements ?: listOf()
+        is ImplementationDef -> declaration.whereClause?.traitRequirements ?: listOf()
     }
 }

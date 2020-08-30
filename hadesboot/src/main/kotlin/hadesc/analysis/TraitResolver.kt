@@ -4,7 +4,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Substitution
 import hadesc.types.Type
 
-class TraitResolver(val env: Env) {
+class TraitResolver(private val env: Env) {
     data class Env(val clauses: List<TraitClause>) {
         constructor(vararg clauses: TraitClause): this(listOf(*clauses)) {
         }
@@ -78,6 +78,20 @@ data class TraitRequirement(
         val arguments: List<Type>
 ) {
     override fun toString(): String {
+        if (arguments.isEmpty()) {
+            return traitRef.mangle()
+        }
         return "${traitRef.mangle()}[${arguments.joinToString(", ") { it.prettyPrint() } }]"
+    }
+
+    fun applySubstitution(substitution: Substitution): TraitRequirement {
+        return TraitRequirement(
+                traitRef,
+                arguments.map { it.applySubstitution(substitution) }
+        )
+    }
+
+    fun prettyPrint(): String {
+        return this.toString()
     }
 }

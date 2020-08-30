@@ -1,5 +1,6 @@
 package hadesc.ir.passes
 
+import hadesc.analysis.TraitRequirement
 import hadesc.types.Type
 
 interface TypeTransformer {
@@ -53,8 +54,12 @@ interface TypeTransformer {
     fun lowerFunctionType(type: Type.Function): Type = Type.Function(
             from = type.from.map { lowerType(it) },
             to = lowerType(type.to),
-            whereParams = type.whereParams?.map { lowerType(it) }
+            traitRequirements = type.traitRequirements?.flatMap { lowerTraitRequirement(it) }
     )
+
+    fun lowerTraitRequirement(requirement: TraitRequirement): List<TraitRequirement> {
+        return listOf(TraitRequirement(requirement.traitRef, requirement.arguments.map { lowerType(it) }))
+    }
 
     fun lowerSizeType(type: Type): Type = type
 

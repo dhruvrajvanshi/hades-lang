@@ -1,6 +1,7 @@
 package hadesc.frontend
 
 import hadesc.Name
+import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.*
 import hadesc.context.Context
@@ -75,7 +76,7 @@ class Checker(
 
                 },
                 to = annotationToType(memberSignature.returnType).applySubstitution(substitution),
-                whereParams = null
+                traitRequirements = null
         )
         return PropertyBinding.WhereParamRef(
                 traitDef,
@@ -132,9 +133,7 @@ class Checker(
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType),
-                whereParams = functionDef.signature.whereClause?.params?.map {
-                    it.annotation?.let { annot -> annotationToType(annot) } ?: Type.Error
-                }
+                traitRequirements = null
             )
             if (extensionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
@@ -304,16 +303,8 @@ class Checker(
     }
 
     private fun checkWhereClause(whereClause: WhereClause) {
-        whereClause.params.forEach {
-            if (it.annotation == null) {
-                error(it, Diagnostic.Kind.MissingTypeAnnotation)
-            } else {
-                val traitDef = getTraitDefOfType(annotationToType(it.annotation))
-                if (traitDef == null) {
-                    error(it.annotation, Diagnostic.Kind.NotATrait)
-                }
-            }
-
+        whereClause.traitRequirements.forEach {
+            TODO()
         }
     }
 
@@ -714,7 +705,7 @@ class Checker(
         return Type.Function(
             from = paramTypes,
             to = returnType,
-            whereParams = null
+            traitRequirements = null
         )
     }
 
@@ -926,7 +917,8 @@ class Checker(
     }
 
     private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {
-        return binding.param.annotation?.let { annotationToType(it) } ?: Type.Error
+        TODO()
+//        return binding.param.annotation?.let { annotationToType(it) } ?: Type.Error
     }
 
     private fun typeOfClosureParam(binding: Binding.ClosureParam): Type {
@@ -956,7 +948,7 @@ class Checker(
             )
         }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
-        val functionType = Type.Function(from = fieldTypes, to = instanceType, whereParams = null)
+        val functionType = Type.Function(from = fieldTypes, to = instanceType, traitRequirements = null)
         val type = if (binding.declaration.typeParams == null) {
             functionType
         } else {
@@ -1003,7 +995,7 @@ class Checker(
                 to = Type.Function(
                         from = declaration.paramTypes.map { annotationToType(it) },
                         to = annotationToType(declaration.returnType),
-                        whereParams = null
+                        traitRequirements = null
                 ),
                 isMutable = false
         )
@@ -1014,10 +1006,7 @@ class Checker(
                 from = declaration.params.map { param ->
                     param.annotation?.let { annotationToType(it) } ?: Type.Error },
                 to = annotationToType(declaration.signature.returnType),
-                whereParams = declaration.signature.whereClause?.params?.map {
-                    it.annotation?.let { annot -> annotationToType(annot) }
-                            ?: Type.Error
-                }
+                traitRequirements = null
         )
         val typeParams = declaration.typeParams
         val type = if (typeParams != null) {
@@ -1036,7 +1025,7 @@ class Checker(
             val from: List<Type>,
             val to: Type,
             val typeParams: List<Type.Param>?,
-            val whereClauseTypes: List<Type>?
+            val traitRequirements: List<TraitRequirement>?
     )
 
     private fun inferCallExpression(expression: Expression.Call): Type {
@@ -1089,10 +1078,10 @@ class Checker(
                         destination = expectedReturnType
                 )
             }
-            if (functionType.whereClauseTypes != null) {
+            if (functionType.traitRequirements != null) {
                 checkTraitInstances(
                         callNode,
-                        functionType.whereClauseTypes.map { it.applySubstitution(substitution) }
+                        functionType.traitRequirements.map { it.applySubstitution(substitution) }
                 )
             }
             if (functionType.typeParams != null) {
@@ -1106,44 +1095,23 @@ class Checker(
 
     }
 
-    private fun checkTraitInstances(callNode: Expression, requiredInstances: List<Type>) {
+    private fun checkTraitInstances(callNode: Expression, requiredInstances: List<TraitRequirement>) {
         for (requiredInstance in requiredInstances) {
             val instance = findImplementationInstance(callNode, requiredInstance)
             if (instance == null) {
-                error(callNode, Diagnostic.Kind.NoImplementationFound(reduceGenericInstances(requiredInstance)))
+                error(callNode, Diagnostic.Kind.NoImplementationFound(
+                        TraitRequirement(
+                                requiredInstance.traitRef,
+                                requiredInstance.arguments.map { reduceGenericInstances(it) })
+                ))
             }
         }
     }
 
-    private fun findImplementationInstance(callNode: Expression, requiredInstance: Type): Declaration.ImplementationDef? {
+    private fun findImplementationInstance(callNode: Expression, requiredInstance: TraitRequirement): Declaration.ImplementationDef? {
         val implementationDefs = ctx.resolver.implementationDefsInScope(callNode)
         for (implementationDef in implementationDefs) {
-            if (requiredInstance !is Type.Application) {
-                continue
-            }
-
-            if (requiredInstance.callee !is Type.Constructor) {
-                continue
-            }
-
-            val substitution = instantiateSubstitution(implementationDef.typeParams?.map { Type.Param(it.binder) }, callNode.location)
-            val implType = annotationToType(implementationDef.typeAnnotation).applySubstitution(substitution)
-            if (!isTypeAssignableTo(source = implType, destination = requiredInstance)) {
-                continue
-            }
-
-            if (implementationDef.whereClause != null) {
-                if (!implementationDef.whereClause.params.all {
-                            if (it.annotation == null) false
-                            else {
-                                findImplementationInstance(callNode, annotationToType(it.annotation).applySubstitution(substitution)) != null
-                            }
-                        }) {
-                    continue
-                }
-            }
-
-            return implementationDef
+            TODO()
         }
         return null
     }
@@ -1247,7 +1215,7 @@ class Checker(
                             from = type.from,
                             to = type.to,
                             typeParams = typeParams,
-                            whereClauseTypes = type.whereParams
+                            traitRequirements = type.traitRequirements
                     )
                 is Type.TypeFunction -> {
                     return recurse(type.body, type.params)
@@ -1292,7 +1260,7 @@ class Checker(
         return Type.Function(
             from = annotation.from.map { annotationToType(it) },
             to = annotationToType(annotation.to),
-            whereParams = null
+            traitRequirements = null
         )
     }
 

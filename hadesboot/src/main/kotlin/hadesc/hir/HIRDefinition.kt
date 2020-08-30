@@ -23,7 +23,7 @@ sealed class HIRDefinition: HasLocation {
             val functionType = Type.Function(
                     from = params.map { it.type },
                     to = returnType,
-                    whereParams = null
+                    traitRequirements = null
             )
             return if (typeParams != null) {
                 Type.TypeFunction(
@@ -52,7 +52,7 @@ sealed class HIRDefinition: HasLocation {
         val type get() = Type.Function(
                 from = params,
                 to = returnType,
-                whereParams = null
+                traitRequirements = null
         )
     }
 

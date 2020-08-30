@@ -153,14 +153,7 @@ class Resolver(private val ctx: Context) {
     }
 
     private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
-        var index = -1
-        scope.declaration.whereClause?.params?.forEach { param ->
-            index++
-            if (param.binder.identifier.name == ident.name) {
-                return Binding.WhereParam(index, WhereBindingDeclaration.ImplementationDef(scope.declaration))
-            }
-        }
-        return null
+        TODO()
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
@@ -276,13 +269,6 @@ class Resolver(private val ctx: Context) {
             index++
             if (param.binder.identifier.name == ident.name) {
                 return Binding.FunctionParam(index, scope.declaration)
-            }
-        }
-        index = -1
-        scope.declaration.signature.whereClause?.params?.forEach { param ->
-            index++
-            if (param.binder.identifier.name == ident.name) {
-                return Binding.WhereParam(index, WhereBindingDeclaration.FunctionDef(scope.declaration))
             }
         }
 

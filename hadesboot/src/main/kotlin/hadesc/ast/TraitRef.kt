@@ -3,7 +3,7 @@ package hadesc.ast
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
-data class InterfaceRef(
+data class TraitRef(
         val path: QualifiedPath,
         val typeArgs: List<TypeAnnotation>?
 ): HasLocation {
