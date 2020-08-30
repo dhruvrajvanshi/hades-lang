@@ -117,9 +117,7 @@ class Parser(
 
     private fun parseImplementationDef(): Declaration {
         val start = expect(tt.IMPLEMENTATION)
-        val name = parseBinder()
         val typeParams = parseOptionalTypeParams()
-        expect(tt.COLON)
         val annotation = parseTypeAnnotation()
         val whereClause = parseOptionalWhereClause()
         expect(tt.LBRACE)
@@ -131,7 +129,6 @@ class Parser(
         val stop = expect(tt.RBRACE)
         return Declaration.ImplementationDef(
                 makeLocation(start, stop),
-                name,
                 typeParams,
                 annotation,
                 whereClause,
@@ -191,7 +188,7 @@ class Parser(
     private fun parseOptionalWhereClause(): WhereClause? {
         return if (at(tt.WHERE)) {
             val start = advance()
-            val refs = parseSeperatedList(seperator = tt.COMMA, terminator = tt.LPAREN) {
+            val refs = parseSeperatedList(seperator = tt.COMMA, terminator = tt.LBRACE) {
                 parseTraitRef()
             }
             val stop: HasLocation = refs.lastOrNull() ?: start
