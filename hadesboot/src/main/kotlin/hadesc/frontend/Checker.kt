@@ -1193,8 +1193,7 @@ class Checker(
     ): Substitution {
         return typeParams
                 ?.map { it.binder.location to makeGenericInstance(
-                    it.binder,
-                    instantiationLocation = instantiationLocation
+                    it.binder
                 ) }
                 ?.toMap()
                 ?: emptyMap()
@@ -1264,17 +1263,10 @@ class Checker(
 
     }
 
-    private var makeGenericInstanceId = 0L
     private fun makeGenericInstance(
-        binder: Binder,
-        instantiationLocation: SourceLocation
+        binder: Binder
     ): Type.GenericInstance {
-        val id = makeGenericInstanceId
-        makeGenericInstanceId++
-        return Type.GenericInstance(
-            binder,
-            id = id,
-            intantiationLocation = instantiationLocation)
+        return typeAnalyzer.makeGenericInstance(binder)
     }
 
     private val getTypeArgsCache = MutableNodeMap<Expression, List<Type>>()

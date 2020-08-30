@@ -1,5 +1,7 @@
 package hadesc.analysis
 
+import hadesc.ast.Binder
+import hadesc.location.SourceLocation
 import hadesc.types.Type
 
 class TypeAnalyzer {
@@ -44,6 +46,7 @@ class TypeAnalyzer {
 
             destination is Type.ParamRef && source is Type.ParamRef -> {
                 destination.name.identifier.name == source.name.identifier.name
+                        && destination.name.location == source.name.location
             }
             destination is Type.Ptr && source is Type.Ptr -> {
                 val ptrTypeAssignable = isTypeAssignableTo(source.to, destination.to)
@@ -73,4 +76,19 @@ class TypeAnalyzer {
             else -> false
         }
     }
+
+    private var makeGenericInstanceId = 0L
+    fun makeGenericInstance(binder: Binder): Type.GenericInstance {
+        val id = makeGenericInstanceId
+        makeGenericInstanceId++
+        return Type.GenericInstance(
+                binder,
+                id = id)
+    }
+
+    fun instantiate(implType: Type, params: List<Type.Param>): Type {
+        val substitution = params.map { it.binder.location to makeGenericInstance(it.binder) }.toMap()
+        return implType.applySubstitution(substitution)
+    }
+
 }

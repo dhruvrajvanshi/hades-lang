@@ -25,6 +25,8 @@ sealed class Type {
         fun prettyPrint(): String {
             return binder.identifier.name.text
         }
+
+        val ref get() = ParamRef(binder)
     }
 
     data class Function(
@@ -41,8 +43,7 @@ sealed class Type {
 
     data class GenericInstance(
         val name: Binder,
-        val id: Long,
-        val intantiationLocation: SourceLocation
+        val id: Long
     ) : Type()
 
     data class Application(val callee: Type, val args: List<Type>) : Type()
