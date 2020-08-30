@@ -85,6 +85,7 @@ data class Diagnostic(
         object ReceiverParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
         object TypeParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
         object OnlyFunctionDefsAllowedInsideImplDefs : Diagnostic.Kind(Severity.ERROR)
+        object ReturnTypeNotInferred : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -144,6 +145,7 @@ data class Diagnostic(
             is DuplicateDeclaration -> "Duplicate binding. Previously defined at $existingBindingLocation."
             OnlyFunctionDefsAllowedInsideImplDefs -> "Only functions are allowed inside implementation definitions"
             MissingTraitThisParam -> "Trait definition must have at least 1 type parameter"
+            ReturnTypeNotInferred -> "Return type of this function cannot be inferred. Add an explicit annotation."
         }
 
     }

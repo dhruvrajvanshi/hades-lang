@@ -127,6 +127,24 @@ sealed class Expression : HasLocation {
     data class This(
             override val location: SourceLocation
     ) : Expression()
+
+    data class Closure(
+        override val location: SourceLocation,
+        val params: List<Param>,
+        val returnType: TypeAnnotation?,
+        val body: ClosureBody
+    ) : Expression()
+}
+
+sealed class ClosureBody : HasLocation {
+    data class Block(val block: hadesc.ast.Block) : ClosureBody() {
+        override val location: SourceLocation
+            get() = block.location
+    }
+    data class Expression(val expression: hadesc.ast.Expression) : ClosureBody() {
+        override val location: SourceLocation
+            get() = expression.location
+    }
 }
 
 data class Arg(

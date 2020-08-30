@@ -426,7 +426,7 @@ class Parser(
         val start = expect(tt.LBRACE)
         val members = parseBlockMembers()
         val stop = expect(tt.RBRACE)
-        val result = Block(makeLocation(start, stop), members)
+        val result = Block(makeLocation(start, stop), startToken = start, members)
         ctx.resolver.onParseBlock(result)
         return result
     }
@@ -771,12 +771,32 @@ class Parser(
             tt.THIS -> {
                 Expression.This(advance().location)
             }
+            tt.VBAR -> parseClosureExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         return parseExpressionTail(head)
+    }
+
+    private fun parseClosureExpression(): Expression {
+        val start = expect(tt.VBAR)
+        val params = parseSeperatedList(seperator = tt.COMMA, terminator = tt.VBAR) { parseParam() }
+        expect(tt.VBAR)
+        val returnType = parseOptionalAnnotation()
+        val body = if (at(tt.LBRACE)) {
+            ClosureBody.Block(parseBlock())
+        } else ClosureBody.Expression(parseExpression())
+
+        val closure = Expression.Closure(
+            makeLocation(start, body),
+            params,
+            returnType,
+            body
+        )
+        ctx.resolver.onParseClosure(closure)
+        return closure
     }
 
     private fun parseMatchArm(): Expression.Match.Arm {

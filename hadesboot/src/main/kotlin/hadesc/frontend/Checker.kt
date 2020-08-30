@@ -22,8 +22,8 @@ class Checker(
         private val ctx: Context
 ) {
     private var reportErrors = false
-    private val returnTypeStack = Stack<Type>()
     private val typeAnalyzer = TypeAnalyzer()
+    private val returnTypeStack = Stack<Type?>()
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
@@ -566,7 +566,11 @@ class Checker(
     private fun checkReturnStatement(statement: Statement.Return) {
         if (statement.value != null) {
             val returnType = returnTypeStack.peek()
-            checkExpression(statement.value, returnType)
+            if (returnType != null) {
+                checkExpression(statement.value, returnType)
+            } else {
+                inferExpression(statement.value)
+            }
         }
     }
 
@@ -640,6 +644,7 @@ class Checker(
                     checkCallExpression(expression, expectedType)
                 }
                 is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
+                is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(expression, source = inferredType, destination = expectedType)
@@ -649,6 +654,68 @@ class Checker(
         }
         typeOfExpressionCache[expression] = type
         return type
+    }
+
+    private val closureParamTypes = mutableMapOf<Binder, Type>()
+    private fun checkOrInferClosureExpression(expression: Expression.Closure, expectedType: Type?): Type {
+        val functionTypeComponents = expectedType?.let { getFunctionTypeComponents(it) }
+        val expectedReturnType = functionTypeComponents?.to ?: expression.returnType?.let { annotationToType(it) }
+        if (functionTypeComponents != null && expression.returnType != null) {
+            checkAssignability(
+                expression.returnType,
+                source = annotationToType(expression.returnType), destination = functionTypeComponents.to)
+        }
+        returnTypeStack.push(expectedReturnType)
+        val expectedParamTypes = expectedType?.let { getFunctionTypeComponents(it) }
+        var index = -1
+        val paramTypes = mutableListOf<Type>()
+        for (param in expression.params) {
+            index++
+            val expectedParamType = expectedParamTypes?.from?.getOrNull(index)
+            val type = if (param.annotation != null) {
+                val annotatedType = annotationToType(param.annotation)
+                if (expectedParamType != null) {
+                    checkAssignability(
+                        node = param.annotation,
+                        // params are contravariant
+                        destination = annotatedType,
+                        source = expectedParamType
+                    )
+                }
+                annotatedType
+            } else if (expectedParamType != null) {
+                expectedParamType
+            } else {
+                error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                Type.Error
+            }
+            closureParamTypes[param.binder] = type
+            paramTypes.add(type)
+        }
+
+        val returnType = when (expression.body) {
+            is ClosureBody.Block -> {
+                if (expectedReturnType == null) {
+                    // TODO: We can infer block return types using the return statement
+                    //       inside the closure if it exists. For now, we can just show an error
+                    error(expression.body.block.startToken, Diagnostic.Kind.ReturnTypeNotInferred)
+                }
+                checkBlock(expression.body.block)
+                expectedReturnType ?: Type.Error
+            }
+            is ClosureBody.Expression -> {
+                if (expectedReturnType != null) {
+                    checkExpression(expression.body.expression, expectedReturnType)
+                } else {
+                    inferExpression(expression.body.expression)
+                }
+            }
+        }
+        return Type.Function(
+            from = paramTypes,
+            to = returnType,
+            whereParams = null
+        )
     }
 
     private fun isTypeOrderComparable(type: Type): Boolean {
@@ -698,6 +765,7 @@ class Checker(
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
+            is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
         })
     }
 
@@ -854,10 +922,15 @@ class Checker(
         is Binding.EnumCaseConstructor -> TODO()
         is Binding.Pattern -> TODO()
         is Binding.WhereParam -> typeOfWhereParamBinding(binding)
+        is Binding.ClosureParam -> typeOfClosureParam(binding)
     }
 
     private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {
         return binding.param.annotation?.let { annotationToType(it) } ?: Type.Error
+    }
+
+    private fun typeOfClosureParam(binding: Binding.ClosureParam): Type {
+        return closureParamTypes[binding.param.binder] ?: Type.Error
     }
 
     private fun typeOfGlobalConstBinding(binding: Binding.GlobalConst): Type {

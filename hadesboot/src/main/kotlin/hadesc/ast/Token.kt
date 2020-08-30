@@ -76,6 +76,7 @@ data class Token(
         LSQB,
         RSQB,
         AT_SYMBOL,
+        VBAR,
 
         EQ,
         BANG_EQ,

@@ -1,6 +1,7 @@
 package hadesc.resolver
 
 import hadesc.ast.Declaration
+import hadesc.ast.Expression
 import hadesc.ast.Statement
 
 sealed class Binding {
@@ -46,6 +47,10 @@ sealed class Binding {
     }
 
     data class Pattern(val pattern: hadesc.ast.Pattern.Name) : Binding()
+
+    data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding() {
+        val param get() = closure.params[index]
+    }
 }
 
 sealed class WhereBindingDeclaration {
