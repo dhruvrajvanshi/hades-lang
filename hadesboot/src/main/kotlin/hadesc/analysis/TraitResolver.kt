@@ -1,6 +1,7 @@
 package hadesc.analysis
 
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Substitution
 import hadesc.types.Type
 
 class TraitResolver(val env: Env) {
@@ -29,14 +30,15 @@ class TraitResolver(val env: Env) {
                 if (clause.arguments.size != arguments.size) {
                     return false
                 }
+                val substitution = typeAnalyzer.makeParamSubstitution(clause.params)
                 for ((implType, requiredType) in clause.arguments.zip(arguments)) {
-                    val implInstantiation = typeAnalyzer.instantiate(implType, clause.params)
+                    val implInstantiation = implType.applySubstitution(substitution)
                     if (!(implInstantiation isAssignableTo requiredType)) {
                         return false
                     }
                 }
                 for (requirement in clause.requirements) {
-                    if (!requirement.isSatisfied()) {
+                    if (!requirement.isSatisfied(substitution)) {
                         return false
                     }
                 }
@@ -45,8 +47,8 @@ class TraitResolver(val env: Env) {
         }
     }
 
-    private fun TraitRequirement.isSatisfied(): Boolean {
-        TODO()
+    private fun TraitRequirement.isSatisfied(substitution: Substitution): Boolean {
+        return isTraitImplemented(traitRef, arguments.map { it.applySubstitution(substitution) })
     }
 
     private infix fun Type.isAssignableTo(destination: Type): Boolean {
@@ -61,10 +63,21 @@ sealed class TraitClause {
             val traitRef: QualifiedName,
             val arguments: List<Type>,
             val requirements: List<TraitRequirement>
-    ): TraitClause()
+    ): TraitClause() {
+        override fun toString(): String {
+            return "implementation [${params.joinToString(", ") { it.prettyPrint() } }] : ${traitRef.mangle()}" +
+                    "[${arguments.joinToString(", ") { it.prettyPrint() } }] " +
+                    "where ${ requirements.joinToString(", ") }"
+        }
+    }
+
 }
 
 data class TraitRequirement(
         val traitRef: QualifiedName,
         val arguments: List<Type>
-)
+) {
+    override fun toString(): String {
+        return "${traitRef.mangle()}[${arguments.joinToString(", ") { it.prettyPrint() } }]"
+    }
+}

@@ -18,22 +18,65 @@ class TraitResolverTest {
     @Test
     fun `should resolve impls without where clauses`() {
         val resolver = TraitResolver(TraitResolver.Env(
-                impl(params(), qn("Printable"), args(Type.Bool), requirements())
+                impl(params(), qn("Printable"), forType(Type.Bool), requires())
         ))
-        assert(resolver.isTraitImplemented(qn("Printable"), args(Type.Bool)))
+        assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
     }
 
     @Test
     fun `should resolve impls with type params`() {
         val self = param("T")
-        val resolver = TraitResolver(
-                TraitResolver.Env(
-                        impl(params(self), qn("Printable"), args(self.ref), requirements())
-                )
+        val resolver = makeResolver(
+                impl(params(self), qn("Printable"), forType(self.ref), requires())
         )
 
-        assert(resolver.isTraitImplemented(qn("Printable"), args(Type.Bool)))
-        assert(resolver.isTraitImplemented(qn("Printable"), args(Type.Integral(32, isSigned = false))))
+        assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
+        assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Integral(32, isSigned = false))))
+    }
+
+    @Test
+    fun `should check impl requirements`() {
+        val t = param("T")
+        val resolver = makeResolver(
+                // implementation : Printable[Bool]
+                impl(params(), qn("Printable"), forType(Type.Bool), requires()),
+                // implementation : Printable[i32]
+                impl(params(), qn("Printable"), forType(Type.Integral(32, true)), requires()),
+
+                // implementation [T] : Printable[Box[T]] where Printable[T]
+                impl(
+                        params(t), qn("Printable"), forType(
+                            tycon("Box").ap(t.ref)
+                        ),
+                        requires(
+                                requirement(qn("Printable"), t.ref)
+                        )
+                )
+        )
+        assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
+        assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Integral(32, true))))
+        assert(!resolver.isTraitImplemented(qn("Printable"), forType(tycon("NonPrintable"))))
+        assert(resolver.isTraitImplemented(qn("Printable"), forType(tycon("Box").ap(Type.Bool))))
+        assert(resolver.isTraitImplemented(qn("Printable"),
+                forType(tycon("Box").ap(Type.Integral(32, true)))))
+        assert(!resolver.isTraitImplemented(qn("Printable"),
+                forType(tycon("Box").ap(tycon("NonPrintable")))))
+    }
+
+    private fun requirement(traitRef: QualifiedName, vararg args: Type): TraitRequirement {
+        return TraitRequirement(traitRef, listOf(*args))
+    }
+
+    private fun tycon(name: String): Type.Constructor {
+        return Type.Constructor(binder = null, qn(name))
+    }
+
+    private fun Type.Constructor.ap(vararg args: Type): Type.Application {
+        return Type.Application(callee = this, args = listOf(*args))
+    }
+
+    private fun makeResolver(vararg clauses: TraitClause): TraitResolver {
+        return TraitResolver(TraitResolver.Env(*clauses))
     }
 
     private var currentColumn = 1
@@ -58,11 +101,11 @@ class TraitResolverTest {
         return TraitClause.Implementation(params, traitRef, arguments, requirements)
     }
 
-    private fun args(vararg types: Type): List<Type> {
+    private fun forType(vararg types: Type): List<Type> {
         return listOf(*types)
     }
 
-    private fun requirements(vararg requirements: TraitRequirement): List<TraitRequirement> {
+    private fun requires(vararg requirements: TraitRequirement): List<TraitRequirement> {
         return listOf(*requirements)
     }
 
