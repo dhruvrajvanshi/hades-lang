@@ -1,0 +1,22 @@
+
+def main(): Void {
+    requires_I(10);
+    requires_I(true);
+    requires_I(Box(10));
+    requires_I(Box(true));
+}
+
+def requires_I[T](value: T): Void where I[T] {
+}
+
+implementation I[Bool] {
+}
+
+implementation[T] I[Box[T]] where I[T] {
+}
+
+struct Box[T] {
+    val value: T;
+}
+
+trait I[This] {}

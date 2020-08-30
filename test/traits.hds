@@ -1,0 +1,51 @@
+import libc as c;
+
+trait Printable[Self] {
+    def print(self: Self, file: *c.File): Void;
+}
+
+implementation Printable[Bool] {
+    def print(self: Bool, file: *c.File): Void {
+        if self {
+            c.fputs(b"true", file);
+        } else {
+            c.fputs(b"false", file);
+        }
+    }
+}
+
+implementation[T] Printable[Box[T]] where Printable[T] {
+    def print(self: Box[T], file: *c.File): Void {
+        c.fputs(b"Box(", file);
+        print_alias(self.value); // because print might refer to this function;
+        c.fputs(b")", file);
+    }
+}
+
+struct Box[T] {
+    val value: T;
+}
+
+def print[T](value: T): Void where Printable[T] {
+    Printable[T].print(value, c.stdout());
+}
+
+def print_alias[T](value: T): Void where Printable[T] {
+    print(value);
+}
+
+def println[T](value: T): Void
+    where Printable[T] {
+    print(value);
+    c.fputs(b"\n", c.stdout());
+}
+
+def main(): Void {
+    println(true);
+    // println[Bool](true, &printable_bool)
+    println(false);
+
+    // println[Box[Bool]](Box(true), &printable_box[T]);
+    println(Box(true));
+    println(Box(false));
+}
