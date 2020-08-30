@@ -117,20 +117,31 @@
 				},
 				{
 					"include": "#where-parameter-list"
+				},
+				{
+					"include": "#colon-and-type-annotation"
 				}
 			]
 		},
 		"where-parameter-list": {
 			"begin": "\\b(where)\\b",
-			"end": "(?<=\\))",
+			"end": "(?={)",
 			"beginCaptures": {
-				"1": {
-					"name": "keyword"
-				}
+				"1": { "name": "keyword" }
 			},
 			"patterns": [
 				{
-					"include": "#parameter-list"
+					"begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\.([a-zA-Z_][a-zA-Z0-9_]*))*",
+					"end": "(?<=(\\]))",
+					"beginCaptures": {
+						"1": { "name": "entity.name.class" },
+						"3": { "name": "entity.name.class" }
+					},
+					"patterns": [
+						{
+							"include": "#type-parameter-list"
+						}
+					]
 				}
 			]
 		},
@@ -191,24 +202,40 @@
 			},
 			"patterns": [
 				{
-					"begin": "(?<=(\\bimplementation\\s+))([a-zA-Z_][a-zA-Z0-9_]*)",
-					"end": "(?=\\:)",
-					"beginCaptures": {
-						"2": { "name": "entity.name.class" }
-					}
-				},
-				{
 					"include": "#colon-and-type-annotation"
 				},
 				{
 					"include": "#where-parameter-list"
 				},
 				{
-					"begin": "(?=\\[)",
-					"end": "(?<=\\])",
+					"begin": "(?<=(implementation))\\s*(?=\\[)",
+					"end": "(?=(where|{))",
 					"patterns": [
 						{
 							"include": "#type-parameter-list"
+						},
+						{
+							"include": "#type-annotations"
+						},
+						{
+							"include": "#comments"
+						}
+					]
+				},
+				{
+					"begin": "(?<=(implementation))\\s+(([a-zA-Z_][a-zA-Z0-9_]*)(\\s*\\.\\s*[a-zA-Z_][a-zA-Z0-9_]*)*)(?=\\[)",
+					"end": "(?=(where|{))",
+					"beginCaptures": {
+						"2": {
+							"name": "entity.name.type"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#type-parameter-list"
+						},
+						{
+							"include": "#type-annotations"
 						},
 						{
 							"include": "#comments"
@@ -250,17 +277,7 @@
 							"include": "#comments"
 						},
 						{
-							"begin": "(\\[)",
-							"end": "(\\])",
-							"patterns": [
-								{
-									"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-									"captures": {
-										"1": { "name": "variable.parameter" }
-									}
-									
-								}
-							]
+							"include": "#type-parameter-list"
 						},
 						{
 							"begin": "(?<=[{])",
@@ -283,7 +300,7 @@
 				{
 					"match": "\\b(Bool|Void|Size|u8|i8|i16|u16|i32|u32|i64|u64|f32|f64)",
 					"captures": {
-						"1": { "name": "constant.language" }
+						"1": { "name": "entity.name.type" }
 					}
 				},
 				{
