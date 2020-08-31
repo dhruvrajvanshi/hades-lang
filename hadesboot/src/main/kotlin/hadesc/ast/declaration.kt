@@ -122,7 +122,8 @@ sealed class Declaration : HasLocation {
     data class ImplementationDef(
             override val location: SourceLocation,
             val typeParams: List<TypeParam>?,
-            val typeAnnotation: TypeAnnotation,
+            val traitRef: QualifiedPath,
+            val traitArguments: List<TypeAnnotation>,
             val whereClause: WhereClause?,
             val body: List<Declaration>,
     ) : Declaration()

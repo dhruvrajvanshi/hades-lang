@@ -1,7 +1,9 @@
 package hadesc.frontend
 
 import hadesc.Name
+import hadesc.analysis.TraitClause
 import hadesc.analysis.TraitRequirement
+import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.*
 import hadesc.context.Context
@@ -289,10 +291,21 @@ class Checker(
     }
 
     private fun checkImplementationDef(implDef: Declaration.ImplementationDef) {
-        val traitType = annotationToType(implDef.typeAnnotation)
         implDef.typeParams?.forEach {
             checkTypeParam(it)
         }
+        val traitDef = ctx.resolver.resolveDeclaration(implDef.traitRef)
+        if (traitDef !is Declaration.TraitDef) {
+            error(implDef.traitRef, Diagnostic.Kind.NotATrait)
+        } else {
+            if (traitDef.params.size > implDef.traitArguments.size) {
+                error(implDef.traitRef, Diagnostic.Kind.TooFewTypeArgs)
+            }
+            if (traitDef.params.size < implDef.traitArguments.size) {
+                error(implDef.traitRef, Diagnostic.Kind.TooManyTypeArgs)
+            }
+        }
+        implDef.traitArguments.forEach { annotationToType(it) }
         implDef.whereClause?.let { checkWhereClause(it) }
         for (declaration in implDef.body) {
             checkDeclaration(declaration)
@@ -304,8 +317,23 @@ class Checker(
 
     private fun checkWhereClause(whereClause: WhereClause) {
         whereClause.traitRequirements.forEach {
-            TODO()
+            checkTraitRequirement(it)
         }
+    }
+
+    private val checkTraitRequirementCache = MutableNodeMap<TraitRequirementAnnotation, TraitRequirement?>()
+    private fun checkTraitRequirement(requirement: TraitRequirementAnnotation): TraitRequirement? = checkTraitRequirementCache.getOrPut(requirement) {
+        val declaration = ctx.resolver.resolveDeclaration(requirement.path)
+        val args = requirement.typeArgs?.map {
+            annotationToType(it)
+        }
+        if (declaration !is Declaration.TraitDef) {
+            error(requirement.path, Diagnostic.Kind.NotATrait)
+            null
+        } else {
+            TraitRequirement(ctx.resolver.qualifiedName(declaration.name), args ?: listOf())
+        }
+
     }
 
     private fun checkTraitDef(declaration: Declaration.TraitDef) {
@@ -1006,7 +1034,8 @@ class Checker(
                 from = declaration.params.map { param ->
                     param.annotation?.let { annotationToType(it) } ?: Type.Error },
                 to = annotationToType(declaration.signature.returnType),
-                traitRequirements = null
+                traitRequirements = declaration.signature.whereClause
+                        ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
         )
         val typeParams = declaration.typeParams
         val type = if (typeParams != null) {
@@ -1096,25 +1125,51 @@ class Checker(
     }
 
     private fun checkTraitInstances(callNode: Expression, requiredInstances: List<TraitRequirement>) {
-        for (requiredInstance in requiredInstances) {
-            val instance = findImplementationInstance(callNode, requiredInstance)
-            if (instance == null) {
+        for (requirement in requiredInstances) {
+            if (!isRequirementSatisfied(callNode, requirement)) {
                 error(callNode, Diagnostic.Kind.NoImplementationFound(
                         TraitRequirement(
-                                requiredInstance.traitRef,
-                                requiredInstance.arguments.map { reduceGenericInstances(it) })
+                                requirement.traitRef,
+                                requirement.arguments.map { reduceGenericInstances(it) })
                 ))
             }
         }
     }
 
-    private fun findImplementationInstance(callNode: Expression, requiredInstance: TraitRequirement): Declaration.ImplementationDef? {
-        val implementationDefs = ctx.resolver.implementationDefsInScope(callNode)
-        for (implementationDef in implementationDefs) {
-            TODO()
+    private val globalTraitClauses by lazy {
+        ctx.resolver.implementationDefs.mapNotNull { implementationDef ->
+            val traitDef = ctx.resolver.resolveDeclaration(implementationDef.traitRef)
+            if (traitDef !is Declaration.TraitDef) {
+                null
+            } else {
+                TraitClause.Implementation(
+                        params = implementationDef.typeParams?.map { p -> Type.Param(p.binder) } ?: emptyList(),
+                        traitRef = ctx.resolver.qualifiedName(traitDef.name),
+                        arguments = implementationDef.traitArguments.map { annotationToType(it) },
+                        requirements = implementationDef.whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
+                )
+            }
         }
-        return null
     }
+
+    private fun isRequirementSatisfied(callNode: Expression, requiredInstance: TraitRequirement): Boolean {
+        val clauses = globalTraitClauses
+        val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
+        val functionTraitRequirements = enclosingFunction.traitRequirements.map { it.toClause() }
+        val env = TraitResolver.Env(functionTraitRequirements + clauses)
+        val traitResolver = TraitResolver(env, typeAnalyzer)
+        return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
+    }
+
+    private fun TraitRequirement.toClause(): TraitClause {
+        return TraitClause.Requirement(this)
+    }
+
+    private val Declaration.FunctionDef.traitRequirements get(): List<TraitRequirement> =
+        signature.whereClause
+            ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
+            ?: emptyList()
+
 
     private fun getCallReceiver(callNode: Expression): Expression? {
         if (callNode !is Expression.Call) {

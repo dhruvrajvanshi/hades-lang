@@ -4,13 +4,11 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Substitution
 import hadesc.types.Type
 
-class TraitResolver(private val env: Env) {
+class TraitResolver(private val env: Env, private val typeAnalyzer: TypeAnalyzer) {
     data class Env(val clauses: List<TraitClause>) {
         constructor(vararg clauses: TraitClause): this(listOf(*clauses)) {
         }
     }
-
-    private val typeAnalyzer = TypeAnalyzer()
 
     fun isTraitImplemented(traitRef: QualifiedName, arguments: List<Type>): Boolean {
         for (clause in env.clauses) {
@@ -44,6 +42,20 @@ class TraitResolver(private val env: Env) {
                 }
                 true
             }
+            is TraitClause.Requirement -> {
+                if (clause.requirement.traitRef != traitRef) {
+                    return false
+                }
+                if (clause.requirement.arguments.size != arguments.size) {
+                    return false
+                }
+                for ((clauseArg, arg) in clause.requirement.arguments.zip(arguments)) {
+                    if (!(clauseArg isAssignableTo arg)) {
+                        return false
+                    }
+                }
+                true
+            }
         }
     }
 
@@ -70,6 +82,8 @@ sealed class TraitClause {
                     "where ${ requirements.joinToString(", ") }"
         }
     }
+
+    data class Requirement(val requirement: TraitRequirement): TraitClause()
 
 }
 

@@ -9,7 +9,6 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
@@ -118,7 +117,12 @@ class Parser(
     private fun parseImplementationDef(): Declaration {
         val start = expect(tt.IMPLEMENTATION)
         val typeParams = parseOptionalTypeParams()
-        val annotation = parseTypeAnnotation()
+        val traitRef = parseQualifiedPath()
+        expect(tt.LSQB)
+        val traitArguments = parseSeperatedList(tt.COMMA, tt.RSQB) {
+            parseTypeAnnotation()
+        }
+        expect(tt.RSQB)
         val whereClause = parseOptionalWhereClause()
         expect(tt.LBRACE)
         val defs = buildList {
@@ -130,7 +134,8 @@ class Parser(
         return Declaration.ImplementationDef(
                 makeLocation(start, stop),
                 typeParams,
-                annotation,
+                traitRef,
+                traitArguments,
                 whereClause,
                 defs
         )
@@ -198,14 +203,14 @@ class Parser(
         }
     }
 
-    private fun parseTraitRef(): TraitRef {
+    private fun parseTraitRef(): TraitRequirementAnnotation {
         val path = parseQualifiedPath()
         expect(tt.LSQB)
         val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
             parseTypeAnnotation()
         }
         expect(tt.RSQB)
-        return TraitRef(path, args)
+        return TraitRequirementAnnotation(path, args)
     }
 
     private fun parseFunctionSignature(): FunctionSignature {

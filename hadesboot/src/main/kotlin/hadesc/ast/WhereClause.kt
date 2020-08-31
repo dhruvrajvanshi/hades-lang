@@ -5,5 +5,5 @@ import hadesc.location.SourceLocation
 
 data class WhereClause(
     override val location: SourceLocation,
-    val traitRequirements: List<TraitRef>
+    val traitRequirements: List<TraitRequirementAnnotation>
 ) : HasLocation

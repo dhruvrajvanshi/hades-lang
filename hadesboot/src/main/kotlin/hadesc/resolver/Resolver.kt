@@ -153,7 +153,7 @@ class Resolver(private val ctx: Context) {
     }
 
     private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
-        TODO()
+        return null
     }
 
     private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
@@ -517,8 +517,10 @@ class Resolver(private val ctx: Context) {
                     null
                 }
                 is Declaration.ExtensionDef -> null
-                is Declaration.TraitDef -> TODO()
-                is Declaration.ImplementationDef -> TODO()
+                is Declaration.TraitDef -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else null
+                is Declaration.ImplementationDef -> null
             }
             if (decl != null) {
                 return decl
@@ -565,20 +567,21 @@ class Resolver(private val ctx: Context) {
         }
     }
 
-    fun implementationDefsInScope(node: HasLocation): List<Declaration.ImplementationDef> = buildList {
-        val declarations = sourceFileOf(node).declarations
-        addAll(implementationDefsInDeclarations(declarations, includeImports = true))
+    val implementationDefs by lazy {
+        buildList {
+            ctx.forEachSourceFile {
+                addAll(implementationDefsInDeclarations(it.declarations))
+            }
+        }
     }
 
-    private fun implementationDefsInDeclarations(declarations: List<Declaration>, includeImports: Boolean): Sequence<Declaration.ImplementationDef> = sequence {
+    private fun implementationDefsInDeclarations(declarations: List<Declaration>): Sequence<Declaration.ImplementationDef> = sequence {
         for (declaration in declarations) {
-            if (includeImports && declaration is Declaration.ImportAs) {
+            if (declaration is Declaration.ImportAs) {
                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
                 if (sourceFile != null) {
                     yieldAll(implementationDefsInDeclarations(
-                            sourceFile.declarations,
-                            // extensions are not transitively included
-                            includeImports = false
+                            sourceFile.declarations
                     ))
                 }
             }

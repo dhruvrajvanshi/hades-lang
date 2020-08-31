@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitClause
 import hadesc.analysis.TraitResolver
+import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.location.Position
@@ -17,9 +18,9 @@ import java.nio.file.Path
 class TraitResolverTest {
     @Test
     fun `should resolve impls without where clauses`() {
-        val resolver = TraitResolver(TraitResolver.Env(
+        val resolver = makeResolver(
                 impl(params(), qn("Printable"), forType(Type.Bool), requires())
-        ))
+        )
         assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
     }
 
@@ -76,7 +77,7 @@ class TraitResolverTest {
     }
 
     private fun makeResolver(vararg clauses: TraitClause): TraitResolver {
-        return TraitResolver(TraitResolver.Env(*clauses))
+        return TraitResolver(TraitResolver.Env(*clauses), TypeAnalyzer())
     }
 
     private var currentColumn = 1
