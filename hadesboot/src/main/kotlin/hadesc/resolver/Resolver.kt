@@ -539,6 +539,15 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
+    fun getEnclosingImpl(node: HasLocation): Declaration.ImplementationDef? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeTree.ImplementationDef) {
+                return scopeNode.declaration
+            }
+        }
+        return null
+    }
+
     fun resolveGlobalName(binder: Binder): QualifiedName {
         return sourceFileOf(binder).moduleName.append(binder.identifier.name)
     }

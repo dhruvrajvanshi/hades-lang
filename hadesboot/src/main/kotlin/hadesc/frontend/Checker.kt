@@ -1155,8 +1155,10 @@ class Checker(
     private fun isRequirementSatisfied(callNode: Expression, requiredInstance: TraitRequirement): Boolean {
         val clauses = globalTraitClauses
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
-        val functionTraitRequirements = enclosingFunction.traitRequirements.map { it.toClause() }
-        val env = TraitResolver.Env(functionTraitRequirements + clauses)
+        val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
+        val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
+        val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
+        val env = TraitResolver.Env(functionTraitClauses + implTraitClauses + clauses)
         val traitResolver = TraitResolver(env, typeAnalyzer)
         return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
     }
@@ -1169,6 +1171,12 @@ class Checker(
         signature.whereClause
             ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
             ?: emptyList()
+
+    private val Declaration.ImplementationDef.traitRequirements get(): List<TraitRequirement> =
+        whereClause
+                ?.traitRequirements
+                ?.mapNotNull { checkTraitRequirement(it) }
+                ?: emptyList()
 
 
     private fun getCallReceiver(callNode: Expression): Expression? {
