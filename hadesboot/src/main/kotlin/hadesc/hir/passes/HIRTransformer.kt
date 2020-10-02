@@ -6,6 +6,7 @@ import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import kotlin.math.exp
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(oldModule: HIRModule): HIRModule {
@@ -177,6 +178,18 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.Load -> transformLoadExpression(expression)
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
         is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
+        is HIRExpression.TraitMethodCall -> transformTraitMethodCall(expression)
+    }
+
+    fun transformTraitMethodCall(expression: HIRExpression.TraitMethodCall): HIRExpression {
+        return HIRExpression.TraitMethodCall(
+                expression.location,
+                expression.type,
+                transformGlobalName(expression.traitName),
+                methodName = expression.methodName,
+                traitArgs = expression.traitArgs.map { lowerType(it) },
+                args = expression.args.map { transformExpression(it) }
+        )
     }
 
     fun transformGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): HIRExpression {

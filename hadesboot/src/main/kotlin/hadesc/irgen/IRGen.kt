@@ -265,6 +265,7 @@ class IRGen(
         is HIRExpression.PointerCast -> lowerPointerCastExpression(expression)
         is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
         is HIRExpression.TypeApplication -> requireUnreachable()
+        is HIRExpression.TraitMethodCall -> requireUnreachable()
     }
 
     private fun lowerGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): IRValue {

@@ -117,6 +117,15 @@ sealed class HIRExpression: HasLocation {
             get() = Type.Ptr(toPointerOfType, isMutable = true)
     }
 
+    data class TraitMethodCall(
+            override val location: SourceLocation,
+            override val type: Type,
+            val traitName: QualifiedName,
+            val traitArgs: List<Type>,
+            val methodName: Name,
+            val args: List<HIRExpression>
+    ) : HIRExpression()
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -138,5 +147,7 @@ sealed class HIRExpression: HasLocation {
         is Load -> "*${ptr.prettyPrint()}"
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
         is GetStructFieldPointer -> "(${lhs.prettyPrint()}.${memberName.text})"
+        is TraitMethodCall -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
+                "${methodName.text}(${args.joinToString(", ") { it.prettyPrint() } })"
     }
 }
