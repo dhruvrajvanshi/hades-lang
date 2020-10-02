@@ -99,14 +99,6 @@ sealed class HIRExpression: HasLocation {
             val name: Name
     ) : HIRExpression()
 
-    data class BoundRef(
-            override val location: SourceLocation,
-            val param: HIRConstraintParam
-    ) : HIRExpression() {
-        override val type: Type
-            get() = param.type
-    }
-
     data class Load(
         override val location: SourceLocation,
         override val type: Type,
@@ -139,7 +131,6 @@ sealed class HIRExpression: HasLocation {
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
         is AddressOf -> "&${name.text}"
-        is BoundRef -> TODO()
         is TypeApplication -> {
             val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
             "${expression.prettyPrint()}$typeArgsStr"

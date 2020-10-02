@@ -16,7 +16,6 @@ sealed class HIRDefinition: HasLocation {
     ): HIRDefinition() {
         val params get() = signature.params
         val returnType get() = signature.returnType
-        val constraintParams get() = signature.constraintParams
         val name get() = signature.name
         val typeParams get() = signature.typeParams
         val type get(): Type {
@@ -63,32 +62,6 @@ sealed class HIRDefinition: HasLocation {
             val fields: List<Pair<Name, Type>>
     ) : HIRDefinition()
 
-    data class Implementation(
-            override val location: SourceLocation,
-            val name: QualifiedName,
-            val typeParams: List<HIRTypeParam>?,
-            val interfaceRef: HIRInterfaceRef,
-            val forType: Type,
-            val members: List<Function>,
-            val constraintParams: List<HIRConstraintParam>?
-    ) : HIRDefinition() {
-        init {
-            require(constraintParams == null || constraintParams.isNotEmpty())
-        }
-    }
-
-    data class Interface(
-            override val location: SourceLocation,
-            val name: QualifiedName,
-            val typeParams: List<HIRTypeParam>?,
-            val constraintParams: List<HIRConstraintParam>?,
-            val signatures: List<HIRFunctionSignature>
-    ) : HIRDefinition() {
-        init {
-            require(constraintParams == null || constraintParams.isNotEmpty())
-        }
-    }
-
     fun prettyPrint(): String = when(this) {
         is Function -> {
             "${signature.prettyPrint()} ${body.prettyPrint()}"
@@ -106,33 +79,6 @@ sealed class HIRDefinition: HasLocation {
                         "  val ${it.first.text}: ${it.second.prettyPrint()}"
                     } +
                     "\n}"
-        }
-        is Implementation -> {
-            val whereStr = if (constraintParams == null) {
-                ""
-            } else {
-                "where (${constraintParams.joinToString(", ") {it.prettyPrint()} })"
-            }
-            val typeParamsStr = if (typeParams == null)
-                ""
-            else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] $whereStr -> "
-            "implementation ${name.mangle()}: $typeParamsStr${interfaceRef.prettyPrint()} for ${forType.prettyPrint()} {\n${
-                members.joinToString("\n") {
-                    it.prettyPrint().prependIndent("  ")
-                }
-            }\n}"
-        }
-        is Interface -> {
-            val whereStr = if (constraintParams == null) {
-                ""
-            } else {
-                "where (${constraintParams.joinToString(", ") {it.prettyPrint()} })"
-            }
-            val typeParamsStr = if (typeParams == null)
-                ""
-            else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] $whereStr "
-            val signaturesStr = signatures.joinToString("\n") { it.prettyPrint() }.prependIndent("  ")
-            "interface ${name.mangle()}$typeParamsStr {\n$signaturesStr\n}"
         }
         is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
     }

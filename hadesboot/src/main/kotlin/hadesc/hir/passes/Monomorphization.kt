@@ -35,7 +35,6 @@ class Monomorphization(
         when (definition) {
             is HIRDefinition.Function -> {
                 currentSpecialization = makeSubstitution(definition.typeParams, request.typeArgs)
-                require(definition.constraintParams == null)
 
                 module.addDefinition(
                         HIRDefinition.Function(
@@ -80,7 +79,6 @@ class Monomorphization(
             typeParams = null,
             name = getSpecializedName(request.name, request.typeArgs),
             params = definition.params.map { transformParam(it) },
-            constraintParams = null
         )
     }
 

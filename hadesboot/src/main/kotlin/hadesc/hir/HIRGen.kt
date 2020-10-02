@@ -39,11 +39,15 @@ class HIRGen(
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
         is Declaration.TraitDef -> lowerInterfaceDef(declaration)
-        is Declaration.ImplementationDef -> TODO()
+        is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
+    }
+
+    private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {
+        TODO()
     }
 
     private fun lowerInterfaceDef(declaration: Declaration.TraitDef): List<HIRDefinition> {
-        TODO()
+        return emptyList()
     }
 
     private var currentExtensionDef: Declaration.ExtensionDef? = null
@@ -151,7 +155,6 @@ class HIRGen(
                 location = signature.location,
                 name = name,
                 typeParams = typeParams,
-                constraintParams = null,
                 params = params,
                 returnType = returnType
         )

@@ -28,8 +28,6 @@ class IRGen(
         is HIRDefinition.Function -> lowerFunctionDef(definition)
         is HIRDefinition.ExternFunction -> lowerExternFunctionDef(definition)
         is HIRDefinition.Struct -> lowerStructDef(definition)
-        is HIRDefinition.Implementation -> requireUnreachable()
-        is HIRDefinition.Interface -> TODO()
         is HIRDefinition.Const -> lowerConstDef(definition)
     }
 
@@ -265,7 +263,6 @@ class IRGen(
         is HIRExpression.Load -> lowerLoadExpression(expression)
         is HIRExpression.PointerCast -> lowerPointerCastExpression(expression)
         is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
-        is HIRExpression.BoundRef -> requireUnreachable()
         is HIRExpression.TypeApplication -> requireUnreachable()
     }
 

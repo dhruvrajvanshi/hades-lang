@@ -19,8 +19,6 @@ interface HIRTransformer: TypeTransformer {
         is HIRDefinition.Function -> transformFunctionDef(definition)
         is HIRDefinition.ExternFunction -> transformExternFunctionDef(definition)
         is HIRDefinition.Struct -> transformStructDef(definition)
-        is HIRDefinition.Implementation -> TODO()
-        is HIRDefinition.Interface -> TODO()
         is HIRDefinition.Const -> transformConstDef(definition)
     }
 
@@ -58,24 +56,8 @@ interface HIRTransformer: TypeTransformer {
                 location = signature.location,
                 name = transformGlobalName(signature.name),
                 returnType = lowerType(signature.returnType),
-                constraintParams = signature.constraintParams?.map { transformConstraintParam(it) },
                 params = signature.params.map { transformParam(it) },
                 typeParams = signature.typeParams?.map { transformTypeParam(it) }
-        )
-    }
-
-    fun transformConstraintParam(param: HIRConstraintParam): HIRConstraintParam {
-        return HIRConstraintParam(
-                type = lowerType(param.type),
-                param = transformTypeParam(param.param),
-                interfaceRef = transformInterfaceRef(param.interfaceRef)
-        )
-    }
-
-    fun transformInterfaceRef(interfaceRef: HIRInterfaceRef): HIRInterfaceRef {
-        return HIRInterfaceRef(
-                interfaceName = transformGlobalName(interfaceRef.interfaceName),
-                typeArgs = interfaceRef.typeArgs?.map { lowerType(it) }
         )
     }
 
@@ -178,7 +160,6 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.NullPtr -> transformNullPtr(expression)
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
         is HIRExpression.AddressOf -> transformAddressOfExpression(expression)
-        is HIRExpression.BoundRef -> transformBoundRef(expression)
         is HIRExpression.TypeApplication -> transformTypeApplication(expression)
         is HIRExpression.Load -> transformLoadExpression(expression)
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
@@ -217,13 +198,6 @@ interface HIRTransformer: TypeTransformer {
                 lowerType(expression.type),
                 transformExpression(expression.expression),
                 expression.args.map { lowerType(it) }
-        )
-    }
-
-    fun transformBoundRef(expression: HIRExpression.BoundRef): HIRExpression {
-        return HIRExpression.BoundRef(
-                location = expression.location,
-                param = transformConstraintParam(expression.param)
         )
     }
 
