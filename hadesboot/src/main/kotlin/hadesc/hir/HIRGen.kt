@@ -381,7 +381,16 @@ class HIRGen(
     }
 
     private fun lowerTraitMethodCall(expression: Expression.TraitMethodCall): HIRExpression {
-        TODO()
+        val traitDef = ctx.resolver.resolveDeclaration(expression.traitName)
+        require(traitDef is Declaration.TraitDef)
+        return HIRExpression.TraitMethodCall(
+                expression.location,
+                typeOfExpression(expression),
+                methodName = expression.methodName.name,
+                traitName = ctx.resolver.resolveGlobalName(traitDef.name),
+                traitArgs = expression.traitArgs.map { lowerTypeAnnotation(it) },
+                args = expression.args.map { lowerExpression(it.expression) },
+        )
     }
 
     private fun thisParamType(): Type {
