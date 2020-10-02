@@ -48,6 +48,7 @@ class HIRGen(
         return listOf(
                 HIRDefinition.Implementation(
                         declaration.location,
+                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                         traitName = ctx.resolver.qualifiedName(traitDecl.name),
                         traitArgs = declaration.traitArguments.map { lowerTypeAnnotation(it) },
                         functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map { lowerFunctionDef(it) }

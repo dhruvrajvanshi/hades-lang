@@ -57,6 +57,7 @@ sealed class HIRDefinition: HasLocation {
 
     data class Implementation(
             override val location: SourceLocation,
+            val typeParams: List<HIRTypeParam>?,
             val traitName: QualifiedName,
             val traitArgs: List<Type>,
             val functions: List<Function>

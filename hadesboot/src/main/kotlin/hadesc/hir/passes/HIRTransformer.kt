@@ -28,6 +28,7 @@ interface HIRTransformer: TypeTransformer {
     fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {
         return listOf(
                 HIRDefinition.Implementation(
+                        typeParams = definition.typeParams?.map { transformTypeParam(it) },
                         traitName = transformGlobalName(definition.traitName),
                         traitArgs = definition.traitArgs.map { lowerType(it) },
                         functions = definition.functions.flatMap { transformDefinition(it) as Collection<HIRDefinition.Function> }.toList(),
