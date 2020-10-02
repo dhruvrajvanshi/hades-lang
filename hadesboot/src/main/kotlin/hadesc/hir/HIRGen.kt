@@ -365,6 +365,7 @@ class HIRGen(
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> TODO()
+        is Expression.TraitMethodCall -> TODO()
     }
 
     private fun thisParamType(): Type {

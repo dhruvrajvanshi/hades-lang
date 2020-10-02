@@ -134,6 +134,14 @@ sealed class Expression : HasLocation {
         val returnType: TypeAnnotation?,
         val body: ClosureBody
     ) : Expression()
+
+    data class TraitMethodCall(
+            override val location: SourceLocation,
+            val traitName: QualifiedPath,
+            val traitArgs: List<TypeAnnotation>,
+            val methodName: Identifier,
+            val args: List<Arg>
+    ) : Expression()
 }
 
 sealed class ClosureBody : HasLocation {

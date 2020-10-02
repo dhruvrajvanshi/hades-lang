@@ -784,12 +784,33 @@ class Parser(
                 Expression.This(advance().location)
             }
             tt.VBAR -> parseClosureExpression()
+            tt.TRAIT -> parseTraitMethodCall()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         return parseExpressionTail(head)
+    }
+
+    private fun parseTraitMethodCall(): Expression {
+        val start = expect(tt.TRAIT)
+        val traitName = parseQualifiedPath()
+        expect(tt.LSQB)
+        val traitArgs = parseSeperatedList(tt.COMMA, tt.RSQB) { parseTypeAnnotation() }
+        expect(tt.RSQB)
+        expect(tt.DOT)
+        val methodName = parseIdentifier()
+        expect(tt.LPAREN)
+        val args = parseSeperatedList(tt.COMMA, tt.RPAREN) { parseArg() }
+        val stop = expect(tt.RPAREN)
+        return Expression.TraitMethodCall(
+                makeLocation(start, stop),
+                traitName,
+                traitArgs,
+                methodName,
+                args
+        )
     }
 
     private fun parseClosureExpression(): Expression {

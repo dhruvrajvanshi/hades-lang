@@ -27,7 +27,7 @@ struct Box[T] {
 }
 
 def print[T](value: T): Void where Printable[T] {
-    Printable[T].print(value, c.stdout());
+    trait Printable[T].print(value, c.stdout());
 }
 
 def print_alias[T](value: T): Void where Printable[T] {

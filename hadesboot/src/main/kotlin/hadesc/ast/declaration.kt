@@ -2,6 +2,7 @@ package hadesc.ast
 
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import kotlin.math.sign
 
 sealed class Declaration : HasLocation {
     /**
@@ -117,7 +118,10 @@ sealed class Declaration : HasLocation {
             val name: Binder,
             val params: List<TypeParam>,
             val signatures: List<FunctionSignature>
-    ) : Declaration()
+    ) : Declaration() {
+        fun findMethodSignature(methodName: Identifier): FunctionSignature? =
+            signatures.find { it.name.identifier.name == methodName.name }
+    }
 
     data class ImplementationDef(
             override val location: SourceLocation,
