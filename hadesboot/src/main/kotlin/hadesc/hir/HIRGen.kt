@@ -43,7 +43,16 @@ class HIRGen(
     }
 
     private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {
-        TODO()
+        val traitDecl = ctx.resolver.resolveDeclaration(declaration.traitRef)
+        require(traitDecl is Declaration.TraitDef)
+        return listOf(
+                HIRDefinition.Implementation(
+                        declaration.location,
+                        traitName = ctx.resolver.qualifiedName(traitDecl.name),
+                        traitArgs = declaration.traitArguments.map { lowerTypeAnnotation(it) },
+                        functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map { lowerFunctionDef(it) }
+                )
+        )
     }
 
     private fun lowerInterfaceDef(declaration: Declaration.TraitDef): List<HIRDefinition> {
@@ -368,7 +377,11 @@ class HIRGen(
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> TODO()
-        is Expression.TraitMethodCall -> TODO()
+        is Expression.TraitMethodCall -> lowerTraitMethodCall(expression)
+    }
+
+    private fun lowerTraitMethodCall(expression: Expression.TraitMethodCall): HIRExpression {
+        TODO()
     }
 
     private fun thisParamType(): Type {

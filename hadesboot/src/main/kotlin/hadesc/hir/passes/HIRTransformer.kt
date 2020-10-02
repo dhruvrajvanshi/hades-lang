@@ -1,6 +1,7 @@
 package hadesc.hir.passes
 
 import hadesc.Name
+import hadesc.ast.Declaration
 import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
@@ -20,6 +21,18 @@ interface HIRTransformer: TypeTransformer {
         is HIRDefinition.ExternFunction -> transformExternFunctionDef(definition)
         is HIRDefinition.Struct -> transformStructDef(definition)
         is HIRDefinition.Const -> transformConstDef(definition)
+        is HIRDefinition.Implementation -> transformImplementationDef(definition)
+    }
+
+    fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {
+        return listOf(
+                HIRDefinition.Implementation(
+                        traitName = transformGlobalName(definition.traitName),
+                        traitArgs = definition.traitArgs.map { lowerType(it) },
+                        functions = definition.functions.flatMap { transformDefinition(it) as Collection<HIRDefinition.Function> }.toList(),
+                        location = definition.location
+                )
+        )
     }
 
     fun transformConstDef(definition: HIRDefinition.Const): Collection<HIRDefinition> {

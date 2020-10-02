@@ -55,6 +55,17 @@ sealed class HIRDefinition: HasLocation {
         )
     }
 
+    data class Implementation(
+            override val location: SourceLocation,
+            val traitName: QualifiedName,
+            val traitArgs: List<Type>,
+            val functions: List<Function>
+    ): HIRDefinition() {
+        init {
+            require(traitArgs.isNotEmpty())
+        }
+    }
+
     data class Struct(
             override val location: SourceLocation,
             val name: QualifiedName,
@@ -81,5 +92,9 @@ sealed class HIRDefinition: HasLocation {
                     "\n}"
         }
         is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
+        is Implementation -> "implementation $traitName[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
+                "{\n" +
+                functions.joinToString("\n") { it.prettyPrint() }.prependIndent("  ") +
+                "\n}"
     }
 }
