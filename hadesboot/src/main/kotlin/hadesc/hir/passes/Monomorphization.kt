@@ -208,19 +208,21 @@ class Monomorphization(
         val implMethodNames = generateImpl(impl)
         return HIRExpression.Call(
                 location = expression.location,
-                type = Type.Bool,
+                type = expression.type,
                 callee = HIRExpression.GlobalRef(
                         expression.location,
-                        Type.Byte,
+                        Type.Ptr(Type.Void, isMutable = false),
                         requireNotNull(implMethodNames[expression.methodName])),
                 args = expression.args.map { transformExpression(it) }
         )
     }
 
-    private fun generateImpl(impl: HIRDefinition.Implementation): Map<Name, QualifiedName> {
+    private val generateImplCache = mutableMapOf<Name, Map<Name, QualifiedName>>()
+    private fun generateImpl(impl: HIRDefinition.Implementation): Map<Name, QualifiedName> = generateImplCache.getOrPut(impl.name) {
         require(impl.typeParams.isNullOrEmpty())
+        val implName = impl.name
+
         val result = mutableMapOf<Name, QualifiedName>()
-        val implName = ctx.makeName("impl\$${impl.traitName.mangle()}[${impl.traitArgs.joinToString(",") { it.prettyPrint() } }]")
         impl.functions.forEach { fn ->
             require(fn.name.size == 1)
             val name = QualifiedName(listOf(implName, fn.name.first))
@@ -229,6 +231,9 @@ class Monomorphization(
         }
         return result
     }
+
+    private val HIRDefinition.Implementation.name get() =
+        ctx.makeName("impl\$${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
 
 
 }
