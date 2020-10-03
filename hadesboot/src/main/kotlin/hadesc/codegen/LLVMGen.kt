@@ -121,14 +121,13 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private val loweredBlocks = mutableMapOf<IRBlock, BasicBlock>()
-    private fun lowerBlock(block: IRBlock): BasicBlock = loweredBlocks.computeIfAbsent(block) {
+    private fun lowerBlock(block: IRBlock) {
+        if (block.statements.isEmpty()) return
         val basicBlock = getBlock(block.name)
         builder.positionAtEnd(basicBlock)
         for (statement in block) {
             lowerStatement(statement)
         }
-        basicBlock
     }
 
     private fun lowerStatement(instruction: IRInstruction) = when (instruction) {
