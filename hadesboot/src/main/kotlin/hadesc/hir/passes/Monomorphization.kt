@@ -1,5 +1,7 @@
 package hadesc.hir.passes
 
+import hadesc.Name
+import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
@@ -15,6 +17,10 @@ class Monomorphization(
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Map<SourceLocation, Type>? = null
+    private val allImpls by lazy {
+        oldModule.definitions.filterIsInstance<HIRDefinition.Implementation>()
+    }
+    private val newDefinitions = mutableListOf<HIRDefinition>()
 
     override fun transformModule(oldModule: HIRModule): HIRModule {
         this.oldModule = oldModule
@@ -22,6 +28,7 @@ class Monomorphization(
         while (specializationQueue.isNotEmpty()) {
             addSpecialization(newModule, specializationQueue.take())
         }
+        newModule.definitions.addAll(newDefinitions)
         logger().debug("HIR after monomorphization:\n${newModule.prettyPrint()}")
         return newModule
     }
@@ -92,9 +99,9 @@ class Monomorphization(
         return requireNotNull(specialization[type.name.location])
     }
 
-    override fun transformFunctionDef(definition: HIRDefinition.Function): Collection<HIRDefinition> {
+    override fun transformFunctionDef(definition: HIRDefinition.Function, newName: QualifiedName?): Collection<HIRDefinition> {
         if (definition.typeParams == null) {
-            return super.transformFunctionDef(definition)
+            return super.transformFunctionDef(definition, newName)
         }
         return listOf()
     }
@@ -182,6 +189,48 @@ class Monomorphization(
         val specializedName = getSpecializedName(typeName, type.args.map { lowerType(it) })
         return Type.Constructor(binder = null, name = specializedName)
     }
+
+    override fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {
+        return emptyList()
+    }
+
+    override fun transformTraitMethodCall(expression: HIRExpression.TraitMethodCall): HIRExpression {
+        val traitName = expression.traitName
+        val traitArgs = expression.traitArgs.map { lowerType(it) }
+        val typeAnalyzer = TypeAnalyzer()
+        val impl = requireNotNull(allImpls.find {
+            it.traitName == traitName &&
+                    traitArgs.size == it.traitArgs.size &&
+                    traitArgs.zip(it.traitArgs).all {
+                        (requiredType, foundType) -> typeAnalyzer.isTypeAssignableTo(source = foundType, destination = requiredType)
+                    }
+        })
+        val implMethodNames = generateImpl(impl)
+        return HIRExpression.Call(
+                location = expression.location,
+                type = Type.Bool,
+                callee = HIRExpression.GlobalRef(
+                        expression.location,
+                        Type.Byte,
+                        requireNotNull(implMethodNames[expression.methodName])),
+                args = expression.args.map { transformExpression(it) }
+        )
+    }
+
+    private fun generateImpl(impl: HIRDefinition.Implementation): Map<Name, QualifiedName> {
+        require(impl.typeParams.isNullOrEmpty())
+        val result = mutableMapOf<Name, QualifiedName>()
+        val implName = ctx.makeName("impl\$${impl.traitName.mangle()}[${impl.traitArgs.joinToString(",") { it.prettyPrint() } }]")
+        impl.functions.forEach { fn ->
+            require(fn.name.size == 1)
+            val name = QualifiedName(listOf(implName, fn.name.first))
+            result[fn.name.first] = name
+            newDefinitions.addAll(transformFunctionDef(fn, newName = name))
+        }
+        return result
+    }
+
+
 }
 
 data class SpecializationRequest(

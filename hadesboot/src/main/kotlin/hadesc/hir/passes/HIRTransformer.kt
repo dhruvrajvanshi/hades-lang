@@ -58,18 +58,18 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformFunctionDef(definition: HIRDefinition.Function): Collection<HIRDefinition> {
+    fun transformFunctionDef(definition: HIRDefinition.Function, newName: QualifiedName? = null): Collection<HIRDefinition> {
         return listOf(HIRDefinition.Function(
                 location = definition.location,
-                signature = transformFunctionSignature(definition.signature),
+                signature = transformFunctionSignature(definition.signature, newName),
                 body = transformBlock(definition.body)
         ))
     }
 
-    fun transformFunctionSignature(signature: HIRFunctionSignature): HIRFunctionSignature {
+    fun transformFunctionSignature(signature: HIRFunctionSignature, newName: QualifiedName? = null): HIRFunctionSignature {
         return HIRFunctionSignature(
                 location = signature.location,
-                name = transformGlobalName(signature.name),
+                name = newName ?: transformGlobalName(signature.name),
                 returnType = lowerType(signature.returnType),
                 params = signature.params.map { transformParam(it) },
                 typeParams = signature.typeParams?.map { transformTypeParam(it) }

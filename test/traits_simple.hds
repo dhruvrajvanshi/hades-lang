@@ -1,0 +1,24 @@
+import libc as c;
+
+trait Convert[Self, Other] {
+    def convert(self: Self): Other;
+}
+
+def main(): Void {
+    c.puts(convert[*Byte](true));
+    c.puts(convert[*Byte](false));
+}
+
+def convert[U, T](t: T): U where Convert[T, U] {
+    return trait Convert[T, U].convert(t);
+}
+
+implementation Convert[Bool, *Byte] {
+    def convert(self: Bool): *Byte {
+        if self {
+            return b"true";
+        } else {
+            return b"false";
+        }
+    }
+}
