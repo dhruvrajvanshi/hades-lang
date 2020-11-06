@@ -2,7 +2,10 @@ ThisBuild / scalaVersion := "2.13.3"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.hades"
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 val circeVersion = "0.12.3"
+val catsVersion  = "2.2.0"
 
 lazy val root = (project in file("."))
   .settings(
@@ -12,7 +15,6 @@ lazy val root = (project in file("."))
     languageServer
   )
 lazy val commonSettings = Seq(
-  scalaVersion := "2.13.3",
   scalacOptions ++= Seq(
     "-Ymacro-annotations",
     "-encoding", "utf8",
@@ -38,9 +40,12 @@ lazy val languageServer = project
     libraryDependencies ++= Seq(
       "org.junit.jupiter" % "junit-jupiter-engine" % "5.2.0" % "test",
       "org.junit.jupiter" % "junit-jupiter-api" % "5.3.1" % "test",
-      "org.typelevel" %% "cats-core" % "2.2.0",
-      "org.typelevel" %% "cats-effect" % "2.2.0",
     ),
+
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core",
+      "org.typelevel" %% "cats-effect",
+    ).map(_ % catsVersion)
 
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
