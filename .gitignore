@@ -10,3 +10,5 @@ hdc
 /run_suite
 /run_suite.object
 /target
+/.metals
+/.bloop

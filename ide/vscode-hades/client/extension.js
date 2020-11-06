@@ -7,8 +7,14 @@ var client;
 function activate(context) {
     // If the extension is launched in debug mode then the debug server options are used
     // Otherwise the run options are used
+    var debugOpts = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005";
     var serverOptions = {
-        command: "./hades-server"
+        command: "/home/dhruv/Projects/hades-lang/language-server/target/pack/bin/hades-language-server",
+        options: {
+            env: {
+                "JAVA_OPTS": debugOpts
+            }
+        }
     };
     // Options to control the language client
     var clientOptions = {
