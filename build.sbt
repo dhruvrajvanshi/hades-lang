@@ -45,13 +45,13 @@ lazy val languageServer = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core",
       "org.typelevel" %% "cats-effect",
-    ).map(_ % catsVersion)
+    ).map(_ % catsVersion),
 
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-generic",
       "io.circe" %% "circe-parser"
-    ).map(_ % circeVersion)
+    ).map(_ % circeVersion),
   )
   .enablePlugins(PackPlugin)
 
