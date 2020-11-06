@@ -12,7 +12,8 @@ function activate(context) {
         command: "/home/dhruv/Projects/hades-lang/language-server/target/pack/bin/hades-language-server",
         options: {
             env: {
-                "JAVA_OPTS": debugOpts
+                // "JAVA_OPTS": debugOpts,
+                "JAVA_HOME": "/home/dhruv/.jdks/adopt-openjdk-11.0.8"
             }
         }
     };

@@ -4,7 +4,7 @@ ThisBuild / organization := "io.hades"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-val circeVersion = "0.12.3"
+val circeVersion = "0.13.0"
 val catsVersion  = "2.2.0"
 
 lazy val root = (project in file("."))
@@ -50,7 +50,8 @@ lazy val languageServer = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-generic",
-      "io.circe" %% "circe-parser"
+      "io.circe" %% "circe-parser",
+      "io.circe" %% "circe-generic-extras",
     ).map(_ % circeVersion),
   )
   .enablePlugins(PackPlugin)
