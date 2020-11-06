@@ -9,5 +9,4 @@ hdc
 .vscode
 /run_suite
 /run_suite.object
-/cmake-build-debug
-.clangd
+/target

@@ -1,27 +1,26 @@
-import sbt._
-val languageVersion = "2.13.3"
+ThisBuild / scalaVersion := "2.13.3"
+ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / organization := "io.hades"
 
-lazy val core = project
-  .in(file("hades-core"))
-  .settings(commonSettings)
+lazy val root = (project in file("."))
   .settings(
-    name := "hades-core"
+    name := "hades-lang"
   )
-
-// PROJECTS
-lazy val global = project
-  .in(file("."))
+  .settings(commonSettings)
   .aggregate(
-    languageServer,
+    languageServer
   )
-
-
 lazy val commonSettings = Seq(
   version := "0.0.1",
-  scalaVersion := scalaVersion,
+  scalaVersion := "2.13.3",
   libraryDependencies ++= Seq(
-    //    "com.novocode" % "junit-interface" % "0.11" % "test",
     "org.junit.jupiter" % "junit-jupiter-engine" % "5.2.0" % "test",
     "org.junit.jupiter" % "junit-jupiter-api" % "5.3.1" % "test",
   ),
 )
+lazy val languageServer = project
+  .in(file("language-server"))
+  .settings(commonSettings)
+  .settings(
+    name := "hades-language-server"
+  )
