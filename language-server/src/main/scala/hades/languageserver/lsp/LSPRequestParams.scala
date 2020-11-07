@@ -22,6 +22,7 @@ object LSPRequest {
       case Initialize.METHOD => Decoder[Initialize].tryDecode(json.downField(KEY_PARAMS))
       case Shutdown.METHOD => Right(Shutdown)
       case Exit.METHOD => Right(Exit)
+      case Initialized.METHOD => Right(Initialized)
       case _ => Left(DecodingFailure(s"Unknown message type $t", List()))
     }
   } yield LSPRequest(id = id, params = params)
@@ -81,6 +82,10 @@ object LSPRequestParams {
 
   case object Exit extends LSPRequestParams {
     val METHOD = "exit"
+  }
+
+  case object Initialized extends LSPRequestParams {
+    val METHOD = "initialized"
   }
 }
 

@@ -8,6 +8,7 @@ import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import hades.languageserver.lsp.LSPRequestParams.{Exit, Initialize}
 import hades.languageserver.lsp.{LSPRequest, LSPRequestParams, LSPResponse, LSPResponseParams, ServerCapabilities, ServerInfo}
+import io.circe.Json
 
 import scala.io.StdIn
 
@@ -60,19 +61,24 @@ object LanguageServerMain extends IOApp {
       case Right(value) => value
       case Left(e) => throw new RuntimeException(e)
     }
-    _ <- log(request.toString)
-    response <- handleRequest[IO](request)
-    responseJson = response.toJsonString
+    _ <- log("responding with " + request.toString)
+    response <- handleRequest(request)
+    responseJson = response.map(_.toJsonString)
     _ <- log(s"output: $responseJson")
-    _ <- IO(writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n"))
-    _ <- IO(writer.write(responseJson))
-    _ <- IO(writer.flush())
+    _ <- responseJson match {
+      case Some(responseJson) => for {
+        _ <- IO(writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n"))
+        _ <- IO(writer.write(responseJson))
+        _ <- IO(writer.flush())
+      } yield ()
+      case None => ().pure[IO]
+    }
     code <- loop
   } yield code
 
   def handleInitializeRequest[F[_]: Applicative](request: LSPRequest, params: Initialize): F[LSPResponse] =
     LSPResponse(id = request.id, params = LSPResponseParams.Initialized(
-      capabilities = ServerCapabilities(),
+      capabilities = Json.obj(),
       serverInfo = Some(ServerInfo(
         name = "hades-language-server",
         version = None
@@ -83,10 +89,11 @@ object LanguageServerMain extends IOApp {
   def handleShutdownRequest[F[_]: Applicative](request: LSPRequest): F[LSPResponse] =
     LSPResponse(id=request.id, params = LSPResponseParams.Shutdown()).pure[F]
 
-  def handleRequest[F[_]: Applicative: Sync](request: LSPRequest): F[LSPResponse] = {
+  def handleRequest(request: LSPRequest): IO[Option[LSPResponse]] = {
     request.params match {
-      case i: Initialize => handleInitializeRequest[F](request, i)
-      case LSPRequestParams.Shutdown => handleShutdownRequest[F](request)
+      case i: Initialize => handleInitializeRequest[IO](request, i).map(Some(_))
+      case LSPRequestParams.Shutdown => handleShutdownRequest[IO](request).map(Some(_))
+      case LSPRequestParams.Initialized => (None).pure[IO]
       case Exit =>
         System.exit(0)
         throw new RuntimeException("Unreachable")

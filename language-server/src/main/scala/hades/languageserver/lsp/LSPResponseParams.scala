@@ -1,5 +1,6 @@
 package hades.languageserver.lsp
 
+import hades.languageserver.lsp.LSPResponseParams.{Initialized, Shutdown}
 import io.circe._
 import io.circe.generic._
 import io.circe.syntax._
@@ -15,13 +16,16 @@ case class LSPResponse(
 object LSPResponse {
   implicit val jsonEncoder: Encoder[LSPResponse] = self => Json.obj(
     "id" -> self.id.asJson,
-    "result" -> self.params.asJson
+    "result" -> self.params._asJson
   )
 }
 
-@JsonCodec sealed abstract class LSPResponseParams {
-  def toJsonString: String =
-    this.asJson.noSpaces
+sealed abstract class LSPResponseParams {
+
+  def _asJson: Json = this match {
+    case i: Initialized => i.asJson
+    case _: Shutdown => Json.obj()
+  }
 }
 
 object LSPResponseParams {
@@ -30,7 +34,7 @@ object LSPResponseParams {
     /**
      * The capabilities the language server provides.
      */
-    capabilities: ServerCapabilities,
+    capabilities: Json,
     /**
      * Information about the server.
      *
@@ -54,3 +58,9 @@ object LSPResponseParams {
    */
   version: Option[String]
 )
+
+sealed trait DeclarationProviderOptions
+object DeclarationProviderOptions {
+  case class DeclarationOptions() extends DeclarationProviderOptions
+  case class DeclarationRegistrationOptions() extends DeclarationProviderOptions
+}
