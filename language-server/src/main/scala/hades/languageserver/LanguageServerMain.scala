@@ -6,9 +6,11 @@ import java.io.{BufferedReader, BufferedWriter, InputStreamReader, OutputStreamW
 import cats.Applicative
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
-import hades.languageserver.lsp.LSPRequestParams.{Exit, Initialize}
+import hades.languageserver.lsp.LSPRequestParams.{Exit, Initialize, Unknown}
+import hades.languageserver.lsp.LSPResponseParams.Hover
 import hades.languageserver.lsp.{LSPRequest, LSPRequestParams, LSPResponse, LSPResponseParams, ServerCapabilities, ServerInfo}
-import io.circe.Json
+import io.circe._
+import io.circe.syntax._
 
 import scala.io.StdIn
 
@@ -26,14 +28,14 @@ object LanguageServerMain extends IOApp {
     length = text.toInt
   } yield length
 
-  def log(message: String): IO[Unit] = IO(System.err.println(s"INFO: $message"))
+  def log(message: String): IO[Unit] = IO.delay(System.err.println(s"INFO: $message"))
   def putb(b: Int): IO[Unit] = IO(System.err.print(b.toChar))
 
   def readJSON(reader: BufferedReader): IO[String] = IO {
     var c = reader.read()
     val builder = new StringBuilder
     if (c.toChar != '{') {
-      throw new AssertionError(s"Expected { found ${c} (${c.toChar})")
+      throw new AssertionError(s"Expected { found $c (${c.toChar})")
     }
     while (c.toChar != '}') {
       builder.addOne(c.toChar)
@@ -44,7 +46,7 @@ object LanguageServerMain extends IOApp {
 
   def dump_c(reader: Reader): IO[Unit] = IO {
     val c = reader.read()
-    System.err.println(s"ch: ${c} ${c.toChar}")
+    System.err.println(s"ch: $c ${c.toChar}")
   }
 
   def loop: IO[ExitCode] = for {
@@ -52,7 +54,7 @@ object LanguageServerMain extends IOApp {
     header <- IO(reader.readLine())
     _ <- IO(reader.readLine())
     contentLength = header.split(":")(1).trim.toInt
-    _ <- log(s"content length: ${contentLength}")
+    _ <- log(s"content length: $contentLength")
     buffer <- IO(new Array[Char](contentLength))
     _ <- IO(reader.read(buffer, 0, contentLength))
     jsonText = new String(buffer)
@@ -61,8 +63,8 @@ object LanguageServerMain extends IOApp {
       case Right(value) => value
       case Left(e) => throw new RuntimeException(e)
     }
-    _ <- log("responding with " + request.toString)
-    response <- handleRequest(request)
+    response <- handleRequest(jsonText, request)
+    _ <- log("responding with " + response.toString)
     responseJson = response.map(_.toJsonString)
     _ <- log(s"output: $responseJson")
     _ <- responseJson match {
@@ -78,7 +80,15 @@ object LanguageServerMain extends IOApp {
 
   def handleInitializeRequest[F[_]: Applicative](request: LSPRequest, params: Initialize): F[LSPResponse] =
     LSPResponse(id = request.id, params = LSPResponseParams.Initialized(
-      capabilities = Json.obj(),
+      capabilities = Json.obj(
+        "textDocumentSync" -> Json.obj(
+          "openClose" -> true.asJson,
+          "change" -> 2.asJson,
+        ),
+        "hoverProvider" -> Json.obj(
+          "workDoneProgress" -> true.asJson,
+        )
+      ),
       serverInfo = Some(ServerInfo(
         name = "hades-language-server",
         version = None
@@ -89,14 +99,29 @@ object LanguageServerMain extends IOApp {
   def handleShutdownRequest[F[_]: Applicative](request: LSPRequest): F[LSPResponse] =
     LSPResponse(id=request.id, params = LSPResponseParams.Shutdown()).pure[F]
 
-  def handleRequest(request: LSPRequest): IO[Option[LSPResponse]] = {
+  def handleTextDocumentHover[F[_]: Applicative](request: LSPRequest, h: LSPRequestParams.TextDocumentHover): F[Some[LSPResponse]] =
+    Some(LSPResponse(
+      params = Hover("hover not implemented"),
+      id = request.id
+    )).pure[F]
+
+  def handleRequest(reqJSON: String, request: LSPRequest): IO[Option[LSPResponse]] = {
     request.params match {
       case i: Initialize => handleInitializeRequest[IO](request, i).map(Some(_))
       case LSPRequestParams.Shutdown => handleShutdownRequest[IO](request).map(Some(_))
-      case LSPRequestParams.Initialized => (None).pure[IO]
+      case LSPRequestParams.Initialized => None.pure[IO]
+      case o: LSPRequestParams.TextDocumentDidOpen => handleTextDocumentDidOpen(o)
+      case h: LSPRequestParams.TextDocumentHover => handleTextDocumentHover[IO](request, h)
+      case Unknown => for {
+        _ <- log(s"WARN: Unhandled method ${io.circe.parser.decode[Json](reqJSON).map(_.spaces2)}")
+      } yield None
       case Exit =>
         System.exit(0)
         throw new RuntimeException("Unreachable")
     }
   }
+
+  type F[T] = IO[T]
+  def handleTextDocumentDidOpen(open: LSPRequestParams.TextDocumentDidOpen): F[Option[LSPResponse]] =
+    None.pure[F]
 }

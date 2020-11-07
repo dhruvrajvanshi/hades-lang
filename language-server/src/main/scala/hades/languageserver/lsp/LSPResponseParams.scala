@@ -1,6 +1,6 @@
 package hades.languageserver.lsp
 
-import hades.languageserver.lsp.LSPResponseParams.{Initialized, Shutdown}
+import hades.languageserver.lsp.LSPResponseParams.{Hover, Initialized, Shutdown}
 import io.circe._
 import io.circe.generic._
 import io.circe.syntax._
@@ -25,6 +25,7 @@ sealed abstract class LSPResponseParams {
   def _asJson: Json = this match {
     case i: Initialized => i.asJson
     case _: Shutdown => Json.obj()
+    case h: Hover => h.asJson
   }
 }
 
@@ -44,6 +45,8 @@ object LSPResponseParams {
   ) extends LSPResponseParams
 
   @JsonCodec case class Shutdown() extends LSPResponseParams
+
+  @JsonCodec case class Hover(contents: String) extends LSPResponseParams
 }
 
 @JsonCodec case class ServerCapabilities()

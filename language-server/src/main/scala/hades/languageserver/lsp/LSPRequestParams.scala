@@ -1,7 +1,7 @@
 package hades.languageserver.lsp
 
-import io.circe.generic._
 import io.circe._
+import io.circe.generic._
 import io.circe.parser.decode
 
 case class LSPRequest(id: Int, params: LSPRequestParams)
@@ -15,17 +15,21 @@ object LSPRequest {
   def fromJson(text: String): Either[Error, LSPRequest] =
     decode[LSPRequest](text)
 
-  private implicit val jsonDecoder: Decoder[LSPRequest] = json => for {
-    id <- json.downField(KEY_ID).as[Option[Int]].map(_.getOrElse(-1))
-    t <- json.downField(KEY_METHOD).as[String]
-    params <- t match {
-      case Initialize.METHOD => Decoder[Initialize].tryDecode(json.downField(KEY_PARAMS))
-      case Shutdown.METHOD => Right(Shutdown)
-      case Exit.METHOD => Right(Exit)
-      case Initialized.METHOD => Right(Initialized)
-      case _ => Left(DecodingFailure(s"Unknown message type $t", List()))
-    }
-  } yield LSPRequest(id = id, params = params)
+  implicit private val jsonDecoder: Decoder[LSPRequest] = json =>
+    for {
+      id <- json.downField(KEY_ID).as[Option[Int]].map(_.getOrElse(-1))
+      paramsJson = json.downField(KEY_PARAMS)
+      t <- json.downField(KEY_METHOD).as[String]
+      params <- t match {
+        case Initialize.METHOD          => Decoder[Initialize].tryDecode(paramsJson)
+        case Shutdown.METHOD            => Right(Shutdown)
+        case Exit.METHOD                => Right(Exit)
+        case Initialized.METHOD         => Right(Initialized)
+        case TextDocumentDidOpen.METHOD => Decoder[TextDocumentDidOpen].tryDecode(paramsJson)
+        case TextDocumentHover.METHOD   => Decoder[TextDocumentHover].tryDecode(paramsJson)
+        case _                          => Right(Unknown)
+      }
+    } yield LSPRequest(id = id, params = params)
 }
 
 @JsonCodec sealed abstract class LSPRequestParams
@@ -72,6 +76,20 @@ object LSPRequestParams {
      */
     workspaceFolders: Option[List[WorkspaceFolder]]
   ) extends LSPRequestParams
+
+  @JsonCodec case class TextDocumentDidOpen(
+    textDocument: TextDocumentItem
+  ) extends LSPRequestParams
+
+  @JsonCodec case class TextDocumentHover(
+    textDocument: TextDocumentIdentifier,
+    position: Position
+  ) extends LSPRequestParams
+
+  object TextDocumentDidOpen {
+    val METHOD = "textDocument/didOpen"
+  }
+
   object Initialize {
     val METHOD = "initialize"
   }
@@ -87,6 +105,12 @@ object LSPRequestParams {
   case object Initialized extends LSPRequestParams {
     val METHOD = "initialized"
   }
+
+  case object TextDocumentHover {
+    val METHOD = "textDocument/hover"
+  }
+
+  case object Unknown extends LSPRequestParams
 }
 
 @JsonCodec case class ClientInfo(
@@ -101,10 +125,25 @@ object LSPRequestParams {
 
 @JsonCodec case class ClientCapabilities(
   workspace: Option[WorkspaceClientCapabilities],
-  textDocument: Option[TextDocumentClientCapabilities],
+  textDocument: Option[TextDocumentClientCapabilities]
 //  experimental: Option[AnyVal]
 )
 
 @JsonCodec case class WorkspaceClientCapabilities()
 @JsonCodec case class TextDocumentClientCapabilities()
 
+@JsonCodec case class TextDocumentItem(
+  uri: String,
+  languageId: String,
+  version: Int,
+  text: String
+)
+
+@JsonCodec case class TextDocumentIdentifier(
+  uri: String
+)
+
+@JsonCodec case class Position(
+  line: Long,
+  character: Long
+)
