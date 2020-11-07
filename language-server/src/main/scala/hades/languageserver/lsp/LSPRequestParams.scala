@@ -2,14 +2,33 @@ package hades.languageserver.lsp
 
 import io.circe.generic._
 import io.circe._
-import io.circe.syntax._
+import io.circe.parser.decode
 
-@JsonCodec sealed abstract class LSPRequest
-
-
-
+case class LSPRequest(id: Int, params: LSPRequestParams)
 object LSPRequest {
+  import LSPRequestParams._
 
+  val KEY_PARAMS = "params"
+  val KEY_METHOD = "method"
+  val KEY_ID = "id"
+
+  def fromJson(text: String): Either[Error, LSPRequest] =
+    decode[LSPRequest](text)
+
+  private implicit val jsonDecoder: Decoder[LSPRequest] = json => for {
+    id <- json.downField(KEY_ID).as[Option[Int]].map(_.getOrElse(-1))
+    t <- json.downField(KEY_METHOD).as[String]
+    params <- t match {
+      case Initialize.METHOD => Decoder[Initialize].tryDecode(json.downField(KEY_PARAMS))
+      case Shutdown.METHOD => Right(Shutdown)
+      case Exit.METHOD => Right(Exit)
+      case _ => Left(DecodingFailure(s"Unknown message type $t", List()))
+    }
+  } yield LSPRequest(id = id, params = params)
+}
+
+@JsonCodec sealed abstract class LSPRequestParams
+object LSPRequestParams {
   @JsonCodec case class Initialize(
     /**
      * The process Id of the parent process that started
@@ -51,27 +70,18 @@ object LSPRequest {
      * Since 3.6.0
      */
     workspaceFolders: Option[List[WorkspaceFolder]]
-  ) extends LSPRequest
+  ) extends LSPRequestParams
   object Initialize {
     val METHOD = "initialize"
   }
 
-  val KEY_PARAMS = "params"
-  val KEY_METHOD = "method"
-  implicit val lspRequestEncoder: Encoder[LSPRequest] = {
-    case i: Initialize => Json.obj(
-      (KEY_METHOD, Initialize.METHOD.asJson),
-      (KEY_PARAMS, i.asJson)
-    )
+  case object Shutdown extends LSPRequestParams {
+    val METHOD = "shutdown"
   }
 
-  implicit val lspRequestDecoder: Decoder[LSPRequest] = json => for {
-    t <- json.downField(KEY_METHOD).as[String]
-    payload <- t match {
-      case Initialize.METHOD => Decoder[Initialize].tryDecode(json.downField(KEY_PARAMS))
-      case _ => Left(DecodingFailure(s"Unknown message type $t", List()))
-    }
-  } yield payload
+  case object Exit extends LSPRequestParams {
+    val METHOD = "exit"
+  }
 }
 
 @JsonCodec case class ClientInfo(

@@ -1,17 +1,19 @@
 package hades
 package languageserver
 
-import java.io.{BufferedReader, InputStreamReader, Reader}
+import java.io.{BufferedReader, BufferedWriter, InputStreamReader, OutputStreamWriter, Reader}
 
-import cats.effect.{ExitCode, IO, IOApp}
-import hades.languageserver.lsp.LSPRequest
-import hades.languageserver.lsp.LSPRequest.lspRequestDecoder
-import io.circe.parser.decode
+import cats.Applicative
+import cats.effect.{ExitCode, IO, IOApp, Sync}
+import cats.implicits._
+import hades.languageserver.lsp.LSPRequestParams.{Exit, Initialize}
+import hades.languageserver.lsp.{LSPRequest, LSPRequestParams, LSPResponse, LSPResponseParams, ServerCapabilities, ServerInfo}
 
 import scala.io.StdIn
 
 object LanguageServerMain extends IOApp {
   val reader = new BufferedReader(new InputStreamReader(System.in))
+  val writer = new BufferedWriter(new OutputStreamWriter(System.out))
   implicit class ReaderOps[F[_]](val inputStream: F[InputStreamReader]) {}
   override def run(args: List[String]): IO[ExitCode] =
     loop
@@ -54,10 +56,40 @@ object LanguageServerMain extends IOApp {
     _ <- IO(reader.read(buffer, 0, contentLength))
     jsonText = new String(buffer)
     _ <- log(jsonText)
-    request = decode[LSPRequest](jsonText)
+    request = LSPRequest.fromJson(jsonText) match {
+      case Right(value) => value
+      case Left(e) => throw new RuntimeException(e)
+    }
     _ <- log(request.toString)
-    _ <- IO(throw new UnsupportedOperationException)
+    response <- handleRequest[IO](request)
+    responseJson = response.toJsonString
+    _ <- log(s"output: $responseJson")
+    _ <- IO(writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n"))
+    _ <- IO(writer.write(responseJson))
+    _ <- IO(writer.flush())
     code <- loop
   } yield code
 
+  def handleInitializeRequest[F[_]: Applicative](request: LSPRequest, params: Initialize): F[LSPResponse] =
+    LSPResponse(id = request.id, params = LSPResponseParams.Initialized(
+      capabilities = ServerCapabilities(),
+      serverInfo = Some(ServerInfo(
+        name = "hades-language-server",
+        version = None
+      ))
+
+    )).pure[F]
+
+  def handleShutdownRequest[F[_]: Applicative](request: LSPRequest): F[LSPResponse] =
+    LSPResponse(id=request.id, params = LSPResponseParams.Shutdown()).pure[F]
+
+  def handleRequest[F[_]: Applicative: Sync](request: LSPRequest): F[LSPResponse] = {
+    request.params match {
+      case i: Initialize => handleInitializeRequest[F](request, i)
+      case LSPRequestParams.Shutdown => handleShutdownRequest[F](request)
+      case Exit =>
+        System.exit(0)
+        throw new RuntimeException("Unreachable")
+    }
+  }
 }
