@@ -8,7 +8,7 @@ import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import hades.languageserver.lsp.LSPRequestParams.{Exit, Initialize, Unknown}
 import hades.languageserver.lsp.LSPResponseParams.Hover
-import hades.languageserver.lsp.{LSPRequest, LSPRequestParams, LSPResponse, LSPResponseParams, ServerCapabilities, ServerInfo}
+import hades.languageserver.lsp.{LSPRequest, LSPRequestParams, LSPResponse, LSPResponseParams, ServerInfo}
 import io.circe._
 import io.circe.syntax._
 
@@ -105,13 +105,18 @@ object LanguageServerMain extends IOApp {
       id = request.id
     )).pure[F]
 
+  def handleTextDocumentDidChange[F[_]: Applicative](request: LSPRequest, c: LSPRequestParams.TextDocumentDidChange): F[Option[LSPResponse]] =
+    None.asInstanceOf[Option[LSPResponse]].pure[F]
+
   def handleRequest(reqJSON: String, request: LSPRequest): IO[Option[LSPResponse]] = {
+    import LSPRequestParams._
     request.params match {
       case i: Initialize => handleInitializeRequest[IO](request, i).map(Some(_))
-      case LSPRequestParams.Shutdown => handleShutdownRequest[IO](request).map(Some(_))
-      case LSPRequestParams.Initialized => None.pure[IO]
-      case o: LSPRequestParams.TextDocumentDidOpen => handleTextDocumentDidOpen(o)
-      case h: LSPRequestParams.TextDocumentHover => handleTextDocumentHover[IO](request, h)
+      case Shutdown => handleShutdownRequest[IO](request).map(Some(_))
+      case Initialized => None.pure[IO]
+      case o: TextDocumentDidOpen => handleTextDocumentDidOpen(o)
+      case h: TextDocumentHover => handleTextDocumentHover[IO](request, h)
+      case c: TextDocumentDidChange => handleTextDocumentDidChange[IO](request, c)
       case Unknown => for {
         _ <- log(s"WARN: Unhandled method ${io.circe.parser.decode[Json](reqJSON).map(_.spaces2)}")
       } yield None

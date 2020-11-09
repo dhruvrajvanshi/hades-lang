@@ -26,6 +26,7 @@ object LSPRequest {
         case Exit.METHOD                => Right(Exit)
         case Initialized.METHOD         => Right(Initialized)
         case TextDocumentDidOpen.METHOD => Decoder[TextDocumentDidOpen].tryDecode(paramsJson)
+        case TextDocumentDidChange.METHOD => Decoder[TextDocumentDidChange].tryDecode(paramsJson)
         case TextDocumentHover.METHOD   => Decoder[TextDocumentHover].tryDecode(paramsJson)
         case _                          => Right(Unknown)
       }
@@ -80,6 +81,14 @@ object LSPRequestParams {
   @JsonCodec case class TextDocumentDidOpen(
     textDocument: TextDocumentItem
   ) extends LSPRequestParams
+
+  @JsonCodec case class TextDocumentDidChange(
+    textDocument: VersionedTextDocumentIdentifier,
+    contentChanges: Array[TextDocumentContentChangeEvent]
+  )  extends LSPRequestParams
+  object TextDocumentDidChange {
+    val METHOD = "textDocument/didChange"
+  }
 
   @JsonCodec case class TextDocumentHover(
     textDocument: TextDocumentIdentifier,
@@ -146,4 +155,18 @@ object LSPRequestParams {
 @JsonCodec case class Position(
   line: Long,
   character: Long
+)
+
+@JsonCodec case class VersionedTextDocumentIdentifier(
+  uri: String
+)
+
+@JsonCodec case class TextDocumentContentChangeEvent(
+  range: Option[Range],
+  text: String
+)
+
+@JsonCodec case class Range(
+  start: Position,
+  end: Position
 )
