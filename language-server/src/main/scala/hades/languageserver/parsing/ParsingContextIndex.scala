@@ -1,10 +1,10 @@
 package hades.languageserver.parsing
 
-import cats.{Applicative, Monad}
+import cats.Monad
 import cats.syntax.all._
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.effect.concurrent.Ref
-import hades.languageserver.lsp.{LSPRequest, LSPRequestParams}
+import hades.languageserver.lsp.{LSPRequestParams}
 import hades.languageserver.lsp.Range
 
 trait ParsingContextIndex[F[_]] {
