@@ -5,22 +5,23 @@ import java.io._
 import cats.Applicative
 import cats.effect.{ExitCode, IO}
 import cats.syntax.all._
+import hades.languageserver.logging.LoggerF
 import hades.languageserver.lsp.LSPRequestParams.Initialize
 import hades.languageserver.lsp.LSPResponseParams.Hover
 import hades.languageserver.lsp._
-import hades.languageserver.parsing.ParsingContextIndexImpl
+import hades.languageserver.parsing.ParsingContextIndex
 import io.circe.Json
 import io.circe.syntax._
 
 import scala.io.StdIn
 
 class EventLoop(
-  val parsingContextIndex: ParsingContextIndexImpl[IO]
+  val parsingContextIndex: ParsingContextIndex[IO],
+  val logger: LoggerF[IO]
 ) {
+  type F[T] = IO[T]
   val reader = new BufferedReader(new InputStreamReader(System.in))
   val writer = new BufferedWriter(new OutputStreamWriter(System.out))
-
-  type F[T] = IO[T]
 
   def loop: IO[ExitCode] = for {
     _ <- log("Waiting for request")
@@ -55,7 +56,9 @@ class EventLoop(
   def handleShutdownRequest[F[_]: Applicative](request: LSPRequest): F[LSPResponse] =
     LSPResponse(id = request.id, params = LSPResponseParams.Shutdown()).pure[F]
 
-  def handleTextDocumentHover[F[_]: Applicative](request: LSPRequest, h: LSPRequestParams.TextDocumentHover): F[Some[LSPResponse]] =
+  def handleTextDocumentHover[F[_]: Applicative](request: LSPRequest,
+                                                 h: LSPRequestParams.TextDocumentHover
+  ): F[Some[LSPResponse]] =
     Some(
       LSPResponse(
         params = Hover("hover not implemented"),
@@ -97,7 +100,8 @@ class EventLoop(
     length = text.toInt
   } yield length
 
-  private def log(message: String): IO[Unit] = IO.delay(System.err.println(s"INFO: $message"))
+  private def log(message: String): IO[Unit] =
+    logger.info(message)
 
   private def readJSON(reader: BufferedReader): IO[String] = IO {
     var c = reader.read()

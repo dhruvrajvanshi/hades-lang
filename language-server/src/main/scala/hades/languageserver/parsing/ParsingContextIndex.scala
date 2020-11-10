@@ -1,22 +1,26 @@
 package hades.languageserver.parsing
 
-import cats.Monad
+import cats.{Functor, Monad}
 import cats.syntax.all._
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
-import hades.languageserver.lsp.{LSPRequestParams}
+import hades.languageserver.lsp.LSPRequestParams
 import hades.languageserver.lsp.Range
 
 trait ParsingContextIndex[F[_]] {
   def onDocumentOpen(params: LSPRequestParams.TextDocumentDidOpen): F[Unit]
   def onDocumentEdit(params: LSPRequestParams.TextDocumentDidChange): F[Unit]
 }
+object ParsingContextIndex {
+  def build[F[_]: Sync: Monad]: F[ParsingContextIndex[F]] =
+    Ref[F].of(State()).map(new ParsingContextIndexImpl[F](_))
+}
 
 case class URI(value: String) extends AnyVal
-case class State(
+private case class State(
   lines: Map[URI, Vector[String]] = Map()
 )
-class ParsingContextIndexImpl[F[_]: Sync: Monad](
+private class ParsingContextIndexImpl[F[_]: Sync: Monad](
   private val state: Ref[F, State]
 ) extends ParsingContextIndex[F] {
 

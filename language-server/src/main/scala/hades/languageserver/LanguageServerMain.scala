@@ -3,9 +3,9 @@ package languageserver
 
 import java.io.InputStreamReader
 
-import cats.effect.concurrent.Ref
 import cats.effect.{ExitCode, IO, IOApp}
-import hades.languageserver.parsing.{ParsingContextIndex, ParsingContextIndexImpl, State}
+import hades.languageserver.logging.LoggerF
+import hades.languageserver.parsing.ParsingContextIndex
 
 
 object LanguageServerMain extends IOApp {
@@ -13,9 +13,12 @@ object LanguageServerMain extends IOApp {
   implicit class ReaderOps[F[_]](val inputStream: F[InputStreamReader]) {}
   override def run(args: List[String]): IO[ExitCode] = for {
     _ <- IO.pure(())
-    parsingState <- Ref[IO].of(State())
-    parsingContextIndex = new ParsingContextIndexImpl[IO](parsingState)
-    eventLoop = new EventLoop(parsingContextIndex = parsingContextIndex)
+    logger <- LoggerF.make[IO]
+    parsingContextIndex <- ParsingContextIndex.build[IO]
+    eventLoop = new EventLoop(
+      parsingContextIndex = parsingContextIndex,
+      logger = logger
+    )
     code <- eventLoop.loop
   } yield code
 
