@@ -15,15 +15,27 @@ import io.circe.syntax._
 
 import scala.io.StdIn
 
-class EventLoop(
+trait EventLoop {
+  def loop: IO[ExitCode]
+}
+object EventLoop {
+  def build(parsingContextIndex: ParsingContextIndex[IO]): IO[EventLoop] = for {
+    log <- LoggerF.make[IO, EventLoopImpl](classOf)
+  } yield new EventLoopImpl(
+    parsingContextIndex,
+    log
+  )
+}
+
+private class EventLoopImpl(
   val parsingContextIndex: ParsingContextIndex[IO],
-  val logger: LoggerF[IO]
-) {
+  val log: LoggerF[IO]
+) extends EventLoop {
   type F[T] = IO[T]
   val reader = new BufferedReader(new InputStreamReader(System.in))
   val writer = new BufferedWriter(new OutputStreamWriter(System.out))
 
-  def loop: IO[ExitCode] = for {
+  override def loop: IO[ExitCode] = for {
     _ <- log("Waiting for request")
     header <- IO(reader.readLine())
     _ <- IO(reader.readLine())
@@ -101,7 +113,7 @@ class EventLoop(
   } yield length
 
   private def log(message: String): IO[Unit] =
-    logger.info(message)
+    log.info(message)
 
   private def readJSON(reader: BufferedReader): IO[String] = IO {
     var c = reader.read()
