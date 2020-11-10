@@ -4,7 +4,7 @@ import java.io.{BufferedReader, InputStream, InputStreamReader}
 
 import cats.Monad
 import cats.effect.Sync
-import cats.implicits._
+import cats.syntax.all._
 
 trait InputStreamReaderF[F[_]] {
   def readLine(): F[String]
@@ -12,12 +12,12 @@ trait InputStreamReaderF[F[_]] {
 }
 
 object InputStreamReaderF {
-  def build[F[_]: Sync: Monad](inputStream: InputStream): F[InputStreamReaderF[F]] =
-    new InputStreamReaderFImpl[F](inputStream).asInstanceOf[InputStreamReaderF[F]].pure[F]
+  def build[F[_]: Sync: Monad](inputStream: InputStream): F[InputStreamReaderF[F]] = {
+    Sync[F].delay(new BufferedReader(new InputStreamReader(inputStream))).map(new InputStreamReaderFImpl[F](_))
+  }
 }
 
-private class InputStreamReaderFImpl[F[_]: Sync: Monad](inputStream: InputStream) extends InputStreamReaderF[F] {
-  private val inner = new BufferedReader(new InputStreamReader(inputStream))
+private class InputStreamReaderFImpl[F[_]: Sync: Monad](val inner: BufferedReader) extends InputStreamReaderF[F] {
 
   override def readLine(): F[String] = Sync[F].delay(inner.readLine())
 
@@ -28,4 +28,3 @@ private class InputStreamReaderFImpl[F[_]: Sync: Monad](inputStream: InputStream
   } yield text
 
 }
-
