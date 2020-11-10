@@ -10,11 +10,11 @@ trait LoggerF[F[_]] {
   def warn(message: String): F[Unit]
   def debug(message: String): F[Unit]
 
-  def profile[T](name: String, f: => F[T]): F[T]
+  def profile[T](name: String)(f: => F[T]): F[T]
 }
 
 object LoggerF {
-  def make[F[_]: Monad: Sync, C](clazz: Class[C]): F[LoggerF[F]] = {
+  def build[F[_]: Monad: Sync, C](clazz: Class[C]): F[LoggerF[F]] = {
     new LoggerFImpl[F, C](clazz).asInstanceOf[LoggerF[F]].pure[F]
   }
 }
@@ -25,7 +25,7 @@ private class LoggerFImpl[F[_]: Applicative: Sync, C](val clazz: Class[C]) exten
   override def warn(message: String): F[Unit] = withTag("WARN", message)
 
   override def debug(message: String): F[Unit] = withTag("DEBUG", message)
-  override def profile[T](name: String, f: => F[T]): F[T]  = for {
+  override def profile[T](name: String)(f: => F[T]): F[T]  = for {
     startTime <- Sync[F].delay(System.currentTimeMillis())
     value <- f
     stopTime <- Sync[F].delay(System.currentTimeMillis())
@@ -33,7 +33,7 @@ private class LoggerFImpl[F[_]: Applicative: Sync, C](val clazz: Class[C]) exten
   } yield value
 
   private def withTag(tag: String, message: String): F[Unit] = Sync[F].delay {
-    System.err.println(s"${tag} (${clazz.getName}): $message")
+    System.err.println(s"$tag (${clazz.getName}): $message")
   }
 
 }

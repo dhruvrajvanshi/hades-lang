@@ -1,12 +1,11 @@
 package hades.languageserver.parsing
 
-import cats.{Functor, Monad}
-import cats.syntax.all._
+import cats.Monad
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
+import cats.syntax.all._
 import hades.languageserver.logging.LoggerF
-import hades.languageserver.lsp.LSPRequestParams
-import hades.languageserver.lsp.Range
+import hades.languageserver.lsp.{LSPRequestParams, Range}
 
 trait ParsingContextIndex[F[_]] {
   def onDocumentOpen(params: LSPRequestParams.TextDocumentDidOpen): F[Unit]
@@ -15,7 +14,7 @@ trait ParsingContextIndex[F[_]] {
 object ParsingContextIndex {
   def build[F[_]: Sync: Monad]: F[ParsingContextIndex[F]] = for {
     stateRef <- Ref[F].of(State())
-    log <- LoggerF.make[F, ParsingContextIndexImpl[F]](classOf)
+    log <- LoggerF.build[F, ParsingContextIndexImpl[F]](classOf)
   } yield new ParsingContextIndexImpl[F](stateRef, log)
 }
 
@@ -32,17 +31,19 @@ private class ParsingContextIndexImpl[F[_]: Sync: Monad](
     ().pure[F]
   }
 
-  override def onDocumentOpen(params: LSPRequestParams.TextDocumentDidOpen): F[Unit] = log.profile("onDocumentOpen", for {
-    _ <- log.debug(s"textDocument/didOpen(${params.textDocument.uri}, ${params.textDocument.version})")
-    oldState <- state.get
-    _ <- log.debug(s"OldState: ${oldState.lines.size} URIs have lines in cache")
-    _ <- state.update(s =>
-      s.copy(lines = s.lines.updated(URI(params.textDocument.uri), linesOf(params.textDocument.text)))
-    )
-    newState <- state.get
-    _ <- log.info(s"Lines cached for: ${newState.lines.size}")
-    _ <- log.info(s"${newState.lines.keys.foldLeft("") { (acc, b) => s"$acc\n$b" } } ")
-  } yield ())
+  override def onDocumentOpen(params: LSPRequestParams.TextDocumentDidOpen): F[Unit] = log.profile("onDocumentOpen") {
+    for {
+      _ <- log.debug(s"textDocument/didOpen(${params.textDocument.uri}, ${params.textDocument.version})")
+      oldState <- state.get
+      _ <- log.debug(s"OldState: ${oldState.lines.size} URIs have lines in cache")
+      _ <- state.update(s =>
+        s.copy(lines = s.lines.updated(URI(params.textDocument.uri), linesOf(params.textDocument.text)))
+      )
+      newState <- state.get
+      _ <- log.info(s"Lines cached for: ${newState.lines.size}")
+      _ <- log.info(s"${newState.lines.keys.foldLeft("") { (acc, b) => s"$acc\n$b" }} ")
+    } yield ()
+  }
 
   private def linesOf(text: String): Vector[String] =
     text.split("(\\n)|(\\r\\n)").toVector

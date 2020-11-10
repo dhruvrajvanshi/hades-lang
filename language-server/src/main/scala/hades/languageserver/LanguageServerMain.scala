@@ -1,19 +1,21 @@
 package hades
 package languageserver
 
-import java.io.InputStreamReader
-
 import cats.effect.{ExitCode, IO, IOApp}
 import hades.languageserver.parsing.ParsingContextIndex
+import hades.languageserver.reader.InputStreamReaderF
 
 
 object LanguageServerMain extends IOApp {
 
-  implicit class ReaderOps[F[_]](val inputStream: F[InputStreamReader]) {}
   override def run(args: List[String]): IO[ExitCode] = for {
     _ <- IO.pure(())
     parsingContextIndex <- ParsingContextIndex.build[IO]
-    eventLoop <- EventLoop.build(parsingContextIndex = parsingContextIndex)
+    reader <- InputStreamReaderF.build[IO](System.in)
+    eventLoop <- EventLoop.build(
+      parsingContextIndex = parsingContextIndex,
+      inputStreamReaderF = reader
+    )
     code <- eventLoop.loop
   } yield code
 

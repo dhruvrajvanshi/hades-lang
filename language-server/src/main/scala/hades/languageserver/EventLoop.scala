@@ -10,6 +10,7 @@ import hades.languageserver.lsp.LSPRequestParams.Initialize
 import hades.languageserver.lsp.LSPResponseParams.Hover
 import hades.languageserver.lsp._
 import hades.languageserver.parsing.ParsingContextIndex
+import hades.languageserver.reader.InputStreamReaderF
 import io.circe.Json
 import io.circe.syntax._
 
@@ -19,51 +20,55 @@ trait EventLoop {
   def loop: IO[ExitCode]
 }
 object EventLoop {
-  def build(parsingContextIndex: ParsingContextIndex[IO]): IO[EventLoop] = for {
-    log <- LoggerF.make[IO, EventLoopImpl](classOf)
+  def build(
+    parsingContextIndex: ParsingContextIndex[IO],
+    inputStreamReaderF: InputStreamReaderF[IO]
+  ): IO[EventLoop] = for {
+    log <- LoggerF.build[IO, EventLoopImpl](classOf)
   } yield new EventLoopImpl(
     parsingContextIndex,
-    log
+    log,
+    reader = inputStreamReaderF
   )
 }
 
 private class EventLoopImpl(
   val parsingContextIndex: ParsingContextIndex[IO],
-  val log: LoggerF[IO]
+  val log: LoggerF[IO],
+  val reader: InputStreamReaderF[IO]
 ) extends EventLoop {
   type F[T] = IO[T]
-  val reader = new BufferedReader(new InputStreamReader(System.in))
   val writer = new BufferedWriter(new OutputStreamWriter(System.out))
 
-  override def loop: IO[ExitCode] = log.profile("EventLoop::loop", for {
-    _ <- log("Waiting for request")
-    header <- IO(reader.readLine())
-    _ <- IO(reader.readLine())
-    contentLength = header.split(":")(1).trim.toInt
-    _ <- log(s"content length: $contentLength")
-    buffer <- IO(new Array[Char](contentLength))
-    _ <- IO(reader.read(buffer, 0, contentLength))
-    jsonText = new String(buffer)
-    _ <- log(jsonText)
-    request = LSPRequest.fromJson(jsonText) match {
-      case Right(value) => value
-      case Left(e)      => throw new RuntimeException(e)
-    }
-    response <- handleRequest(jsonText, request)
-    _ <- log("responding with " + response.toString)
-    responseJson = response.map(_.toJsonString)
-    _ <- log(s"output: $responseJson")
-    _ <- responseJson match {
-      case Some(responseJson) =>
-        for {
-          _ <- IO(writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n"))
-          _ <- IO(writer.write(responseJson))
-          _ <- IO(writer.flush())
-        } yield ()
-      case None => ().pure[IO]
-    }
-    code <- loop
-  } yield code)
+  override def loop: IO[ExitCode] = log.profile("EventLoop::loop") {
+    for {
+      _ <- log("Waiting for request")
+      header <- reader.readLine()
+      _ <- reader.readLine()
+      contentLength = header.split(":")(1).trim.toInt
+      _ <- log(s"content length: $contentLength")
+      jsonText <- reader.readString(contentLength)
+      _ <- log(jsonText)
+      request = LSPRequest.fromJson(jsonText) match {
+        case Right(value) => value
+        case Left(e) => throw new RuntimeException(e)
+      }
+      response <- handleRequest(jsonText, request)
+      _ <- log("responding with " + response.toString)
+      responseJson = response.map(_.toJsonString)
+      _ <- log(s"output: $responseJson")
+      _ <- responseJson match {
+        case Some(responseJson) =>
+          for {
+            _ <- IO(writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n"))
+            _ <- IO(writer.write(responseJson))
+            _ <- IO(writer.flush())
+          } yield ()
+        case None => ().pure[IO]
+      }
+      code <- loop
+    } yield code
+  }
 
   def handleShutdownRequest[F[_]: Applicative](request: LSPRequest): F[LSPResponse] =
     LSPResponse(id = request.id, params = LSPResponseParams.Shutdown()).pure[F]
