@@ -11,7 +11,6 @@ import hades.languageserver.lsp.LSPResponseParams.Hover
 import hades.languageserver.lsp._
 import hades.languageserver.parsing.ParsingContextIndex
 import hades.languageserver.reader.InputStreamReaderF
-import hades.languageserver.writer.OutputStreamWriterF
 import io.circe.Json
 import io.circe.syntax._
 
@@ -24,7 +23,7 @@ object EventLoop {
   def build(
     parsingContextIndex: ParsingContextIndex[IO],
     reader: InputStreamReaderF[IO],
-    writer: OutputStreamWriterF[IO]
+    writer: LSPResponseWriter[IO]
   ): IO[EventLoop] = for {
     log <- LoggerF.build[IO, EventLoopImpl](classOf)
   } yield new EventLoopImpl(
@@ -39,7 +38,7 @@ private class EventLoopImpl(
   val parsingContextIndex: ParsingContextIndex[IO],
   val log: LoggerF[IO],
   val reader: InputStreamReaderF[IO],
-  val writer: OutputStreamWriterF[IO]
+  val writer: LSPResponseWriter[IO]
 ) extends EventLoop {
   type F[T] = IO[T]
 
@@ -58,14 +57,9 @@ private class EventLoopImpl(
       }
       response <- handleRequest(jsonText, request)
       _ <- log("responding with " + response.toString)
-      responseJson = response.map(_.toJsonString)
-      _ <- log(s"output: $responseJson")
-      _ <- responseJson match {
-        case Some(responseJson) =>
-          for {
-            _ <- writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n")
-            _ <- writer.write(responseJson)
-          } yield ()
+      _ <- response match {
+        case Some(res) =>
+          writer.write(res)
         case None => ().pure[IO]
       }
       code <- loop

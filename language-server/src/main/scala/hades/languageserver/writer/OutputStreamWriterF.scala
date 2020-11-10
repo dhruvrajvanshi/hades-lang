@@ -7,6 +7,7 @@ import cats.implicits._
 
 trait OutputStreamWriterF[F[_]] {
   def write(text: String): F[Unit]
+  def flush(): F[Unit]
 }
 
 object OutputStreamWriterF {
@@ -16,5 +17,7 @@ object OutputStreamWriterF {
 
 private class OutputStreamWriterFImpl[F[_]: Sync](stream: OutputStream) extends OutputStreamWriterF[F] {
   val inner = new BufferedWriter(new OutputStreamWriter(stream))
-  override def write(text: String): F[Unit] = Sync[F].delay(inner.write(text))
+  override def write(text: String): F[Unit] = Sync[F].delay { inner.write(text) }
+
+  override def flush(): F[Unit] = Sync[F].delay { inner.flush() }
 }
