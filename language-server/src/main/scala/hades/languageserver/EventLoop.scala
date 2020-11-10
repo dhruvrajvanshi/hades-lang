@@ -35,7 +35,7 @@ private class EventLoopImpl(
   val reader = new BufferedReader(new InputStreamReader(System.in))
   val writer = new BufferedWriter(new OutputStreamWriter(System.out))
 
-  override def loop: IO[ExitCode] = for {
+  override def loop: IO[ExitCode] = log.profile("EventLoop::loop", for {
     _ <- log("Waiting for request")
     header <- IO(reader.readLine())
     _ <- IO(reader.readLine())
@@ -63,7 +63,7 @@ private class EventLoopImpl(
       case None => ().pure[IO]
     }
     code <- loop
-  } yield code
+  } yield code)
 
   def handleShutdownRequest[F[_]: Applicative](request: LSPRequest): F[LSPResponse] =
     LSPResponse(id = request.id, params = LSPResponseParams.Shutdown()).pure[F]

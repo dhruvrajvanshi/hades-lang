@@ -32,7 +32,7 @@ private class ParsingContextIndexImpl[F[_]: Sync: Monad](
     ().pure[F]
   }
 
-  override def onDocumentOpen(params: LSPRequestParams.TextDocumentDidOpen): F[Unit] = for {
+  override def onDocumentOpen(params: LSPRequestParams.TextDocumentDidOpen): F[Unit] = log.profile("onDocumentOpen", for {
     _ <- log.debug(s"textDocument/didOpen(${params.textDocument.uri}, ${params.textDocument.version})")
     oldState <- state.get
     _ <- log.debug(s"OldState: ${oldState.lines.size} URIs have lines in cache")
@@ -42,7 +42,7 @@ private class ParsingContextIndexImpl[F[_]: Sync: Monad](
     newState <- state.get
     _ <- log.info(s"Lines cached for: ${newState.lines.size}")
     _ <- log.info(s"${newState.lines.keys.foldLeft("") { (acc, b) => s"$acc\n$b" } } ")
-  } yield ()
+  } yield ())
 
   private def linesOf(text: String): Vector[String] =
     text.split("(\\n)|(\\r\\n)").toVector
