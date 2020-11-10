@@ -4,13 +4,14 @@ import java.io._
 
 import cats.Applicative
 import cats.effect.{ExitCode, IO}
-import cats.syntax.all._
+import cats.implicits._
 import hades.languageserver.logging.LoggerF
 import hades.languageserver.lsp.LSPRequestParams.Initialize
 import hades.languageserver.lsp.LSPResponseParams.Hover
 import hades.languageserver.lsp._
 import hades.languageserver.parsing.ParsingContextIndex
 import hades.languageserver.reader.InputStreamReaderF
+import hades.languageserver.writer.OutputStreamWriterF
 import io.circe.Json
 import io.circe.syntax._
 
@@ -22,27 +23,29 @@ trait EventLoop {
 object EventLoop {
   def build(
     parsingContextIndex: ParsingContextIndex[IO],
-    inputStreamReaderF: InputStreamReaderF[IO]
+    reader: InputStreamReaderF[IO],
+    writer: OutputStreamWriterF[IO]
   ): IO[EventLoop] = for {
     log <- LoggerF.build[IO, EventLoopImpl](classOf)
   } yield new EventLoopImpl(
     parsingContextIndex,
     log,
-    reader = inputStreamReaderF
+    reader = reader,
+    writer = writer
   )
 }
 
 private class EventLoopImpl(
   val parsingContextIndex: ParsingContextIndex[IO],
   val log: LoggerF[IO],
-  val reader: InputStreamReaderF[IO]
+  val reader: InputStreamReaderF[IO],
+  val writer: OutputStreamWriterF[IO]
 ) extends EventLoop {
   type F[T] = IO[T]
-  val writer = new BufferedWriter(new OutputStreamWriter(System.out))
 
   override def loop: IO[ExitCode] = log.profile("EventLoop::loop") {
     for {
-      _ <- log("Waiting for request")
+      _ <- log.info("Waiting for request")
       header <- reader.readLine()
       _ <- reader.readLine()
       contentLength = header.split(":")(1).trim.toInt
@@ -51,7 +54,7 @@ private class EventLoopImpl(
       _ <- log(jsonText)
       request = LSPRequest.fromJson(jsonText) match {
         case Right(value) => value
-        case Left(e) => throw new RuntimeException(e)
+        case Left(e)      => throw new RuntimeException(e)
       }
       response <- handleRequest(jsonText, request)
       _ <- log("responding with " + response.toString)
@@ -60,9 +63,8 @@ private class EventLoopImpl(
       _ <- responseJson match {
         case Some(responseJson) =>
           for {
-            _ <- IO(writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n"))
-            _ <- IO(writer.write(responseJson))
-            _ <- IO(writer.flush())
+            _ <- writer.write(s"Content-Length: ${responseJson.length}\r\n\r\n")
+            _ <- writer.write(responseJson)
           } yield ()
         case None => ().pure[IO]
       }
