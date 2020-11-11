@@ -1,3 +1,4 @@
 rootProject.name = 'hades'
 
 include "hadesboot"
+include "hades-language-server"
