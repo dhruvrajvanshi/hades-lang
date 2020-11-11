@@ -14,7 +14,7 @@ import java.lang.UnsupportedOperationException
 
 @Serializable(with = LSPRequestSerializer::class)
 data class LSPRequest(
-    val id: Long,
+    val id: Long?,
     val params: LSPRequestParams
 )
 
@@ -122,6 +122,14 @@ sealed class LSPRequestParams {
     }
 
     @Serializable
+    data class Cancel(val id: Long) : LSPRequestParams() {
+        companion object {
+            @JvmStatic
+            val METHOD = "$/cancelRequest"
+        }
+    }
+
+    @Serializable
     data class Unknown(val method: String, val params: JsonElement?) : LSPRequestParams()
 }
 
@@ -173,9 +181,15 @@ object LSPRequestSerializer : KSerializer<LSPRequest> {
         require(elem is JsonObject)
 
         val id = elem["id"]
-        require(id is JsonPrimitive)
 
-        val idVal = id.long
+        require(id == null || id is JsonPrimitive)
+
+        val idVal = if (id == null) {
+            null
+        } else {
+            require(id is JsonPrimitive)
+            id.long
+        }
 
         val methodJ = elem["method"]
         require(methodJ is JsonPrimitive)
@@ -195,6 +209,7 @@ object LSPRequestSerializer : KSerializer<LSPRequest> {
             TextDocumentHover.METHOD -> params().decode<TextDocumentHover>()
             Shutdown.METHOD -> Shutdown
             Exit.METHOD -> Exit
+            Cancel.METHOD -> params().decode<Cancel>()
             else -> Unknown(methodJ.content, paramsJson)
         }
         return LSPRequest(
