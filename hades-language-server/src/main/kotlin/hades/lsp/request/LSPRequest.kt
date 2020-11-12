@@ -1,4 +1,4 @@
-package hades.lsp
+package hades.lsp.request
 
 import hades.json.decode
 import kotlinx.serialization.*
@@ -9,7 +9,7 @@ import kotlinx.serialization.descriptors.element
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
-import hades.lsp.LSPRequestParams.*
+import hades.lsp.request.LSPRequestParams.*
 import java.lang.UnsupportedOperationException
 
 @Serializable(with = LSPRequestSerializer::class)
@@ -98,7 +98,7 @@ sealed class LSPRequestParams {
 
         companion object {
             @JvmStatic
-            val METHOD = "textDocument/didHover"
+            val METHOD = "textDocument/hover"
         }
     }
 

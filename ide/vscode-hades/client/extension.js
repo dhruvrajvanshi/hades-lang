@@ -9,11 +9,11 @@ function activate(context) {
     // Otherwise the run options are used
     var debugOpts = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005";
     var serverOptions = {
-        command: "/Users/drajvans/Projects/hades-lang/hades-language-server/build/install/hades-language-server/bin/hades-language-server",
+        command: "/home/dhruv/Projects/hades-lang/hades-language-server/build/install/hades-language-server/bin/hades-language-server",
         options: {
             env: {
                 // "JAVA_OPTS": debugOpts,
-                "JAVA_HOME": "/Users/drajvans/.sdkman/candidates/java/current"
+//                "JAVA_HOME": "/Users/drajvans/.sdkman/candidates/java/current"
             }
         }
     };

@@ -1,5 +1,6 @@
 package hades.languageserver
 
-suspend fun main() {
-    LanguageServer().loop()
-}
+import kotlinx.coroutines.GlobalScope
+
+suspend fun main(): Unit =
+    LanguageServer().loop(GlobalScope)
