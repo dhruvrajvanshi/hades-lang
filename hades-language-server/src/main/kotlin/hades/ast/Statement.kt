@@ -1,6 +1,5 @@
 package hades.ast
 
-import javax.swing.plaf.nimbus.State
 
 
 sealed class Statement : ASTNode {
@@ -22,4 +21,6 @@ sealed class Statement : ASTNode {
         override val meta: ASTMeta
             get() = expression.meta
     }
+
+    data class Error(override val meta: ASTMeta) : Statement()
 }

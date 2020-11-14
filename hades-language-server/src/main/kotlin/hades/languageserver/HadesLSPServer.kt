@@ -48,21 +48,7 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     }
 
     override fun hover(position: TextDocumentPositionParams): CompletableFuture<Hover?> = computeScope.future {
-        val hoverInfo = astService.getHoverInfo(
-            position.textDocument.uri.asURI,
-            position.position.line + 1,
-            position.position.character + 1
-        )
-        if (hoverInfo == null) {
-            null
-        } else {
-            Hover().apply {
-                contents = Either.forRight(MarkupContent().apply {
-                    kind = MarkupKind.PLAINTEXT
-                    value = hoverInfo
-                })
-            }
-        }
+        null
     }
 
     override fun shutdown(): CompletableFuture<Any> {
@@ -111,7 +97,17 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
-        log.debug("didChange(${params.textDocument})")
+        computeScope.launch {
+            val diagnostics = astService.didChange(params.textDocument.uri.asURI, params.contentChanges)
+            ioScope.launch {
+                client.publishDiagnostics(PublishDiagnosticsParams().apply {
+                    uri = params.textDocument.uri
+                    this.diagnostics = diagnostics.map {
+                        it.toLSPDiagnostic()
+                    }
+                })
+            }
+        }
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {

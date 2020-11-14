@@ -17,6 +17,8 @@ sealed class TypeAnnotation : ASTNode {
         val callee: TypeAnnotation,
         val args: List<TypeArgument>,
     ) : TypeAnnotation()
+
+    data class Error(override val meta: ASTMeta) : TypeAnnotation()
 }
 
 data class TypeArgument(

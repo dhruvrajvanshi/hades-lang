@@ -19,6 +19,18 @@ private val KEYWORDS: Map<String, T> = mutableMapOf(
     "defer" to T.DEFER,
 )
 
+private val SINGLE_CHAR_TOKENS: Map<Char, T> = mutableMapOf(
+    '.' to T.DOT,
+    ';' to T.SEMICOLON,
+    '*' to T.STAR,
+    '(' to T.LPAREN,
+    ')' to T.RPAREN,
+    ':' to T.COLON,
+    '{' to T.LBRACE,
+    '}' to T.RBRACE,
+    ',' to T.COMMA,
+)
+
 class Lexer(
     private val file: URI,
     private val input: String,
@@ -41,23 +53,21 @@ class Lexer(
         startToken()
         return when (val startChar = currentChar) {
             EOF_CHAR -> makeToken(Token.Kind.EOF)
-            ';' -> {
-                advance(); makeToken(t.SEMICOLON)
-            }
-            '(' -> {
-                advance(); makeToken(t.LPAREN)
-            }
-            ')' -> {
-                advance(); makeToken(t.RPAREN)
-            }
-            ':' -> {
-                advance(); makeToken(t.COLON)
-            }
-            '.' -> {
-                advance(); makeToken(t.DOT)
+            '=' -> {
+                advance()
+                if (currentChar == '=') {
+                    advance()
+                    makeToken(T.EQUALEQUAL)
+                } else {
+                    makeToken(T.EQUAL)
+                }
             }
             else -> when {
                 startChar.isIdentifierChar -> identifierOrKeyword()
+                SINGLE_CHAR_TOKENS.containsKey(startChar) -> {
+                    advance()
+                    makeToken(requireNotNull(SINGLE_CHAR_TOKENS[startChar]))
+                }
                 else -> {
                     while (!currentChar.isWhitespace() && currentChar != EOF_CHAR) {
                         advance()

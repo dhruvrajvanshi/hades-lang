@@ -26,7 +26,8 @@ data class Token(
         LBRACE, RBRACE,
         LSQB, RSQB,
 
-        STAR, COLON, DOT,
+        STAR, COLON, DOT, COMMA,
+        EQUAL, EQUALEQUAL,
 
         SEMICOLON,
     }

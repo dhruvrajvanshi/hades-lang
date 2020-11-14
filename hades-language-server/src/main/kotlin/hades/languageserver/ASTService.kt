@@ -7,6 +7,8 @@ import hades.diagnostics.Diagnostic
 import hades.languageserver.logging.logger
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
@@ -34,20 +36,6 @@ class ASTService(
         result.diagnostics
     }
 
-    fun getHoverInfo(file: URI, line: Int, column: Int): String? {
-        val sourceFile = sourceFiles[file] ?: return null
-        val sourceText = sourceText[file] ?: return null
-
-        val offset = positionToOffset(file, line, column)
-        for (definition in sourceFile.definitions) {
-            log.info("Def: ${definition.meta.startOffset}; ${definition.meta.stopOffset}; Offset: $offset")
-            if (definition.containsOffset(offset)) {
-                return "definition: $definition"
-            }
-        }
-        return "offset: $offset; Char: ${sourceText.text[offset]}"
-    }
-
     private fun positionToOffset(file: URI, line: Int, column: Int): Int {
         val newlineOffsets = listOf(0) + (this.newlineOffsets[file] ?: emptyList())
         val lineStartOffset = newlineOffsets[line - 1]
@@ -55,6 +43,21 @@ class ASTService(
             return lineStartOffset + column - 1
         }
         return lineStartOffset + column
+    }
+
+    suspend fun didChange(file: URI, contentChanges: List<TextDocumentContentChangeEvent>): List<Diagnostic> {
+        val text = withContext(ioCtx) { File(java.net.URI.create(file.value)).readText() }
+        sourceText[file] = SourceText(text)
+
+        val result = withTimeout(4000) {
+            Parser(file, text).parseSourceFile()
+        }
+        syntaxErrors[file] = result.diagnostics
+        sourceFiles[file] = result.sourceFile
+        newlineOffsets[file] = result.newlineOffsets
+        log.info("Text changed to \n$text")
+        log.info("Republishing ${result.diagnostics.size} diagnostic(s)")
+        return result.diagnostics
     }
 }
 

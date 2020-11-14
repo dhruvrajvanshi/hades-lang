@@ -19,6 +19,9 @@ sealed class DiagnosticKind(
     val severity: DiagnosticSeverity = S.ERROR
 ) {
     object DeclarationExpected : DiagnosticKind()
+    object StatementExpected : DiagnosticKind()
+    object TypeAnnotationExpected : DiagnosticKind()
+    object ExpressionExpected : DiagnosticKind()
 
     data class UnexpectedCharacter(
         val character: Char
@@ -40,6 +43,9 @@ sealed class DiagnosticKind(
             is UnexpectedToken -> "Unexpected token '${token.text}'"
             MissingSemicolon -> "Missing semicolon"
             is TokenExpected -> "Expected $kind"
+            StatementExpected -> "Statement expected"
+            TypeAnnotationExpected -> "Type annotation expected"
+            ExpressionExpected -> "Expression expected"
         }
 }
 
