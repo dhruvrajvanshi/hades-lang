@@ -7,8 +7,6 @@ import hades.diagnostics.Diagnostic
 import hades.languageserver.logging.logger
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.eclipse.lsp4j.TextDocumentContentChangeEvent
-import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
@@ -24,16 +22,8 @@ class ASTService(
 
     fun initialize(rootDirectory: URI) {}
 
-    suspend fun didOpen(file: URI, text: String): List<Diagnostic> = withContext(computeCtx) {
-        sourceText[file] = SourceText(text)
-
-        val result = withTimeout(4000) {
-            Parser(file, text).parseSourceFile()
-        }
-        syntaxErrors[file] = result.diagnostics
-        sourceFiles[file] = result.sourceFile
-        newlineOffsets[file] = result.newlineOffsets
-        result.diagnostics
+    suspend fun didOpen(file: URI, text: String): List<Diagnostic> {
+        return getSyntaxDiagnosticsOnFullEdit(file, text)
     }
 
     private fun positionToOffset(file: URI, line: Int, column: Int): Int {
@@ -45,20 +35,24 @@ class ASTService(
         return lineStartOffset + column
     }
 
-    suspend fun didChange(file: URI, contentChanges: List<TextDocumentContentChangeEvent>): List<Diagnostic> {
-        val text = withContext(ioCtx) { File(java.net.URI.create(file.value)).readText() }
-        sourceText[file] = SourceText(text)
-
-        val result = withTimeout(4000) {
-            Parser(file, text).parseSourceFile()
-        }
-        syntaxErrors[file] = result.diagnostics
-        sourceFiles[file] = result.sourceFile
-        newlineOffsets[file] = result.newlineOffsets
-        log.info("Text changed to \n$text")
-        log.info("Republishing ${result.diagnostics.size} diagnostic(s)")
-        return result.diagnostics
+    suspend fun didSave(file: URI, text: String): List<Diagnostic> {
+        return getSyntaxDiagnosticsOnFullEdit(file, text)
     }
+
+    private suspend fun getSyntaxDiagnosticsOnFullEdit(file: URI, text: String): List<Diagnostic> =
+        withContext(computeCtx) {
+            sourceText[file] = SourceText(text)
+
+            val result = withTimeout(4000) {
+                Parser(file, text).parseSourceFile()
+            }
+            syntaxErrors[file] = result.diagnostics
+            sourceFiles[file] = result.sourceFile
+            newlineOffsets[file] = result.newlineOffsets
+            log.info("Text changed to \n$text")
+            log.info("Republishing ${result.diagnostics.size} diagnostic(s)")
+            result.diagnostics
+        }
 }
 
 private class SourceText(

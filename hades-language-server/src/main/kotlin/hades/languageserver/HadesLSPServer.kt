@@ -2,6 +2,7 @@ package hades.languageserver
 
 import hades.asURI
 import hades.diagnostics.Diagnostic
+import hades.file
 import hades.languageserver.logging.logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.future
@@ -52,11 +53,10 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     override fun shutdown(): CompletableFuture<Any> = ioScope.future {
         // temporary hack to fix leaking of the server process
         // on editor close
-        val job = launch {
+        launch(ioScope.coroutineContext) {
             delay(1000)
             exitProcess(0)
         }
-        mapOf<String, Any>()
     }
 
     override fun exit() {
@@ -100,8 +100,19 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
+        // TODO
+    }
+
+    override fun didClose(params: DidCloseTextDocumentParams) {
+        log.debug("didClose(${params.textDocument.uri})")
+    }
+
+    override fun didSave(params: DidSaveTextDocumentParams) {
         computeScope.launch {
-            val diagnostics = astService.didChange(params.textDocument.uri.asURI, params.contentChanges)
+            val text = withContext(ioScope.coroutineContext) {
+                params.textDocument.uri.asURI.file.readText()
+            }
+            val diagnostics = astService.didSave(params.textDocument.uri.asURI, text)
             ioScope.launch {
                 client.publishDiagnostics(PublishDiagnosticsParams().apply {
                     uri = params.textDocument.uri
@@ -111,14 +122,6 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
                 })
             }
         }
-    }
-
-    override fun didClose(params: DidCloseTextDocumentParams) {
-        log.debug("didClose(${params.textDocument.uri})")
-    }
-
-    override fun didSave(params: DidSaveTextDocumentParams) {
-        log.debug("didSave(${params.textDocument.uri})")
     }
 
     override fun didChangeConfiguration(params: DidChangeConfigurationParams) {
