@@ -1,6 +1,10 @@
 package hades.languageserver
 
+import hades.asURI
 import hades.languageserver.logging.logger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.future
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.LanguageClient
@@ -8,13 +12,17 @@ import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
+import kotlin.coroutines.CoroutineContext
 
 class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     private lateinit var client: LanguageClient
     private val log = logger<HadesLSPServer>()
+    private val astService = ASTService()
+    private val scope = CoroutineScope(Dispatchers.Default)
 
-    override fun initialize(params: InitializeParams?): CompletableFuture<InitializeResult> {
-        return CompletableFuture.completedFuture(InitializeResult().apply {
+    override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> = scope.future {
+        astService.initialize(params.rootUri.asURI)
+        InitializeResult().apply {
             capabilities = ServerCapabilities().apply {
                 textDocumentSync = Either.forRight(TextDocumentSyncOptions().apply {
                     openClose = true
@@ -25,7 +33,7 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
                 })
                 hoverProvider = true
             }
-        })
+        }
     }
 
     override fun hover(position: TextDocumentPositionParams): CompletableFuture<Hover> {

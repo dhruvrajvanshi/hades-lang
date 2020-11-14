@@ -1,5 +1,7 @@
 package hades.languageserver.logging
 
+import java.util.*
+
 interface Logger {
     fun info(message: String)
     fun debug(message: String)
@@ -16,7 +18,7 @@ inline fun <reified T> logger(): Logger {
         }
 
         private fun withTag(tag: String, message: String) {
-            System.err.println("$tag:\t\t[${T::class.simpleName}] $message")
+            System.err.println("$tag:\t(${Date()}) [${T::class.simpleName}] $message")
         }
 
     }
