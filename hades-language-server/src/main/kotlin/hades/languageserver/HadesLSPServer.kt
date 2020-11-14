@@ -3,11 +3,8 @@ package hades.languageserver
 import hades.asURI
 import hades.diagnostics.Diagnostic
 import hades.languageserver.logging.logger
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.*
 import kotlinx.coroutines.future.future
-import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.LanguageClient
@@ -16,6 +13,7 @@ import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import kotlin.system.exitProcess
 
 class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     private val log = logger()
@@ -51,13 +49,18 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
         null
     }
 
-    override fun shutdown(): CompletableFuture<Any> {
-        log.info("Shutting down")
-        return CompletableFuture.completedFuture(null)
+    override fun shutdown(): CompletableFuture<Any> = ioScope.future {
+        // temporary hack to fix leaking of the server process
+        // on editor close
+        val job = launch {
+            delay(1000)
+            exitProcess(0)
+        }
+        mapOf<String, Any>()
     }
 
     override fun exit() {
-        log.info("Exiting")
+        exitProcess(0)
     }
 
     override fun getTextDocumentService(): TextDocumentService = this
