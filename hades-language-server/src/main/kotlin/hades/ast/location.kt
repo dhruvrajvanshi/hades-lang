@@ -1,7 +1,19 @@
 package hades.ast
 
-import java.net.URI
+import hades.URI
 
-data class Location(
+
+data class Position(
+    val line: Int,
+    val column: Int,
+)
+
+data class Span(
+    val start: Position,
+    val stop: Position,
+)
+
+data class SourceRange(
     val uri: URI,
+    val span: Span,
 )

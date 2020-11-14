@@ -8,12 +8,17 @@ sealed class Definition : ASTNode {
     ) : Definition()
 
     data class Def(
+        override val meta: ASTMeta,
         val name: BindingIdentifier,
         val typeParams: List<TypeParam>?,
         val params: List<Param>,
         val returnType: TypeAnnotation?,
         val body: Block,
-    )
+    ) : Definition()
+
+    data class Error(
+        override val meta: ASTMeta,
+    ) : Definition()
 }
 
 data class Param(

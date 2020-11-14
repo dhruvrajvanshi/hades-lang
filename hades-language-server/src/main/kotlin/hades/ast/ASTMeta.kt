@@ -5,5 +5,5 @@ import hades.URI
 
 data class ASTMeta(
     val file: URI,
-    val sourceLength: Long,
+    val length: Int,
 )

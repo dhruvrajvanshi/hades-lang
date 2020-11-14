@@ -1,13 +1,14 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.4.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.20-RC'
+//    id 'org.jetbrains.kotlin.plugin.serialization' version '1.4.10'
 
 }
 
 def arrow_version = "0.11.0"
-apply plugin: 'kotlin-kapt'
+//apply plugin: 'kotlin-kapt'
+def kotlinxCoroutinesVersion = "1.4.1"
 
 def logbackVersion = "1.2.3"
 def slf4jVersion = "1.7.30"
@@ -19,28 +20,27 @@ sourceCompatibility = 11
 repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
-    maven { url "https://dl.bintray.com/arrow-kt/arrow-kt/" }
+//    maven { url "https://dl.bintray.com/arrow-kt/arrow-kt/" }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "ch.qos.logback:logback-classic:$logbackVersion"
-    implementation "ch.qos.logback:logback-core:$logbackVersion"
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
-    implementation group: "org.apache.commons", name: 'commons-lang3', version: '3.10'
+//    implementation "ch.qos.logback:logback-classic:$logbackVersion"
+//    implementation "ch.qos.logback:logback-core:$logbackVersion"
+//    implementation group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
+//    implementation group: "org.apache.commons", name: 'commons-lang3', version: '3.10'
 
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
 
-    implementation "io.arrow-kt:arrow-core:$arrow_version"
-    implementation "io.arrow-kt:arrow-syntax:$arrow_version"
-    implementation "io.arrow-kt:arrow-fx:$arrow_version"
+//    implementation "io.arrow-kt:arrow-core:$arrow_version"
+//    implementation "io.arrow-kt:arrow-syntax:$arrow_version"
+//    implementation "io.arrow-kt:arrow-fx:$arrow_version"
 
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.4.1'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$kotlinxCoroutinesVersion"
 
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.6.0'
 
-    kapt    "io.arrow-kt:arrow-meta:$arrow_version"
+//    kapt    "io.arrow-kt:arrow-meta:$arrow_version"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test:1.3.70"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:5.2.0"
@@ -63,21 +63,21 @@ test {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
     kotlinOptions {
         freeCompilerArgs += "-XXLanguage:+InlineClasses"
         freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 
 application {
-    mainClassName = 'hades.languageserver.LanguageServerMainKt'
+    mainClassName = 'hades.languageserver.LanguageServerMain'
 }
 jar {
     manifest {
-        attributes "Main-Class": "'hades.languageserver.LanguageServerMainKt'"
+        attributes "Main-Class": "'hades.languageserver.LanguageServerMain'"
     }
 }

@@ -1,8 +1,12 @@
 package hades.ast.parsing
 
+import hades.ast.Span
+
 data class Token(
     val kind: Kind,
+    val length: Int,
     val text: String,
+    val span: Span,
 ) {
     enum class Kind {
         ERROR,

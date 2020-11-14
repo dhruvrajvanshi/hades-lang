@@ -1,10 +1,13 @@
 package hades.languageserver
 
 import hades.asURI
+import hades.diagnostics.Diagnostic
 import hades.languageserver.logging.logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.future.future
+import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.LanguageClient
@@ -12,15 +15,24 @@ import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
-import kotlin.coroutines.CoroutineContext
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 
 class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
+    private val log = logger()
+    private val ioScope = CoroutineScope(Dispatchers.IO)
+    private val computeContext = Executors
+        .newFixedThreadPool(Runtime.getRuntime().availableProcessors()) {
+            Thread(it, "hades-compute")
+        }.asCoroutineDispatcher()
+    private val computeScope = CoroutineScope(computeContext)
     private lateinit var client: LanguageClient
-    private val log = logger<HadesLSPServer>()
-    private val astService = ASTService()
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val astService = ASTService(
+        ioCtx = ioScope.coroutineContext,
+        computeCtx = computeContext,
+    )
 
-    override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> = scope.future {
+    override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> = computeScope.future {
         astService.initialize(params.rootUri.asURI)
         InitializeResult().apply {
             capabilities = ServerCapabilities().apply {
@@ -48,7 +60,7 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     }
 
     override fun shutdown(): CompletableFuture<Any> {
-        log.info("Shutting down");
+        log.info("Shutting down")
         return CompletableFuture.completedFuture(null)
     }
 
@@ -62,6 +74,34 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         log.debug("didOpen(${params.textDocument.uri}, ${params.textDocument.version})")
+        computeScope.launch {
+            val diagnostics = astService.didOpen(params.textDocument.uri.asURI, params.textDocument.text)
+            ioScope.launch {
+                client.publishDiagnostics(PublishDiagnosticsParams().apply {
+                    uri = params.textDocument.uri
+                    this.diagnostics =  diagnostics.map {
+                        it.toLSPDiagnostic()
+                    }
+                })
+            }
+        }
+    }
+
+    private fun Diagnostic.toLSPDiagnostic(): org.eclipse.lsp4j.Diagnostic {
+        val self = this
+        return Diagnostic().apply {
+            message = self.kind.message
+            range = Range(
+                Position(
+                    self.range.span.start.line - 1,
+                    self.range.span.start.column - 1,
+                ),
+                Position(
+                    self.range.span.stop.line - 1,
+                    self.range.span.stop.column - 1,
+                )
+            )
+        }
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {

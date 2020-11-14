@@ -1,5 +1,6 @@
 package hades.languageserver.logging
 
+import java.text.SimpleDateFormat
 import java.util.*
 
 interface Logger {
@@ -7,7 +8,8 @@ interface Logger {
     fun debug(message: String)
 }
 
-inline fun <reified T> logger(): Logger {
+
+inline fun <reified T> T.logger(): Logger {
     return object : Logger {
         override fun info(message: String) {
             return withTag("INFO", message)
@@ -18,7 +20,7 @@ inline fun <reified T> logger(): Logger {
         }
 
         private fun withTag(tag: String, message: String) {
-            System.err.println("$tag:\t(${Date()}) [${T::class.simpleName}] $message")
+            System.err.println("$tag:(${SimpleDateFormat("hh:mm:ss").format(Date())}) {thread:${Thread.currentThread().name}(${Thread.currentThread().id})} [${T::class.simpleName}] $message")
         }
 
     }
