@@ -28,11 +28,18 @@ sealed class DiagnosticKind(
         val token: Token
     ) : DiagnosticKind(S.ERROR)
 
+    data class TokenExpected(val kind: Token.Kind) : DiagnosticKind(S.ERROR)
 
-    val message get(): String = when(this) {
-        DeclarationExpected -> "Declaration expected"
-        is UnexpectedCharacter -> "Unexpected character '$character'"
-        is UnexpectedToken -> "Unexpected token '${token.text}'"
-    }
+    object MissingSemicolon : DiagnosticKind(S.ERROR)
+
+
+    val message
+        get(): String = when (this) {
+            DeclarationExpected -> "Declaration expected"
+            is UnexpectedCharacter -> "Unexpected character '$character'"
+            is UnexpectedToken -> "Unexpected token '${token.text}'"
+            MissingSemicolon -> "Missing semicolon"
+            is TokenExpected -> "Expected $kind"
+        }
 }
 

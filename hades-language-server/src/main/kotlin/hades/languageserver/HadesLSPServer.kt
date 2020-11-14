@@ -16,7 +16,6 @@ import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
-import java.util.concurrent.ThreadFactory
 
 class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     private val log = logger()
@@ -39,7 +38,7 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
                 textDocumentSync = Either.forRight(TextDocumentSyncOptions().apply {
                     openClose = true
                     change = TextDocumentSyncKind.Incremental
-                    save  = SaveOptions().apply {
+                    save = SaveOptions().apply {
                         includeText = false
                     }
                 })
@@ -48,15 +47,22 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
         }
     }
 
-    override fun hover(position: TextDocumentPositionParams): CompletableFuture<Hover> {
-        return CompletableFuture.completedFuture(
+    override fun hover(position: TextDocumentPositionParams): CompletableFuture<Hover?> = computeScope.future {
+        val hoverInfo = astService.getHoverInfo(
+            position.textDocument.uri.asURI,
+            position.position.line + 1,
+            position.position.character + 1
+        )
+        if (hoverInfo == null) {
+            null
+        } else {
             Hover().apply {
                 contents = Either.forRight(MarkupContent().apply {
                     kind = MarkupKind.PLAINTEXT
-                    value = "Hover not implemented"
+                    value = hoverInfo
                 })
             }
-        )
+        }
     }
 
     override fun shutdown(): CompletableFuture<Any> {

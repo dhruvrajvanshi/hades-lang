@@ -1,8 +1,11 @@
 package hades.ast
 
+import hades.ast.parsing.Token
+
 sealed class Definition : ASTNode {
     data class ImportAs(
         override val meta: ASTMeta,
+        val importToken: Token,
         val modulePath: ModulePath,
         val asName: BindingIdentifier,
     ) : Definition()
