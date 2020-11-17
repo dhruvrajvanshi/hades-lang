@@ -23,12 +23,13 @@ val STATEMENT_FOLLOW_SET = setOf(
 )
 
 class Parser(
-    private val file: URI,
-    input: String,
+    file: URI,
+    input: ParserInput,
+    documentVersion: Int
 ) {
     private val log = logger()
     private val diagnostics = mutableListOf<Diagnostic>()
-    private val lexer = Lexer(file, input) { diagnostics.add(it) }
+    private val lexer = Lexer(file, input, documentVersion) { diagnostics.add(it) }
     private var lastToken = lexer.nextToken()
     private var currentToken = lastToken
     suspend fun parseSourceFile(): ParseResult {
@@ -50,7 +51,7 @@ class Parser(
         return ParseResult(
             sourceFile,
             diagnostics,
-            lexer.newlineOffsets
+            lexer.lineLengths,
         )
     }
 
@@ -58,19 +59,11 @@ class Parser(
         t.IMPORT -> parseImportDefinition()
         t.DEF -> parseDef()
         else -> {
-            val startToken = currentToken
             val meta = skipUntilDefinitionExpected()
-            val stopToken = currentToken
             diagnostics.add(
                 Diagnostic(
                     kind = DiagnosticKind.DeclarationExpected,
-                    range = SourceRange(
-                        file,
-                        Span(
-                            startToken.span.start,
-                            stopToken.span.stop,
-                        )
-                    )
+                    range = meta.range
                 )
             )
             Definition.Error(meta)
@@ -109,19 +102,11 @@ class Parser(
 
     private fun parseStatement(): Statement = when (currentToken.kind) {
         else -> {
-            val startToken = currentToken
             val meta = skipUntilTokenReached(STATEMENT_FOLLOW_SET)
-            val stopToken = currentToken
             diagnostics.add(
                 Diagnostic(
                     kind = DiagnosticKind.StatementExpected,
-                    range = SourceRange(
-                        file,
-                        Span(
-                            startToken.span.start,
-                            stopToken.span.stop,
-                        )
-                    )
+                    range = meta.range
                 )
             )
             Statement.Error(meta)
@@ -138,19 +123,11 @@ class Parser(
 
     private fun parseTypeAnnotation(): TypeAnnotation = when (currentToken.kind) {
         else -> {
-            val startToken = currentToken
             val meta = skipUntilTokenReached(TYPE_ANNOTATION_FOLLOW_SET)
-            val stopToken = currentToken
             diagnostics.add(
                 Diagnostic(
                     kind = DiagnosticKind.TypeAnnotationExpected,
-                    range = SourceRange(
-                        file,
-                        Span(
-                            startToken.span.start,
-                            stopToken.span.stop,
-                        )
-                    )
+                    range = meta.range
                 )
             )
             TypeAnnotation.Error(meta)
@@ -200,7 +177,7 @@ class Parser(
         if (currentToken.kind != t.SEMICOLON) {
             diagnostics.add(
                 Diagnostic(
-                    SourceRange(file, lastToken.span),
+                    lastToken.range,
                     DiagnosticKind.MissingSemicolon
                 )
             )
@@ -225,12 +202,8 @@ class Parser(
         )
     }
 
-    private fun makeMeta(start: HasOffsetSpan, stop: HasOffsetSpan): ASTMeta {
-        return ASTMeta(
-            file,
-            startOffset = start.offsetSpan.start,
-            stopOffset = stop.offsetSpan.stop + 1,
-        )
+    private fun makeMeta(start: HasSourceRange, stop: HasSourceRange): ASTMeta {
+        return ASTMeta(range = start.range.copy(stop = stop.range.stop))
     }
 
     private fun parseIdentifier(): Identifier {
@@ -256,10 +229,10 @@ class Parser(
         return if (at(kind)) {
             advance()
         } else {
-            advance()
+            val token = advance()
             diagnostics.add(
                 Diagnostic(
-                    range = SourceRange(file, currentToken.span),
+                    range = token.range,
                     kind = DiagnosticKind.TokenExpected(kind),
                 )
             )
@@ -291,5 +264,5 @@ class Parser(
 data class ParseResult(
     val sourceFile: SourceFile,
     val diagnostics: List<Diagnostic>,
-    val newlineOffsets: List<Int>,
+    val lineLengths: List<Int>,
 )

@@ -1,9 +1,7 @@
 package hades.ast.parsing
 
 import hades.URI
-import hades.ast.Position
 import hades.ast.SourceRange
-import hades.ast.Span
 import hades.diagnostics.Diagnostic
 import hades.diagnostics.DiagnosticKind
 import hades.languageserver.logging.logger
@@ -31,22 +29,23 @@ private val SINGLE_CHAR_TOKENS: Map<Char, T> = mutableMapOf(
     ',' to T.COMMA,
 )
 
+interface ParserInput {
+    operator fun get(index: Int): Char
+    fun substring(range: IntRange): String
+    val length: Int
+}
+
 class Lexer(
-    private val file: URI,
-    private val input: String,
-    private val diagnostic: (Diagnostic) -> Unit,
+        private val file: URI,
+        private val input: ParserInput,
+        private val documentVersion: Int,
+        private val diagnostic: (Diagnostic) -> Unit,
 ) {
     private val log = logger()
     private var startIndex = 0
     private var currentIndex = 0
-    private var startLine = 1
-    private var startColumn = 1
-    private var lastLine = 1
-    private var lastColumn = 1
-    private var currentLine = 1
-    private var currentColumn = 1
-    val newlineOffsets = mutableListOf<Int>()
-
+    val lineLengths = mutableListOf<Int>()
+    var currentLineLength = 0
 
     fun nextToken(): Token {
         skipWhiteSpace()
@@ -104,11 +103,9 @@ class Lexer(
     private fun makeRange(): SourceRange {
         return SourceRange(
             file,
-            span = Span(
-                start = Position(currentLine, currentColumn),
-                stop = Position(lastLine, lastColumn),
-            )
-
+            documentVersion = documentVersion,
+            start = startIndex,
+            stop = currentIndex,
         )
     }
 
@@ -119,24 +116,17 @@ class Lexer(
     }
 
     private fun startToken() {
-        startLine = currentLine
-        startColumn = currentColumn
         startIndex = currentIndex
     }
 
     private fun advance() {
-        val lastChar = currentChar
-        lastLine = currentLine
-        lastColumn = currentColumn
-
         currentIndex++
+        val lastChar = currentChar
+        currentLineLength++
 
         if (lastChar == '\n') {
-            newlineOffsets.add(currentIndex - 1)
-            currentLine++
-            currentColumn = 1
-        } else {
-            currentColumn++
+            lineLengths.add(currentLineLength)
+            currentLineLength = 0
         }
     }
 
@@ -152,12 +142,7 @@ class Lexer(
         return Token(
             kind = kind,
             text = input.substring(startIndex until currentIndex),
-            span = Span(
-                Position(startLine, startColumn),
-                Position(lastLine, lastColumn),
-            ),
-            startOffset = startIndex,
-            stopOffset = currentIndex - 1
+            range = makeRange(),
         )
     }
 }

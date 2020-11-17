@@ -1,8 +1,6 @@
 package hades.languageserver
 
 import hades.asURI
-import hades.diagnostics.Diagnostic
-import hades.file
 import hades.languageserver.logging.logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.future
@@ -70,37 +68,14 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     override fun didOpen(params: DidOpenTextDocumentParams) {
         log.debug("didOpen(${params.textDocument.uri}, ${params.textDocument.version})")
         computeScope.launch {
-            val diagnostics = astService.didOpen(params.textDocument.uri.asURI, params.textDocument.text)
-            ioScope.launch {
-                client.publishDiagnostics(PublishDiagnosticsParams().apply {
-                    uri = params.textDocument.uri
-                    this.diagnostics =  diagnostics.map {
-                        it.toLSPDiagnostic()
-                    }
-                })
-            }
-        }
-    }
-
-    private fun Diagnostic.toLSPDiagnostic(): org.eclipse.lsp4j.Diagnostic {
-        val self = this
-        return Diagnostic().apply {
-            message = self.kind.message
-            range = Range(
-                Position(
-                    self.range.span.start.line - 1,
-                    self.range.span.start.column - 1,
-                ),
-                Position(
-                    self.range.span.stop.line - 1,
-                    self.range.span.stop.column - 1,
-                )
-            )
+            val diagnostics = astService.didOpen(params.textDocument.uri.asURI, params.textDocument.text, params.textDocument.version)
         }
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
-        // TODO
+        ioScope.launch {
+            astService.didChange(params.textDocument.uri.asURI, params.textDocument.version, params.contentChanges)
+        }
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {
@@ -108,20 +83,6 @@ class HadesLSPServer : LanguageServer, TextDocumentService, WorkspaceService {
     }
 
     override fun didSave(params: DidSaveTextDocumentParams) {
-        computeScope.launch {
-            val text = withContext(ioScope.coroutineContext) {
-                params.textDocument.uri.asURI.file.readText()
-            }
-            val diagnostics = astService.didSave(params.textDocument.uri.asURI, text)
-            ioScope.launch {
-                client.publishDiagnostics(PublishDiagnosticsParams().apply {
-                    uri = params.textDocument.uri
-                    this.diagnostics = diagnostics.map {
-                        it.toLSPDiagnostic()
-                    }
-                })
-            }
-        }
     }
 
     override fun didChangeConfiguration(params: DidChangeConfigurationParams) {
