@@ -1,36 +1,49 @@
-import { workspace, ExtensionContext } from 'vscode';
+import { fileURLToPath } from 'url';
+import { workspace, ExtensionContext, window } from 'vscode';
 
 import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
 } from 'vscode-languageclient';
+import { promises as fs } from 'fs';
 
 let client: LanguageClient;
+const SERVER_PATH_CONFIG_KEY = 'hades.languageServerPath';
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
 
-  // If the extension is launched in debug mode then the debug server options are used
-  // Otherwise the run options are used
 
-  let debugOpts = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-  let serverOptions: ServerOptions = {
-      command: `/home/dhruv/Projects/hades-lang/language-server/target/pack/bin/hades-language-server`,
-      options: {
-        env: {
-          "JAVA_OPTS": debugOpts,
-          "JAVA_HOME": "/home/dhruv/.jdks/adopt-openjdk-11.0.8"
-        }
-      }
+  const config = workspace.getConfiguration()
+  const path = config.get(SERVER_PATH_CONFIG_KEY);
+  if (!config.has(SERVER_PATH_CONFIG_KEY) || path === '') {
+    await window.showWarningMessage(`${SERVER_PATH_CONFIG_KEY} configuration must be set`);
+    return;
+  }
+
+  if (typeof(path) !== 'string') {
+    await window.showWarningMessage(`${SERVER_PATH_CONFIG_KEY} must be a string path`);
+    return;
+  }
+
+  try {
+    await fs.stat(path);
+  } catch (e: unknown) {
+    window.showWarningMessage(`Couldn't start Hades language server: ${path} is not a file`);
+    return;
+  }
+
+  const serverOptions: ServerOptions = {
+    command: path,
   };
 
   // Options to control the language client
-  let clientOptions: LanguageClientOptions = {
+  const clientOptions: LanguageClientOptions = {
     // Register the server for plain text documents
     documentSelector: [{ scheme: 'file', language: 'hades' }],
     synchronize: {
       // Notify the server about file changes to '.clientrc files contained in the workspace
-      fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
+      fileEvents: workspace.createFileSystemWatcher('**/.hadesmodule')
     }
   };
 

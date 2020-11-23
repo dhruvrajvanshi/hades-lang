@@ -36,6 +36,18 @@
                 "scopeName": "hades",
                 "path": "./syntaxes/hades.tmLanguage.json"
             }
+        ],
+        "configuration": [
+            {
+                "title": "Hades",
+                
+                "properties": {
+                    "hades.languageServerPath": {
+                        "type": "string",
+                        "description": "Full path to hades-language-server executable"
+                    }
+                }
+            }
         ]
     },
     "dependencies": {
