@@ -6,6 +6,8 @@ import hades.ast.parsing.Parser
 import hades.ast.parsing.ParserInput
 import hades.diagnostics.Diagnostic
 import hades.languageserver.logging.logger
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.eclipse.lsp4j.Position
@@ -24,6 +26,7 @@ class ASTService(
     private val syntaxErrors = ConcurrentHashMap<URI, List<Diagnostic>>()
     private val lineLengths = ConcurrentHashMap<URI, List<Int>>()
     private val edits = ConcurrentHashMap<URI, MutableList<List<Edit>>>()
+    private val didChangeMutex = ConcurrentHashMap<URI, Mutex>()
 
     fun initialize(rootDirectory: URI) {}
 
@@ -52,14 +55,22 @@ class ASTService(
         }
 
     suspend fun didChange(uri: URI, version: Int, contentChanges: List<TextDocumentContentChangeEvent>) = withContext(computeCtx) {
+        didChangeMutex.getOrPut(uri) { Mutex() }.withLock {
+            processChange(DidChangeNotification(uri, version, contentChanges))
+        }
+    }
+
+    private suspend fun processChange(notification: DidChangeNotification) {
+        val uri = notification.uri
+        val contentChanges = notification.contentChanges
+        val version = notification.version
         val fileEdits = requireNotNull(edits[uri])
         val thisVersionChanges = contentChanges.map {
             val (startOffset, endOffset) = rangeToOffsets(uri, it.range)
             Edit(startOffset, endOffset, it.text)
         }
+
         fileEdits.add(thisVersionChanges)
-
-
         var text = requireNotNull(sourceText[uri])
         for (change in thisVersionChanges) {
             text = applyEdit(text, change)
@@ -68,17 +79,15 @@ class ASTService(
         lineLengths[uri] = text.text.split('\n').map { it.length + 1 }
         sourceText[uri] = text
         val parseResult = Parser(
-                uri,
-                StringParserInput(text.text),
-                version,
+            uri,
+            StringParserInput(text.text),
+            version,
         ).parseSourceFile()
         sourceFiles[uri] = parseResult.sourceFile
-
-        log.debug("$thisVersionChanges")
-
     }
 
     private fun applyEdit(source: SourceText, change: Edit): SourceText {
+        log.debug("${change.startOffset}, ${change.endOffset}")
         val prefix = source.text.substring(0 until change.startOffset)
         val postfix = source.text.substring(change.endOffset until source.text.length)
         val middle = change.text
@@ -125,4 +134,10 @@ private data class Edit(
 
 private data class SourceText(
     val text: String
+)
+
+private data class DidChangeNotification(
+    val uri: URI,
+    val version: Int,
+    val contentChanges: List<TextDocumentContentChangeEvent>,
 )
