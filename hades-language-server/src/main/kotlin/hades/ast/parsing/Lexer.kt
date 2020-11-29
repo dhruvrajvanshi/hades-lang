@@ -44,8 +44,6 @@ class Lexer(
     private val log = logger()
     private var startIndex = 0
     private var currentIndex = 0
-    val lineLengths = mutableListOf<Int>()
-    var currentLineLength = 0
 
     fun nextToken(): Token {
         skipWhiteSpace()
@@ -121,13 +119,6 @@ class Lexer(
 
     private fun advance() {
         currentIndex++
-        val lastChar = currentChar
-        currentLineLength++
-
-        if (lastChar == '\n') {
-            lineLengths.add(currentLineLength)
-            currentLineLength = 0
-        }
     }
 
     private val currentChar
@@ -144,5 +135,10 @@ class Lexer(
             text = input.substring(startIndex until currentIndex),
             range = makeRange(),
         )
+    }
+
+    fun setOffset(offset: Int) {
+        startIndex = offset
+        currentIndex = offset
     }
 }

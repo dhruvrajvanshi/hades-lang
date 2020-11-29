@@ -20,7 +20,7 @@ inline fun <reified T> T.logger(): Logger {
         }
 
         private fun withTag(tag: String, message: String) {
-            System.err.println("$tag:(${SimpleDateFormat("hh:mm:ss").format(Date())}) {thread:${Thread.currentThread().name}(${Thread.currentThread().id})} [${T::class.simpleName}] $message")
+            System.err.println("$tag:(${SimpleDateFormat("hh:mm:ss.SSS").format(Date())}) {thread:${Thread.currentThread().name}(${Thread.currentThread().id})} [${T::class.simpleName}] $message")
         }
 
     }

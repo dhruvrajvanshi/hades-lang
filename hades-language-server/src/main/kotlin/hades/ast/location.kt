@@ -9,6 +9,12 @@ data class SourceRange(
     val documentVersion: Int,
 )
 
+data class SourceOffset(
+    val uri: URI,
+    val offset: Int,
+    val documentVersion: Int,
+)
+
 interface HasSourceRange {
     val range: SourceRange
 }

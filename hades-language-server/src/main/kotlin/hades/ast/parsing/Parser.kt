@@ -4,6 +4,7 @@ import hades.URI
 import hades.ast.*
 import hades.diagnostics.Diagnostic
 import hades.diagnostics.DiagnosticKind
+import hades.languageserver.Edit
 import hades.languageserver.logging.logger
 import kotlinx.coroutines.yield
 
@@ -23,9 +24,12 @@ val STATEMENT_FOLLOW_SET = setOf(
 )
 
 class Parser(
-    file: URI,
+    val file: URI,
     input: ParserInput,
-    documentVersion: Int
+    val documentVersion: Int,
+    val newEdits: List<Edit>,
+    val definitionCache: MutableMap<SourceOffset, Definition>,
+    val statementCache: MutableMap<SourceOffset, Statement>,
 ) {
     private val log = logger()
     private val diagnostics = mutableListOf<Diagnostic>()
@@ -51,11 +55,10 @@ class Parser(
         return ParseResult(
             sourceFile,
             diagnostics,
-            lexer.lineLengths,
         )
     }
 
-    private fun parseDefinition(): Definition = when(currentToken.kind) {
+    private fun parseDefinitionWorker(): Definition = when(currentToken.kind) {
         t.IMPORT -> parseImportDefinition()
         t.DEF -> parseDef()
         else -> {
@@ -68,6 +71,64 @@ class Parser(
             )
             Definition.Error(meta)
         }
+    }
+
+
+    private fun parseDefinition(): Definition {
+        val oldOffset = convertNewOffsetToOld(currentToken.range.start)
+        val cacheKey = oldOffset?.let { SourceOffset(file, offset = it, documentVersion = documentVersion - 1) }
+        val cached = cacheKey?.let { definitionCache[it] }
+        val newOffset = cached?.let { convertOldOffsetToNew(it.range.stop + 1) + 1 }
+        log.debug("CacheKey: $cacheKey, Cached: $cached")
+        if (cached != null && !isOldVersionRangeModified(cached.range) && newOffset != null) {
+            log.debug("Reusing cached definition: ${cached.javaClass.name}")
+            lexer.setOffset(newOffset)
+            return cached
+        }
+        val decl = parseDefinitionWorker()
+        definitionCache[SourceOffset(file, offset = convertOldOffsetToNew(decl.range.start), documentVersion = documentVersion)] = decl
+        return decl
+    }
+
+    private fun convertNewOffsetToOld(start: Int): Int? {
+        var result = start
+        for (edit in newEdits.asReversed()) {
+            if (result <= edit.startOffset) {
+                continue
+            }
+            if (result <= edit.endOffset) {
+                return null
+            }
+
+            result -= edit.text.length - (edit.endOffset - edit.startOffset)
+        }
+        return result
+    }
+
+    private fun convertOldOffsetToNew(start: Int): Int {
+        var result = start
+
+        for (edit in newEdits) {
+            if (result <= edit.startOffset) {
+                continue
+            }
+
+            log.debug("old length: ${edit.endOffset - edit.startOffset}; new length: ${edit.text.length}")
+            result += edit.text.length - (edit.endOffset - edit.startOffset)
+
+        }
+
+        log.debug("old offset: $start; newOffset: $result")
+        return result
+    }
+
+    private fun isOldVersionRangeModified(range: SourceRange): Boolean {
+        for (edit in newEdits) {
+            if (range.start >= edit.startOffset && range.stop <= edit.endOffset) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun parseDef(): Definition {
@@ -264,5 +325,4 @@ class Parser(
 data class ParseResult(
     val sourceFile: SourceFile,
     val diagnostics: List<Diagnostic>,
-    val lineLengths: List<Int>,
 )

@@ -1,7 +1,10 @@
 package hades.languageserver
 
 import hades.URI
+import hades.ast.Definition
 import hades.ast.SourceFile
+import hades.ast.SourceOffset
+import hades.ast.Statement
 import hades.ast.parsing.Parser
 import hades.ast.parsing.ParserInput
 import hades.diagnostics.Diagnostic
@@ -27,6 +30,8 @@ class ASTService(
     private val lineLengths = ConcurrentHashMap<URI, List<Int>>()
     private val edits = ConcurrentHashMap<URI, MutableList<List<Edit>>>()
     private val didChangeMutex = ConcurrentHashMap<URI, Mutex>()
+    private val definitionCache = mutableMapOf<SourceOffset, Definition>()
+    private val statementCache = mutableMapOf<SourceOffset, Statement>()
 
     fun initialize(rootDirectory: URI) {}
 
@@ -44,11 +49,11 @@ class ASTService(
             sourceText[file] = SourceText(text)
 
             val result = withTimeout(4000) {
-                Parser(file, StringParserInput(text), documentVersion).parseSourceFile()
+                Parser(file, StringParserInput(text), documentVersion, emptyList(), definitionCache, statementCache).parseSourceFile()
             }
             syntaxErrors[file] = result.diagnostics
             sourceFiles[file] = result.sourceFile
-            lineLengths[file] = result.lineLengths
+            lineLengths[file] = text.split("\n").map { it.length }
             log.info("Text changed to \n$text")
             log.info("Republishing ${result.diagnostics.size} diagnostic(s)")
             result.diagnostics
@@ -70,6 +75,8 @@ class ASTService(
             Edit(startOffset, endOffset, it.text)
         }
 
+        log.debug(thisVersionChanges.toString())
+
         fileEdits.add(thisVersionChanges)
         var text = requireNotNull(sourceText[uri])
         for (change in thisVersionChanges) {
@@ -82,6 +89,9 @@ class ASTService(
             uri,
             StringParserInput(text.text),
             version,
+            thisVersionChanges,
+            definitionCache,
+            statementCache,
         ).parseSourceFile()
         sourceFiles[uri] = parseResult.sourceFile
     }
@@ -126,7 +136,7 @@ class StringParserInput(private val text: String) : ParserInput {
 
 }
 
-private data class Edit(
+data class Edit(
         val startOffset: Int,
         val endOffset: Int,
         val text: String,
