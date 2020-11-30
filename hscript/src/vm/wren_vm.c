@@ -9,13 +9,6 @@
 #include "wren_primitive.h"
 #include "wren_vm.h"
 
-#if WREN_OPT_META
-  #include "wren_opt_meta.h"
-#endif
-#if WREN_OPT_RANDOM
-  #include "wren_opt_random.h"
-#endif
-
 #if WREN_DEBUG_TRACE_MEMORY || WREN_DEBUG_TRACE_GC
   #include <time.h>
   #include <stdio.h>

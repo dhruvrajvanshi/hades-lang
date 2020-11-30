@@ -1,0 +1,25 @@
+set(HSCRIPT_SOURCES
+    wren_compiler.c
+    wren_core.c
+    wren_debug.c
+    wren_primitive.c
+    wren_utils.c
+    wren_value.c
+    wren_vm.c
+)
+add_library(
+    hscript_vm
+    ${HSCRIPT_SOURCES}
+)
+
+target_link_libraries(
+    hscript_vm
+    PRIVATE
+        m
+)
+target_include_directories(
+    hscript_vm
+    PRIVATE
+        ../include
+        .
+)
