@@ -159,7 +159,7 @@ struct sObjString
   uint32_t hash;
 
   // Inline array of the string's bytes followed by a null terminator.
-  char value[FLEXIBLE_ARRAY];
+  char* value;
 };
 
 // The dynamically allocated data structure for a variable that has been used
@@ -276,7 +276,7 @@ typedef struct
   ObjFn* fn;
 
   // The upvalues this function has closed over.
-  ObjUpvalue* upvalues[FLEXIBLE_ARRAY];
+  ObjUpvalue** upvalues;
 } ObjClosure;
 
 typedef struct
@@ -414,13 +414,13 @@ struct sObjClass
 typedef struct
 {
   Obj obj;
-  uint8_t data[FLEXIBLE_ARRAY];
+  uint8_t* data;
 } ObjForeign;
 
 typedef struct
 {
   Obj obj;
-  Value fields[FLEXIBLE_ARRAY];
+  Value* fields;
 } ObjInstance;
 
 typedef struct
