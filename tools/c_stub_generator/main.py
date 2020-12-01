@@ -42,12 +42,11 @@ def process_file(in_file: str, index: Index, out):
                     name = field.spelling
                     out.write(f'  val f{name}: {print_type(typ)};\n')
 
-            out.write(f'}}\n')
+            out.write(f'}}\n\n')
 
         if node.kind == CursorKind.FUNCTION_DECL:
             params = ', '.join([print_type(arg.type) for arg in node.get_arguments()])
-            out.write(f'extern def {node.spelling}({params}): {print_type(node.result_type)} = {node.spelling};\n')
-            pass
+            out.write(f'extern def {node.spelling}({params}): {print_type(node.result_type)} = {node.spelling};\n\n')
         if node.kind == CursorKind.TYPEDEF_DECL:
             if node.underlying_typedef_type.kind == TypeKind.ELABORATED:
                 assert AssertionError()
@@ -101,7 +100,7 @@ def print_type(typ: Type) -> str:
     elif typ.kind == TypeKind.CONSTANTARRAY:
         size = typ.get_array_size()
         inner = print_type(typ.get_array_element_type())
-        return f'Array[{size}, {inner}]'
+        return f'Array[{inner}, {size}]'
     elif typ.kind == TypeKind.POINTER:
         inner = print_type(typ.get_pointee())
         if typ.is_const_qualified:
@@ -115,6 +114,9 @@ def print_type(typ: Type) -> str:
         return f'({args}) -> {print_type(typ.get_result())}'
     elif typ.kind == TypeKind.TYPEDEF:
         return typ.spelling
+    elif typ.kind == TypeKind.INCOMPLETEARRAY:
+        inner = print_type(typ.get_array_element_type())
+        return f'Array[{inner}]'
     else:
         raise AssertionError(f'Unhandled type kind {typ.kind} at {typ}')
 
