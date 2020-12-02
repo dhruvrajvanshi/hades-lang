@@ -794,7 +794,7 @@ class Checker(
                 callNode = expression,
                 typeArgs = null,
                 args = expression.args,
-                expectedReturnType = null
+                expectedType = null
         )
     }
 
@@ -816,7 +816,7 @@ class Checker(
             callNode = expression,
             typeArgs = null,
             args = listOf(Arg(expression.lhs)),
-            expectedReturnType = null
+            expectedType = null
         )
     }
 
@@ -825,7 +825,7 @@ class Checker(
             callNode = expression,
             args = expression.args,
             typeArgs = expression.typeArgs,
-            expectedReturnType = null
+            expectedType = null
         ), isMutable = true)
     }
 
@@ -1076,7 +1076,7 @@ class Checker(
                 callNode = expression,
                 typeArgs = expression.typeArgs,
                 args = expression.args,
-                expectedReturnType = null
+                expectedType = null
         )
     }
     private fun checkCallExpression(expression: Expression.Call, expectedType: Type): Type {
@@ -1084,15 +1084,15 @@ class Checker(
                 callNode = expression,
                 typeArgs = expression.typeArgs,
                 args = expression.args,
-                expectedReturnType = expectedType
+                expectedType = expectedType
         )
     }
 
     private fun inferOrCheckCallLikeExpression(
-            callNode: Expression,
-            typeArgs: List<TypeAnnotation>?,
-            args: List<Arg>,
-            expectedReturnType: Type?
+        callNode: Expression,
+        typeArgs: List<TypeAnnotation>?,
+        args: List<Arg>,
+        expectedType: Type?
     ): Type {
         val explicitTypeArgs = typeArgs?.map { annotationToType(it) }
         val calleeType = getCalleeType(callNode)
@@ -1113,12 +1113,12 @@ class Checker(
                 args.map { it.expression }
             else listOf(receiver) + args.map { it.expression }
             checkCallArgs(functionType, callNode, explicitTypeArgs, argsWithReceiver, substitution)
-            if (expectedReturnType != null) {
+            if (expectedType != null) {
                 val source = functionType.to.applySubstitution(substitution)
                 checkAssignability(
                         callNode,
                         source = source,
-                        destination = expectedReturnType
+                        destination = expectedType
                 )
             }
             if (functionType.traitRequirements != null) {
