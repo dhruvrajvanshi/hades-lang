@@ -1,0 +1,11 @@
+import hades.memory as memory;
+
+struct Slice[T, Index] {
+    val m_ptr: *T;
+    val m_size: Index;
+}
+extension SliceExtensions[T, Index] for Slice[T, Index] {
+    def at_index(this, offset: Size): *T {
+        return this.m_ptr.offset(offset);
+    }
+}

@@ -1,0 +1,13 @@
+import hades.memory as mem;
+struct t {
+}
+
+def newVM(): *mut t {
+    return mem.allocate(1);
+}
+
+extension VMExtensions for t {
+    def free(*mut this): Void {
+
+    }
+}

@@ -1,0 +1,25 @@
+import libc as c;
+import hscript.slice as slice;
+import hades.memory as mem;
+import hscript.vm as hvm;
+
+type Slice[T, Index] = slice.Slice[T, Index];
+
+
+const USAGE = b"Usage: hscript [file] [arguments...]";
+
+def main(argc: u32, argv: **Byte): u32 {
+    val args = slice.Slice(argv, argc);
+    if argc < 2 {
+        c.puts(USAGE);
+        return 1;
+    }
+    if argc == 2 and c.strcmp(*args.at_index(1), b"--help") == 0 {
+        c.puts(USAGE);
+        return 0;
+    }
+    val vm = hvm.newVM(); defer vm.free();
+
+    return 0;
+}
+
