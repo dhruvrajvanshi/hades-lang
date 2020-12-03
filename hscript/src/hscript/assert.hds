@@ -1,0 +1,9 @@
+import libc as c;
+def assert(condition: Bool, message: *Byte): Void {
+    if not condition {
+        c.fputs(b"Assertion failed: ", c.stderr());
+        c.fputs(message, c.stderr());
+        c.fputs(b"\n", c.stderr());
+        c.exit(1);
+    }
+}

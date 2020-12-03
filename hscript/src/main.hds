@@ -2,14 +2,14 @@ import libc as c;
 import hscript.slice as slice;
 import hades.memory as mem;
 import hscript.vm as hvm;
-
-type Slice[T, Index] = slice.Slice[T, Index];
-
+import hscript.args as hargs;
+import hscript.stdlib.System as System;
+import hscript.value as value;
 
 const USAGE = b"Usage: hscript [file] [arguments...]";
 
 def main(argc: u32, argv: **Byte): u32 {
-    val args = slice.Slice(argv, argc);
+    val args = slice.Slice[*Byte](argv, cast(argc));
     if argc < 2 {
         c.puts(USAGE);
         return 1;
@@ -20,6 +20,15 @@ def main(argc: u32, argv: **Byte): u32 {
     }
     val vm = hvm.newVM(); defer vm.free();
 
+    val n = value.null();
+    val function_args = hargs.from_slice(slice.MutSlice(&mut n, 1));
+    System.print(vm, function_args);
+
     return 0;
+}
+
+def cast[U, T](value: T): U {
+    val copy = value;
+    return *pointer_cast[U](&copy);
 }
 

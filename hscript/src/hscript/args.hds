@@ -1,0 +1,24 @@
+import hscript.value as value;
+import hscript.slice as slice;
+import hades.memory as mem;
+import hscript.assert as Assert;
+
+const assert = Assert.assert;
+
+type Value = value.Value;
+
+struct Args {
+    val m_slice: slice.MutSlice[Value];
+}
+
+def from_slice(value: slice.MutSlice[Value]): Args {
+    return Args(value);
+}
+
+extension ArgsExtensions for Args {
+
+    def get_positional(this, index: Size): Value {
+        assert(index < this.m_slice.size(), b"Tried to read past argument list");
+        return *this.m_slice.at_index(index);
+    }
+}

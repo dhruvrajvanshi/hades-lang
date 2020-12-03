@@ -1,12 +1,15 @@
 import hades.memory as mem;
-struct t {
+import hscript.slice as slice;
+import hscript.value as value;
+
+struct VM {
 }
 
-def newVM(): *mut t {
+def newVM(): *mut VM {
     return mem.allocate(1);
 }
 
-extension VMExtensions for t {
+extension VMExtensions for VM {
     def free(*mut this): Void {
 
     }

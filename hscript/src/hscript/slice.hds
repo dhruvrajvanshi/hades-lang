@@ -1,11 +1,43 @@
 import hades.memory as memory;
 
-struct Slice[T, Index] {
-    val m_ptr: *T;
-    val m_size: Index;
+struct MutSlice[T] {
+    val m_ptr: *mut T;
+    val m_size: Size;
 }
-extension SliceExtensions[T, Index] for Slice[T, Index] {
+
+struct Slice[T] {
+    val m_ptr: *T;
+    val m_size: Size;
+}
+
+
+def allocate[T](size: Size): MutSlice[T] {
+    val ptr = memory.allocate[T](size);
+    return MutSlice(ptr, size);
+}
+
+extension MutSliceExtensions[T] for MutSlice[T] {
     def at_index(this, offset: Size): *T {
         return this.m_ptr.offset(offset);
     }
+
+    def size(this): Size {
+        return this.m_size;
+    }
+
+    def free(this): Void {
+        memory.free(this.m_ptr);
+    }
 }
+
+
+extension SliceExtensions[T] for Slice[T] {
+    def at_index(this, offset: Size): *T {
+        return this.m_ptr.offset(offset);
+    }
+
+    def size(this): Size {
+        return this.m_size;
+    }
+}
+
