@@ -218,15 +218,27 @@ class Monomorphization(
     }
 
     private val generateImplCache = mutableMapOf<Name, Map<Name, QualifiedName>>()
-    private fun generateImpl(impl: HIRDefinition.Implementation): Map<Name, QualifiedName> = generateImplCache.getOrPut(impl.name) {
+    private fun generateImpl(impl: HIRDefinition.Implementation): Map<Name, QualifiedName> {
         require(impl.typeParams.isNullOrEmpty())
         val implName = impl.name
+
+        val cached = generateImplCache[impl.name]
+
+        if (cached != null) {
+            return cached
+        }
 
         val result = mutableMapOf<Name, QualifiedName>()
         impl.functions.forEach { fn ->
             require(fn.name.size == 1)
             val name = QualifiedName(listOf(implName, fn.name.first))
             result[fn.name.first] = name
+        }
+        generateImplCache[impl.name] = result
+
+        impl.functions.forEach { fn ->
+            require(fn.name.size == 1)
+            val name = QualifiedName(listOf(implName, fn.name.first))
             newDefinitions.addAll(transformFunctionDef(fn, newName = name))
         }
         return result
