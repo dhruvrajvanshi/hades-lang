@@ -516,17 +516,17 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         commandParts.add("-o")
         commandParts.add(ctx.options.output.toString())
-        commandParts.addAll(ctx.options.libs.map { "-l$it" })
         commandParts.addAll(ctx.options.cSources.map { it.toString() })
         commandParts.add(ctx.options.runtime.toString())
         commandParts.add(objectFilePath)
         commandParts.addAll(ctx.options.cFlags)
+        commandParts.addAll(ctx.options.libs.map { "-l$it" })
 
         val outputFile = ctx.options.output.toFile()
         if (outputFile.exists()) {
             outputFile.delete()
         }
-        log.debug(commandParts.joinToString(" "))
+        log.info(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
         val process = builder
             .inheritIO()
