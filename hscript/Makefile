@@ -13,17 +13,19 @@ STDLIB_C_SOURCES=\
 	$(shell find $(STDLIB_DIR) -name '*.h')
 
 HADES_SOURCES=\
-	$(shell find . -name '*.hds') \
+	$(shell find src -name '*.hds') \
 	$(shell find $(STDLIB_DIR) -name '*.hds') \
 	$(STDLIB_C_SOURCES)
 
-C_SOURCES=$(shell find . -name '*.c')
-TEST_SOURCES=$(shell find . -name '*_test.hds')
+C_SOURCES=$(shell find src -name '*.c')
+TEST_SOURCES=$(shell find src -name '*_test.hds')
 
 HADESC_FLAGS=-g \
 		--directories . $(STDLIB_DIR) src \
 		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES) \
-		--runtime $(RUNTIME_SOURCE)
+		--cflags '-Ilibuv/include' \
+		--runtime $(RUNTIME_SOURCE) \
+		-luv
 
 hscript: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 	CC=$(CC) $(HDC) \
@@ -44,6 +46,6 @@ test: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) $(TEST_SOURCES)
 
 
 clean:
-	- rm $(BUILD_ARTIFACTS)
+	- rm -rf $(BUILD_ARTIFACTS)
 
 
