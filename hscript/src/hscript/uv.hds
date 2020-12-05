@@ -1,0 +1,64 @@
+import hades.memory as mem;
+struct loop {}
+struct timer {}
+
+type timer_cb = *(*timer) -> Void;
+
+extern def loop_close(*mut loop): u32 = uv_loop_close;
+extern def new_loop(): *mut loop = uv_loop_new;
+
+extern def timer_init(*mut loop, *mut timer): u32 = uv_timer_init;
+
+extern def timer_start(*mut timer, timer_cb, u64, u64): u32 = uv_timer_start;
+
+type run_mode = u32;
+
+const RUN_DEFAULT = 0;
+const RUN_ONCE = 1;
+const RUN_NOWAIT = 2;
+
+extern def _run(*mut loop, run_mode): Void = uv_run;
+
+extension loop_extensions for loop {
+    def run(*mut this, mode: run_mode): Void {
+        return _run(this, mode);
+    }
+
+    def close(*mut this): Void {
+        loop_close(this);
+    }
+}
+
+extern def _new_timer(): *mut timer = hscript_uv_timer_new;
+
+extern def _timer_set_data(*mut timer, *Void): Void = hscript_uv_timer_set_data;
+extern def _timer_get_data(*timer): *Void = hscript_uv_timer_get_data;
+
+def new_timer(loop: *mut loop): *mut timer {
+    val timer = _new_timer();
+    timer.init(loop);
+    return timer;
+}
+
+extension timer_extensions for timer {
+    def init(*mut this, loop: *mut loop): Void {
+        timer_init(loop, this);
+    }
+
+    def start(*mut this, callback: timer_cb, timeout: u64, interval: u64): Void {
+        timer_start(this, callback, timeout, interval);
+    }
+
+    def free(*mut this): Void {
+        mem.free(this);
+    }
+
+    def set_data(*mut this, data: *Void): Void {
+        _timer_set_data(this, data);
+    }
+
+    def data(*this): *Void {
+        return _timer_get_data(this);
+    }
+}
+
