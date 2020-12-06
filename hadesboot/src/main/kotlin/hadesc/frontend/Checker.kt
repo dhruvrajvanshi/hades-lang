@@ -19,6 +19,7 @@ import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
 import kotlin.math.min
+import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalStdlibApi::class)
 class Checker(
@@ -324,12 +325,54 @@ class Checker(
         }
         implDef.traitArguments.forEach { annotationToType(it) }
         implDef.whereClause?.let { checkWhereClause(it) }
+
+        val expectedMethods = if (traitDef is Declaration.TraitDef) {
+            traitDef.expectedMethods(implDef.traitArguments.map { annotationToType(it) })
+        } else emptyMap()
+        val foundMethods = mutableSetOf<Name>()
         for (declaration in implDef.body) {
             checkDeclaration(declaration)
             if (declaration !is Declaration.FunctionDef) {
                 error(declaration, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideImplDefs)
+            } else {
+                foundMethods.add(declaration.name.identifier.name)
+                val typeOfMethod = typeOfBinder(declaration.name)
+                require(typeOfMethod is Type.Ptr)
+                val actualType = typeOfMethod.to
+                val expectedType = expectedMethods[declaration.name.identifier.name]
+                if (expectedType != null && !isTypeAssignableTo(source = actualType, destination = expectedType)) {
+                    error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(expected = expectedType, found = actualType))
+                }
             }
         }
+
+        for (name in expectedMethods.keys) {
+            if (name !in foundMethods) {
+                error(implDef.traitRef, Diagnostic.Kind.MissingImplMethod(name))
+            }
+        }
+    }
+
+    private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
+        val map = mutableMapOf<Name, Type>()
+        val substitution = params.zip(typeArguments)
+            .map { it.first.binder.location to it.second }
+            .toMap()
+        for (method in signatures) {
+            val paramTypes = method.params
+                .map { it.annotation }
+                .map { if (it == null) Type.Error else annotationToType(it) }
+                .map { it.applySubstitution(substitution) }
+            val returnType = annotationToType(method.returnType).applySubstitution(substitution)
+            val fnType = Type.Function(
+                from = paramTypes,
+                to = returnType,
+                traitRequirements = null
+            )
+            map[method.name.identifier.name] = fnType
+        }
+        return map
+
     }
 
     private fun checkWhereClause(whereClause: WhereClause) {

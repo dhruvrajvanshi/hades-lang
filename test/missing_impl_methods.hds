@@ -1,0 +1,15 @@
+
+trait T[Self] {
+    def a(): Void;
+    def b(): Void;
+    def c(): Void;
+}
+
+implementation T[u32] {
+    def c(): Void {}
+
+    def a(t: u32): Void {}
+}
+
+def main(): Void {
+}
