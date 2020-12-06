@@ -1,0 +1,3 @@
+
+type CString = *Byte;
+const message = b"hello";
