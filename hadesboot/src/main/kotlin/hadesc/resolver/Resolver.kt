@@ -118,7 +118,7 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    private fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
+    fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
         for (declaration in sourceFile.declarations) {
             val binding = if (declaration is Declaration.Struct && declaration.binder.identifier.name == ident.name) {
                 TypeBinding.Struct(declaration)
@@ -128,6 +128,14 @@ class Resolver(private val ctx: Context) {
                 TypeBinding.TypeAlias(declaration)
             } else if (declaration is Declaration.TraitDef && declaration.name.identifier.name == ident.name) {
                 TypeBinding.Trait(declaration)
+            } else if (declaration is Declaration.ImportMembers) {
+                val binding = declaration.names.find { it.name == ident.name }
+                val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                if (importedSourceFile != null && binding != null) {
+                    findTypeInSourceFile(ident, importedSourceFile)
+                } else {
+                    null
+                }
             } else {
                 null
             }
@@ -208,7 +216,7 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    private fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
+    fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
         for (declaration in sourceFile.declarations) {
             val binding = when (declaration) {
                 is Declaration.Error -> null
@@ -244,6 +252,14 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ExtensionDef -> null
                 is Declaration.TraitDef -> null
                 is Declaration.ImplementationDef -> null
+                is Declaration.ImportMembers -> {
+                    val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                    if (importedSourceFile != null && declaration.names.any { it.name == name }) {
+                        findInSourceFile(name, importedSourceFile)
+                    } else {
+                        null
+                    }
+                }
             }
             if (binding != null) {
                 return binding
@@ -411,6 +427,7 @@ class Resolver(private val ctx: Context) {
                             is Declaration.ExtensionDef -> null
                             is Declaration.TraitDef -> null
                             is Declaration.ImplementationDef -> null
+                            is Declaration.ImportMembers -> TODO()
                         }
                         if (binding != null) {
                             break
@@ -457,6 +474,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ExtensionDef -> false
                 is Declaration.TraitDef -> decl.name.identifier.name == declName
                 is Declaration.ImplementationDef -> false
+                is Declaration.ImportMembers -> TODO()
             })
             if (match) {
                 return decl
@@ -521,6 +539,7 @@ class Resolver(private val ctx: Context) {
                     declaration
                 } else null
                 is Declaration.ImplementationDef -> null
+                is Declaration.ImportMembers -> TODO()
             }
             if (decl != null) {
                 return decl

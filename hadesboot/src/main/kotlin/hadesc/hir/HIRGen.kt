@@ -40,6 +40,7 @@ class HIRGen(
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
         is Declaration.TraitDef -> lowerInterfaceDef(declaration)
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
+        is Declaration.ImportMembers -> emptyList()
     }
 
     private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {

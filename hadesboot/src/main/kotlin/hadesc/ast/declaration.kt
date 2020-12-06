@@ -26,6 +26,11 @@ sealed class Declaration : HasLocation {
         override val startLoc: SourceLocation
             get() = modulePath.location
     }
+    data class ImportMembers(
+        override val location: SourceLocation,
+        val modulePath: QualifiedPath,
+        val names: List<Identifier>,
+    ) : Declaration()
 
     data class FunctionDef(
         override val location: SourceLocation,

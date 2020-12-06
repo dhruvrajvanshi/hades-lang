@@ -287,7 +287,24 @@ class Checker(
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
             is Declaration.TraitDef -> checkTraitDef(declaration)
             is Declaration.ImplementationDef -> checkImplementationDef(declaration)
+            is Declaration.ImportMembers -> checkImportMembers(declaration)
         })
+    }
+
+    private fun checkImportMembers(declaration: Declaration.ImportMembers) {
+        val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+        if (sourceFile == null) {
+            error(declaration.modulePath, Diagnostic.Kind.NoSuchModule)
+            return
+        }
+
+        declaration.names.forEach { name ->
+            if (ctx.resolver.findInSourceFile(name.name, sourceFile) == null
+                && ctx.resolver.findTypeInSourceFile(name, sourceFile) == null) {
+                error(name, Diagnostic.Kind.NoSuchMember)
+            }
+        }
+
     }
 
     private fun checkImplementationDef(implDef: Declaration.ImplementationDef) {

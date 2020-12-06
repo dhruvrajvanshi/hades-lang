@@ -95,7 +95,7 @@ class Parser(
 
     private fun parseDeclaration(): Declaration {
         val decl = when (currentToken.kind) {
-            tt.IMPORT -> parseDeclarationImportAs()
+            tt.IMPORT -> parseImportDeclaration()
             tt.DEF,
             tt.AT_SYMBOL -> parseDeclarationFunctionDef()
             tt.STRUCT -> parseStructDeclaration(decorators = listOf())
@@ -376,14 +376,42 @@ class Parser(
         return SourceLocation.between(start, stop)
     }
 
-    private fun parseDeclarationImportAs(): Declaration {
-        expect(tt.IMPORT)
-        val modulePath = parseQualifiedPath()
-        expect(tt.AS)
-        val asName = parseBinder()
-        expect(Token.Kind.SEMICOLON)
+    private fun parseImportDeclaration(): Declaration {
+        val start = expect(tt.IMPORT)
+        val prefix = mutableListOf(parseIdentifier())
 
-        return Declaration.ImportAs(modulePath, asName)
+        while (at(tt.DOT)) {
+            advance()
+            if (at(tt.LBRACE)) {
+                break
+            }
+            prefix.add(parseIdentifier())
+        }
+
+        val modulePath = QualifiedPath(prefix)
+        if (at(tt.LBRACE)) {
+            advance()
+            var isFirst = true
+            val names = mutableListOf<Identifier>()
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                if (!isFirst) {
+                    expect(tt.COMMA)
+                }
+                names.add(parseIdentifier())
+                isFirst = false
+            }
+            val end = expect(tt.RBRACE)
+            expect(tt.SEMICOLON)
+            return Declaration.ImportMembers(makeLocation(start, end), modulePath, names)
+
+        } else {
+            expect(tt.AS)
+            val asName = parseBinder()
+            expect(Token.Kind.SEMICOLON)
+
+            return Declaration.ImportAs(modulePath, asName)
+        }
+
     }
 
     private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(buildList {
