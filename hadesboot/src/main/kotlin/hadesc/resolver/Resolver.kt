@@ -588,6 +588,16 @@ class Resolver(private val ctx: Context) {
                     ))
                 }
             }
+            if (includeImports && declaration is Declaration.ImportMembers) {
+                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                if (sourceFile != null) {
+                    yieldAll(extensionDefsInDeclarations(
+                        sourceFile.declarations,
+                        // extensions are not transitively included
+                        includeImports = false
+                    ))
+                }
+            }
             if (declaration !is Declaration.ExtensionDef) {
                 continue
             }
