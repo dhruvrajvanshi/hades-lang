@@ -427,7 +427,7 @@ class Resolver(private val ctx: Context) {
                             is Declaration.ExtensionDef -> null
                             is Declaration.TraitDef -> null
                             is Declaration.ImplementationDef -> null
-                            is Declaration.ImportMembers -> TODO()
+                            is Declaration.ImportMembers -> null
                         }
                         if (binding != null) {
                             break
@@ -474,7 +474,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ExtensionDef -> false
                 is Declaration.TraitDef -> decl.name.identifier.name == declName
                 is Declaration.ImplementationDef -> false
-                is Declaration.ImportMembers -> TODO()
+                is Declaration.ImportMembers -> false
             })
             if (match) {
                 return decl
@@ -539,7 +539,7 @@ class Resolver(private val ctx: Context) {
                     declaration
                 } else null
                 is Declaration.ImplementationDef -> null
-                is Declaration.ImportMembers -> TODO()
+                is Declaration.ImportMembers -> null
             }
             if (decl != null) {
                 return decl

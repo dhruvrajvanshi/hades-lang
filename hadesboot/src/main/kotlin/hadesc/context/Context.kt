@@ -110,6 +110,9 @@ class Context(
                 if (declaration is Declaration.ImportAs) {
                     visitSourceFile(resolveSourceFile(declaration.modulePath))
                 }
+                if (declaration is Declaration.ImportMembers) {
+                    visitSourceFile(resolveSourceFile(declaration.modulePath))
+                }
             }
         }
 
