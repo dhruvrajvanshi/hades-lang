@@ -31,6 +31,7 @@ hscript: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 	CC=$(CC) $(HDC) \
 		--main src/main.hds \
 		--output ./build/hscript \
+		--cflags '-Ilibuv/include' \
 		$(HADESC_FLAGS) \
 
 test: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) $(TEST_SOURCES)

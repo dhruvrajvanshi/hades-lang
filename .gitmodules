@@ -1,3 +1,6 @@
 [submodule "cJSON"]
 	path = cJSON
 	url = git@github.com:DaveGamble/cJSON.git
+[submodule "hscript/libuv"]
+	path = hscript/libuv
+	url = git@github.com:libuv/libuv.git
