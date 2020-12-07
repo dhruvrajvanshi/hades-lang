@@ -5,6 +5,7 @@ import hscript.vm as hvm;
 import hscript.args as hargs;
 import hscript.stdlib.System as System;
 import hscript.value as value;
+import hscript.lib.vector as vector;
 
 const USAGE = b"Usage: hscript [file] [arguments...]";
 
@@ -18,11 +19,15 @@ def main(argc: u32, argv: **Byte): u32 {
         c.puts(USAGE);
         return 0;
     }
-    val vm = hvm.newVM(); defer vm.free();
 
+    val vm = hvm.newVM(); defer vm.free();
     val n = value.null();
     val function_args = hargs.from_slice(slice.MutSlice(&mut n, 1));
     System.print(vm, function_args);
+
+    val v = vector.with_capacity[*Byte](3); defer (&mut v).free();
+    val vec = &mut v;
+    vec.append(b"test");
 
     return 0;
 }

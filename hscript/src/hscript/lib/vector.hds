@@ -1,0 +1,43 @@
+import hades.memory.{allocate};
+import hades.memory as memory;
+import hscript.lib.assert.{assert};
+
+struct Vector[T] {
+    val m_buffer: *mut T;
+    val m_size: Size;
+    val m_capacity: Size;
+}
+
+def with_capacity[T](capacity: Size): Vector[T] {
+    return Vector[T](
+        allocate(capacity),
+        0,
+        capacity
+    );
+}
+
+extension VectorExtensions[T] for Vector[T] {
+    def free(*mut this): Void {
+        memory.free(*this.m_buffer);
+    }
+
+    def at_index(*this, index: Size): *T {
+        return (*this.m_buffer).offset(index);
+    }
+
+    def capacity(*this): Size {
+        return *this.m_capacity;
+    }
+
+    def size(*this): Size {
+        return *this.m_size;
+    }
+
+    def append(*mut this, value: T): *mut Vector[T] {
+        assert(this.capacity() > this.size(), b"No space left in vector");
+        val ptr: *mut T = *this.m_buffer.offset_mut(*this.m_size);
+        *this.m_size = this.size() + 1;
+        *ptr = value;
+        return this;
+    }
+}

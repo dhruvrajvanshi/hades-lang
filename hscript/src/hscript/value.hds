@@ -1,5 +1,5 @@
 import hscript.lib.UnsafeCast.{downcast};
-import hscript.assert.{assert};
+import hscript.lib.assert.{assert};
 import hscript.object.{Object};
 
 type Kind = u8;

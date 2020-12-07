@@ -2,5 +2,4 @@ import libc.{malloc};
 struct Code {
     val m_code: *u8;
     val m_size: Size;
-    val m_capacity: Size;
 }

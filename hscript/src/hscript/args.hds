@@ -1,11 +1,8 @@
+import hscript.value.{Value};
 import hscript.value as value;
 import hscript.slice as slice;
 import hades.memory as mem;
-import hscript.assert as Assert;
-
-const assert = Assert.assert;
-
-type Value = value.Value;
+import hscript.lib.assert.{assert};
 
 struct Args {
     val m_slice: slice.MutSlice[Value];
