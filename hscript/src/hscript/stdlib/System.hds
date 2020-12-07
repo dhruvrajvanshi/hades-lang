@@ -1,17 +1,16 @@
-import hscript.slice as slice;
+import hscript.value.{Value, visit};
+import hscript.vm.{VM};
+import hscript.args.{Args};
+import hscript.object.{Object};
 import hscript.value as value;
-import hscript.vm as vm;
-import hscript.args as hargs;
 
-type Args = hargs.Args;
-type Value = value.Value;
-type VM = vm.VM;
 
 extern def print_c_str(*Byte): Void = hscript_System_print_c_str;
 
 def print(vm: *VM, args: Args): Value {
     val arg = args.get_positional(0);
-    value.visit(arg, PrintVisitor());
+    val visitor = PrintVisitor();
+    visit(arg, &mut visitor);
     return value.null();
 }
 
@@ -24,12 +23,12 @@ def println(vm: *VM, args: Args): Value {
 struct PrintVisitor {}
 
 implementation value.Visitor[PrintVisitor, u8] {
-    def visit_null(): u8 {
+    def visit_null(self: *mut PrintVisitor): u8 {
         print_c_str(b"null");
         return 0;
     }
 
-    def visit_bool(value: Bool): u8 {
+    def visit_bool(self: *mut PrintVisitor, value: Bool): u8 {
         if value {
             print_c_str(b"true");
         } else {
@@ -38,8 +37,13 @@ implementation value.Visitor[PrintVisitor, u8] {
         return 0;
     }
 
-    def visit_number(value: f64): u8 {
+    def visit_number(self: *mut PrintVisitor, value: f64): u8 {
         print_c_str(b"number");
+        return 0;
+    }
+
+    def visit_object(self: *mut PrintVisitor, object: *mut Object): u8 {
+        print_c_str(b"object");
         return 0;
     }
 }

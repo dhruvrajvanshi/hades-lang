@@ -1,14 +1,14 @@
-import hscript.lib.UnsafeCast as UnsafeCast;
-import hscript.assert as Assert;
-
-const assert = Assert.assert;
+import hscript.lib.UnsafeCast.{downcast};
+import hscript.assert.{assert};
+import hscript.object.{Object};
 
 type Kind = u8;
 const NULL: Kind = 0;
 const NUMBER: Kind = 1;
 const BOOL: Kind = 2;
+const OBJECT: Kind = 4;
 
-type Payload = union[f64, Bool];
+type Payload = union[f64, Bool, *mut Object];
 
 struct Value {
     val m_kind: Kind;
@@ -44,32 +44,38 @@ extension f64Extensions for f64 {
 }
 
 trait Visitor[Self, T] {
-    def visit_null(): T;
-    def visit_bool(value: Bool): T;
-    def visit_number(value: f64): T;
+    def visit_null(self: *mut Self): T;
+    def visit_bool(self: *mut Self, value: Bool): T;
+    def visit_number(self: *mut Self, value: f64): T;
+    def visit_object(self: *mut Self, value: *mut Object): T;
 }
-def visit[V, T](self: Value, visitor: V): T where Visitor[V, T] {
+
+def visit[V, T](self: Value, visitor: *mut V): T where Visitor[V, T] {
     if self.m_kind == NULL {
-        return trait Visitor[V, T].visit_null();
+        return trait Visitor[V, T].visit_null(visitor);
     }
     if self.m_kind == BOOL {
-        return trait Visitor[V, T].visit_bool(self._as_bool());
+        return trait Visitor[V, T].visit_bool(visitor, self._as_bool());
     }
     if self.m_kind == NUMBER {
-        return trait Visitor[V, T].visit_number(self._as_number());
+        return trait Visitor[V, T].visit_number(visitor, self._as_number());
     }
     assert(false, b"Unknown kind");
-    return trait Visitor[V, T].visit_number(self._as_number());
+    return trait Visitor[V, T].visit_number(visitor, self._as_number());
 }
 
 extension ValueExtensions for Value {
 
     def _as_number(this): f64 {
-        return UnsafeCast.downcast(this.m_payload);
+        return downcast(this.m_payload);
     }
 
     def _as_bool(this): Bool {
-        return UnsafeCast.downcast(this.m_payload);
+        return downcast(this.m_payload);
+    }
+
+    def _as_object_mut(this): *mut Object {
+        return downcast(this.m_payload);
     }
 }
 

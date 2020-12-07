@@ -1,0 +1,27 @@
+import hades.memory.{mut_pointer_add};
+
+struct Object {
+    val m_header: Header;
+}
+
+struct Header {
+    val m_size: Size;
+    val m_next: *mut Object;
+}
+
+extension ObjectExtensions for Object {
+
+    def header_mut(*mut this): *mut Header {
+        return this.m_header;
+    }
+
+    def data_mut(*mut this): *mut Void {
+        return pointer_cast[Void](
+            mut_pointer_add[Void](pointer_cast[Void](this), size_of[Object]));
+    }
+
+    def data_as_mut[T](*mut this): *mut T {
+        return pointer_cast[T](this.data_mut());
+    }
+}
+

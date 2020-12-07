@@ -1,6 +1,9 @@
 import hades.memory as mem;
 import hscript.slice as slice;
 import hscript.value as value;
+import hscript.value.{Value, visit};
+import hscript.object.{Object};
+import libc.{fputs, exit, stderr};
 
 struct VM {
 }
@@ -12,5 +15,46 @@ def newVM(): *mut VM {
 extension VMExtensions for VM {
     def free(*mut this): Void {
 
+    }
+
+    def call(*mut this, value: Value): Value {
+        val visitor = VMCallValueVisitor(this);
+        return visit(value, &mut visitor);
+    }
+
+    def panic(*mut this, message: *Byte): Value {
+        fputs(message, stderr());
+        exit(1);
+        return value.null();
+    }
+}
+
+struct VMCallValueVisitor {
+    val m_vm: *mut VM;
+}
+extension VMCallValueVisitorExtensions for VMCallValueVisitor {
+
+    def object_is_not_callable(*mut this): Void {
+        (*this.m_vm).panic(b"object is not callable");
+    }
+}
+implementation value.Visitor[VMCallValueVisitor, Value] {
+    def visit_null(self: *mut VMCallValueVisitor): Value {
+        self.object_is_not_callable();
+        return value.null();
+    }
+
+    def visit_bool(self: *mut VMCallValueVisitor, value: Bool): Value {
+        self.object_is_not_callable();
+        return value.null();
+    }
+
+    def visit_number(self: *mut VMCallValueVisitor, value: f64): Value {
+        self.object_is_not_callable();
+        return value.null();
+    }
+
+    def visit_object(self: *mut VMCallValueVisitor, value: *Object): Value {
+        return value.null();
     }
 }

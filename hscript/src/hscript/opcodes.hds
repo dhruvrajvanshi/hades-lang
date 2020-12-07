@@ -1,0 +1,4 @@
+
+type Opcode = u8;
+
+const RETURN: Opcode = 0;
