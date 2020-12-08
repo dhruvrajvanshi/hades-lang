@@ -138,9 +138,10 @@ class Checker(
                 to = annotationToType(functionDef.signature.returnType),
                 traitRequirements = null
             )
-            if (extensionDef.typeParams != null) {
+            val typeParams = (extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())
+            if (typeParams.isNotEmpty()) {
                 methodType = Type.TypeFunction(
-                    extensionDef.typeParams.map { Type.Param(it.binder) },
+                    typeParams.map { Type.Param(it.binder) },
                     methodType
                 )
             }
