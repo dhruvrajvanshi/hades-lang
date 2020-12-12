@@ -1,0 +1,7 @@
+import libc as c;
+extern def dump_size(*c.File, *Byte, Size): Void = hscript_lib_dump_size;
+extern def _dump_ptr(*c.File, *Byte, *Void): Void = hscript_lib_dump_ptr;
+
+def dump_ptr[T](file: *c.File, tag: *Byte, ptr: *T): Void {
+    _dump_ptr(file, tag, pointer_cast[Void](ptr));
+}

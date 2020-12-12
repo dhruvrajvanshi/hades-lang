@@ -3,7 +3,8 @@ import hscript.slice as slice;
 import hscript.value as value;
 import hscript.value.{Value, visit};
 import hscript.object.{Object};
-import libc.{fputs, exit, stderr};
+import hscript.object as object;
+import libc.{fputs, exit, stderr, malloc, puts};
 
 struct VM {
 }
@@ -26,6 +27,14 @@ extension VMExtensions for VM {
         fputs(message, stderr());
         exit(1);
         return value.null();
+    }
+
+    def allocate[T](*mut this, data_length: Size): Value {
+        val ptr = pointer_cast[Object](malloc(size_of[T] + size_of[Object] + data_length));
+        ptr.header_mut()
+            .set_next(nullptr)
+            .set_size(data_length);
+        return value.object(ptr);
     }
 }
 

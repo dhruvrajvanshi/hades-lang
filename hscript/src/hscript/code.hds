@@ -1,5 +1,7 @@
-import libc.{malloc};
+import hscript.value.{Value};
+import hscript.lib.vector.{Vector};
+
 struct Code {
-    val m_code: *u8;
-    val m_size: Size;
+    val m_constants: Vector[Value];
+    val m_code: Vector[u8];
 }

@@ -1,6 +1,8 @@
 import hades.memory.{allocate};
 import hades.memory as memory;
+import libc.{stderr};
 import hscript.lib.assert.{assert};
+import hscript.lib.debug.{dump_ptr, dump_size};
 
 struct Vector[T] {
     val m_buffer: *mut T;
@@ -35,7 +37,7 @@ extension VectorExtensions[T] for Vector[T] {
 
     def append(*mut this, value: T): *mut Vector[T] {
         assert(this.capacity() > this.size(), b"No space left in vector");
-        val ptr: *mut T = *this.m_buffer.offset_mut(*this.m_size);
+        val ptr: *mut T = (*this.m_buffer).offset_mut(this.size());
         *this.m_size = this.size() + 1;
         *ptr = value;
         return this;

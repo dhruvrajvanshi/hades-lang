@@ -27,6 +27,10 @@ def bool(value: Bool): Value {
     return Value(BOOL, value.as_payload());
 }
 
+def object(ptr: *mut Object): Value {
+    return Value(OBJECT, downcast(ptr));
+}
+
 def _cast_to_payload[T](value: T): Payload {
     val copy = value;
     return *pointer_cast[Payload](&copy);
@@ -76,6 +80,10 @@ extension ValueExtensions for Value {
 
     def _as_object_mut(this): *mut Object {
         return downcast(this.m_payload);
+    }
+
+    def as_object_mut(this): *mut Object {
+        return this._as_object_mut();
     }
 }
 

@@ -8,7 +8,18 @@ struct Header {
     val m_size: Size;
     val m_next: *mut Object;
 }
+extension HeaderExtensions for Header {
+    def set_size(*mut this, size: Size): *mut Header {
+        *this.m_size = size;
+        return this;
+    }
 
+    def set_next(*mut this, next: *mut Object): *mut Header {
+        *this.m_next = next;
+        return this;
+    }
+
+}
 extension ObjectExtensions for Object {
 
     def header_mut(*mut this): *mut Header {

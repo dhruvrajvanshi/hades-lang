@@ -1,10 +1,14 @@
 import libc as c;
+import libc.{puts};
 import hscript.slice as slice;
 import hades.memory as mem;
 import hscript.vm as hvm;
 import hscript.args as hargs;
 import hscript.stdlib.System as System;
 import hscript.value as value;
+import hscript.code.{Code};
+import hscript.object.{Object};
+import hscript.opcodes as op;
 import hscript.lib.vector as vector;
 
 const USAGE = b"Usage: hscript [file] [arguments...]";
@@ -23,12 +27,22 @@ def main(argc: u32, argv: **Byte): u32 {
     val vm = hvm.newVM(); defer vm.free();
     val n = value.null();
     val function_args = hargs.from_slice(slice.MutSlice(&mut n, 1));
-    System.print(vm, function_args);
+    System.println(vm, function_args);
 
-    val v = vector.with_capacity[*Byte](3); defer (&mut v).free();
-    val vec = &mut v;
-    vec.append(b"test");
+    val _constants = vector.with_capacity[value.Value](3); defer (&mut _constants).free();
+    (&mut _constants)
+        .append(value.null());
+    puts(b"Appending to vector");
+    val _code = vector.with_capacity[u8](4); defer (&mut _code).free();
+    val z: u8 = 0;
+    puts(b"Appending to vector 2");
+    (&mut _code)
+        .append(op.PUSH_CONSTANT)
+        .append(z)
+        .append(op.RETURN);
 
+    val code = vm.allocate[Code](0);
+    val obj = code.as_object_mut().data_as_mut[Code]();
     return 0;
 }
 

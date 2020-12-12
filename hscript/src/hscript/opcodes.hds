@@ -2,4 +2,4 @@
 type Opcode = u8;
 
 const RETURN: Opcode = 0;
-const PUSH_CONST: Opcode = 1;
+const PUSH_CONSTANT: Opcode = 1;
