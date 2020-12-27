@@ -29,7 +29,7 @@ class HadesTestSuite {
         outputDirectory.mkdirs()
         val files = directory.listFiles() ?: arrayOf()
         return buildList {
-            for (file in files.sortedBy { it.name }.filter{ it.name.contains("missing_impl_methods") }) {
+            for (file in files.sortedBy { it.name }) {
                 if (file.extension == "hds") {
 
                     val expectedStdoutFile = Paths.get(
