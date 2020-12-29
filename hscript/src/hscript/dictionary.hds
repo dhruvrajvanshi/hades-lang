@@ -1,0 +1,25 @@
+import hscript.value.{null};
+import hscript.object.{Object};
+import hscript.value.{Value};
+
+struct Dictionary {
+    val m_object: Object;
+    val m_head: *Node;
+}
+
+struct Node {
+    val m_value: Value;
+    val m_next: *Node;
+}
+
+extension DictionaryExtensions for Dictionary {
+
+    def get_raw(*this, c_str: *Byte): Value {
+        return null();
+    }
+
+    def initialize(*mut this): *Dictionary {
+        *this.m_head = nullptr;
+        return this;
+    }
+}

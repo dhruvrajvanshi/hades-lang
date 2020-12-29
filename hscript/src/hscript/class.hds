@@ -1,3 +1,9 @@
+import hscript.value.{Value};
+import hscript.object.{Object};
+import hscript.dictionary.{Dictionary};
 
 struct Class {
+    val m_object: Object;
+    val m_super: *Class;
+    val m_fields: *Dictionary;
 }

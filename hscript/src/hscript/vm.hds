@@ -2,15 +2,37 @@ import hades.memory as mem;
 import hscript.slice as slice;
 import hscript.value as value;
 import hscript.value.{Value, visit};
-import hscript.object.{Object};
+import hscript.object.{Object, IsObject};
 import hscript.object as object;
 import libc.{fputs, exit, stderr, malloc, puts};
+import hscript.class.{Class};
+import hscript.vm.get_class as _;
+import hscript.dictionary.{Dictionary};
+import hscript.vm.get_class.{};
 
 struct VM {
+    val m_class_class: *Class;
+    val m_code_class: *Class;
+    val m_null_class: *Class;
+    val m_number_class: *Class;
+    val m_bool_class: *Class;
 }
 
 def newVM(): *mut VM {
-    return mem.allocate(1);
+    val vm = mem.allocate[VM](1);
+    val class_class = vm.allocate_class(nullptr);
+    val code_class = vm.allocate_class(class_class);
+    val null_class = vm.allocate_class(class_class);
+    val number_class = vm.allocate_class(class_class);
+    val bool_class = vm.allocate_class(class_class);
+
+    *vm.m_code_class = code_class;
+    *vm.m_class_class = class_class;
+    *vm.m_null_class = null_class;
+    *vm.m_number_class = number_class;
+    *vm.m_bool_class = bool_class;
+
+    return vm;
 }
 
 extension VMExtensions for VM {
@@ -18,7 +40,30 @@ extension VMExtensions for VM {
 
     }
 
-    def call(*mut this, value: Value): Value {
+    def null_class(*this): *Class {
+        return *this.m_null_class;
+    }
+
+    def number_class(*this): *Class {
+        return *this.m_number_class;
+    }
+
+    def bool_class(*this): *Class {
+        return *this.m_bool_class;
+    }
+
+    def allocate_class(*mut this, superclass: *Class): *Class {
+        val _class = this.allocate[Class](0).cast_mut[Class]();
+        *_class.m_super = superclass;
+        *_class.m_fields = this.allocate_dictionary();
+        return _class;
+    }
+
+    def allocate_dictionary(*mut this): *Dictionary {
+        return this.allocate[Dictionary](0).cast_mut[Dictionary]().initialize();
+    }
+
+    def invoke(*mut this, value: Value): Value {
         val visitor = VMCallValueVisitor(this);
         return visit(value, &mut visitor);
     }
@@ -29,12 +74,16 @@ extension VMExtensions for VM {
         return value.null();
     }
 
-    def allocate[T](*mut this, data_length: Size): Value {
-        val ptr = pointer_cast[Object](malloc(size_of[T] + size_of[Object] + data_length));
+    def allocate[T](*mut this, data_length: Size): Value where IsObject[T] {
+        val ptr = pointer_cast[Object](malloc(size_of[T] + data_length));
         ptr.header_mut()
             .set_next(nullptr)
-            .set_size(data_length);
+            .set_size(data_length + size_of[T]);
         return value.object(ptr);
+    }
+
+    def null(*this): Value {
+        return value.null();
     }
 }
 

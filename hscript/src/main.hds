@@ -42,7 +42,7 @@ def main(argc: u32, argv: **Byte): u32 {
         .append(op.RETURN);
 
     val code = vm.allocate[Code](0);
-    val obj = code.as_object_mut().data_as_mut[Code]();
+    vm.invoke(code);
     return 0;
 }
 

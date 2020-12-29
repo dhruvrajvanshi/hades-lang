@@ -1,7 +1,9 @@
 import hscript.value.{Value};
 import hscript.lib.vector.{Vector};
+import hscript.object.{Object};
 
 struct Code {
+    val m_object: Object;
     val m_constants: Vector[Value];
     val m_code: Vector[u8];
 }

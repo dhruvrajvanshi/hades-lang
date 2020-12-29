@@ -1,8 +1,17 @@
 import hades.memory.{mut_pointer_add};
+import hscript.class.{Class};
 
 struct Object {
     val m_header: Header;
+    val m_class: *Class;
 }
+
+extension ObjectExtensions for Object {
+    def class(*this): *Class {
+        return *this.m_class;
+    }
+}
+
 
 struct Header {
     val m_size: Size;
@@ -34,5 +43,12 @@ extension ObjectExtensions for Object {
     def data_as_mut[T](*mut this): *mut T {
         return pointer_cast[T](this.data_mut());
     }
+
+    def cls(*mut this): *Class {
+        return *this.m_class;
+    }
 }
 
+trait IsObject[Self] {
+    def object(self: *Self): *Object;
+}

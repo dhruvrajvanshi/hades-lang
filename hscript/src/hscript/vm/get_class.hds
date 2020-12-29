@@ -1,0 +1,32 @@
+import hscript.value.{Value, Visitor};
+import hscript.vm.{VM};
+import hscript.object.{Object};
+import hscript.class.{Class};
+
+struct GetClassVisitor {
+    val m_vm: *VM;
+}
+extension GetClassVisitorExtensions for GetClassVisitor {
+    def vm(*this): *VM {
+        return *this.m_vm;
+    }
+}
+
+implementation Visitor[GetClassVisitor, *Class] {
+    
+    def visit_null(self: *mut GetClassVisitor): *Class {
+        return self.vm().null_class();
+    }
+
+    def visit_bool(self: *mut GetClassVisitor, value: Bool): *Class {
+        return self.vm().bool_class();
+    }
+
+    def visit_number(self: *mut GetClassVisitor, value: f64): *Class {
+        return self.vm().number_class();
+    }
+
+    def visit_object(self: *mut GetClassVisitor, value: *Object): *Class {
+        return value.class();
+    }
+}

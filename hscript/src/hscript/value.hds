@@ -85,5 +85,13 @@ extension ValueExtensions for Value {
     def as_object_mut(this): *mut Object {
         return this._as_object_mut();
     }
+
+    def cast_mut[T](this): *mut T {
+        return downcast(this.m_payload);
+    }
+
+    def cast[T](this): *T {
+        return downcast(this.m_payload);
+    }
 }
 
