@@ -10,6 +10,11 @@ extension ObjectExtensions for Object {
     def class(*this): *Class {
         return *this.m_class;
     }
+
+    def set_class(*mut this, class: *Class): *mut Object {
+        *this.m_class = class;
+        return this;
+    }
 }
 
 

@@ -1,10 +1,17 @@
-import hscript.value.{Value, Visitor};
+import hscript.value.{Value, Visitor, visit};
 import hscript.vm.{VM};
 import hscript.object.{Object};
 import hscript.class.{Class};
 
 struct GetClassVisitor {
     val m_vm: *VM;
+}
+
+extension GetClassVMExtension for VM {
+    def get_class(*this, value: Value): *Class {
+        val visitor = GetClassVisitor(this);
+        return visit[GetClassVisitor, *Class](value, &mut visitor);
+    }
 }
 extension GetClassVisitorExtensions for GetClassVisitor {
     def vm(*this): *VM {

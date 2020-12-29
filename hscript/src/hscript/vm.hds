@@ -16,21 +16,25 @@ struct VM {
     val m_null_class: *Class;
     val m_number_class: *Class;
     val m_bool_class: *Class;
+    val m_dictionary_class: *Class;
 }
 
 def newVM(): *mut VM {
     val vm = mem.allocate[VM](1);
-    val class_class = vm.allocate_class(nullptr);
+    val mut class_class = vm.allocate_class(nullptr);
+    *class_class.m_super = nullptr;
+    *vm.m_class_class = class_class;
     val code_class = vm.allocate_class(class_class);
     val null_class = vm.allocate_class(class_class);
     val number_class = vm.allocate_class(class_class);
     val bool_class = vm.allocate_class(class_class);
+    val dictionary_class = vm.allocate_class(class_class);
 
     *vm.m_code_class = code_class;
-    *vm.m_class_class = class_class;
     *vm.m_null_class = null_class;
     *vm.m_number_class = number_class;
     *vm.m_bool_class = bool_class;
+    *vm.m_dictionary_class = dictionary_class;
 
     return vm;
 }
@@ -52,20 +56,33 @@ extension VMExtensions for VM {
         return *this.m_bool_class;
     }
 
-    def allocate_class(*mut this, superclass: *Class): *Class {
-        val _class = this.allocate[Class](0).cast_mut[Class]();
+    def code_class(*this): *Class {
+        return *this.m_code_class;
+    }
+
+    def dictionary_class(*this): *Class {
+        return *this.m_dictionary_class;
+    }
+
+    def class_class(*this): *Class {
+        return *this.m_class_class;
+    }
+
+    def allocate_class(*mut this, superclass: *Class): *mut Class {
+        val _class = this.allocate[Class](0, this.class_class()).cast_mut[Class]();
         *_class.m_super = superclass;
         *_class.m_fields = this.allocate_dictionary();
         return _class;
     }
 
     def allocate_dictionary(*mut this): *Dictionary {
-        return this.allocate[Dictionary](0).cast_mut[Dictionary]().initialize();
+        return this.allocate[Dictionary](0, this.dictionary_class())
+            .cast_mut[Dictionary]().initialize();
     }
 
     def invoke(*mut this, value: Value): Value {
-        val visitor = VMCallValueVisitor(this);
-        return visit(value, &mut visitor);
+        val class = this.get_class(value);
+        return value.null();
     }
 
     def panic(*mut this, message: *Byte): Value {
@@ -74,8 +91,9 @@ extension VMExtensions for VM {
         return value.null();
     }
 
-    def allocate[T](*mut this, data_length: Size): Value where IsObject[T] {
-        val ptr = pointer_cast[Object](malloc(size_of[T] + data_length));
+    def allocate[T](*mut this, data_length: Size, class: *Class): Value where IsObject[T] {
+        val ptr = pointer_cast[Object](malloc(size_of[T] + data_length))
+            .set_class(class);
         ptr.header_mut()
             .set_next(nullptr)
             .set_size(data_length + size_of[T]);
@@ -83,36 +101,6 @@ extension VMExtensions for VM {
     }
 
     def null(*this): Value {
-        return value.null();
-    }
-}
-
-struct VMCallValueVisitor {
-    val m_vm: *mut VM;
-}
-extension VMCallValueVisitorExtensions for VMCallValueVisitor {
-
-    def object_is_not_callable(*mut this): Void {
-        (*this.m_vm).panic(b"object is not callable");
-    }
-}
-implementation value.Visitor[VMCallValueVisitor, Value] {
-    def visit_null(self: *mut VMCallValueVisitor): Value {
-        self.object_is_not_callable();
-        return value.null();
-    }
-
-    def visit_bool(self: *mut VMCallValueVisitor, value: Bool): Value {
-        self.object_is_not_callable();
-        return value.null();
-    }
-
-    def visit_number(self: *mut VMCallValueVisitor, value: f64): Value {
-        self.object_is_not_callable();
-        return value.null();
-    }
-
-    def visit_object(self: *mut VMCallValueVisitor, value: *Object): Value {
         return value.null();
     }
 }

@@ -41,7 +41,7 @@ def main(argc: u32, argv: **Byte): u32 {
         .append(z)
         .append(op.RETURN);
 
-    val code = vm.allocate[Code](0);
+    val code = vm.allocate[Code](0, vm.code_class());
     vm.invoke(code);
     return 0;
 }
