@@ -539,7 +539,18 @@ class Resolver(private val ctx: Context) {
                     declaration
                 } else null
                 is Declaration.ImplementationDef -> null
-                is Declaration.ImportMembers -> null
+                is Declaration.ImportMembers -> {
+                    if (declaration.names.map { it.name }.contains(name.name)) {
+                        val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
+                        if (importedSourceFile != null) {
+                            findDeclarationOf(importedSourceFile, name)
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
             }
             if (decl != null) {
                 return decl
@@ -628,5 +639,16 @@ class Resolver(private val ctx: Context) {
             }
             yield(declaration)
         }
+    }
+
+    fun findTraitInSourceFile(name: Identifier, sourceFile: SourceFile): Declaration.TraitDef? {
+        for (declaration in sourceFile.declarations) {
+            if (declaration is Declaration.TraitDef) {
+                if (declaration.name.identifier.name == name.name) {
+                    return declaration
+                }
+            }
+        }
+        return null
     }
 }

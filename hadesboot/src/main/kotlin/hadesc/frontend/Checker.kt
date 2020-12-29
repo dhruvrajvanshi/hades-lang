@@ -301,7 +301,9 @@ class Checker(
 
         declaration.names.forEach { name ->
             if (ctx.resolver.findInSourceFile(name.name, sourceFile) == null
-                && ctx.resolver.findTypeInSourceFile(name, sourceFile) == null) {
+                && ctx.resolver.findTypeInSourceFile(name, sourceFile) == null
+                && ctx.resolver.findTraitInSourceFile(name, sourceFile) == null
+            ) {
                 error(name, Diagnostic.Kind.NoSuchMember)
             }
         }
