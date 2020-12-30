@@ -1,25 +1,55 @@
 import hscript.value.{null};
 import hscript.object.{Object};
-import hscript.value.{Value};
+import hscript.value.{Value, null};
+import hscript.vm.{VM};
+import libc.{strcmp};
 
 struct Dictionary {
     val m_object: Object;
-    val m_head: *Node;
+    val m_head: *mut Node;
 }
 
 struct Node {
+    val m_object: Object;
+    val m_key: *Byte;
     val m_value: Value;
-    val m_next: *Node;
+    val m_next: *mut Node;
 }
 
 extension DictionaryExtensions for Dictionary {
+    def initialize(*mut this): *mut Dictionary {
+        *this.m_head = nullptr;
+        return this;
+    }
 
-    def get_raw(*this, c_str: *Byte): Value {
+    def insert(*mut this, vm: *mut VM, key: *Byte, value: Value): *mut Dictionary {
+        val node = vm.allocate[Node](0, nullptr).cast_mut[Node]();
+        *node.m_key = key;
+        *node.m_value = value;
+        if this.head_mut() == nullptr {
+            *this.m_head = node;
+        }
+        val mut current: *mut Node = this.head_mut();
+        while (*current).m_next != nullptr {
+            current = *current.m_next;
+        }
+        *current.m_next = node;
+        return this;
+    }
+
+    def get(*this, key: *Byte): Value {
+        val mut current = *this.m_head;
+        while current != nullptr {
+            val current_key = *current.m_key;
+            if strcmp(current_key, key) == 0 {
+                return *current.m_value;
+            }
+            current = *current.m_next;
+        }
         return null();
     }
 
-    def initialize(*mut this): *Dictionary {
-        *this.m_head = nullptr;
-        return this;
+    def head_mut(*mut this): *mut Node {
+        return *this.m_head;
     }
 }
