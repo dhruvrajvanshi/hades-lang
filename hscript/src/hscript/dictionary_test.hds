@@ -1,0 +1,20 @@
+import libc.{puts};
+import hscript.vm.{VM, newVM};
+import hscript.lib.assert.{assert};
+import hscript.value.{null, bool};
+import hscript.dictionary.{};
+
+def main(): u32 {
+    puts(b"Dictionary test");
+    val vm = newVM(); defer vm.free();
+    val dict = vm.allocate_dictionary();
+
+    assert(dict.get(b"test").equals(null()), b"Missing key should return null");
+
+
+    dict.insert(vm, b"test", bool(true));
+
+
+    assert(dict.get(b"test").equals(bool(true)), b"Should get same value after put");
+    return 0;
+}

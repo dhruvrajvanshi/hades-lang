@@ -75,7 +75,7 @@ extension VMExtensions for VM {
         return _class;
     }
 
-    def allocate_dictionary(*mut this): *Dictionary {
+    def allocate_dictionary(*mut this): *mut Dictionary {
         return this.allocate[Dictionary](0, this.dictionary_class())
             .cast_mut[Dictionary]().initialize();
     }

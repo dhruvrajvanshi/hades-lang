@@ -1,0 +1,11 @@
+import hscript.lib.assert.{assert};
+import hscript.value.{null, bool};
+
+def main(): Void {
+
+    assert(null().equals(null()), b"null should equal null");
+
+    assert(bool(true).equals(bool(true)), b"True should equal true");
+    assert(bool(false).equals(bool(false)), b"True should equal true");
+
+}

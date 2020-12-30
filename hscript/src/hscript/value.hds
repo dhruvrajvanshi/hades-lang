@@ -1,6 +1,8 @@
 import hscript.lib.UnsafeCast.{downcast};
 import hscript.lib.assert.{assert};
 import hscript.object.{Object};
+import libc.{memcmp, File, fputs};
+import hscript.lib.debug.{dump_f64, Debug};
 
 type Kind = u8;
 const NULL: Kind = 0;
@@ -16,7 +18,8 @@ struct Value {
 }
 
 def null(): Value {
-    return Value(NULL, false.as_payload());
+    val v: *Void = nullptr;
+    return Value(NULL, v.as_payload());
 }
 
 def number(value: f64): Value {
@@ -34,6 +37,11 @@ def object(ptr: *mut Object): Value {
 def _cast_to_payload[T](value: T): Payload {
     val copy = value;
     return *pointer_cast[Payload](&copy);
+}
+extension PtrExtensions[T] for T {
+    def as_payload(*this): Payload {
+        return _cast_to_payload(this);
+    }
 }
 
 extension BoolExtensions for Bool {
@@ -93,5 +101,50 @@ extension ValueExtensions for Value {
     def cast[T](this): *T {
         return downcast(this.m_payload);
     }
+
+    def equals(this, other: Value): Bool {
+        val copy = other;
+        val this_copy = this;
+        return memcmp(
+            pointer_cast[Void](&this_copy),
+            pointer_cast[Void](&copy),
+            size_of[Value]
+        ) == 0;
+    }
 }
+
+implementation Debug[Value] {
+    def dump(value: Value, file: *File): Void {
+        val visitor = DebugValueVisitor(file);
+        visit(value, &mut visitor);
+    }
+}
+
+struct DebugValueVisitor {
+    val file: *File;
+}
+
+implementation Visitor[DebugValueVisitor, u8] {
+    def visit_null(self: *mut DebugValueVisitor): u8 {
+        fputs(b"null", *self.file);
+        return 0;
+    }
+    def visit_bool(self: *mut DebugValueVisitor, value: Bool): u8 {
+        if value {
+            fputs(b"true", *self.file);
+        } else {
+            fputs(b"false", *self.file);
+        }
+        return 0;
+    }
+    def visit_number(self: *mut DebugValueVisitor, value: f64): u8 {
+        dump_f64(*self.file, value);
+        return 0;
+    }
+    def visit_object(self: *mut DebugValueVisitor, value: *mut Object): u8 {
+        fputs(b"Object<>", *self.file);
+        return 0;
+    }
+}
+
 

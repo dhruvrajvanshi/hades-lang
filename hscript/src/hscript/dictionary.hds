@@ -2,7 +2,7 @@ import hscript.value.{null};
 import hscript.object.{Object};
 import hscript.value.{Value, null};
 import hscript.vm.{VM};
-import libc.{strcmp};
+import libc.{strcmp, puts};
 
 struct Dictionary {
     val m_object: Object;
@@ -26,14 +26,16 @@ extension DictionaryExtensions for Dictionary {
         val node = vm.allocate[Node](0, nullptr).cast_mut[Node]();
         *node.m_key = key;
         *node.m_value = value;
-        if this.head_mut() == nullptr {
-            *this.m_head = node;
+        *node.m_next = nullptr;
+
+        val mut current: *mut *mut Node = this.m_head;
+
+        while *current != nullptr {
+            current = (*current).m_next;
         }
-        val mut current: *mut Node = this.head_mut();
-        while (*current).m_next != nullptr {
-            current = *current.m_next;
-        }
-        *current.m_next = node;
+
+        *current = node;
+
         return this;
     }
 

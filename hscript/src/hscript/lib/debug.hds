@@ -1,7 +1,31 @@
 import libc as c;
-extern def dump_size(*c.File, *Byte, Size): Void = hscript_lib_dump_size;
-extern def _dump_ptr(*c.File, *Byte, *Void): Void = hscript_lib_dump_ptr;
+extern def dump_size(*c.File, Size): Void = hscript_lib_dump_size;
+extern def dump_f64(*c.File, f64): Void = hscript_lib_dump_f64;
+extern def _dump_ptr(*c.File, *Void): Void = hscript_lib_dump_ptr;
 
-def dump_ptr[T](file: *c.File, tag: *Byte, ptr: *T): Void {
-    _dump_ptr(file, tag, pointer_cast[Void](ptr));
+def dump_ptr[T](file: *c.File, ptr: *T): Void {
+    _dump_ptr(file, pointer_cast[Void](ptr));
+}
+
+trait Debug[Self] {
+    def dump(self: Self, file: *c.File): Void;
+}
+
+implementation Debug[Size] {
+    def dump(self: Size, file: *c.File): Void {
+        dump_size(file, self);
+    }
+}
+
+implementation[T] Debug[*T] {
+    def dump(self: *T, file: *c.File): Void {
+        dump_ptr(file, self);
+    }
+}
+
+
+def debug[T](value: T): Void where Debug[T] {
+    c.fputs(b"DEBUG: ", c.stderr());
+    trait Debug[T].dump(value, c.stderr());
+    c.fputs(b"\n", c.stderr());
 }
