@@ -2,9 +2,9 @@ import hscript.lib.UnsafeCast.{downcast};
 import hscript.lib.assert.{assert};
 import hscript.object.{Object};
 import libc.{memcmp, File, fputs};
-import hscript.lib.debug.{dump_f64, Debug};
+import hscript.lib.debug.{dump_f64, Debug, debug};
 
-type Kind = u8;
+type Kind = u64;
 const NULL: Kind = 0;
 const NUMBER: Kind = 1;
 const BOOL: Kind = 2;
@@ -14,7 +14,7 @@ type Payload = union[f64, Bool, *mut Object];
 
 struct Value {
     val m_kind: Kind;
-    val m_payload: Payload;
+    val mut m_payload: Payload;
 }
 
 def null(): Value {
@@ -25,9 +25,10 @@ def null(): Value {
 def number(value: f64): Value {
     return Value(NUMBER, value.as_payload());
 }
+extern def bool_to_payload(Bool): Payload = hscript_value_bool_to_payload;
 
 def bool(value: Bool): Value {
-    return Value(BOOL, value.as_payload());
+    return Value(BOOL, bool_to_payload(value));
 }
 
 def object(ptr: *mut Object): Value {
@@ -103,8 +104,8 @@ extension ValueExtensions for Value {
     }
 
     def equals(this, other: Value): Bool {
-        val copy = other;
-        val this_copy = this;
+        val copy: Value = other;
+        val this_copy: Value = this;
         return memcmp(
             pointer_cast[Void](&this_copy),
             pointer_cast[Void](&copy),

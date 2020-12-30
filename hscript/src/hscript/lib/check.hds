@@ -1,0 +1,15 @@
+import libc.{fputs, stdout, exit, fflush};
+def check(message: *Byte, condition: Bool): Void {
+    fputs(b"Checking ", stdout());
+    if condition {
+        fputs(b"PASS: ", stdout());
+    } else {
+        fputs(b"FAIL: ", stdout());
+    }
+    fputs(message, stdout());
+    fputs(b"\n", stdout());
+    fflush(stdout());
+    if not condition {
+        exit(1);
+    }
+}

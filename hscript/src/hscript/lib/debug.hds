@@ -23,6 +23,22 @@ implementation[T] Debug[*T] {
     }
 }
 
+implementation Debug[Bool] {
+    def dump(self: Bool, file: *c.File): Void {
+        if self {
+            c.fputs(b"true", file);
+        } else {
+            c.fputs(b"false", file);
+        }
+    }
+}
+
+implementation Debug[*Byte] {
+    def dump(self: *Byte, file: *c.File): Void {
+        c.fputs(self, file);
+    }
+}
+
 
 def debug[T](value: T): Void where Debug[T] {
     c.fputs(b"DEBUG: ", c.stderr());
