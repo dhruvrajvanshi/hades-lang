@@ -26,6 +26,7 @@ sealed class IRValue : HasLocation {
         is IRPointerCast -> "pointer_cast[${toPointerOfType.prettyPrint()}](${arg.prettyPrint()})"
         is IRAggregate -> "${type.prettyPrint()} { ${values.joinToString(", ") {it.prettyPrint()}} }"
         is IRGetElementPointer -> "gep(${ptr.prettyPrint()}, $offset)"
+        is IRUnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
     }
 }
 
@@ -97,5 +98,11 @@ class IRGetElementPointer(
     override val location: SourceLocation,
     val ptr: IRValue,
     val offset: Int
+) : IRValue()
+
+class IRUnsafeCast(
+    override val type: Type,
+    override val location: SourceLocation,
+    val value: IRValue
 ) : IRValue()
 

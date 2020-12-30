@@ -180,6 +180,15 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
         is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
         is HIRExpression.TraitMethodCall -> transformTraitMethodCall(expression)
+        is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
+    }
+
+    fun transformUnsafeCast(expression: HIRExpression.UnsafeCast): HIRExpression {
+        return HIRExpression.UnsafeCast(
+            location = expression.location,
+            lowerType(expression.type),
+            transformExpression(expression.value)
+        )
     }
 
     fun transformTraitMethodCall(expression: HIRExpression.TraitMethodCall): HIRExpression {
