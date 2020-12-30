@@ -30,6 +30,7 @@ class HadesTestSuite {
         val files = directory.listFiles() ?: arrayOf()
         return buildList {
             for (file in files.sortedBy { it.name }) {
+                if (!file.name.contains("cast")) continue
                 if (file.extension == "hds") {
 
                     val expectedStdoutFile = Paths.get(

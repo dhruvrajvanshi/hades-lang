@@ -758,6 +758,20 @@ class Parser(
                 )
 
             }
+            tt.UNSAFE_CAST -> {
+                val start = advance()
+                expect(tt.LSQB)
+                val toType = parseTypeAnnotation()
+                expect(tt.RSQB)
+                expect(tt.LPAREN)
+                val arg = parseExpression()
+                val stop = expect(tt.RPAREN)
+                Expression.UnsafeCast(
+                    makeLocation(start, stop),
+                    toType,
+                    arg
+                )
+            }
             tt.IF -> {
                 val start = advance()
                 expect(tt.LPAREN)

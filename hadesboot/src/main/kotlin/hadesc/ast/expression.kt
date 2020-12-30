@@ -142,6 +142,12 @@ sealed class Expression : HasLocation {
             val methodName: Identifier,
             val args: List<Arg>
     ) : Expression()
+
+    data class UnsafeCast(
+        override val location: SourceLocation,
+        val toType: TypeAnnotation,
+        val value: Expression
+    ) : Expression()
 }
 
 sealed class ClosureBody : HasLocation {

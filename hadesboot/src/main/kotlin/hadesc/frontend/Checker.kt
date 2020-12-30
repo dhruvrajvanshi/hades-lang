@@ -848,7 +848,13 @@ class Checker(
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.TraitMethodCall -> inferTraitMethodCall(expression)
+            is Expression.UnsafeCast -> inferUnsafeCast(expression)
         })
+    }
+
+    private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
+        inferExpression(expression.value)
+        return annotationToType(expression.toType)
     }
 
     private fun inferTraitMethodCall(expression: Expression.TraitMethodCall): Type {
