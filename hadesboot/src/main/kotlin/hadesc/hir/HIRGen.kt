@@ -382,6 +382,15 @@ class HIRGen(
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> TODO()
         is Expression.TraitMethodCall -> lowerTraitMethodCall(expression)
+        is Expression.UnsafeCast -> lowerUnsafeCast(expression)
+    }
+
+    private fun lowerUnsafeCast(expression: Expression.UnsafeCast): HIRExpression {
+        return HIRExpression.UnsafeCast(
+            location = expression.location,
+            type = lowerTypeAnnotation(expression.toType),
+            value = lowerExpression(expression.value)
+        )
     }
 
     private fun lowerTraitMethodCall(expression: Expression.TraitMethodCall): HIRExpression {

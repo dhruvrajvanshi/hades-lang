@@ -24,6 +24,7 @@ data class Token(
         ELSE,
         SIZE_OF,
         POINTER_CAST,
+        UNSAFE_CAST,
         MUT,
         TRAIT,
         IMPLEMENTATION,
