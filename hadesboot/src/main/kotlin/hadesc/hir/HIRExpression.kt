@@ -126,6 +126,12 @@ sealed class HIRExpression: HasLocation {
             val args: List<HIRExpression>
     ) : HIRExpression()
 
+    data class UnsafeCast(
+        override val location: SourceLocation,
+        override val type: Type,
+        val value: HIRExpression,
+    ) : HIRExpression()
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -149,5 +155,6 @@ sealed class HIRExpression: HasLocation {
         is GetStructFieldPointer -> "(${lhs.prettyPrint()}.${memberName.text})"
         is TraitMethodCall -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 "${methodName.text}(${args.joinToString(", ") { it.prettyPrint() } })"
+        is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
     }
 }

@@ -269,6 +269,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRPointerCast -> lowerPointerCast(value)
         is IRAggregate -> lowerAggregate(value)
         is IRGetElementPointer -> lowerGetElementPointer(value)
+        is IRUnsafeCast -> lowerUnsafeCast(value)
     }
 
     private fun lowerGetElementPointer(value: IRGetElementPointer): Value {
@@ -295,6 +296,27 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                         PointerType(lowerType(value.toPointerOfType)).ref,
                         ctx.makeUniqueName().text
                 ))
+    }
+
+    private fun lowerUnsafeCast(value: IRUnsafeCast): Value {
+        val fromType = lowerType(value.value.type)
+        val toType = lowerType(value.type)
+        val fromTypeSize = sizeOfType(fromType)
+        val toTypeSize = sizeOfType(toType)
+        return if (toTypeSize < fromTypeSize) {
+            Value(
+                LLVM.LLVMBuildTruncOrBitCast(
+                    builder, lowerExpression(value), toType, ctx.makeUniqueName().text)
+            )
+        } else {
+            Value(
+                LLVM.LLVMBuildZExtOrBitCast(
+                    builder, lowerExpression(value),
+                    toType,
+                    ctx.makeUniqueName().text
+                )
+            )
+        }
     }
 
     private fun lowerSizeOf(value: IRSizeOf): Value {
