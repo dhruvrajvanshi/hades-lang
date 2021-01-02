@@ -1,10 +1,11 @@
-import hscript.lib.UnsafeCast.{downcast};
+import hscript.lib.UnsafeCast.{downcast, upcast};
 import hscript.lib.assert.{assert};
 import hscript.object.{Object};
 import libc.{memcmp, File, fputs};
+import libc as c;
 import hscript.lib.debug.{dump_f64, Debug, debug};
 
-type Kind = u64;
+type Kind = u8;
 const NULL: Kind = 0;
 const NUMBER: Kind = 1;
 const BOOL: Kind = 2;
@@ -25,10 +26,9 @@ def null(): Value {
 def number(value: f64): Value {
     return Value(NUMBER, value.as_payload());
 }
-extern def bool_to_payload(Bool): Payload = hscript_value_bool_to_payload;
 
 def bool(value: Bool): Value {
-    return Value(BOOL, bool_to_payload(value));
+    return Value(BOOL, value.as_payload());
 }
 
 def object(ptr: *mut Object): Value {
@@ -36,8 +36,7 @@ def object(ptr: *mut Object): Value {
 }
 
 def _cast_to_payload[T](value: T): Payload {
-    val copy = value;
-    return *pointer_cast[Payload](&copy);
+    return unsafe_cast[Payload](value);
 }
 extension PtrExtensions[T] for T {
     def as_payload(*this): Payload {
@@ -104,13 +103,12 @@ extension ValueExtensions for Value {
     }
 
     def equals(this, other: Value): Bool {
-        val copy: Value = other;
-        val this_copy: Value = this;
-        return memcmp(
-            pointer_cast[Void](&this_copy),
-            pointer_cast[Void](&copy),
-            size_of[Value]
-        ) == 0;
+        val this_payload = this.m_payload;
+        val other_payload = other.m_payload;
+        return this.m_kind == other.m_kind and (memcmp(
+                pointer_cast[Void](&this_payload),
+                pointer_cast[Void](&other_payload),
+                size_of[Payload]) == 0);
     }
 }
 

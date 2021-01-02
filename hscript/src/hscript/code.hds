@@ -7,3 +7,7 @@ struct Code {
     val m_constants: Vector[Value];
     val m_code: Vector[u8];
 }
+
+def invoke(vm: *VM, args: Args): Value {
+    return vm.invoke_code(args.get_positional(0), args.drop(1));
+}

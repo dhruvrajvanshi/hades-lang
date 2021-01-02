@@ -5,7 +5,7 @@ void hscript_lib_dump_size(FILE* file, size_t size) {
     fprintf(file, "%lu", size);
 }
 void hscript_lib_dump_ptr(FILE* file, void* ptr) {
-    fprintf(file, "%x", ptr);
+    fprintf(file, "%p", ptr);
 }
 
 void hscript_lib_dump_f64(FILE* file, double value) {

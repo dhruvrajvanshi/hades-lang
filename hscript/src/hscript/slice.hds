@@ -25,6 +25,10 @@ extension MutSliceExtensions[T] for MutSlice[T] {
         return this.m_size;
     }
 
+    def drop(this, count: Size): MutSlice[T] {
+        return MutSlice(this.m_ptr.offset_mut(count), this.m_size - count);
+    }
+
     def free(this): Void {
         memory.free(this.m_ptr);
     }
