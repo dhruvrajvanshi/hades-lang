@@ -1,0 +1,16 @@
+
+
+struct Meta {
+    val m_location: SourceLocation;
+}
+
+struct SourceLocation {
+    val m_path: *Byte;
+    val m_start: Position;
+    val m_stop: Position;
+}
+
+struct Position {
+    val m_line;
+    val m_column;
+}

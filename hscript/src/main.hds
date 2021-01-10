@@ -25,24 +25,19 @@ def main(argc: u32, argv: **Byte): u32 {
     }
 
     val vm = hvm.newVM(); defer vm.free();
-    val n = value.null();
-    val function_args = hargs.from_slice(slice.MutSlice(&mut n, 1));
-    System.println(vm, function_args);
 
-    val _constants = vector.with_capacity[value.Value](3); defer (&mut _constants).free();
-    (&mut _constants)
-        .append(value.null());
-    puts(b"Appending to vector");
-    val _code = vector.with_capacity[u8](4); defer (&mut _code).free();
-    val z: u8 = 0;
-    puts(b"Appending to vector 2");
-    (&mut _code)
-        .append(op.PUSH_CONSTANT)
-        .append(z)
-        .append(op.RETURN);
+    vm.eval(b"
+        def fib(x) {
+            if (x == 0) {
+                return 0;
+            }
+            return fib(x - 1) + x;
+        }
 
-    val code = vm.allocate[Code](0, vm.code_class());
-    vm.invoke(code);
+        def main() {
+            System.print(fib(5));
+        }
+    ");
     return 0;
 }
 

@@ -1,7 +1,7 @@
 import hades.memory as mem;
 import hscript.slice as slice;
 import hscript.value as value;
-import hscript.value.{Value, visit};
+import hscript.value.{Value, visit, null};
 import hscript.object.{Object, IsObject};
 import hscript.object as object;
 import libc.{fputs, exit, stderr, malloc, puts};
@@ -9,6 +9,7 @@ import hscript.class.{Class};
 import hscript.vm.get_class as _;
 import hscript.dictionary.{Dictionary};
 import hscript.vm.get_class.{};
+import hscript.code.{Code};
 
 struct VM {
     val m_class_class: *Class;
@@ -80,9 +81,16 @@ extension VMExtensions for VM {
             .cast_mut[Dictionary]().initialize();
     }
 
+    def eval(*mut this, text: *Byte): Void {
+    }
+
     def invoke(*mut this, value: Value): Value {
         val class = this.get_class(value);
-        return value.null();
+        return null();
+    }
+
+    def invoke_code(*mut this, code: *Code): Value {
+        return null();
     }
 
     def panic(*mut this, message: *Byte): Value {

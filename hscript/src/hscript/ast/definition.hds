@@ -1,0 +1,24 @@
+import hscript.definition.{};
+import hscript.lib.vector.{Vector};
+
+type Kind = u8;
+
+const ERROR: Kind = 0;
+const FUNCTION: Kind = 1;
+
+struct Definition {
+    val m_kind: Kind;
+    val m_meta: Meta;
+    val m_data: Data;
+}
+
+struct Function {
+    val m_name: *Byte;
+    val m_params: Vector[Param];
+    val m_statements: Vector[Statement];
+}
+
+struct Error {
+    val m_dummy;
+}
+

@@ -1,0 +1,5 @@
+import hscript.ast.definition.{Definition};
+
+struct Module {
+    val m_definitions: Vector[Definition];
+}

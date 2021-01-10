@@ -1,6 +1,8 @@
 import hscript.value.{Value};
 import hscript.lib.vector.{Vector};
 import hscript.object.{Object};
+import hscript.vm.{VM};
+import hscript.args.{Args};
 
 struct Code {
     val m_object: Object;
@@ -8,6 +10,3 @@ struct Code {
     val m_code: Vector[u8];
 }
 
-def invoke(vm: *VM, args: Args): Value {
-    return vm.invoke_code(args.get_positional(0), args.drop(1));
-}

@@ -19,7 +19,7 @@ extension ArgsExtensions for Args {
         return *this.m_slice.at_index(index);
     }
 
-    def drop(this, count: Size): Value {
-        return Args(m_slice.drop(count));
+    def drop(this, count: Size): Args {
+        return Args(this.m_slice.drop(count));
     }
 }
