@@ -841,7 +841,7 @@ class Checker(
             is Expression.Deref -> inferDerefExpression(expression)
             is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
-            is Expression.TypeApplication -> TODO()
+            is Expression.TypeApplication -> inferTypeApplication(expression)
             is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
@@ -867,7 +867,20 @@ class Checker(
     }
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
-        TODO()
+        val lhsType = inferExpression(expression.lhs)
+        val argTypes = expression.args.map { annotationToType(it) }
+        return when (lhsType) {
+            is Type.TypeFunction -> {
+                val substitution = lhsType.params.zip(argTypes)
+                    .map { (param, arg) -> param.binder.location to arg }
+                    .toMap()
+                lhsType.body.applySubstitution(substitution)
+            }
+            else -> {
+                error(expression.lhs, Diagnostic.Kind.InvalidTypeApplication)
+                Type.Error
+            }
+        }
     }
 
     private fun inferThisExpression(expression: Expression.This): Type {
@@ -1020,11 +1033,12 @@ class Checker(
         is Binding.ValBinding -> typeOfValRef(binding)
         is Binding.Struct -> typeOfStructValueRef(binding)
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
-        is Binding.EnumCaseConstructor -> TODO()
+        is Binding.EnumCaseConstructor -> typeOfEnumCaseConstructor(binding)
         is Binding.Pattern -> TODO()
         is Binding.WhereParam -> typeOfWhereParamBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
     }
+
 
     private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {
         TODO()
@@ -1070,6 +1084,42 @@ class Checker(
         return Type.Ptr(
                 type,
                 isMutable = false
+        )
+    }
+
+    private fun typeOfEnumCaseConstructor(binding: Binding.EnumCaseConstructor): Type {
+        val name = ctx.resolver.resolveGlobalName(binding.declaration.name)
+        val constrType = Type.Constructor(
+            binding.declaration.name,
+            name
+        )
+        val instanceType = if (binding.declaration.typeParams == null) {
+            constrType
+        } else {
+            Type.Application(
+                constrType,
+                binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        }
+        val fieldTypes = binding.case.params.map { annotationToType(it) }
+        val functionType = if (fieldTypes.isEmpty())
+            instanceType
+        else
+            Type.Function(from = fieldTypes, to = instanceType, traitRequirements = null)
+        val type = if (binding.declaration.typeParams == null) {
+            functionType
+        } else {
+            Type.TypeFunction(
+                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                body = functionType
+            )
+        }
+
+        return if (fieldTypes.isEmpty())
+            type
+        else Type.Ptr(
+            type,
+            isMutable = false
         )
     }
 
@@ -1497,6 +1547,23 @@ class Checker(
             )
         )
     }
+    private fun typeOfEnumBinding(binding: TypeBinding.Enum): Type {
+        val qualifiedName = ctx.resolver.resolveGlobalName(binding.declaration.name)
+        val typeConstructor = Type.Constructor(binder = binding.declaration.name, name = qualifiedName)
+
+        return if (binding.declaration.typeParams == null) {
+            typeConstructor
+        } else {
+            Type.TypeFunction(
+                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                body = Type.Application(
+                    typeConstructor,
+                    args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                )
+            )
+        }
+    }
+
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
         val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
         val typeConstructor = Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
@@ -1554,7 +1621,7 @@ class Checker(
         return when (binding) {
             is TypeBinding.Struct -> typeOfStructBinding(binding)
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
-            is TypeBinding.Enum -> TODO()
+            is TypeBinding.Enum -> typeOfEnumBinding(binding)
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
         }
