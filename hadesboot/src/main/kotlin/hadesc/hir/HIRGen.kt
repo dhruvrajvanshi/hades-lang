@@ -40,6 +40,7 @@ class HIRGen(
         is Declaration.TraitDef -> lowerInterfaceDef(declaration)
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
+        is Declaration.SealedType -> TODO()
     }
 
     private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {
@@ -554,6 +555,7 @@ class HIRGen(
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
         is PropertyBinding.ExtensionDef -> requireUnreachable()
         is PropertyBinding.WhereParamRef -> TODO()
+        is PropertyBinding.SealedTypeCase -> TODO()
     }
 
     private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {
@@ -615,6 +617,7 @@ class HIRGen(
         )
         is Binding.WhereParam -> TODO()
         is Binding.ClosureParam -> TODO()
+        is Binding.SealedType -> TODO()
     }
 
     private fun lowerByteString(expression: Expression.ByteString): HIRExpression {

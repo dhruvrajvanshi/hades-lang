@@ -5,6 +5,7 @@ import hadesc.analysis.TraitClause
 import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -18,6 +19,7 @@ import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
+import kotlin.math.exp
 import kotlin.math.min
 import kotlin.reflect.typeOf
 
@@ -33,6 +35,19 @@ class Checker(
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
         if (modulePropertyBinding != null) {
             return PropertyBinding.Global(modulePropertyBinding)
+        }
+
+        if (expression.lhs is Expression.Var) {
+            val binding = ctx.resolver.resolve(expression.lhs.name)
+            if (binding is Binding.SealedType) {
+                val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
+                if (case == null) {
+                    error(expression.property, Diagnostic.Kind.NoSuchMember)
+                    return null
+                }
+                val type = typeOfSealedTypeCase(binding.declaration, case)
+                return PropertyBinding.SealedTypeCase(binding.declaration, case, type)
+            }
         }
 
         val fieldBinding = resolveStructFieldBinding(expression)
@@ -58,6 +73,39 @@ class Checker(
         error(expression.property, Diagnostic.Kind.NoSuchProperty(
             inferExpression(expression.lhs), expression.property.name))
         return null
+    }
+
+    private fun typeOfSealedTypeCase(
+        declaration: Declaration.SealedType,
+        case: Declaration.SealedType.Case
+    ): Type {
+        val typeConstructor = Type.Constructor(declaration.name, ctx.resolver.qualifiedName(declaration.name))
+        val instanceType = if (declaration.typeParams == null) {
+            typeConstructor
+        } else {
+            Type.Application(
+                typeConstructor,
+                declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        }
+
+        val withArgs = if (case.params == null) {
+            instanceType
+        } else {
+            Type.Function(
+                from = case.params.map { if (it.annotation != null) annotationToType(it.annotation) else Type.Error },
+                to = instanceType,
+                traitRequirements = null
+            )
+        }
+        return if (declaration.typeParams == null) {
+            withArgs
+        } else {
+            Type.TypeFunction(
+                params = declaration.typeParams.map { Type.Param(it.binder) },
+                body = withArgs
+            )
+        }
     }
 
     private fun resolveTraitProperty(expression: Expression.Property): PropertyBinding? {
@@ -288,6 +336,7 @@ class Checker(
             is Declaration.TraitDef -> checkTraitDef(declaration)
             is Declaration.ImplementationDef -> checkImplementationDef(declaration)
             is Declaration.ImportMembers -> checkImportMembers(declaration)
+            is Declaration.SealedType -> TODO()
         })
     }
 
@@ -840,7 +889,7 @@ class Checker(
             is Expression.Deref -> inferDerefExpression(expression)
             is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
-            is Expression.TypeApplication -> TODO()
+            is Expression.TypeApplication -> inferTypeApplication(expression)
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
@@ -866,7 +915,17 @@ class Checker(
     }
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
-        TODO()
+        val lhsType = inferExpression(expression.lhs)
+        return if (lhsType is Type.TypeFunction) {
+            val substitution = lhsType.params.zip(expression.args).map {
+                    (param, annotation) ->
+                param.binder.location to annotationToType(annotation)
+            }.toMap()
+            lhsType.body.applySubstitution(substitution)
+        } else {
+            error(expression, Diagnostic.Kind.InvalidTypeApplication)
+            Type.Error
+        }
     }
 
     private fun inferThisExpression(expression: Expression.This): Type {
@@ -994,6 +1053,7 @@ class Checker(
                 is PropertyBinding.StructFieldPointer -> binding.type
                 is PropertyBinding.ExtensionDef -> binding.type
                 is PropertyBinding.WhereParamRef -> binding.type
+                is PropertyBinding.SealedTypeCase -> binding.type
                 null -> Type.Error
             }
 
@@ -1021,6 +1081,7 @@ class Checker(
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.WhereParam -> typeOfWhereParamBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
+        is Binding.SealedType -> requireUnreachable()
     }
 
     private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {
@@ -1510,6 +1571,22 @@ class Checker(
             )
         }
     }
+    private fun typeOfSealedTypeBinding(binding: TypeBinding.SealedType): Type {
+        val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
+        val typeConstructor = Type.Constructor(binder = binding.declaration.name, name = qualifiedName)
+
+        return if (binding.declaration.typeParams == null) {
+            typeConstructor
+        } else {
+            Type.TypeFunction(
+                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                body = Type.Application(
+                    typeConstructor,
+                    args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                )
+            )
+        }
+    }
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
         val resolved = resolveTypeVariable(annotation)
@@ -1553,6 +1630,7 @@ class Checker(
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
+            is TypeBinding.SealedType -> typeOfSealedTypeBinding(binding)
         }
     }
 

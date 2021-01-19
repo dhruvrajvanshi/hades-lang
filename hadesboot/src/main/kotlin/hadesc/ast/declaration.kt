@@ -120,6 +120,18 @@ sealed class Declaration : HasLocation {
             val whereClause: WhereClause?,
             val body: List<Declaration>,
     ) : Declaration()
+
+    data class SealedType(
+        override val location: SourceLocation,
+        val name: Binder,
+        val typeParams: List<TypeParam>?,
+        val cases: List<Case>
+    ): Declaration() {
+        data class Case(
+            val name: Binder,
+            val params: List<Param>?,
+        )
+    }
 }
 
 

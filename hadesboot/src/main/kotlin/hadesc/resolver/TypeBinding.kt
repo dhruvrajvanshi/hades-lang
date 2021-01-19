@@ -17,4 +17,7 @@ sealed class TypeBinding {
     data class Trait(
             val declaration: Declaration.TraitDef
     ) : TypeBinding()
+
+    data class SealedType(
+        val declaration: Declaration.SealedType) : TypeBinding() {}
 }
