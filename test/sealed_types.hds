@@ -3,15 +3,19 @@ import libc as c;
 
 def main(): Void {
     val opt = Optional.Some(10);
-    get_int_value(opt).print();
-    get_int_value(Optional.Some(20)).print();
-    get_int_value(Optional.None[CInt]).print();
+    print(get_int_value(opt));
+    print(get_int_value(Optional.Some(20)));
+    print(get_int_value(Optional.None[Int]));
 
     val opt_message = Optional.Some[*Byte](b"message");
     val opt_message_none = Optional.None[*Byte];
 
     c.puts(get_string_value(opt_message));
     c.puts(get_string_value(opt_message_none));
+}
+
+def print[T](value: T): Void where p.Printable[T] {
+    trait p.Printable[T].print(value);
 }
 
 def get_string_value(value: Optional[*Byte]): *Byte {
@@ -21,7 +25,7 @@ def get_string_value(value: Optional[*Byte]): *Byte {
     };
 }
 
-def get_int_value(value: Optional[CInt]): CInt {
+def get_int_value(value: Optional[Int]): Int {
     return when value {
         is s: Some -> s.value,
         is None -> 0

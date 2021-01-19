@@ -42,6 +42,8 @@ sealed class Binding {
     data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding() {
         val param get() = closure.params[index]
     }
+
+    data class SealedType(val declaration: Declaration.SealedType) : Binding()
 }
 
 sealed class WhereBindingDeclaration {

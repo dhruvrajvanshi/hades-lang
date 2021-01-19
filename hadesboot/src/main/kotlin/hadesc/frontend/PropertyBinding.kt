@@ -37,4 +37,10 @@ sealed class PropertyBinding {
     ) : PropertyBinding() {
         val member = traitDef.signatures[memberIndex]
     }
+
+    data class SealedTypeCase(
+        val declaration: Declaration.SealedType,
+        val case: Declaration.SealedType.Case,
+        val type: Type
+    ) : PropertyBinding()
 }

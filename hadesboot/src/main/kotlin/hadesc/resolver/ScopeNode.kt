@@ -20,6 +20,7 @@ sealed class ScopeTree {
     data class TraitDef(val declaration: Declaration.TraitDef) : ScopeTree()
     data class ImplementationDef(val declaration: Declaration.ImplementationDef) : ScopeTree()
     data class Closure(val closure: Expression.Closure) : ScopeTree()
+    data class SealedTypeDef(val declaration: Declaration.SealedType) : ScopeTree()
 
     val location
         get(): SourceLocation = when (this) {
@@ -32,5 +33,6 @@ sealed class ScopeTree {
             is TraitDef -> declaration.location
             is ImplementationDef -> declaration.location
             is Closure -> closure.location
+            is SealedTypeDef -> declaration.location
         }
 }
