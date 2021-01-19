@@ -120,6 +120,11 @@ sealed class Type {
     override fun toString(): String {
         return prettyPrint()
     }
+
+    fun typeArgs(): List<Type> = when(this) {
+        is Application -> args
+        else -> emptyList()
+    }
 }
 
 typealias Substitution = Map<SourceLocation, Type>

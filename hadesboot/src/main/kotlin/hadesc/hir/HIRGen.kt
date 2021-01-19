@@ -556,6 +556,7 @@ class HIRGen(
         is PropertyBinding.ExtensionDef -> requireUnreachable()
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.SealedTypeCase -> TODO()
+        is PropertyBinding.WhenCaseFieldRef -> TODO()
     }
 
     private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {
@@ -618,6 +619,7 @@ class HIRGen(
         is Binding.WhereParam -> TODO()
         is Binding.ClosureParam -> TODO()
         is Binding.SealedType -> TODO()
+        is Binding.WhenArm -> requireUnreachable()
     }
 
     private fun lowerByteString(expression: Expression.ByteString): HIRExpression {

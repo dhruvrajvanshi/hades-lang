@@ -20,7 +20,7 @@ def print[T](value: T): Void where p.Printable[T] {
 
 def get_string_value(value: Optional[*Byte]): *Byte {
     return when value {
-        is s: Some -> message,
+        is s: Some -> s.value,
         is None -> b"None"
     };
 }

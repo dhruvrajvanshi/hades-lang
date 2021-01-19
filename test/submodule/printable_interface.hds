@@ -2,7 +2,7 @@ import submodule.test_utils as utils;
 
 implementation Printable[Int] {
     def print(self: Int): Void {
-        utils.print_int(this);
+        utils.print_int(self);
     }
 }
 

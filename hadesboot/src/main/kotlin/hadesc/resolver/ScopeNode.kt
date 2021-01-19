@@ -21,6 +21,8 @@ sealed class ScopeTree {
     data class ImplementationDef(val declaration: Declaration.ImplementationDef) : ScopeTree()
     data class Closure(val closure: Expression.Closure) : ScopeTree()
     data class SealedTypeDef(val declaration: Declaration.SealedType) : ScopeTree()
+    data class WhenArm(val whenArm: Expression.WhenArm) : ScopeTree()
+    data class WhenExpression(val expression: Expression.When) : ScopeTree()
 
     val location
         get(): SourceLocation = when (this) {
@@ -34,5 +36,7 @@ sealed class ScopeTree {
             is ImplementationDef -> declaration.location
             is Closure -> closure.location
             is SealedTypeDef -> declaration.location
+            is WhenArm -> whenArm.value.location
+            is WhenExpression -> expression.location
         }
 }
