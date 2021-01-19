@@ -847,6 +847,7 @@ class Checker(
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.TraitMethodCall -> inferTraitMethodCall(expression)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
+            is Expression.When -> TODO()
         })
     }
 

@@ -16,15 +16,15 @@ def main(): Void {
 
 def get_string_value(value: Optional[*Byte]): *Byte {
     return when value {
-        val s: Some -> message,
-        val n: None -> b"None"
+        is s: Some -> message,
+        is None -> b"None"
     };
 }
 
 def get_int_value(value: Optional[CInt]): CInt {
     return when value {
-        val s: Some -> s.value,
-        val _: None -> 0
+        is s: Some -> s.value,
+        is None -> 0
     };
 }
 

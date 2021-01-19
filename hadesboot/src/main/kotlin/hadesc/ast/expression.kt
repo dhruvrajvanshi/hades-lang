@@ -134,6 +134,26 @@ sealed class Expression : HasLocation {
         val toType: TypeAnnotation,
         val value: Expression
     ) : Expression()
+
+    data class When(
+        override val location: SourceLocation,
+        val value: Expression,
+        val arms: List<WhenArm>
+    ) : Expression() {
+
+    }
+
+    sealed class WhenArm {
+        abstract val value: Expression
+        data class Is(
+            val name: Binder?,
+            val caseName: Identifier,
+            override val value: Expression
+        ) : WhenArm()
+        data class Else(
+            override val value: Expression
+        ) : WhenArm()
+    }
 }
 
 sealed class ClosureBody : HasLocation {
