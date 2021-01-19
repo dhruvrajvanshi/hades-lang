@@ -35,7 +35,6 @@ class HIRGen(
         is Declaration.ConstDefinition -> lowerConstDef(declaration)
         is Declaration.ExternFunctionDef -> lowerExternFunctionDef(declaration)
         is Declaration.Struct -> lowerStructDef(declaration)
-        is Declaration.Enum -> TODO()
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
         is Declaration.TraitDef -> lowerInterfaceDef(declaration)
@@ -376,7 +375,6 @@ class HIRGen(
         is Expression.PointerCast -> lowerPointerCast(expression)
         is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> TODO()
-        is Expression.Match -> TODO()
         is Expression.New -> TODO()
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
@@ -614,8 +612,6 @@ class HIRGen(
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.name)
         )
-        is Binding.EnumCaseConstructor -> TODO()
-        is Binding.Pattern -> TODO()
         is Binding.WhereParam -> TODO()
         is Binding.ClosureParam -> TODO()
     }
