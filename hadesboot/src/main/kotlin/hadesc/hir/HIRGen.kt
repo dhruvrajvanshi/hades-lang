@@ -381,6 +381,7 @@ class HIRGen(
         is Expression.Closure -> TODO()
         is Expression.TraitMethodCall -> lowerTraitMethodCall(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
+        is Expression.When -> TODO()
     }
 
     private fun lowerUnsafeCast(expression: Expression.UnsafeCast): HIRExpression {
