@@ -10,10 +10,6 @@ sealed class TypeBinding {
 
     data class TypeParam(val binder: Binder) : TypeBinding()
 
-    data class Enum(
-            val declaration: Declaration.Enum
-    ) : TypeBinding()
-
     data class TypeAlias(
             val declaration: Declaration.TypeAlias
     ) : TypeBinding()

@@ -67,19 +67,6 @@ class Resolver(private val ctx: Context) {
                 }
             }
         }
-        is ScopeTree.Enum -> {
-            val param = scopeNode.declaration.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }
-            when {
-                param != null -> TypeBinding.TypeParam(param.binder)
-                ident.name == scopeNode.declaration.name.identifier.name -> {
-                    TypeBinding.Enum(scopeNode.declaration)
-                }
-                else -> null
-            }
-        }
-        is ScopeTree.MatchArm -> null
         is ScopeTree.TypeAlias -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
@@ -122,8 +109,6 @@ class Resolver(private val ctx: Context) {
         for (declaration in sourceFile.declarations) {
             val binding = if (declaration is Declaration.Struct && declaration.binder.identifier.name == ident.name) {
                 TypeBinding.Struct(declaration)
-            } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
-                TypeBinding.Enum(declaration)
             } else if (declaration is Declaration.TypeAlias && declaration.name.identifier.name == ident.name) {
                 TypeBinding.TypeAlias(declaration)
             } else if (declaration is Declaration.TraitDef && declaration.name.identifier.name == ident.name) {
@@ -151,8 +136,6 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.SourceFile -> findInSourceFile(ident.name, scope.sourceFile)
         is ScopeTree.Block -> findInBlock(ident, scope)
         is ScopeTree.Struct -> null
-        is ScopeTree.Enum -> null
-        is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
         is ScopeTree.TraitDef -> null
@@ -162,31 +145,6 @@ class Resolver(private val ctx: Context) {
 
     private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
         return null
-    }
-
-    private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
-        return findInPattern(ident, scope.arm.pattern)
-    }
-
-    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when (pattern) {
-        is Pattern.DotName -> {
-            var binding: Binding? = null
-            for (param in pattern.params) {
-                val found = findInPattern(ident, param)
-                if (found != null) {
-                    binding = found
-                }
-            }
-            binding
-        }
-        is Pattern.Name -> {
-            if (ident.name == pattern.binder.identifier.name) {
-                Binding.Pattern(pattern)
-            } else {
-                null
-            }
-        }
-        is Pattern.Else -> null
     }
 
     private fun findInBlock(ident: Identifier, scope: ScopeTree.Block): Binding? {
@@ -247,7 +205,6 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
                 is Declaration.TraitDef -> null
@@ -319,10 +276,6 @@ class Resolver(private val ctx: Context) {
         return sourceFileOf(name).moduleName.append(name.identifier.name)
     }
 
-    fun onParseMatchArm(arm: Expression.Match.Arm) {
-        addScopeNode(arm.location.file, ScopeTree.MatchArm(arm))
-    }
-
     fun onParseClosure(closure: Expression.Closure) {
         addScopeNode(closure.location.file, ScopeTree.Closure(closure))
     }
@@ -340,9 +293,6 @@ class Resolver(private val ctx: Context) {
                     declaration.location.file,
                     ScopeTree.Struct(declaration)
                 )
-            }
-            is Declaration.Enum -> {
-                addScopeNode(declaration.location.file, ScopeTree.Enum(declaration))
             }
             is Declaration.TypeAlias -> {
                 addScopeNode(declaration.location.file, ScopeTree.TypeAlias(declaration))
@@ -408,21 +358,6 @@ class Resolver(private val ctx: Context) {
                             is Declaration.ConstDefinition -> {
                                 null
                             }
-                            is Declaration.Enum -> {
-                                if (declaration.name.identifier.name == expression.lhs.name.name) {
-                                    declaration.cases.indexOfFirst {
-                                        it.name.identifier.name == expression.property.name
-                                    }.let { case ->
-                                        if (case > -1) {
-                                            Binding.EnumCaseConstructor(declaration, case)
-                                        } else {
-                                            null
-                                        }
-                                    }
-                                } else {
-                                    null
-                                }
-                            }
                             is Declaration.TypeAlias -> null
                             is Declaration.ExtensionDef -> null
                             is Declaration.TraitDef -> null
@@ -469,7 +404,6 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ConstDefinition -> decl.name.identifier.name == declName
                 is Declaration.ExternFunctionDef -> decl.binder.identifier.name == declName
                 is Declaration.Struct -> decl.binder.identifier.name == declName
-                is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
                 is Declaration.ExtensionDef -> false
                 is Declaration.TraitDef -> decl.name.identifier.name == declName
@@ -520,11 +454,6 @@ class Resolver(private val ctx: Context) {
                     declaration
                 } else null
                 is Declaration.Struct -> if (declaration.binder.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
                     null

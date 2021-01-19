@@ -39,15 +39,6 @@ sealed class Binding {
             val declaration: Declaration.ConstDefinition
     ) : Binding()
 
-    data class EnumCaseConstructor(
-            val declaration: Declaration.Enum,
-            val caseIndex: Int
-    ) : Binding() {
-        val case get() = declaration.cases[caseIndex]
-    }
-
-    data class Pattern(val pattern: hadesc.ast.Pattern.Name) : Binding()
-
     data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding() {
         val param get() = closure.params[index]
     }

@@ -85,22 +85,6 @@ sealed class Declaration : HasLocation {
         }
     }
 
-    data class Enum(
-        override val location: SourceLocation,
-        val name: Binder,
-        val typeParams: List<TypeParam>?,
-        val cases: List<Case>
-    ) : Declaration() {
-        override val startLoc: SourceLocation
-            get() = name.location
-
-        data class Case(
-            val name: Binder,
-            val params: List<TypeAnnotation>
-        )
-
-    }
-
     data class TypeAlias(
             override val location: SourceLocation,
             val name: Binder,

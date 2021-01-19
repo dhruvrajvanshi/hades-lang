@@ -283,7 +283,6 @@ class Checker(
             is Declaration.ConstDefinition -> checkConstDefinition(declaration)
             is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
             is Declaration.Struct -> checkStructDeclaration(declaration)
-            is Declaration.Enum -> TODO()
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
             is Declaration.TraitDef -> checkTraitDef(declaration)
@@ -842,7 +841,6 @@ class Checker(
             is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> TODO()
-            is Expression.Match -> TODO()
             is Expression.New -> inferNewExpression(expression)
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
@@ -1020,8 +1018,6 @@ class Checker(
         is Binding.ValBinding -> typeOfValRef(binding)
         is Binding.Struct -> typeOfStructValueRef(binding)
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
-        is Binding.EnumCaseConstructor -> TODO()
-        is Binding.Pattern -> TODO()
         is Binding.WhereParam -> typeOfWhereParamBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
     }
@@ -1554,7 +1550,6 @@ class Checker(
         return when (binding) {
             is TypeBinding.Struct -> typeOfStructBinding(binding)
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
-            is TypeBinding.Enum -> TODO()
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
         }
