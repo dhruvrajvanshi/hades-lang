@@ -103,6 +103,8 @@ class Resolver(private val ctx: Context) {
             }?.let { TypeBinding.TypeParam(it.binder) }
         }
         is ScopeTree.Closure -> null
+        is ScopeTree.WhenArm -> null
+        is ScopeTree.WhenExpression -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -154,6 +156,21 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.ImplementationDef -> findInImplementationDef(ident, scope)
         is ScopeTree.Closure -> findInClosure(ident, scope)
         is ScopeTree.SealedTypeDef -> null
+        is ScopeTree.WhenArm -> findInWhenArm(ident, scope)
+        is ScopeTree.WhenExpression -> null
+    }
+
+    private fun findInWhenArm(ident: Identifier, scope: ScopeTree.WhenArm): Binding? {
+        return when (scope.whenArm) {
+            is Expression.WhenArm.Is -> {
+                if (scope.whenArm.name?.identifier?.name == ident.name) {
+                    Binding.WhenArm(scope.whenArm)
+                } else {
+                    null
+                }
+            }
+            is Expression.WhenArm.Else -> null
+        }
     }
 
     private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
@@ -419,7 +436,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.TraitDef -> decl.name.identifier.name == declName
                 is Declaration.ImplementationDef -> false
                 is Declaration.ImportMembers -> false
-                is Declaration.SealedType -> TODO()
+                is Declaration.SealedType -> decl.name.identifier.name == declName
             })
             if (match) {
                 return decl
@@ -510,6 +527,16 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
+
+    fun getEnclosingWhenExpression(node: HasLocation): Expression.When? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeTree.WhenExpression) {
+                return scopeNode.expression
+            }
+        }
+        return null
+    }
+
     fun getEnclosingImpl(node: HasLocation): Declaration.ImplementationDef? {
         for (scopeNode in getScopeStack(node)) {
             if (scopeNode is ScopeTree.ImplementationDef) {
@@ -592,4 +619,13 @@ class Resolver(private val ctx: Context) {
         }
         return null
     }
+
+    fun onParseWhenArm(arm: Expression.WhenArm) {
+        addScopeNode(arm.value.location.file, ScopeTree.WhenArm(arm))
+    }
+
+    fun onParseWhenExpression(expression: Expression.When) {
+        addScopeNode(expression.value.location.file, ScopeTree.WhenExpression(expression))
+    }
+
 }

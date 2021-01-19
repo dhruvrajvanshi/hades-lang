@@ -44,6 +44,8 @@ sealed class Binding {
     }
 
     data class SealedType(val declaration: Declaration.SealedType) : Binding()
+
+    data class WhenArm(val case: Expression.WhenArm): Binding()
 }
 
 sealed class WhereBindingDeclaration {

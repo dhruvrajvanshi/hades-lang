@@ -47,6 +47,8 @@ class Checker(
                 }
                 val type = typeOfSealedTypeCase(binding.declaration, case)
                 return PropertyBinding.SealedTypeCase(binding.declaration, case, type)
+            } else if (binding is Binding.WhenArm) {
+                return whenArmPropertyBinding(binding.case, expression.lhs, expression)
             }
         }
 
@@ -73,6 +75,55 @@ class Checker(
         error(expression.property, Diagnostic.Kind.NoSuchProperty(
             inferExpression(expression.lhs), expression.property.name))
         return null
+    }
+
+    private fun whenArmPropertyBinding(
+        case: Expression.WhenArm,
+        lhs: Expression.Var,
+        expression: Expression.Property
+    ): PropertyBinding? {
+        return when (case) {
+            is Expression.WhenArm.Is -> {
+                val whenExpression = requireNotNull(ctx.resolver.getEnclosingWhenExpression(case.caseName))
+                val discriminantType = inferExpression(whenExpression.value)
+                val typeDecl = typeDeclarationOf(discriminantType)
+                if (typeDecl !is Declaration.SealedType) {
+                    return null
+                }
+
+                val sealedCase = typeDecl.cases.find {
+                    it.name.identifier.name == case.caseName.name
+                } ?: return null
+
+                val paramIndex = sealedCase.params?.indexOfFirst { it.binder.identifier.name == expression.property.name }
+                    ?: return null
+                val param = sealedCase.params[paramIndex]
+                val annotation = param.annotation ?: return null
+                val annotationType = annotationToType(annotation)
+                val type = if (typeDecl.typeParams == null) {
+                    annotationType
+                } else {
+                    val typeArgs = discriminantType.typeArgs()
+                    val substitution = typeDecl.typeParams.zip(typeArgs).map { (param, arg) ->
+                        param.location to arg
+                    }.toMap()
+                    annotationType.applySubstitution(substitution)
+                }
+                PropertyBinding.WhenCaseFieldRef(
+                    lhs.name,
+                    paramIndex,
+                    param.binder.identifier,
+                    type,
+                )
+            }
+            is Expression.WhenArm.Else -> requireUnreachable()
+        }
+    }
+
+    private fun typeDeclarationOf(type: Type): Declaration? = when (type) {
+        is Type.Constructor -> ctx.resolver.resolveDeclaration(type.name)
+        is Type.Application -> typeDeclarationOf(type.callee)
+        else -> null
     }
 
     private fun typeOfSealedTypeCase(
@@ -336,8 +387,18 @@ class Checker(
             is Declaration.TraitDef -> checkTraitDef(declaration)
             is Declaration.ImplementationDef -> checkImplementationDef(declaration)
             is Declaration.ImportMembers -> checkImportMembers(declaration)
-            is Declaration.SealedType -> TODO()
+            is Declaration.SealedType -> checkSealedTypeDeclaration(declaration)
         })
+    }
+
+    private fun checkSealedTypeDeclaration(declaration: Declaration.SealedType) {
+        for (case in declaration.cases) {
+            case.params?.forEach { case ->
+                if (case.annotation == null) {
+                    error(case.binder, Diagnostic.Kind.MissingTypeAnnotation)
+                }
+            }
+        }
     }
 
     private fun checkImportMembers(declaration: Declaration.ImportMembers) {
@@ -896,8 +957,17 @@ class Checker(
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.TraitMethodCall -> inferTraitMethodCall(expression)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
-            is Expression.When -> TODO()
+            is Expression.When -> inferWhenExpression(expression)
         })
+    }
+
+    private fun inferWhenExpression(expression: Expression.When): Type {
+        val firstArmExpr = expression.arms.firstOrNull()
+        if (firstArmExpr == null) {
+            error(expression.value, Diagnostic.Kind.NonExhaustivePatterns)
+            return Type.Error
+        }
+        return inferExpression(firstArmExpr.value)
     }
 
     private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
@@ -1054,6 +1124,7 @@ class Checker(
                 is PropertyBinding.ExtensionDef -> binding.type
                 is PropertyBinding.WhereParamRef -> binding.type
                 is PropertyBinding.SealedTypeCase -> binding.type
+                is PropertyBinding.WhenCaseFieldRef -> binding.type
                 null -> Type.Error
             }
 
@@ -1082,6 +1153,7 @@ class Checker(
         is Binding.WhereParam -> typeOfWhereParamBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
         is Binding.SealedType -> requireUnreachable()
+        is Binding.WhenArm -> requireUnreachable()
     }
 
     private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {

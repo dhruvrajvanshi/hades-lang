@@ -847,15 +847,17 @@ class Parser(
             }
         }
         val stop = expect(tt.RBRACE)
-        return Expression.When(
+        val result = Expression.When(
             makeLocation(start, stop),
             value,
             arms
         )
+        ctx.resolver.onParseWhenExpression(result)
+        return result
     }
 
     private fun parseWhenArm(): Expression.WhenArm {
-        return if (currentToken.kind == tt.IS) {
+        val result = if (currentToken.kind == tt.IS) {
             advance()
             val name = if (tokenBuffer.peek(1).kind == tt.COLON) {
                 val binder = parseBinder()
@@ -878,6 +880,8 @@ class Parser(
             val value = parseExpression()
             Expression.WhenArm.Else(value)
         }
+        ctx.resolver.onParseWhenArm(result)
+        return result
     }
 
     private fun parseTraitMethodCall(): Expression {
