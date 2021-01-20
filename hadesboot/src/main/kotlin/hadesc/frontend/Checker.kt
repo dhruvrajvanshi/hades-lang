@@ -21,7 +21,6 @@ import hadesc.types.Type
 import java.util.*
 import kotlin.math.exp
 import kotlin.math.min
-import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalStdlibApi::class)
 class Checker(
@@ -46,7 +45,7 @@ class Checker(
                     return null
                 }
                 val type = typeOfSealedTypeCase(binding.declaration, case)
-                return PropertyBinding.SealedTypeCase(binding.declaration, case, type)
+                return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
             } else if (binding is Binding.WhenArm) {
                 return whenArmPropertyBinding(binding.case, expression.lhs, expression)
             }
@@ -100,16 +99,19 @@ class Checker(
                 val param = sealedCase.params[paramIndex]
                 val annotation = param.annotation ?: return null
                 val annotationType = annotationToType(annotation)
+                val typeArgs = discriminantType.typeArgs()
                 val type = if (typeDecl.typeParams == null) {
                     annotationType
                 } else {
-                    val typeArgs = discriminantType.typeArgs()
                     val substitution = typeDecl.typeParams.zip(typeArgs).map { (param, arg) ->
                         param.location to arg
                     }.toMap()
                     annotationType.applySubstitution(substitution)
                 }
                 PropertyBinding.WhenCaseFieldRef(
+                    typeDecl,
+                    sealedCase.name.identifier.name,
+                    typeArgs,
                     lhs.name,
                     paramIndex,
                     param.binder.identifier,
@@ -369,8 +371,9 @@ class Checker(
         }
         val def = requireNotNull(ctx.resolver.getEnclosingFunction(expression))
         checkDeclaration(def)
-        return requireNotNull(typeOfExpressionCache[expression])
-
+        return requireNotNull(typeOfExpressionCache[expression]) {
+            "${expression.location}"
+        }
     }
 
     private val checkedDeclarationSet = MutableNodeMap<Declaration, Unit>()
@@ -962,12 +965,17 @@ class Checker(
     }
 
     private fun inferWhenExpression(expression: Expression.When): Type {
+        inferExpression(expression.value)
         val firstArmExpr = expression.arms.firstOrNull()
         if (firstArmExpr == null) {
             error(expression.value, Diagnostic.Kind.NonExhaustivePatterns)
             return Type.Error
         }
-        return inferExpression(firstArmExpr.value)
+        val type = inferExpression(firstArmExpr.value)
+        for (whenArm in expression.arms.drop(1)) {
+            checkExpression(whenArm.value, type)
+        }
+        return type
     }
 
     private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
@@ -1123,7 +1131,7 @@ class Checker(
                 is PropertyBinding.StructFieldPointer -> binding.type
                 is PropertyBinding.ExtensionDef -> binding.type
                 is PropertyBinding.WhereParamRef -> binding.type
-                is PropertyBinding.SealedTypeCase -> binding.type
+                is PropertyBinding.SealedTypeCaseConstructor -> binding.type
                 is PropertyBinding.WhenCaseFieldRef -> binding.type
                 null -> Type.Error
             }
@@ -1754,6 +1762,36 @@ class Checker(
         reportErrors = false
     }
 
+    fun getDiscriminants(type: Type): List<Discriminant> {
+        val args = type.typeArgs()
+        val constructor = when (type) {
+            is Type.Constructor -> type
+            is Type.Application ->
+                if (type.callee is Type.Constructor) {
+                    type.callee
+                } else {
+                    requireUnreachable()
+                }
+            else -> requireUnreachable()
+        }
+        val declaration = ctx.resolver.resolveDeclaration(constructor.name)
+        require(declaration is Declaration.SealedType)
+
+        val substitution = (declaration.typeParams ?: emptyList()).zip(args)
+            .map { (param, type) -> param.location to type }
+            .toMap()
+
+        return declaration.cases.map { case ->
+            Discriminant(
+                case.name.identifier.name,
+                case.params?.map {
+                    it.binder.identifier.name to
+                            annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
+                } ?: emptyList()
+            )
+        }
+    }
+
 }
 
 private class MutableNodeMap<T : HasLocation, V> {
@@ -1814,3 +1852,7 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
         (op.NOT_EQUALS to Type.Byte) to (Type.Byte to Type.Bool),
 )
 
+data class Discriminant(
+    val name: Name,
+    val params: List<Pair<Name, Type>>
+)

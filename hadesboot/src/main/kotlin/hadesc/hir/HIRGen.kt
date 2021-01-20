@@ -3,9 +3,9 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.frontend.PropertyBinding
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.frontend.PropertyBinding
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -13,7 +13,9 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
+import kotlin.math.exp
 
+@OptIn(ExperimentalStdlibApi::class)
 class HIRGen(
         private val ctx: Context
 ) {
@@ -40,7 +42,7 @@ class HIRGen(
         is Declaration.TraitDef -> lowerInterfaceDef(declaration)
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
-        is Declaration.SealedType -> TODO()
+        is Declaration.SealedType -> emptyList()
     }
 
     private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {
@@ -375,14 +377,62 @@ class HIRGen(
         is Expression.Deref -> lowerDerefExpression(expression)
         is Expression.PointerCast -> lowerPointerCast(expression)
         is Expression.If -> lowerIfExpression(expression)
-        is Expression.TypeApplication -> TODO()
+        is Expression.TypeApplication -> lowerTypeApplication(expression)
         is Expression.New -> TODO()
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> TODO()
         is Expression.TraitMethodCall -> lowerTraitMethodCall(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
-        is Expression.When -> TODO()
+        is Expression.When -> lowerWhenExpression(expression)
+    }
+
+    private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
+        val value = lowerExpression(expression.value)
+        val discriminantType = value.type
+        val discriminants = ctx.checker.getDiscriminants(discriminantType)
+        val cases = buildList {
+            for (discriminant in discriminants) {
+                val arm = expression.arms.find {
+                    it is Expression.WhenArm.Is && it.caseName.name == discriminant.name
+                }
+                if (arm == null) {
+                    val elseArm = requireNotNull(expression.arms.find {
+                        it is Expression.WhenArm.Else
+                    })
+                    require(elseArm is Expression.WhenArm.Else)
+                    add(HIRExpression.When.Case(
+                        discriminant.name,
+                        ctx.makeUniqueName(),
+                        lowerExpression(elseArm.value)
+                    ))
+                } else {
+                    require(arm is Expression.WhenArm.Is)
+                    add(HIRExpression.When.Case(
+                        discriminant.name,
+                        arm.name?.identifier?.name ?: ctx.makeUniqueName(),
+                        lowerExpression(arm.value)
+
+                    ))
+                }
+            }
+        }
+        return HIRExpression.When(
+            expression.location,
+            typeOfExpression(expression),
+            discriminant = lowerExpression(expression.value),
+            cases = cases
+        )
+
+    }
+
+    private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
+        return HIRExpression.TypeApplication(
+            expression.location,
+            typeOfExpression(expression),
+            expression = lowerExpression(expression.lhs),
+            args = expression.args.map { lowerTypeAnnotation(it) }
+        )
     }
 
     private fun lowerUnsafeCast(expression: Expression.UnsafeCast): HIRExpression {
@@ -555,8 +605,47 @@ class HIRGen(
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
         is PropertyBinding.ExtensionDef -> requireUnreachable()
         is PropertyBinding.WhereParamRef -> TODO()
-        is PropertyBinding.SealedTypeCase -> TODO()
-        is PropertyBinding.WhenCaseFieldRef -> TODO()
+        is PropertyBinding.SealedTypeCaseConstructor -> lowerSealedTypeCaseConstructor(expression, binding)
+        is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
+    }
+
+    private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIRExpression {
+        return HIRExpression.GetStructField(
+            expression.location,
+            typeOfExpression(expression),
+            HIRExpression.ValRef(
+                expression.lhs.location,
+                caseType(binding),
+                binding.name.name
+            ),
+            binding.propertyName.name,
+            binding.propertyIndex,
+        )
+    }
+
+    private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
+        val constructorType = Type.Constructor(
+            binder = null,
+            name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.caseName),
+        )
+        return if (binding.typeArgs.isEmpty()) {
+            constructorType
+        } else {
+            Type.Application(
+                constructorType,
+                binding.typeArgs
+            )
+        }
+    }
+
+    private fun lowerSealedTypeCaseConstructor(expression: Expression.Property, binding: PropertyBinding.SealedTypeCaseConstructor): HIRExpression {
+        require(expression.lhs is Expression.Var)
+        val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name)
+        return HIRExpression.GlobalRef(
+            expression.location,
+            typeOfExpression(expression),
+            name
+        )
     }
 
     private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {

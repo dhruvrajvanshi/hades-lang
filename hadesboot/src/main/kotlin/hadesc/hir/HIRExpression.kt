@@ -132,6 +132,21 @@ sealed class HIRExpression: HasLocation {
         val value: HIRExpression,
     ) : HIRExpression()
 
+    data class When(
+        override val location: SourceLocation,
+        override val type: Type,
+        val discriminant: HIRExpression,
+        val cases: List<Case>
+    ) : HIRExpression() {
+        data class Case(
+            val caseName: Name,
+            val valueBinder: Name,
+            val expression: HIRExpression
+        ) {
+            fun prettyPrint() = "is $valueBinder: $caseName -> ${expression.prettyPrint()}"
+        }
+    }
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -156,5 +171,8 @@ sealed class HIRExpression: HasLocation {
         is TraitMethodCall -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 "${methodName.text}(${args.joinToString(", ") { it.prettyPrint() } })"
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
+        is When -> "when (${discriminant.prettyPrint()}) {\n" +
+                cases.joinToString("\n") { "  " + it.prettyPrint() } +
+                "\n}"
     }
 }

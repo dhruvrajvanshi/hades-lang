@@ -1,5 +1,6 @@
 package hadesc.frontend
 
+import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.Identifier
 import hadesc.resolver.Binding
@@ -39,13 +40,16 @@ sealed class PropertyBinding {
         val member = traitDef.signatures[memberIndex]
     }
 
-    data class SealedTypeCase(
+    data class SealedTypeCaseConstructor(
         val declaration: Declaration.SealedType,
         val case: Declaration.SealedType.Case,
         val type: Type
     ) : PropertyBinding()
 
     data class WhenCaseFieldRef(
+        val declaration: Declaration.SealedType,
+        val caseName: Name,
+        val typeArgs: List<Type>,
         val name: Identifier,
         val propertyIndex: Int,
         val propertyName: Identifier,
