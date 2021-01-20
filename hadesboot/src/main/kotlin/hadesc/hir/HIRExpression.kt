@@ -143,7 +143,7 @@ sealed class HIRExpression: HasLocation {
             val valueBinder: Name,
             val expression: HIRExpression
         ) {
-            fun prettyPrint() = "is $valueBinder: $caseName -> ${expression.prettyPrint()}"
+            fun prettyPrint() = "is ${valueBinder.text}: ${caseName.text} -> ${expression.prettyPrint()}"
         }
     }
 
