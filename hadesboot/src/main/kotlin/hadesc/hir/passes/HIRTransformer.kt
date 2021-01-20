@@ -181,6 +181,20 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
         is HIRExpression.TraitMethodCall -> transformTraitMethodCall(expression)
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
+        is HIRExpression.When -> transformWhenExpression(expression)
+    }
+
+    fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
+        return HIRExpression.When(
+            expression.location,
+            lowerType(expression.type),
+            transformExpression(expression.discriminant),
+            expression.cases.map { HIRExpression.When.Case(
+                caseName = it.caseName,
+                valueBinder = it.valueBinder,
+                expression = transformExpression(it.expression)
+            ) }
+        )
     }
 
     fun transformUnsafeCast(expression: HIRExpression.UnsafeCast): HIRExpression {
