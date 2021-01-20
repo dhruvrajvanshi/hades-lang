@@ -42,7 +42,7 @@ class HIRGen(
         is Declaration.TraitDef -> lowerInterfaceDef(declaration)
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
-        is Declaration.SealedType -> emptyList()
+        is Declaration.SealedType -> lowerSealedType(declaration)
     }
 
     private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {
@@ -103,6 +103,45 @@ class HIRGen(
                 )
         )
     }
+
+    private fun lowerSealedType(declaration: Declaration.SealedType): List<HIRDefinition> {
+        val sealedTypeName = lowerGlobalName(declaration.name)
+        val caseTypes = declaration.cases.map {  case ->
+            val constructorType = Type.Constructor(
+                binder = null,
+                sealedTypeName.append(case.name.identifier.name)
+            )
+            if (declaration.typeParams != null) {
+                Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
+            } else {
+                constructorType
+            }
+        }
+
+        val caseStructs = declaration.cases.map { case ->
+            HIRDefinition.Struct(
+                case.name.location,
+                sealedTypeName.append(case.name.identifier.name),
+                typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
+                fields = case.params?.map {
+                    it.binder.identifier.name to ctx.checker.annotationToType(requireNotNull(it.annotation))
+                } ?: emptyList()
+            )
+        }.toTypedArray()
+        return listOf(
+            *caseStructs,
+            HIRDefinition.Struct(
+                declaration.location,
+                lowerGlobalName(declaration.name),
+                typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                fields = listOf(
+                    ctx.makeName("tag") to Type.Integral(8, false),
+                    ctx.makeName("payload") to Type.UntaggedUnion(caseTypes)
+                )
+            )
+        )
+    }
+
 
     private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef): List<HIRDefinition> {
         return listOf(

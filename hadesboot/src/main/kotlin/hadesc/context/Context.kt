@@ -9,6 +9,7 @@ import hadesc.frontend.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
+import hadesc.hir.passes.DesurarSealedTypes
 import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
@@ -46,6 +47,7 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
+        hirModule = DesurarSealedTypes(this).transformModule(hirModule)
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         logger().debug(hirModule.prettyPrint())
