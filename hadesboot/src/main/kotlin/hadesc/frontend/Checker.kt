@@ -19,6 +19,7 @@ import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
+import java.util.Collections.singletonList
 import kotlin.math.exp
 import kotlin.math.min
 
@@ -1762,8 +1763,7 @@ class Checker(
         reportErrors = false
     }
 
-    fun getDiscriminants(type: Type): List<Discriminant> {
-        val args = type.typeArgs()
+    fun getSealedTypeDeclaration(type: Type): Declaration.SealedType {
         val constructor = when (type) {
             is Type.Constructor -> type
             is Type.Application ->
@@ -1776,20 +1776,46 @@ class Checker(
         }
         val declaration = ctx.resolver.resolveDeclaration(constructor.name)
         require(declaration is Declaration.SealedType)
+        return declaration
+    }
+    fun getDiscriminants(type: Type): List<Discriminant> {
+        val args = type.typeArgs()
+
+        val declaration = getSealedTypeDeclaration(type)
 
         val substitution = (declaration.typeParams ?: emptyList()).zip(args)
             .map { (param, type) -> param.location to type }
             .toMap()
 
-        return declaration.cases.map { case ->
+        return declaration.cases.mapIndexed { index, case ->
             Discriminant(
+                index,
                 case.name.identifier.name,
                 case.params?.map {
                     it.binder.identifier.name to
                             annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
-                } ?: emptyList()
+                } ?: singletonList(
+                    ctx.makeName("dummy") to
+                    Type.Integral(8, false)
+                )
             )
         }
+    }
+
+    fun getSealedTypePayloadType(declaration: Declaration.SealedType): Type.UntaggedUnion {
+        val sealedTypeName = ctx.resolver.qualifiedName(declaration.name)
+        return Type.UntaggedUnion(declaration.cases.map {  case ->
+            val constructorType = Type.Constructor(
+                binder = null,
+                sealedTypeName.append(case.name.identifier.name)
+            )
+            if (declaration.typeParams != null) {
+                Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
+            } else {
+                constructorType
+            }
+        })
+
     }
 
 }
@@ -1853,6 +1879,7 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
 )
 
 data class Discriminant(
+    val index: Int,
     val name: Name,
     val params: List<Pair<Name, Type>>
 )

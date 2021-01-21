@@ -192,7 +192,8 @@ interface HIRTransformer: TypeTransformer {
             expression.cases.map { HIRExpression.When.Case(
                 caseName = it.caseName,
                 valueBinder = it.valueBinder,
-                expression = transformExpression(it.expression)
+                expression = transformExpression(it.expression),
+                casePayloadType = lowerType(it.casePayloadType)
             ) }
         )
     }

@@ -9,7 +9,7 @@ import hadesc.frontend.Checker
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
-import hadesc.hir.passes.DesurarSealedTypes
+import hadesc.hir.passes.DesugarWhenExpressions
 import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
@@ -47,7 +47,9 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        hirModule = DesurarSealedTypes(this).transformModule(hirModule)
+        logger().info("before desugared whens: \n${hirModule.prettyPrint()}")
+        hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
+        logger().info("desugared whens: \n${hirModule.prettyPrint()}")
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         logger().debug(hirModule.prettyPrint())

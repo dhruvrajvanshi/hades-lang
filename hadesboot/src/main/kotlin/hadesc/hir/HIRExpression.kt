@@ -139,6 +139,7 @@ sealed class HIRExpression: HasLocation {
         val cases: List<Case>
     ) : HIRExpression() {
         data class Case(
+            val casePayloadType: Type,
             val caseName: Name,
             val valueBinder: Name,
             val expression: HIRExpression
@@ -155,7 +156,7 @@ sealed class HIRExpression: HasLocation {
         is Constant -> constant.prettyPrint()
         is ParamRef -> name.text
         is ValRef -> name.text
-        is GetStructField -> "${lhs.prettyPrint()}.${name.text}"
+        is GetStructField -> "${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()}"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
@@ -173,6 +174,6 @@ sealed class HIRExpression: HasLocation {
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
         is When -> "when (${discriminant.prettyPrint()}) {\n" +
                 cases.joinToString("\n") { "  " + it.prettyPrint() } +
-                "\n}"
+                "\n} : ${type.prettyPrint()}"
     }
 }

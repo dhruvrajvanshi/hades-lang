@@ -106,28 +106,28 @@ class HIRGen(
 
     private fun lowerSealedType(declaration: Declaration.SealedType): List<HIRDefinition> {
         val sealedTypeName = lowerGlobalName(declaration.name)
-        val caseTypes = declaration.cases.map {  case ->
-            val constructorType = Type.Constructor(
-                binder = null,
-                sealedTypeName.append(case.name.identifier.name)
-            )
-            if (declaration.typeParams != null) {
-                Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
-            } else {
-                constructorType
-            }
-        }
-
-        val caseStructs = declaration.cases.map { case ->
+        val caseStructs = declaration.cases.flatMapIndexed { index, case -> listOf(
             HIRDefinition.Struct(
                 case.name.location,
                 sealedTypeName.append(case.name.identifier.name),
                 typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
-                fields = case.params?.map {
+                fields = listOf(ctx.makeName("\$tag") to Type.Integral(8, false)) + (case.params?.map {
                     it.binder.identifier.name to ctx.checker.annotationToType(requireNotNull(it.annotation))
-                } ?: emptyList()
-            )
-        }.toTypedArray()
+                } ?: emptyList())
+            ),
+            HIRDefinition.Const(
+                case.name.location,
+                sealedTypeName.append(case.name.identifier.name).append(ctx.makeName("tag")),
+                HIRExpression.Constant(
+                    HIRConstant.IntValue(
+                        case.name.location,
+                        Type.Integral(8, false),
+                        index
+                    )
+                )
+            ),
+            sealedCaseConstructorOrConst(declaration, sealedTypeName, case, index)
+        )}.toTypedArray()
         return listOf(
             *caseStructs,
             HIRDefinition.Struct(
@@ -135,10 +135,129 @@ class HIRGen(
                 lowerGlobalName(declaration.name),
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = listOf(
-                    ctx.makeName("tag") to Type.Integral(8, false),
-                    ctx.makeName("payload") to Type.UntaggedUnion(caseTypes)
+                    ctx.makeName("\$tag") to Type.Integral(8, false),
+                    ctx.makeName("payload") to ctx.checker.getSealedTypePayloadType(declaration)
                 )
             )
+        )
+    }
+
+    private fun sealedCaseConstructorOrConst(
+        declaration: Declaration.SealedType,
+        sealedTypeName: QualifiedName,
+        case: Declaration.SealedType.Case,
+        index: Int
+    ): HIRDefinition {
+        val caseConstructorName = sealedTypeName.append(case.name.name).append(ctx.makeName("constructor"))
+        val typeConstructor = Type.Constructor(binder = null, name = ctx.resolver.qualifiedName(declaration.name))
+        val instanceType = if (declaration.typeParams != null) {
+            Type.Application(
+                typeConstructor,
+                declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        } else {
+            typeConstructor
+        }
+        val caseStructName = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
+        val caseTypeConstructor = Type.Constructor(binder = null, name = caseStructName)
+        val caseInstanceType = if (declaration.typeParams != null) {
+            Type.Application(
+                caseTypeConstructor,
+                declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        } else {
+            caseTypeConstructor
+        }
+        val loc = case.name.location
+        val tag = HIRExpression.Constant(
+            HIRConstant.IntValue(loc, Type.Integral(8, false), index)
+        )
+        val caseValName = ctx.makeUniqueName()
+        val resultName = ctx.makeUniqueName()
+        val caseConstructorRef = HIRExpression.GlobalRef(
+            loc,
+            type = Type.Bool, // NOCOMMIT
+            name = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
+        )
+        val caseConstructorTypeApplication = if (declaration.typeParams != null) {
+            HIRExpression.TypeApplication(
+                loc,
+                type = Type.Bool, // NOCOMMIT
+                expression = caseConstructorRef,
+                args = declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        } else {
+            caseConstructorRef
+        }
+        val caseConstructorCall = HIRExpression.Call(
+            loc,
+            caseInstanceType,
+            caseConstructorTypeApplication,
+            listOf(tag) + (case.params?.map {
+                HIRExpression.ParamRef(
+                    it.location,
+                    lowerTypeAnnotation(requireNotNull(it.annotation)),
+                    it.binder.name
+                )
+            } ?: emptyList())
+        )
+        val addressOfCaseInstance = HIRExpression.AddressOf(
+            loc,
+            Type.Ptr(caseInstanceType, isMutable = false),
+            caseValName
+        )
+        val castedValue = HIRExpression.Load(
+            loc,
+            instanceType,
+            HIRExpression.PointerCast(
+                loc,
+                instanceType,
+                addressOfCaseInstance
+            )
+        )
+        val statements = listOf(
+            HIRStatement.ValDeclaration(
+                loc,
+                caseValName,
+                isMutable = false,
+                caseInstanceType
+            ),
+            HIRStatement.ValDeclaration(
+                loc,
+                resultName,
+                isMutable = false,
+                instanceType
+            ),
+            HIRStatement.Assignment(
+                loc,
+                caseValName,
+                caseConstructorCall,
+            ),
+            HIRStatement.Assignment(
+                loc,
+                resultName,
+                castedValue
+            ),
+            HIRStatement.Return(
+                loc,
+                HIRExpression.ValRef(loc, instanceType, resultName)
+            )
+        )
+        return HIRDefinition.Function(
+            case.name.location,
+            signature = HIRFunctionSignature(
+                case.name.location,
+                caseConstructorName,
+                typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.name) },
+                params = case.params?.map {
+                    HIRParam(
+                        it.location,
+                        it.binder.name,
+                        lowerTypeAnnotation(requireNotNull(it.annotation)))
+                } ?: emptyList(),
+                returnType = instanceType
+            ),
+            HIRBlock(case.name.location, statements)
         )
     }
 
@@ -430,10 +549,21 @@ class HIRGen(
         val value = lowerExpression(expression.value)
         val discriminantType = value.type
         val discriminants = ctx.checker.getDiscriminants(discriminantType)
+        val declaration = ctx.checker.getSealedTypeDeclaration(discriminantType)
         val cases = buildList {
             for (discriminant in discriminants) {
                 val arm = expression.arms.find {
                     it is Expression.WhenArm.Is && it.caseName.name == discriminant.name
+                }
+                val casePayloadTypeConstructor =
+                    Type.Constructor(null, ctx.resolver.qualifiedName(declaration.name).append(discriminant.name))
+                val casePayloadType = if (declaration.typeParams == null) {
+                    casePayloadTypeConstructor
+                }  else {
+                    Type.Application(
+                        casePayloadTypeConstructor,
+                        discriminantType.typeArgs()
+                    )
                 }
                 if (arm == null) {
                     val elseArm = requireNotNull(expression.arms.find {
@@ -441,6 +571,7 @@ class HIRGen(
                     })
                     require(elseArm is Expression.WhenArm.Else)
                     add(HIRExpression.When.Case(
+                        casePayloadType,
                         discriminant.name,
                         ctx.makeUniqueName(),
                         lowerExpression(elseArm.value)
@@ -448,6 +579,7 @@ class HIRGen(
                 } else {
                     require(arm is Expression.WhenArm.Is)
                     add(HIRExpression.When.Case(
+                        casePayloadType,
                         discriminant.name,
                         arm.name?.identifier?.name ?: ctx.makeUniqueName(),
                         lowerExpression(arm.value)
@@ -658,7 +790,7 @@ class HIRGen(
                 binding.name.name
             ),
             binding.propertyName.name,
-            binding.propertyIndex,
+            binding.propertyIndex + 1, // 0th field is tag
         )
     }
 
@@ -679,7 +811,8 @@ class HIRGen(
 
     private fun lowerSealedTypeCaseConstructor(expression: Expression.Property, binding: PropertyBinding.SealedTypeCaseConstructor): HIRExpression {
         require(expression.lhs is Expression.Var)
-        val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name)
+        val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name).append(ctx.makeName("constructor"))
+
         return HIRExpression.GlobalRef(
             expression.location,
             typeOfExpression(expression),

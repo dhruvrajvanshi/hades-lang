@@ -2,17 +2,19 @@ import submodule.printable_interface as p;
 import libc as c;
 
 def main(): Void {
-    val opt = Optional.Some(10);
-    print(get_int_value(opt));
-    print(get_int_value(Optional.Some(20)));
-    print(get_int_value(Optional.None[Int]));
+//     val opt = Optional.Some(10);
+//     print(get_int_value(Optional.Some(10)));
+//     print(get_int_value(Optional.Some(20)));
+//     print(get_int_value(Optional.Some(0)));
 
     val opt_message = Optional.Some[*Byte](b"message");
-    val opt_message_none = Optional.None[*Byte];
+    val opt_message_none = Optional.Some[*Byte](b"");
+    dump_opt(&opt_message);
 
     c.puts(get_string_value(opt_message));
     c.puts(get_string_value(opt_message_none));
 }
+extern def dump_opt(*Optional[*Byte]): Void = dump_opt;
 
 def print[T](value: T): Void where p.Printable[T] {
     trait p.Printable[T].print(value);

@@ -308,9 +308,18 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 LLVM.LLVMBuildTruncOrBitCast(
                     builder, lowerExpression(value.value), toType, ctx.makeUniqueName().text)
             )
+        } else if (toTypeSize > fromTypeSize) {
+            Value(
+                LLVM.LLVMBuildZExt(
+                    builder,
+                    lowerExpression(value.value),
+                    toType,
+                    ctx.makeUniqueName().text
+                )
+            )
         } else {
             Value(
-                LLVM.LLVMBuildZExtOrBitCast(
+                LLVM.LLVMBuildBitCast(
                     builder, lowerExpression(value.value),
                     toType,
                     ctx.makeUniqueName().text

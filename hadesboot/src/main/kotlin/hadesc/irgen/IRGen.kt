@@ -268,7 +268,25 @@ class IRGen(
         is HIRExpression.TraitMethodCall -> requireUnreachable()
         is HIRExpression.UnsafeCast -> lowerUnsafeCast(expression)
         is HIRExpression.When -> requireUnreachable()
+//            lowerWhenExpression(expression)
     }
+
+//    private fun lowerWhenExpression(expression: HIRExpression.When): IRValue {
+//        val resultName = ctx.makeUniqueName()
+//        builder.buildAlloca(expression.type, IRLocalName(resultName))
+//        val discriminantName = ctx.makeUniqueName()
+//        builder.buildAlloca(expression.discriminant.type, IRLocalName(discriminantName))
+//        builder.buildStore(
+//            IRVariable(
+//                Type.Ptr(expression.discriminant.type, isMutable = true),
+//                expression.discriminant.location,
+//                IRLocalName(discriminantName)),
+//            lowerExpression(expression.discriminant)
+//        )
+//        for (case in expression.cases) {
+//            builder.buildBranch(    )
+//        }
+//    }
 
     private fun lowerUnsafeCast(expression: HIRExpression.UnsafeCast): IRValue {
         return IRUnsafeCast(
