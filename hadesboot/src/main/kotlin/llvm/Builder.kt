@@ -20,11 +20,15 @@ fun B.buildAlloca(type: LLVMTypeRef, name: String, alignment: Int): LLVMValueRef
     return instr
 }
 
-fun B.buildLoad(ptr: LLVMValueRef, name: String): LLVMValueRef =
-    LLVM.LLVMBuildLoad(this, ptr, name)
+fun B.buildLoad(ptr: LLVMValueRef, name: String): LLVMValueRef {
+    return LLVM.LLVMBuildLoad(this, ptr, name)
+}
 
-fun B.buildStore(toPointer: LLVMValueRef, value: LLVMValueRef): LLVMValueRef =
-    LLVM.LLVMBuildStore(this, value, toPointer)
+fun B.buildStore(toPointer: LLVMValueRef, value: LLVMValueRef, alignment: Int): LLVMValueRef {
+    val ref = LLVM.LLVMBuildStore(this, value, toPointer)
+    LLVM.LLVMSetAlignment(ref, alignment)
+    return ref
+}
 
 fun B.buildStructGEP(pointer: LLVMValueRef, index: Int, name: String): LLVMValueRef =
     LLVM.LLVMBuildStructGEP(this, pointer, index, name)

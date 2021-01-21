@@ -5,10 +5,10 @@ def main(): Void {
     val opt = Optional.Some(10);
     print(get_int_value(Optional.Some(10)));
     print(get_int_value(Optional.Some(20)));
-    print(get_int_value(Optional.Some(0)));
+    print(get_int_value(Optional.None[Int]));
 
     val opt_message = Optional.Some[*Byte](b"message");
-    val opt_message_none = Optional.Some[*Byte](b"None");
+    val opt_message_none = Optional.None[*Byte];
     c.puts(get_string_value(opt_message));
     c.puts(get_string_value(opt_message_none));
 }

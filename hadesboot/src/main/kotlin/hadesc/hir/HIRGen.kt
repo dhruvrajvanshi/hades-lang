@@ -598,6 +598,20 @@ class HIRGen(
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
+        val args = ctx.checker.getTypeArgs(expression.lhs)
+        if (args != null) {
+            return HIRExpression.Call(
+                expression.location,
+                typeOfExpression(expression),
+                callee = HIRExpression.TypeApplication(
+                    expression.location,
+                    typeOfExpression(expression),
+                    expression = lowerExpression(expression.lhs),
+                    args = args
+                ),
+                args = emptyList()
+            )
+        }
         return HIRExpression.TypeApplication(
             expression.location,
             typeOfExpression(expression),
