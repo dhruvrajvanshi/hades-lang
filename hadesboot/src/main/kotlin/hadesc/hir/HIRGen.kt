@@ -111,7 +111,7 @@ class HIRGen(
                 case.name.location,
                 sealedTypeName.append(case.name.identifier.name),
                 typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
-                fields = listOf(ctx.makeName("\$tag") to Type.Integral(8, false)) + (case.params?.map {
+                fields = listOf(ctx.makeName("\$tag") to ctx.sealedTypeDiscriminantType()) + (case.params?.map {
                     it.binder.identifier.name to ctx.checker.annotationToType(requireNotNull(it.annotation))
                 } ?: emptyList())
             ),
@@ -121,7 +121,7 @@ class HIRGen(
                 HIRExpression.Constant(
                     HIRConstant.IntValue(
                         case.name.location,
-                        Type.Integral(8, false),
+                        ctx.sealedTypeDiscriminantType(),
                         index
                     )
                 )
@@ -135,7 +135,7 @@ class HIRGen(
                 lowerGlobalName(declaration.name),
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = listOf(
-                    ctx.makeName("\$tag") to Type.Integral(8, false),
+                    ctx.makeName("\$tag") to ctx.sealedTypeDiscriminantType(),
                     ctx.makeName("payload") to ctx.checker.getSealedTypePayloadType(declaration)
                 )
             )
@@ -170,7 +170,7 @@ class HIRGen(
         }
         val loc = case.name.location
         val tag = HIRExpression.Constant(
-            HIRConstant.IntValue(loc, Type.Integral(8, false), index)
+            HIRConstant.IntValue(loc, ctx.sealedTypeDiscriminantType(), index)
         )
         val caseValName = ctx.makeUniqueName()
         val resultName = ctx.makeUniqueName()

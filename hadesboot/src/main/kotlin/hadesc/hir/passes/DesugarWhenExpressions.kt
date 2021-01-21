@@ -56,7 +56,7 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
         )
         val discriminantTag = HIRExpression.GetStructField(
             expression.location,
-            Type.Integral(8, false),
+            ctx.sealedTypeDiscriminantType(),
             lhs = discriminant,
             name = ctx.makeName("\$tag"),
             index = 0
@@ -108,7 +108,7 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
                         rhs = HIRExpression.Constant(
                             HIRConstant.IntValue(
                                 case.expression.location,
-                                Type.Integral(8, false),
+                                ctx.sealedTypeDiscriminantType(),
                                 index
                             )
                         )
