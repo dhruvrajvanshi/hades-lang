@@ -14,4 +14,6 @@ inline class Binder(
 ) : HasLocation {
     override val location: SourceLocation
         get() = identifier.location
+
+    val name get() = identifier.name
 }
