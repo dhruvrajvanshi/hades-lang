@@ -62,7 +62,6 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
             index = 0
         )
 
-        val declaration = ctx.checker.getSealedTypeDeclaration(expression.discriminant.type)
         val discriminantPtr = HIRExpression.AddressOf(
             expression.discriminant.location,
             Type.Ptr(discriminant.type, isMutable = false),

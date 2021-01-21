@@ -81,13 +81,13 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val fn = getStructConstructor(definition)
         withinBlock(fn.createBlock("entry")) {
             val instanceType = lowerType(definition.instanceType)
-            val thisPtr = buildAlloca(instanceType, "this", getStackAlignment())
+            val thisPtr = buildAlloca(instanceType, "this", LLVM.LLVMABIAlignmentOfType(dataLayout, instanceType))
             var index = -1
             for (field in definition.fields) {
                 index++
                 val fieldPtr = buildStructGEP(thisPtr, index, "field_$index")
                 val value = fn.getParameter(index)
-                buildStore(toPointer = fieldPtr, value = value)
+                buildStore(toPointer = fieldPtr, value = value, LLVM.LLVMABIAlignmentOfType(dataLayout, lowerType(field.value)))
             }
             val instance = buildLoad(thisPtr, "instance")
             buildRet(instance)
@@ -228,16 +228,20 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerAlloca(statement: IRAlloca) {
         val name = lowerName(statement.name)
-        val ref = builder.buildAlloca(lowerType(statement.type), name, getStackAlignment())
+        val ref = builder.buildAlloca(lowerType(statement.type), name,
+            LLVM.LLVMABIAlignmentOfType(dataLayout, lowerType(statement.type)))
         localVariables[statement.name] = ref
     }
 
-    private fun getStackAlignment() = 16
 
     private fun lowerStore(statement: IRStore) {
+        val ptrType = statement.ptr.type
+        require(ptrType is Type.Ptr)
         builder.buildStore(
             value = lowerExpression(statement.value),
-            toPointer = lowerExpression(statement.ptr)
+            toPointer = lowerExpression(statement.ptr),
+            alignment = LLVM.LLVMABIAlignmentOfType(
+                dataLayout, lowerType(ptrType.to))
         )
     }
 

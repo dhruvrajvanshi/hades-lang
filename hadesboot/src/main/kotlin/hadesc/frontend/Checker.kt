@@ -10,6 +10,7 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
+import hadesc.hir.HIRExpression
 import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
@@ -1000,6 +1001,7 @@ class Checker(
                     (param, annotation) ->
                 param.binder.location to annotationToType(annotation)
             }.toMap()
+            getTypeArgsCache[expression.lhs] = expression.args.map { annotationToType(it) }
             lhsType.body.applySubstitution(substitution)
         } else {
             error(expression, Diagnostic.Kind.InvalidTypeApplication)

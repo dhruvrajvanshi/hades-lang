@@ -50,7 +50,6 @@ class Context(
         }
         logger().info("before desugared whens: \n${hirModule.prettyPrint()}")
         hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
-        logger().info("desugared whens: \n${hirModule.prettyPrint()}")
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         logger().debug(hirModule.prettyPrint())
