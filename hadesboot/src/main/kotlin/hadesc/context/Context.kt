@@ -19,6 +19,7 @@ import hadesc.parser.Parser
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
+import hadesc.types.Type
 import java.nio.file.Path
 
 class Context(
@@ -133,4 +134,6 @@ class Context(
         _nameIndex++
         return makeName("$_nameIndex")
     }
+
+    fun sealedTypeDiscriminantType(): Type = Type.Integral(64, false)
 }
