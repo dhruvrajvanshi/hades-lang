@@ -1,10 +1,6 @@
 package hadesc.analysis
 
 import hadesc.Name
-import hadesc.analysis.TraitClause
-import hadesc.analysis.TraitRequirement
-import hadesc.analysis.TraitResolver
-import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
@@ -414,8 +410,8 @@ class Analyzer(
 
         declaration.names.forEach { name ->
             if (ctx.resolver.findInSourceFile(name.name, sourceFile) == null
-                && ctx.resolver.findTypeInSourceFile(name, sourceFile) == null
-                && ctx.resolver.findTraitInSourceFile(name, sourceFile) == null
+                && ctx.resolver.findTypeInSourceFile(name.identifier, sourceFile) == null
+                && ctx.resolver.findTraitInSourceFile(name.identifier, sourceFile) == null
             ) {
                 error(name, Diagnostic.Kind.NoSuchMember)
             }
@@ -1348,7 +1344,7 @@ class Analyzer(
 
     private fun checkTraitInstances(callNode: Expression, requiredInstances: List<TraitRequirement>) {
         for (requirement in requiredInstances) {
-            if (!isRequirementSatisfied(callNode, requirement)) {
+            if (!isTraitRequirementSatisfied(callNode, requirement)) {
                 error(callNode, Diagnostic.Kind.NoImplementationFound(
                         TraitRequirement(
                                 requirement.traitRef,
@@ -1374,7 +1370,7 @@ class Analyzer(
         }
     }
 
-    private fun isRequirementSatisfied(callNode: Expression, requiredInstance: TraitRequirement): Boolean {
+    fun isTraitRequirementSatisfied(callNode: Expression, requiredInstance: TraitRequirement): Boolean {
         val clauses = globalTraitClauses
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
         val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
@@ -1401,7 +1397,7 @@ class Analyzer(
                 ?: emptyList()
 
 
-    private fun getCallReceiver(callNode: Expression): Expression? {
+    fun getCallReceiver(callNode: Expression): Expression? {
         if (callNode !is Expression.Call) {
             return null
         }
@@ -1414,7 +1410,7 @@ class Analyzer(
         return callNode.callee.lhs
     }
 
-    private fun getCalleeType(callNode: Expression): Type = when(callNode) {
+    fun getCalleeType(callNode: Expression): Type = when(callNode) {
         is Expression.Call -> when (callNode.callee) {
             is Expression.Property -> when (resolvePropertyBinding(callNode.callee)) {
                 else -> inferExpression(callNode.callee)
@@ -1514,7 +1510,7 @@ class Analyzer(
         }
     }
 
-    private fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
+    fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
         fun recurse(type: Type, typeParams: List<Type.Param>?): FunctionTypeComponents? {
             return when (type) {
                 is Type.Ptr -> recurse(type.to, null)

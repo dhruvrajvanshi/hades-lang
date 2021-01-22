@@ -551,6 +551,14 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
+    fun getEnclosingExtensionDef(node: HasLocation): Declaration.ExtensionDef? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeTree.ExtensionDef) {
+                return scopeNode.declaration
+            }
+        }
+        return null
+    }
 
     fun getEnclosingWhenExpression(node: HasLocation): Expression.When? {
         for (scopeNode in getScopeStack(node)) {

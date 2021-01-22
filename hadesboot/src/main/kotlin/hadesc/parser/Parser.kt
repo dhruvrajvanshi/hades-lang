@@ -402,12 +402,12 @@ class Parser(
         if (at(tt.LBRACE)) {
             advance()
             var isFirst = true
-            val names = mutableListOf<Identifier>()
+            val names = mutableListOf<Binder>()
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
                 if (!isFirst) {
                     expect(tt.COMMA)
                 }
-                names.add(parseIdentifier())
+                names.add(parseBinder())
                 isFirst = false
             }
             val end = expect(tt.RBRACE)

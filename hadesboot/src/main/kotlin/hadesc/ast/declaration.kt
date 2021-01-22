@@ -29,7 +29,7 @@ sealed class Declaration : HasLocation {
     data class ImportMembers(
         override val location: SourceLocation,
         val modulePath: QualifiedPath,
-        val names: List<Identifier>,
+        val names: List<Binder>,
     ) : Declaration()
 
     data class FunctionDef(
