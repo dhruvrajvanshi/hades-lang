@@ -7,6 +7,7 @@ import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Type
 
 @OptIn(ExperimentalStdlibApi::class)
 class Resolver(private val ctx: Context) {
@@ -39,6 +40,29 @@ class Resolver(private val ctx: Context) {
             if (binding != null) {
                 return binding
             }
+        }
+        val builtinType = when (ident.name.text) {
+            "Int" -> Type.CInt
+            "Bool" -> Type.Bool
+            "Byte" -> Type.Byte
+            "Size" -> Type.Size
+            "Double" -> Type.Double
+            "Void" -> Type.Void
+            "u8" -> Type.Integral(8, false)
+            "i8" -> Type.Integral(8, true)
+            "u16" -> Type.Integral(16, false)
+            "i16" -> Type.Integral(16, true)
+            "u32" -> Type.Integral(32, false)
+            "i32" -> Type.Integral(32, true)
+            "u64" -> Type.Integral(64, false)
+            "i64" -> Type.Integral(64, true)
+            "f16" -> Type.FloatingPoint(16)
+            "f32" -> Type.FloatingPoint(32)
+            "f64" -> Type.FloatingPoint(64)
+            else -> null
+        }
+        if (builtinType != null) {
+            return TypeBinding.Builtin(builtinType)
         }
         return null
     }

@@ -2,6 +2,7 @@ package hadesc.resolver
 
 import hadesc.ast.Binder
 import hadesc.ast.Declaration
+import hadesc.types.Type
 
 sealed class TypeBinding {
     data class Struct(
@@ -20,4 +21,6 @@ sealed class TypeBinding {
 
     data class SealedType(
         val declaration: Declaration.SealedType) : TypeBinding() {}
+
+    data class Builtin(val type: Type) : TypeBinding()
 }

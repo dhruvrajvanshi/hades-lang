@@ -1679,31 +1679,8 @@ class Analyzer(
     }
 
     private fun resolveTypeVariable(annotation: TypeAnnotation.Var): Type? {
-        val binding = ctx.resolver.resolveTypeVariable(annotation.name)
-        return if (binding == null) {
-            when (annotation.name.name.text) {
-                "Int" -> Type.CInt
-                "Bool" -> Type.Bool
-                "Byte" -> Type.Byte
-                "Size" -> Type.Size
-                "Double" -> Type.Double
-                "Void" -> Type.Void
-                "u8" -> Type.Integral(8, false)
-                "i8" -> Type.Integral(8, true)
-                "u16" -> Type.Integral(16, false)
-                "i16" -> Type.Integral(16, true)
-                "u32" -> Type.Integral(32, false)
-                "i32" -> Type.Integral(32, true)
-                "u64" -> Type.Integral(64, false)
-                "i64" -> Type.Integral(64, true)
-                "f16" -> Type.FloatingPoint(16)
-                "f32" -> Type.FloatingPoint(32)
-                "f64" -> Type.FloatingPoint(64)
-                else -> null
-            }
-        } else {
-            typeOfTypeBinding(binding)
-        }
+        val binding = ctx.resolver.resolveTypeVariable(annotation.name) ?: return null
+        return typeOfTypeBinding(binding)
     }
 
     private fun typeOfTypeBinding(binding: TypeBinding): Type {
@@ -1713,6 +1690,7 @@ class Analyzer(
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
             is TypeBinding.SealedType -> typeOfSealedTypeBinding(binding)
+            is TypeBinding.Builtin -> binding.type
         }
     }
 
