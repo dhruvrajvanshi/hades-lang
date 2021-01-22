@@ -1,4 +1,4 @@
-package hadesc.frontend
+package hadesc.analysis
 
 import hadesc.Name
 import hadesc.analysis.TraitClause
