@@ -13,7 +13,6 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
-import kotlin.math.exp
 
 @OptIn(ExperimentalStdlibApi::class)
 class HIRGen(
@@ -112,7 +111,7 @@ class HIRGen(
                 sealedTypeName.append(case.name.identifier.name),
                 typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
                 fields = listOf(ctx.makeName("\$tag") to ctx.sealedTypeDiscriminantType()) + (case.params?.map {
-                    it.binder.identifier.name to ctx.checker.annotationToType(requireNotNull(it.annotation))
+                    it.binder.identifier.name to ctx.analyzer.annotationToType(requireNotNull(it.annotation))
                 } ?: emptyList())
             ),
             HIRDefinition.Const(
@@ -136,7 +135,7 @@ class HIRGen(
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = listOf(
                     ctx.makeName("\$tag") to ctx.sealedTypeDiscriminantType(),
-                    ctx.makeName("payload") to ctx.checker.getSealedTypePayloadType(declaration)
+                    ctx.makeName("payload") to ctx.analyzer.getSealedTypePayloadType(declaration)
                 )
             )
         )
@@ -408,7 +407,7 @@ class HIRGen(
                 type = Type.Ptr(typeOfExpression(statement.lhs.lhs), isMutable = true),
                 name = name
         )
-        val fieldBinding = ctx.checker.resolveStructFieldBinding(typeOfExpression(statement.lhs.lhs), statement.lhs.property)
+        val fieldBinding = ctx.analyzer.resolveStructFieldBinding(typeOfExpression(statement.lhs.lhs), statement.lhs.property)
         requireNotNull(fieldBinding)
         val fieldType = fieldBinding.type
         val fieldAddr = HIRExpression.GetStructFieldPointer(
@@ -548,8 +547,8 @@ class HIRGen(
     private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
         val value = lowerExpression(expression.value)
         val discriminantType = value.type
-        val discriminants = ctx.checker.getDiscriminants(discriminantType)
-        val declaration = ctx.checker.getSealedTypeDeclaration(discriminantType)
+        val discriminants = ctx.analyzer.getDiscriminants(discriminantType)
+        val declaration = ctx.analyzer.getSealedTypeDeclaration(discriminantType)
         val cases = buildList {
             for (discriminant in discriminants) {
                 val arm = expression.arms.find {
@@ -598,7 +597,7 @@ class HIRGen(
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
-        val args = ctx.checker.getTypeArgs(expression.lhs)
+        val args = ctx.analyzer.getTypeArgs(expression.lhs)
         if (args != null) {
             return HIRExpression.Call(
                 expression.location,
@@ -679,7 +678,7 @@ class HIRGen(
     }
 
     private fun lowerDerefExpression(expression: Expression.Deref): HIRExpression {
-        val pointerType = ctx.checker.typeOfExpression(expression.expression)
+        val pointerType = ctx.analyzer.typeOfExpression(expression.expression)
         require(pointerType is Type.Ptr)
         return HIRExpression.Load(
             expression.location,
@@ -783,7 +782,7 @@ class HIRGen(
         ))
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.checker.resolvePropertyBinding(expression)) {
+    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
@@ -907,7 +906,7 @@ class HIRGen(
 
     private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()
     private fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
-        val type = ctx.checker.reduceGenericInstances(ctx.checker.typeOfExpression(expression))
+        val type = ctx.analyzer.reduceGenericInstances(ctx.analyzer.typeOfExpression(expression))
         checkUninferredGenerics(expression, type)
         return type
     }
@@ -936,7 +935,7 @@ class HIRGen(
 
     private fun lowerCallExpression(expression: Expression.Call): HIRExpression {
         if (expression.callee is Expression.Property) {
-            val binding = ctx.checker.resolvePropertyBinding(expression.callee)
+            val binding = ctx.analyzer.resolvePropertyBinding(expression.callee)
             if (binding is PropertyBinding.ExtensionDef) {
                 val extensionDefName = ctx.resolver.qualifiedName(binding.extensionDef.name)
                 val extensionMethod = binding.extensionDef.functionDefs[binding.functionIndex]
@@ -966,13 +965,13 @@ class HIRGen(
         args: List<HIRExpression>
     ): HIRExpression {
         val type = typeOfExpression(call)
-        val typeArgs = ctx.checker.getTypeArgs(call)
+        val typeArgs = ctx.analyzer.getTypeArgs(call)
         typeArgs?.forEach {
             checkUninferredGenerics(call, it)
         }
         return if (typeArgs != null) {
-            val reducedArgs = typeArgs.map { ctx.checker.reduceGenericInstances(it) }
-            val appliedType = applyType(ctx.checker.reduceGenericInstances(callee.type), reducedArgs)
+            val reducedArgs = typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
+            val appliedType = applyType(ctx.analyzer.reduceGenericInstances(callee.type), reducedArgs)
             HIRExpression.Call(
                 call.location,
                 type,
@@ -999,20 +998,20 @@ class HIRGen(
         require(type.params.size == args.size)
         return type.body.applySubstitution(
             type.params.zip(args).map {
-                it.first.binder.location to ctx.checker.reduceGenericInstances(it.second)
+                it.first.binder.location to ctx.analyzer.reduceGenericInstances(it.second)
             }.toMap()
         )
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return ctx.checker.reduceGenericInstances(ctx.checker.annotationToType(annotation))
+        return ctx.analyzer.reduceGenericInstances(ctx.analyzer.annotationToType(annotation))
     }
 
     private fun lowerParam(param: Param): HIRParam {
         return HIRParam(
                 param.location,
                 name = param.binder.identifier.name,
-                type = ctx.checker.typeOfBinder(param.binder)
+                type = ctx.analyzer.typeOfBinder(param.binder)
         )
     }
 

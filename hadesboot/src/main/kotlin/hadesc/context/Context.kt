@@ -5,7 +5,7 @@ import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
-import hadesc.frontend.Checker
+import hadesc.frontend.Analyzer
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.HIRGen
@@ -25,7 +25,7 @@ import java.nio.file.Path
 class Context(
     val options: BuildOptions
 ) {
-    val checker = Checker(this)
+    val analyzer = Analyzer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
@@ -33,11 +33,11 @@ class Context(
 
     fun build() = profile("Context::build") {
         forEachSourceFile {
-            this.checker.enableDiagnostics()
+            this.analyzer.enableDiagnostics()
             for (declaration in it.declarations) {
-                checker.checkDeclaration(declaration)
+                analyzer.checkDeclaration(declaration)
             }
-            this.checker.disableDiagnostics()
+            this.analyzer.disableDiagnostics()
         }
 
         if (this.diagnosticReporter.hasErrors) {

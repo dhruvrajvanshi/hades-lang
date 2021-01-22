@@ -10,7 +10,6 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
-import hadesc.hir.HIRExpression
 import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
@@ -21,11 +20,10 @@ import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.*
 import java.util.Collections.singletonList
-import kotlin.math.exp
 import kotlin.math.min
 
 @OptIn(ExperimentalStdlibApi::class)
-class Checker(
+class Analyzer(
         private val ctx: Context
 ) {
     private var reportErrors = false
