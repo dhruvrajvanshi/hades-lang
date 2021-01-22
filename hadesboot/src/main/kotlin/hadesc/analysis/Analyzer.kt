@@ -356,7 +356,7 @@ class Analyzer(
         isTypeAssignableTo(source, destination)
     }
 
-    private fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
+    fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
         return typeAnalyzer.isTypeAssignableTo(source = source, destination = destination)
     }
 
@@ -391,7 +391,7 @@ class Analyzer(
             is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
             is Declaration.ExtensionDef -> checkExtensionDef(declaration)
             is Declaration.TraitDef -> checkTraitDef(declaration)
-            is Declaration.ImplementationDef -> checkImplementationDef(declaration)
+            is Declaration.ImplementationDef -> {}
             is Declaration.ImportMembers -> checkImportMembers(declaration)
             is Declaration.SealedType -> checkSealedTypeDeclaration(declaration)
         })
@@ -425,10 +425,27 @@ class Analyzer(
 
     }
 
-    private fun checkImplementationDef(implDef: Declaration.ImplementationDef) {
+    private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
+        val map = mutableMapOf<Name, Type>()
+        val substitution = params.zip(typeArguments)
+            .map { it.first.binder.location to it.second }
+            .toMap()
+        for (method in signatures) {
+            val paramTypes = method.params
+                .map { it.annotation }
+                .map { if (it == null) Type.Error else annotationToType(it) }
+                .map { it.applySubstitution(substitution) }
+            val returnType = annotationToType(method.returnType).applySubstitution(substitution)
+            val fnType = Type.Function(
+                from = paramTypes,
+                to = returnType,
+                traitRequirements = null
+            )
+            map[method.name.identifier.name] = fnType
+        }
+        return map
 
     }
-
 
     private fun checkWhereClause(whereClause: WhereClause) {
         whereClause.traitRequirements.forEach {
@@ -758,7 +775,7 @@ class Analyzer(
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(expression, source = inferredType, destination = expectedType)
-                    expectedType
+                    inferredType
                 }
             }
         }
@@ -1271,7 +1288,7 @@ class Analyzer(
     private fun checkTraitInstances(callNode: Expression, requiredInstances: List<TraitRequirement>) {
         for (requirement in requiredInstances) {
             if (!isTraitRequirementSatisfied(callNode, requirement)) {
-                error(callNode, Diagnostic.Kind.NoImplementationFound(
+                error(callNode, Diagnostic.Kind.TraitRequirementNotSatisfied(
                         TraitRequirement(
                                 requirement.traitRef,
                                 requirement.arguments.map { reduceGenericInstances(it) })

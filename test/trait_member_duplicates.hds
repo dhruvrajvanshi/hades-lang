@@ -1,5 +1,5 @@
 
-trait T {
+trait T[This] {
     def t(): Void;
     def t(): Void;
 }

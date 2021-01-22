@@ -1,1 +1,1 @@
-test/trait_member_duplicates.hds:4: DuplicateValueBinding
+test/trait_member_duplicates.hds:4: DuplicateDeclaration
