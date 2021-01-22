@@ -6,7 +6,9 @@ import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.exhaustive
 import hadesc.location.HasLocation
+import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
@@ -30,14 +32,111 @@ class Checker(val ctx: Context) {
         is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
         is Declaration.ImportMembers -> checkImportMembersDeclaration(declaration)
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
-        is Declaration.ConstDefinition -> TODO()
+        is Declaration.ConstDefinition -> checkConstDefinition(declaration)
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.Struct -> checkStructDeclaration(declaration)
         is Declaration.TypeAlias -> checkTypeAlias(declaration)
         is Declaration.ExtensionDef -> checkExtensionDef(declaration)
-        is Declaration.TraitDef -> TODO()
-        is Declaration.ImplementationDef -> TODO()
+        is Declaration.TraitDef -> checkTraitDef(declaration)
+        is Declaration.ImplementationDef -> checkImplementationDef(declaration)
         is Declaration.SealedType -> TODO()
+    }
+
+    private fun checkImplementationDef(implDef: Declaration.ImplementationDef) {
+        implDef.typeParams?.let { checkTypeParams(it) }
+        val traitDef = ctx.resolver.resolveDeclaration(implDef.traitRef)
+        if (traitDef !is Declaration.TraitDef) {
+            error(implDef.traitRef, Diagnostic.Kind.NotATrait)
+        } else {
+            if (traitDef.params.size > implDef.traitArguments.size) {
+                error(implDef.traitRef, Diagnostic.Kind.TooFewTypeArgs)
+            }
+            if (traitDef.params.size < implDef.traitArguments.size) {
+                error(implDef.traitRef, Diagnostic.Kind.TooManyTypeArgs)
+            }
+        }
+        implDef.traitArguments.forEach { it.type }
+        implDef.whereClause?.let { checkWhereClause(it) }
+
+        val expectedMethods = if (traitDef is Declaration.TraitDef) {
+            traitDef.expectedMethods(implDef.traitArguments.map { it.type })
+        } else emptyMap()
+        val foundMethods = mutableSetOf<Name>()
+        for (declaration in implDef.body) {
+            checkDeclaration(declaration)
+            if (declaration !is Declaration.FunctionDef) {
+                error(declaration, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideImplDefs)
+            } else {
+                foundMethods.add(declaration.name.identifier.name)
+                val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
+                require(typeOfMethod is Type.Ptr)
+                val actualType = typeOfMethod.to
+                val expectedType = expectedMethods[declaration.name.identifier.name]
+                if (expectedType != null && !actualType.isAssignableTo(expectedType)) {
+                    error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(expected = expectedType, found = actualType))
+                }
+            }
+        }
+
+        for (name in expectedMethods.keys) {
+            if (name !in foundMethods) {
+                error(implDef.traitRef, Diagnostic.Kind.MissingImplMethod(name))
+            }
+        }
+    }
+    private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
+        val map = mutableMapOf<Name, Type>()
+        val substitution = params.zip(typeArguments)
+            .map { it.first.binder.location to it.second }
+            .toMap()
+        for (method in signatures) {
+            val paramTypes = method.params
+                .map { it.annotation }
+                .map { it?.type ?: Type.Error }
+                .map { it.applySubstitution(substitution) }
+            val returnType = method.returnType.type.applySubstitution(substitution)
+            val fnType = Type.Function(
+                from = paramTypes,
+                to = returnType,
+                traitRequirements = null
+            )
+            map[method.name.identifier.name] = fnType
+        }
+        return map
+
+    }
+
+    private fun checkWhereClause(it: WhereClause) {
+        TODO()
+    }
+
+    private val TypeAnnotation.type get() = ctx.analyzer.annotationToType(this)
+
+    private fun checkTraitDef(declaration: Declaration.TraitDef) {
+        checkTopLevelTypeBinding(declaration.name)
+        checkTypeParams(declaration.params)
+        declaration.signatures.forEach { checkFunctionSignature(it) }
+        val names = mutableMapOf<Name, Binder>()
+        declaration.signatures.forEach { signature ->
+            val declared = names[signature.name.name]
+            if (declared != null) {
+                error(signature.name.identifier, Diagnostic.Kind.DuplicateValueBinding(declared))
+            } else {
+                names[signature.name.name] = signature.name
+            }
+        }
+    }
+
+    private fun checkConstDefinition(declaration: Declaration.ConstDefinition) {
+        declaration.annotation?.let { checkTypeAnnotation(it) }
+        val annotatedType = declaration.annotation?.let { ctx.analyzer.annotationToType(it) }
+        checkExpression(declaration.initializer)
+        if (annotatedType != null) {
+            checkExpressionHasType(declaration.initializer, annotatedType)
+        }
+        if (!ctx.analyzer.isCompileTimeConstant(declaration.initializer)) {
+            error(declaration.initializer, Diagnostic.Kind.NotAConst)
+        }
     }
 
     private fun checkExtensionDef(declaration: Declaration.ExtensionDef) {
@@ -100,9 +199,7 @@ class Checker(val ctx: Context) {
         is TypeAnnotation.MutPtr -> {
             checkTypeAnnotation(annotation.to)
         }
-        is TypeAnnotation.Application -> {
-            TODO()
-        }
+        is TypeAnnotation.Application -> checkTypeApplication(annotation)
         is TypeAnnotation.Qualified -> {
             val binding = ctx.resolver.resolveQualifiedType(annotation.qualifiedPath)
             if (binding == null) {
@@ -119,6 +216,21 @@ class Checker(val ctx: Context) {
         is TypeAnnotation.Union -> {
             annotation.args.forEach {
                 checkTypeAnnotation(it)
+            }
+        }
+    }
+
+    private fun checkTypeApplication(annotation: TypeAnnotation.Application) {
+        checkTypeAnnotation(annotation.callee)
+        annotation.args.map { checkTypeAnnotation(it) }
+
+        val calleeType = ctx.analyzer.annotationToType(annotation.callee)
+        val args = annotation.args.map { ctx.analyzer.annotationToType(it) }
+        if (calleeType !is Type.TypeFunction) {
+            error(annotation.callee, Diagnostic.Kind.InvalidTypeApplication)
+        } else {
+            if (calleeType.params.size != args.size) {
+                error(annotation.callee, Diagnostic.Kind.InvalidTypeApplication)
             }
         }
     }
@@ -154,9 +266,13 @@ class Checker(val ctx: Context) {
         is Statement.If -> checkIfStatement(statement)
         is Statement.LocalAssignment -> checkLocalAssignment(statement)
         is Statement.MemberAssignment -> TODO()
-        is Statement.PointerAssignment -> TODO()
+        is Statement.PointerAssignment -> checkPointerAssignment(statement)
         is Statement.Defer -> checkDeferStatement(statement)
         is Statement.Error -> Unit
+    }
+
+    private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
+        TODO()
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
@@ -236,32 +352,112 @@ class Checker(val ctx: Context) {
         return TypeAnalyzer().isTypeAssignableTo(source = this, destination = destination)
     }
 
-    private fun checkExpression(expression: Expression): Unit = when(expression) {
-        is Expression.Error -> TODO()
-        is Expression.Var -> checkVarExpression(expression)
-        is Expression.Call -> checkCallExpression(expression)
-        is Expression.Property -> checkPropertyExpression(expression)
-        is Expression.ByteString -> Unit
-        is Expression.BoolLiteral -> Unit
-        is Expression.NullPtr -> checkNullPtrExpression(expression)
-        is Expression.IntLiteral -> Unit
-        is Expression.Not -> TODO()
-        is Expression.BinaryOperation -> checkBinaryOperation(expression)
-        is Expression.PipelineOperator -> TODO()
-        is Expression.SizeOf -> TODO()
-        is Expression.AddressOf -> TODO()
-        is Expression.AddressOfMut -> TODO()
-        is Expression.Deref -> TODO()
-        is Expression.PointerCast -> TODO()
-        is Expression.If -> TODO()
-        is Expression.TypeApplication -> TODO()
-        is Expression.New -> TODO()
-        is Expression.This -> TODO()
-        is Expression.Closure -> TODO()
-        is Expression.TraitMethodCall -> TODO()
-        is Expression.UnsafeCast -> TODO()
-        is Expression.When -> TODO()
+    private fun checkExpression(expression: Expression): Unit {
+        exhaustive(when (expression) {
+            is Expression.Error -> TODO()
+            is Expression.Var -> checkVarExpression(expression)
+            is Expression.Call -> checkCallExpression(expression)
+            is Expression.Property -> checkPropertyExpression(expression)
+            is Expression.ByteString -> Unit
+            is Expression.BoolLiteral -> Unit
+            is Expression.NullPtr -> checkNullPtrExpression(expression)
+            is Expression.IntLiteral -> Unit
+            is Expression.Not -> TODO()
+            is Expression.BinaryOperation -> checkBinaryOperation(expression)
+            is Expression.PipelineOperator -> checkPipelineOperator(expression)
+            is Expression.SizeOf -> checkSizeOf(expression)
+            is Expression.AddressOf -> checkAddressOf(expression)
+            is Expression.AddressOfMut -> checkAddressOfMut(expression)
+            is Expression.Deref -> checkDeref(expression)
+            is Expression.PointerCast -> checkPointerCast(expression)
+            is Expression.If -> checkIfExpression(expression)
+            is Expression.TypeApplication -> TODO()
+            is Expression.New -> TODO()
+            is Expression.This -> TODO()
+            is Expression.Closure -> TODO()
+            is Expression.TraitMethodCall -> checkTraitMethodCall(expression)
+            is Expression.UnsafeCast -> checkUnsafeCast(expression)
+            is Expression.When -> TODO()
+        })
     }
+
+    private fun checkPointerCast(expression: Expression.PointerCast) {
+        checkExpression(expression.arg)
+        checkTypeAnnotation(expression.toType)
+        if (expression.arg.type !is Type.Ptr) {
+            error(expression.arg, Diagnostic.Kind.NotAPointerType(expression.arg.type))
+        }
+    }
+
+    private fun checkUnsafeCast(expression: Expression.UnsafeCast) {
+        checkExpression(expression.value)
+        checkTypeAnnotation(expression.toType)
+    }
+
+    private fun checkDeref(expression: Expression.Deref) {
+        checkExpression(expression.expression)
+        if (expression.expression.type !is Type.Ptr) {
+            error(expression.expression, Diagnostic.Kind.NotAPointerType(expression.expression.type))
+        }
+    }
+
+    private fun checkTraitMethodCall(expression: Expression.TraitMethodCall) {
+        TODO()
+    }
+
+    private fun checkSizeOf(expression: Expression.SizeOf) {
+        checkTypeAnnotation(expression.type)
+    }
+
+    private fun checkAddressOfMut(expression: Expression.AddressOfMut) {
+        checkExpression(expression.expression)
+        checkValueIsAddressable(expression.expression)
+        if (expression.expression is Expression.Var) {
+            val binding = ctx.resolver.resolve(expression.expression.name)
+            if (binding is Binding.ValBinding) {
+                if (!binding.statement.isMutable) {
+                    error(expression.expression, Diagnostic.Kind.ValNotMutable)
+                }
+            }
+        }
+    }
+
+    private fun checkAddressOf(expression: Expression.AddressOf) {
+        checkExpression(expression.expression)
+        checkValueIsAddressable(expression.expression)
+    }
+
+    private fun checkValueIsAddressable(expression: Expression) {
+        if (expression !is Expression.Var) {
+            error(expression, Diagnostic.Kind.NotAnAddressableValue)
+            return
+        }
+        val binding = ctx.resolver.resolve(expression.name)
+        if (binding !is Binding.ValBinding) {
+            error(expression, Diagnostic.Kind.NotAnAddressableValue)
+            return
+        }
+    }
+
+    private fun checkPipelineOperator(expression: Expression.PipelineOperator) {
+        checkCallLikeExpression(
+            callExpression= expression,
+            typeArgAnnotations = null,
+            callee = expression.rhs,
+            args = listOf(expression.lhs)
+        )
+    }
+
+    private fun checkIfExpression(expression: Expression.If) {
+        checkExpressionHasType(expression.condition, Type.Bool)
+        checkExpression(expression.trueBranch)
+        checkExpression(expression.falseBranch)
+
+        checkExpressionHasType(expression.falseBranch, expression.trueBranch.type)
+
+    }
+
+    private val Expression.type get() = ctx.analyzer.typeOfExpression(this)
 
     private fun checkNullPtrExpression(expression: Expression.NullPtr) {
 
@@ -276,8 +472,8 @@ class Checker(val ctx: Context) {
         if (moduleProperty != null) {
             return
         }
-        val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
-        if (ctx.analyzer.resolvePropertyBinding(expression) == null) {
+        if (!ctx.analyzer.isValidPropertyAccess(expression)) {
+            val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
             error(Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
         }
     }
@@ -290,42 +486,48 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun checkCallExpression(expression: Expression.Call) {
-        checkExpression(expression.callee)
-        expression.args.forEach { checkExpression(it.expression) }
-        expression.typeArgs?.let { args ->
+    private fun checkCallLikeExpression(
+        callExpression: Expression,
+        callee: Expression,
+        args: List<Expression>,
+        typeArgAnnotations: List<TypeAnnotation>?
+    ) {
+
+        checkExpression(callee)
+        args.forEach { checkExpression(it) }
+        typeArgAnnotations?.let { args ->
             args.forEach { checkTypeAnnotation(it) }
         }
 
-        val calleeType = ctx.analyzer.getCalleeType(expression)
+        val calleeType = ctx.analyzer.getCalleeType(callExpression)
         val fnTypeComponents = ctx.analyzer.getFunctionTypeComponents(calleeType)
         if (fnTypeComponents == null) {
-            error(expression.callee, Diagnostic.Kind.TypeNotCallable(calleeType))
+            error(callee, Diagnostic.Kind.TypeNotCallable(calleeType))
             return
         }
 
-        val receiver = ctx.analyzer.getCallReceiver(expression)
+        val receiver = ctx.analyzer.getCallReceiver(callExpression)
         val expectedArgSize = if (receiver == null) fnTypeComponents.from.size else fnTypeComponents.from.size - 1
-        if (expression.args.size > expectedArgSize) {
-            error(expression.callee, Diagnostic.Kind.TooManyArgs(expectedArgSize))
-        } else if (expression.args.size < expectedArgSize) {
-            error(expression.callee, Diagnostic.Kind.MissingArgs(expectedArgSize))
+        if (args.size > expectedArgSize) {
+            error(callee, Diagnostic.Kind.TooManyArgs(expectedArgSize))
+        } else if (args.size < expectedArgSize) {
+            error(callee, Diagnostic.Kind.MissingArgs(expectedArgSize))
         }
 
-        if (expression.typeArgs != null) {
+        if (typeArgAnnotations != null) {
             val expectedTypeArgs = fnTypeComponents.typeParams?.size ?: 0
-            if (expectedTypeArgs < expression.typeArgs.size) {
-                error(expression.callee, Diagnostic.Kind.TooManyTypeArgs)
+            if (expectedTypeArgs < typeArgAnnotations.size) {
+                error(callee, Diagnostic.Kind.TooManyTypeArgs)
             }
         }
-        val typeArgs = ctx.analyzer.getTypeArgs(expression)
+        val typeArgs = ctx.analyzer.getTypeArgs(callExpression)
         if (fnTypeComponents.traitRequirements != null) {
             val substitution = (fnTypeComponents.typeParams?: emptyList()).zip(typeArgs ?: emptyList())
                 .map { (p, arg) -> p.binder.location to arg }
                 .toMap()
 
             checkTraitInstances(
-                expression,
+                callExpression,
                 fnTypeComponents.traitRequirements.map { it.applySubstitution(substitution) }
             )
         }
@@ -336,13 +538,25 @@ class Checker(val ctx: Context) {
             } else {
                 fnTypeComponents.from
             }
-        fromTypes.zip(expression.args).forEach { (expectedType, arg) ->
-            val actualType = ctx.analyzer.typeOfExpression(arg.expression)
-            if (!actualType.isAssignableTo(expectedType)) {
+        val substitution = fnTypeComponents.typeParams?.zip(typeArgs ?: emptyList())
+            ?.map { (param, type) -> param.binder.location to type }
+            ?.toMap()
+            ?: emptyMap()
+        fromTypes.zip(args).forEach { (expectedType, arg) ->
+            val actualType = ctx.analyzer.typeOfExpression(arg)
+            if (!actualType.isAssignableTo(expectedType.applySubstitution(substitution))) {
                 error(arg, Diagnostic.Kind.TypeNotAssignable(destination = expectedType, source = actualType))
             }
         }
+    }
 
+    private fun checkCallExpression(expression: Expression.Call) {
+        return checkCallLikeExpression(
+            callee = expression.callee,
+            callExpression = expression,
+            args = expression.args.map { it.expression },
+            typeArgAnnotations = expression.typeArgs
+        )
     }
 
 
@@ -425,8 +639,9 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private val topLevelExpressionBindings = mutableMapOf<Name, Binder>()
+    private val topLevelExpressionBindingsByFile = mutableMapOf<SourcePath, MutableMap<Name, Binder>>()
     private fun checkTopLevelExpressionBinding(binder: Binder) {
+        val topLevelExpressionBindings = topLevelExpressionBindingsByFile.getOrPut(binder.location.file) { mutableMapOf() }
         if (binder.name in topLevelExpressionBindings) {
             error(binder, Diagnostic.Kind.DuplicateValueBinding(binder))
         } else {
@@ -434,8 +649,10 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private val topLevelTypeBindings = mutableMapOf<Name, Binder>()
+    private val topLevelTypeBindingsBySourcePath = mutableMapOf<SourcePath, MutableMap<Name, Binder>>()
     private fun checkTopLevelTypeBinding(binder: Binder) {
+        val topLevelTypeBindings = topLevelTypeBindingsBySourcePath.getOrPut(binder.location.file) { mutableMapOf() }
+        binder.location.file
         if (binder.name in topLevelTypeBindings) {
             error(binder, Diagnostic.Kind.DuplicateValueBinding(binder))
         } else {

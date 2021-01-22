@@ -188,7 +188,7 @@ class Analyzer(
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
         for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
-            if (isExtensionForType(expression.location, extensionDef, inferExpression(expression.lhs))) {
+            if (isExtensionForType(expression.location, extensionDef, typeOfExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
                     return binding
@@ -366,8 +366,14 @@ class Analyzer(
         if (cached != null) {
             return cached
         }
-        val def = requireNotNull(ctx.resolver.getEnclosingFunction(expression))
-        checkDeclaration(def)
+        val def = ctx.resolver.getEnclosingFunction(expression)
+        if (def != null) {
+            checkDeclaration(def)
+        } else {
+            val sourceFile = ctx.resolver.getSourceFile(expression.location.file)
+            sourceFile.declarations.forEach { checkDeclaration(it) }
+        }
+
         return requireNotNull(typeOfExpressionCache[expression]) {
             "${expression.location}"
         }
@@ -420,71 +426,9 @@ class Analyzer(
     }
 
     private fun checkImplementationDef(implDef: Declaration.ImplementationDef) {
-        implDef.typeParams?.forEach {
-            checkTypeParam(it)
-        }
-        val traitDef = ctx.resolver.resolveDeclaration(implDef.traitRef)
-        if (traitDef !is Declaration.TraitDef) {
-            error(implDef.traitRef, Diagnostic.Kind.NotATrait)
-        } else {
-            if (traitDef.params.size > implDef.traitArguments.size) {
-                error(implDef.traitRef, Diagnostic.Kind.TooFewTypeArgs)
-            }
-            if (traitDef.params.size < implDef.traitArguments.size) {
-                error(implDef.traitRef, Diagnostic.Kind.TooManyTypeArgs)
-            }
-        }
-        implDef.traitArguments.forEach { annotationToType(it) }
-        implDef.whereClause?.let { checkWhereClause(it) }
-
-        val expectedMethods = if (traitDef is Declaration.TraitDef) {
-            traitDef.expectedMethods(implDef.traitArguments.map { annotationToType(it) })
-        } else emptyMap()
-        val foundMethods = mutableSetOf<Name>()
-        for (declaration in implDef.body) {
-            checkDeclaration(declaration)
-            if (declaration !is Declaration.FunctionDef) {
-                error(declaration, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideImplDefs)
-            } else {
-                foundMethods.add(declaration.name.identifier.name)
-                val typeOfMethod = typeOfBinder(declaration.name)
-                require(typeOfMethod is Type.Ptr)
-                val actualType = typeOfMethod.to
-                val expectedType = expectedMethods[declaration.name.identifier.name]
-                if (expectedType != null && !isTypeAssignableTo(source = actualType, destination = expectedType)) {
-                    error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(expected = expectedType, found = actualType))
-                }
-            }
-        }
-
-        for (name in expectedMethods.keys) {
-            if (name !in foundMethods) {
-                error(implDef.traitRef, Diagnostic.Kind.MissingImplMethod(name))
-            }
-        }
-    }
-
-    private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
-        val map = mutableMapOf<Name, Type>()
-        val substitution = params.zip(typeArguments)
-            .map { it.first.binder.location to it.second }
-            .toMap()
-        for (method in signatures) {
-            val paramTypes = method.params
-                .map { it.annotation }
-                .map { if (it == null) Type.Error else annotationToType(it) }
-                .map { it.applySubstitution(substitution) }
-            val returnType = annotationToType(method.returnType).applySubstitution(substitution)
-            val fnType = Type.Function(
-                from = paramTypes,
-                to = returnType,
-                traitRequirements = null
-            )
-            map[method.name.identifier.name] = fnType
-        }
-        return map
 
     }
+
 
     private fun checkWhereClause(whereClause: WhereClause) {
         whereClause.traitRequirements.forEach {
@@ -530,7 +474,6 @@ class Analyzer(
         }
     }
 
-    var thisParamType: Type? = null
     private fun checkExtensionDef(declaration: Declaration.ExtensionDef) {
         val forType = annotationToType(declaration.forType)
         for (decl in declaration.declarations) {
@@ -539,18 +482,7 @@ class Analyzer(
                 continue
             }
             val functionDef: Declaration.FunctionDef = decl
-            val thisParamFlags = functionDef.signature.thisParamFlags
-            require(thisParamType == null)
-            if (thisParamFlags != null) {
-                thisParamType = if (thisParamFlags.isPointer) {
-                    Type.Ptr(
-                        forType,
-                        isMutable = thisParamFlags.isMutable
-                    )
-                } else forType
-            }
             checkFunctionDefDeclaration(functionDef)
-            thisParamType = null
         }
     }
 
@@ -562,19 +494,7 @@ class Analyzer(
         } else {
             inferExpression(declaration.initializer)
         }
-        when (type) {
-            is Type.CInt,
-            is Type.Bool,
-            is Type.Size,
-            is Type.Double,
-            is Type.Ptr,
-            is Type.Integral,
-            is Type.FloatingPoint
-            -> {}
-            else -> {
-                error(declaration.name, Diagnostic.Kind.NotAConst)
-            }
-        }
+
     }
 
 
@@ -1005,12 +925,18 @@ class Analyzer(
     }
 
     private fun inferThisExpression(expression: Expression.This): Type {
-        val thisType = thisParamType
-        if (thisType == null) {
-            error(expression, Diagnostic.Kind.UnboundThis)
+        val extensionDef = ctx.resolver.getEnclosingExtensionDef(expression)
+        val enclosingFunction = ctx.resolver.getEnclosingFunction(expression)
+        if (extensionDef == null || enclosingFunction == null || enclosingFunction.signature.thisParamFlags == null) {
             return Type.Error
         }
-        return thisType
+        val thisType = annotationToType(extensionDef.forType)
+        val thisParamFlags = enclosingFunction.signature.thisParamFlags
+        return if (thisParamFlags.isPointer) {
+            Type.Ptr(thisType, thisParamFlags.isMutable)
+        } else {
+            thisType
+        }
     }
 
     private fun inferPipelineOperator(expression: Expression.PipelineOperator): Type {
@@ -1542,8 +1468,10 @@ class Analyzer(
     }
 
     private val getTypeArgsCache = MutableNodeMap<Expression, List<Type>>()
-    fun getTypeArgs(expression: Expression): List<Type>? =
-        getTypeArgsCache[expression]?.map { reduceGenericInstances(it) }
+    fun getTypeArgs(expression: Expression): List<Type>? {
+        typeOfExpression(expression) // ensure that the surrounding context has been typed
+        return getTypeArgsCache[expression]?.map { reduceGenericInstances(it) }
+    }
 
 
     private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
@@ -1791,6 +1719,23 @@ class Analyzer(
             }
         })
 
+    }
+
+    fun isValidPropertyAccess(expression: Expression.Property): Boolean {
+        typeOfExpression(expression)
+        return resolvePropertyBinding(expression) != null
+    }
+
+    fun isCompileTimeConstant(initializer: Expression): Boolean {
+        return when (initializer) {
+            is Expression.IntLiteral,
+            is Expression.BoolLiteral,
+            is Expression.ByteString,
+            is Expression.Var, -> true
+            else -> {
+                false
+            }
+        }
     }
 
 }

@@ -8,6 +8,7 @@ import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
+import hadesc.frontend.Checker
 import hadesc.hir.HIRGen
 import hadesc.hir.passes.DesugarWhenExpressions
 import hadesc.hir.passes.SystemVABILowering
@@ -32,13 +33,15 @@ class Context(
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() = profile("Context::build") {
-        forEachSourceFile {
-            this.analyzer.enableDiagnostics()
-            for (declaration in it.declarations) {
-                analyzer.checkDeclaration(declaration)
+        analyzer.disableDiagnostics()
+
+        forEachSourceFile { sourceFile ->
+            sourceFile.declarations.forEach {
+//                analyzer.checkDeclaration(it)
             }
-            this.analyzer.disableDiagnostics()
         }
+
+        Checker(this).checkProgram()
 
         if (this.diagnosticReporter.hasErrors) {
             return

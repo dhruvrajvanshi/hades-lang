@@ -660,4 +660,8 @@ class Resolver(private val ctx: Context) {
         addScopeNode(expression.value.location.file, ScopeTree.WhenExpression(expression))
     }
 
+    fun getSourceFile(file: SourcePath): SourceFile {
+        return requireNotNull(sourceFiles[file])
+    }
+
 }

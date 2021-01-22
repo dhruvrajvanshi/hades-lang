@@ -1,0 +1,5 @@
+
+trait T {
+    def t(): Void;
+    def t(): Void;
+}
