@@ -890,7 +890,6 @@ class HIRGen(
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.name)
         )
-        is Binding.WhereParam -> TODO()
         is Binding.ClosureParam -> TODO()
         is Binding.SealedType -> TODO()
         is Binding.WhenArm -> requireUnreachable()

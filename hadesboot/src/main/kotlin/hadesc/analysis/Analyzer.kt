@@ -23,7 +23,6 @@ import kotlin.math.min
 class Analyzer(
         private val ctx: Context
 ) {
-    private var reportErrors = false
     private val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
 
@@ -291,7 +290,7 @@ class Analyzer(
 
     }
 
-    public fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
+    fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
         val structDecl = getStructDeclOfType(lhsType)
         return if (structDecl == null) null else {
             val index = structDecl.members.indexOfFirst {
@@ -368,10 +367,10 @@ class Analyzer(
         }
         val def = ctx.resolver.getEnclosingFunction(expression)
         if (def != null) {
-            checkDeclaration(def)
+            visitDeclaration(def)
         } else {
             val sourceFile = ctx.resolver.getSourceFile(expression.location.file)
-            sourceFile.declarations.forEach { checkDeclaration(it) }
+            sourceFile.declarations.forEach { visitDeclaration(it) }
         }
 
         return requireNotNull(typeOfExpressionCache[expression]) {
@@ -379,78 +378,13 @@ class Analyzer(
         }
     }
 
-    private val checkedDeclarationSet = MutableNodeMap<Declaration, Unit>()
-    fun checkDeclaration(declaration: Declaration) = checkedDeclarationSet.getOrPut(declaration) {
+    private val visitedDeclarationSet = MutableNodeMap<Declaration, Unit>()
+    private fun visitDeclaration(declaration: Declaration) = visitedDeclarationSet.getOrPut(declaration) {
         exhaustive(when (declaration) {
-            is Declaration.Error -> {}
-            is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
-            is Declaration.FunctionDef -> checkFunctionDefDeclaration(declaration)
-            is Declaration.ConstDefinition -> checkConstDefinition(declaration)
-            is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
-            is Declaration.Struct -> checkStructDeclaration(declaration)
-            is Declaration.TypeAlias -> checkTypeAliasDeclaration(declaration)
-            is Declaration.ExtensionDef -> checkExtensionDef(declaration)
-            is Declaration.TraitDef -> checkTraitDef(declaration)
-            is Declaration.ImplementationDef -> {}
-            is Declaration.ImportMembers -> checkImportMembers(declaration)
-            is Declaration.SealedType -> checkSealedTypeDeclaration(declaration)
+            is Declaration.FunctionDef -> visitFunctionDef(declaration)
+            is Declaration.ConstDefinition -> visitConstDef(declaration)
+            else -> Unit
         })
-    }
-
-    private fun checkSealedTypeDeclaration(declaration: Declaration.SealedType) {
-        for (case in declaration.cases) {
-            case.params?.forEach { case ->
-                if (case.annotation == null) {
-                    error(case.binder, Diagnostic.Kind.MissingTypeAnnotation)
-                }
-            }
-        }
-    }
-
-    private fun checkImportMembers(declaration: Declaration.ImportMembers) {
-        val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-        if (sourceFile == null) {
-            error(declaration.modulePath, Diagnostic.Kind.NoSuchModule)
-            return
-        }
-
-        declaration.names.forEach { name ->
-            if (ctx.resolver.findInSourceFile(name.name, sourceFile) == null
-                && ctx.resolver.findTypeInSourceFile(name.identifier, sourceFile) == null
-                && ctx.resolver.findTraitInSourceFile(name.identifier, sourceFile) == null
-            ) {
-                error(name, Diagnostic.Kind.NoSuchMember)
-            }
-        }
-
-    }
-
-    private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
-        val map = mutableMapOf<Name, Type>()
-        val substitution = params.zip(typeArguments)
-            .map { it.first.binder.location to it.second }
-            .toMap()
-        for (method in signatures) {
-            val paramTypes = method.params
-                .map { it.annotation }
-                .map { if (it == null) Type.Error else annotationToType(it) }
-                .map { it.applySubstitution(substitution) }
-            val returnType = annotationToType(method.returnType).applySubstitution(substitution)
-            val fnType = Type.Function(
-                from = paramTypes,
-                to = returnType,
-                traitRequirements = null
-            )
-            map[method.name.identifier.name] = fnType
-        }
-        return map
-
-    }
-
-    private fun checkWhereClause(whereClause: WhereClause) {
-        whereClause.traitRequirements.forEach {
-            checkTraitRequirement(it)
-        }
     }
 
     private val checkTraitRequirementCache = MutableNodeMap<TraitRequirementAnnotation, TraitRequirement?>()
@@ -468,45 +402,10 @@ class Analyzer(
 
     }
 
-    private fun checkTraitDef(declaration: Declaration.TraitDef) {
-        declaration.params.forEach { checkTypeParam(it) }
-        if (declaration.params.isEmpty()) {
-            error(declaration.name, Diagnostic.Kind.MissingTraitThisParam)
-        }
-        val methodSet = mutableMapOf<Name, SourceLocation>()
-        declaration.signatures.forEach {
-            checkFunctionSignature(it)
-            val existingBindingLocation = methodSet[it.name.identifier.name]
-            if (existingBindingLocation != null) {
-                error(it.name, Diagnostic.Kind.DuplicateDeclaration(existingBindingLocation))
-            }
-            methodSet[it.name.identifier.name] = it.location
-            if (it.thisParamFlags != null) {
-                error(it.name, Diagnostic.Kind.ReceiverParamsNotAllowedInTraitFunctions)
-            }
-            it.typeParams?.forEach { typeParam ->
-                error(typeParam, Diagnostic.Kind.TypeParamsNotAllowedInTraitFunctions)
-            }
-
-        }
-    }
-
-    private fun checkExtensionDef(declaration: Declaration.ExtensionDef) {
-        val forType = annotationToType(declaration.forType)
-        for (decl in declaration.declarations) {
-            if (decl !is Declaration.FunctionDef) {
-                error(decl.startLoc, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideExtensionDefs)
-                continue
-            }
-            val functionDef: Declaration.FunctionDef = decl
-            checkFunctionDefDeclaration(functionDef)
-        }
-    }
-
-    private fun checkConstDefinition(declaration: Declaration.ConstDefinition) {
+    private fun visitConstDef(declaration: Declaration.ConstDefinition) {
         val annotatedType = declaration.annotation?.let { annotationToType(it) }
 
-        val type = if (annotatedType != null) {
+        if (annotatedType != null) {
             checkExpression(declaration.initializer, annotatedType)
         } else {
             inferExpression(declaration.initializer)
@@ -514,67 +413,12 @@ class Analyzer(
 
     }
 
-
-    private fun checkStructDeclaration(declaration: Declaration.Struct) {
-        checkTypeNameBinder(declaration.binder)
-        checkValueNameBinder(declaration.binder)
-        declaration.typeParams?.forEach {
-            checkTypeParam(it)
-        }
-
-        fun checkMember(member: Declaration.Struct.Member) = when(member) {
-            is Declaration.Struct.Member.Field -> {
-                annotationToType(member.typeAnnotation)
-            }
-        }
-
-        for (member in declaration.members) {
-            checkMember(member)
-        }
-    }
-
-    private fun checkTypeParam(param: TypeParam) {
-        // TODO
-    }
-
-    private fun checkExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
-        declaration.paramTypes.forEach { annotationToType(it) }
-        annotationToType(declaration.returnType)
-    }
-
-    private fun checkImportAsDeclaration(declaration: Declaration.ImportAs) {
-        if (ctx.resolveSourceFile(declaration.modulePath) == null) {
-            error(declaration.modulePath, Diagnostic.Kind.NoSuchModule)
-        }
-    }
-
-    private fun checkTypeAliasDeclaration(
-        @Suppress("UNUSED_PARAMETER")
-        declaration: Declaration.TypeAlias
-    ) {
-        // TODO
-    }
-
-    private fun checkFunctionDefDeclaration(def: Declaration.FunctionDef) {
-        checkFunctionSignature(def.signature)
+    private fun visitFunctionDef(def: Declaration.FunctionDef) {
         val returnType = annotationToType(def.signature.returnType)
         returnTypeStack.push(returnType)
         checkBlock(def.body)
         returnTypeStack.pop()
 
-    }
-
-    private fun checkFunctionSignature(signature: FunctionSignature) {
-        signature.typeParams?.forEach {
-            checkTypeParam(it)
-        }
-        signature.params.forEach {
-            if (it.annotation != null) {
-                annotationToType(it.annotation)
-            }
-        }
-        signature.whereClause?.let { checkWhereClause(it) }
-        annotationToType(signature.returnType)
     }
 
     private fun checkBlock(block: Block) {
@@ -592,22 +436,22 @@ class Analyzer(
     }
 
     private fun checkStatement(statement: Statement): Unit = when(statement) {
-        is Statement.Return -> checkReturnStatement(statement)
-        is Statement.Val -> checkValStatement(statement)
-        is Statement.While -> checkWhileStatement(statement)
-        is Statement.If -> checkIfStatement(statement)
-        is Statement.LocalAssignment -> checkLocalAssignment(statement)
-        is Statement.MemberAssignment -> checkMemberAssignment(statement)
-        is Statement.PointerAssignment -> checkPointerAssignment(statement)
-        is Statement.Defer -> checkDeferStatement(statement)
-        is Statement.Error -> {}
+        is Statement.Return -> visitReturnStatement(statement)
+        is Statement.Val -> visitValStatement(statement)
+        is Statement.While -> visitWhileStatement(statement)
+        is Statement.If -> visitIfStatement(statement)
+        is Statement.LocalAssignment -> visitLocalAssignment(statement)
+        is Statement.MemberAssignment -> visitMemberAssignment(statement)
+        is Statement.PointerAssignment -> visitPointerAssignment(statement)
+        is Statement.Defer -> visitDeferStatement(statement)
+        is Statement.Error -> Unit
     }
 
-    private fun checkDeferStatement(statement: Statement.Defer) {
+    private fun visitDeferStatement(statement: Statement.Defer) {
         checkBlockMember(statement.blockMember)
     }
 
-    private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
+    private fun visitPointerAssignment(statement: Statement.PointerAssignment) {
         val valueType = inferExpression(statement.lhs)
         val ptrType = inferExpression(statement.lhs.expression)
 
@@ -622,13 +466,13 @@ class Analyzer(
         }
     }
 
-    private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
+    private fun visitLocalAssignment(statement: Statement.LocalAssignment) {
         return when (val binding = ctx.resolver.resolve(statement.name)) {
             is Binding.ValBinding -> {
                 if (!binding.statement.isMutable) {
                     error(statement.name, Diagnostic.Kind.AssignmentToImmutableVariable)
                 }
-                checkValStatement(binding.statement)
+                visitValStatement(binding.statement)
                 val type = typeOfBinding(binding)
                 checkExpression(statement.value, type)
                 Unit
@@ -637,13 +481,12 @@ class Analyzer(
                 error(statement.name, Diagnostic.Kind.UnboundVariable(statement.name.name))
             }
             else -> {
-                // TODO: Show a more helpful diagnostic here
                 error(statement.name, Diagnostic.Kind.NotAnAddressableValue)
             }
         }
     }
 
-    private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
+    private fun visitMemberAssignment(statement: Statement.MemberAssignment) {
         val lhsType = inferExpression(statement.lhs)
         checkExpression(statement.value, lhsType)
         val field = resolvePropertyBinding(statement.lhs)
@@ -679,18 +522,18 @@ class Analyzer(
         }
     }
 
-    private fun checkWhileStatement(statement: Statement.While) {
+    private fun visitWhileStatement(statement: Statement.While) {
         checkExpression(statement.condition, Type.Bool)
         checkBlock(statement.body)
     }
 
-    private fun checkIfStatement(statement: Statement.If) {
+    private fun visitIfStatement(statement: Statement.If) {
         checkExpression(statement.condition, Type.Bool)
         checkBlock(statement.ifTrue)
         statement.ifFalse?.let { checkBlock(it) }
     }
 
-    private fun checkReturnStatement(statement: Statement.Return) {
+    private fun visitReturnStatement(statement: Statement.Return) {
         if (statement.value != null) {
             val returnType = returnTypeStack.peek()
             if (returnType != null) {
@@ -701,23 +544,13 @@ class Analyzer(
         }
     }
 
-    private fun checkValStatement(statement: Statement.Val) {
+    private fun visitValStatement(statement: Statement.Val) {
         val expectedType = statement.typeAnnotation?.let { annotationToType(it) }
         if (expectedType != null) {
             checkExpression(statement.rhs, expectedType)
         } else {
             inferExpression(statement.rhs)
         }
-        checkValueNameBinder(statement.binder)
-    }
-
-    private fun checkTypeNameBinder(binder: Binder) {
-        // TODO
-    }
-
-    private fun checkValueNameBinder(
-        @Suppress("UNUSED_PARAMETER")
-        name: Binder) {
     }
 
     private fun isPredicateOperator(operator: BinaryOperator): Boolean {
@@ -746,10 +579,8 @@ class Analyzer(
                     if (!isTypeEqualityComparable(lhsType)) {
                         error(expression, Diagnostic.Kind.TypeNotEqualityComparable(lhsType))
                     }
-                } else if (isOrderPredicateOperator(expression.operator)) {
-                    if (!isTypeOrderComparable(lhsType)) {
-                        error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
-                    }
+                } else if (isOrderPredicateOperator(expression.operator) && !isTypeOrderComparable(lhsType)) {
+                    error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
                 }
                 Type.Bool
             } else {
@@ -799,22 +630,26 @@ class Analyzer(
         for (param in expression.params) {
             index++
             val expectedParamType = expectedParamTypes?.from?.getOrNull(index)
-            val type = if (param.annotation != null) {
-                val annotatedType = annotationToType(param.annotation)
-                if (expectedParamType != null) {
-                    checkAssignability(
-                        node = param.annotation,
-                        // params are contravariant
-                        destination = annotatedType,
-                        source = expectedParamType
-                    )
+            val type = when {
+                param.annotation != null -> {
+                    val annotatedType = annotationToType(param.annotation)
+                    if (expectedParamType != null) {
+                        checkAssignability(
+                            node = param.annotation,
+                            // params are contravariant
+                            destination = annotatedType,
+                            source = expectedParamType
+                        )
+                    }
+                    annotatedType
                 }
-                annotatedType
-            } else if (expectedParamType != null) {
-                expectedParamType
-            } else {
-                error(param, Diagnostic.Kind.MissingTypeAnnotation)
-                Type.Error
+                expectedParamType != null -> {
+                    expectedParamType
+                }
+                else -> {
+                    error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                    Type.Error
+                }
             }
             closureParamTypes[param.binder] = type
             paramTypes.add(type)
@@ -1099,15 +934,9 @@ class Analyzer(
         is Binding.ValBinding -> typeOfValRef(binding)
         is Binding.Struct -> typeOfStructValueRef(binding)
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
-        is Binding.WhereParam -> typeOfWhereParamBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
         is Binding.SealedType -> requireUnreachable()
         is Binding.WhenArm -> requireUnreachable()
-    }
-
-    private fun typeOfWhereParamBinding(binding: Binding.WhereParam): Type {
-        TODO()
-//        return binding.param.annotation?.let { annotationToType(it) } ?: Type.Error
     }
 
     private fun typeOfClosureParam(binding: Binding.ClosureParam): Type {
@@ -1670,17 +1499,7 @@ class Analyzer(
     }
 
     private fun error(node: HasLocation, kind: Diagnostic.Kind) {
-        if (reportErrors) {
-            ctx.diagnosticReporter.report(node.location, kind)
-        }
-    }
-
-    fun enableDiagnostics() {
-        reportErrors = true
-    }
-
-    fun disableDiagnostics() {
-        reportErrors = false
+        ctx.diagnosticReporter.report(node.location, kind)
     }
 
     fun getSealedTypeDeclaration(type: Type): Declaration.SealedType {

@@ -20,13 +20,6 @@ sealed class Binding {
         val param get() = declaration.params[index]
     }
 
-    data class WhereParam(
-            val index: Int,
-            val declaration: WhereBindingDeclaration
-    ) : Binding() {
-        val traitRequirement get() = declaration.traitRequirements[index]
-    }
-
     data class ValBinding(
             val statement: Statement.Val
     ) : Binding()

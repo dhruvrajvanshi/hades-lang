@@ -33,14 +33,6 @@ class Context(
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() = profile("Context::build") {
-        analyzer.disableDiagnostics()
-
-        forEachSourceFile { sourceFile ->
-            sourceFile.declarations.forEach {
-//                analyzer.checkDeclaration(it)
-            }
-        }
-
         Checker(this).checkProgram()
 
         if (this.diagnosticReporter.hasErrors) {
