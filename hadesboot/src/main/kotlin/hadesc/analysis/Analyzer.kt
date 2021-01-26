@@ -1468,6 +1468,13 @@ class Analyzer(
         }
     }
 
+    fun isSealedTypeConstructorCall(expression: Expression.TypeApplication): Boolean = when(expression.lhs) {
+        is Expression.Property -> {
+            resolvePropertyBinding(expression.lhs) is PropertyBinding.SealedTypeCaseConstructor
+        }
+        else -> false
+    }
+
 }
 
 private class MutableNodeMap<T : HasLocation, V> {

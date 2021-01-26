@@ -597,26 +597,22 @@ class HIRGen(
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
-        val args = ctx.analyzer.getTypeArgs(expression.lhs)
-        if (args != null) {
-            return HIRExpression.Call(
-                expression.location,
-                typeOfExpression(expression),
-                callee = HIRExpression.TypeApplication(
-                    expression.location,
-                    typeOfExpression(expression),
-                    expression = lowerExpression(expression.lhs),
-                    args = args
-                ),
-                args = emptyList()
-            )
-        }
-        return HIRExpression.TypeApplication(
+        val args = requireNotNull(ctx.analyzer.getTypeArgs(expression.lhs))
+        val typeApplication = HIRExpression.TypeApplication(
             expression.location,
             typeOfExpression(expression),
             expression = lowerExpression(expression.lhs),
             args = expression.args.map { lowerTypeAnnotation(it) }
         )
+        if (ctx.analyzer.isSealedTypeConstructorCall(expression)) {
+            return HIRExpression.Call(
+                expression.location,
+                typeOfExpression(expression),
+                callee = typeApplication,
+                args = emptyList()
+            )
+        }
+        return typeApplication
     }
 
     private fun lowerUnsafeCast(expression: Expression.UnsafeCast): HIRExpression {
