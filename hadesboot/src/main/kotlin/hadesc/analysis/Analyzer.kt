@@ -37,7 +37,6 @@ class Analyzer(
             if (binding is Binding.SealedType) {
                 val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
                 if (case == null) {
-                    error(expression.property, Diagnostic.Kind.NoSuchMember)
                     return null
                 }
                 val type = typeOfSealedTypeCase(binding.declaration, case)
@@ -66,9 +65,7 @@ class Analyzer(
         if (extensionBinding != null) {
             return extensionBinding
         }
-
-        error(expression.property, Diagnostic.Kind.NoSuchProperty(
-            inferExpression(expression.lhs), expression.property.name))
+        inferExpression(expression.lhs)
         return null
     }
 
@@ -394,7 +391,6 @@ class Analyzer(
             annotationToType(it)
         }
         if (declaration !is Declaration.TraitDef) {
-            error(requirement.path, Diagnostic.Kind.NotATrait)
             null
         } else {
             TraitRequirement(ctx.resolver.qualifiedName(declaration.name), args ?: listOf())
@@ -456,13 +452,11 @@ class Analyzer(
         val ptrType = inferExpression(statement.lhs.expression)
 
         if (ptrType !is Type.Ptr) {
-            error(statement.lhs, Diagnostic.Kind.NotAPointerType(ptrType))
             inferExpression(statement.value)
             return
         }
         checkExpression(statement.value, valueType)
         if (!ptrType.isMutable) {
-            error(statement.lhs, Diagnostic.Kind.ValNotMutable)
         }
     }
 
@@ -470,7 +464,6 @@ class Analyzer(
         return when (val binding = ctx.resolver.resolve(statement.name)) {
             is Binding.ValBinding -> {
                 if (!binding.statement.isMutable) {
-                    error(statement.name, Diagnostic.Kind.AssignmentToImmutableVariable)
                 }
                 visitValStatement(binding.statement)
                 val type = typeOfBinding(binding)
@@ -478,10 +471,8 @@ class Analyzer(
                 Unit
             }
             null -> {
-                error(statement.name, Diagnostic.Kind.UnboundVariable(statement.name.name))
             }
             else -> {
-                error(statement.name, Diagnostic.Kind.NotAnAddressableValue)
             }
         }
     }
@@ -491,34 +482,25 @@ class Analyzer(
         checkExpression(statement.value, lhsType)
         val field = resolvePropertyBinding(statement.lhs)
         if (field !is PropertyBinding.StructField) {
-            error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
             return
         }
 
         if (statement.lhs.lhs !is Expression.Var) {
-            error(statement.lhs.lhs, Diagnostic.Kind.NotAnAddressableValue)
         } else {
             val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
             if (binding == null) {
-                error(statement.lhs.lhs, Diagnostic.Kind.UnboundVariable(statement.lhs.lhs.name.name))
                 return
             }
             if (binding !is Binding.ValBinding) {
-                error(statement.lhs, Diagnostic.Kind.NotAnAddressableValue)
                 return
             }
             if (!binding.statement.isMutable) {
-                error(statement.lhs.lhs, Diagnostic.Kind.ValNotMutable)
             }
         }
     }
 
     private fun checkAssignability(node: HasLocation, source: Type, destination: Type) {
         if (!isTypeAssignableTo(destination = destination, source = source)) {
-            error(node, Diagnostic.Kind.TypeNotAssignable(
-                source = reduceGenericInstances(source),
-                destination = reduceGenericInstances(destination)
-            ))
         }
     }
 
@@ -577,10 +559,8 @@ class Analyzer(
                 checkExpression(expression.rhs, lhsType)
                 if (isEqualityCheckingOperator(expression.operator)) {
                     if (!isTypeEqualityComparable(lhsType)) {
-                        error(expression, Diagnostic.Kind.TypeNotEqualityComparable(lhsType))
                     }
                 } else if (isOrderPredicateOperator(expression.operator) && !isTypeOrderComparable(lhsType)) {
-                    error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
                 }
                 Type.Bool
             } else {
@@ -647,7 +627,6 @@ class Analyzer(
                     expectedParamType
                 }
                 else -> {
-                    error(param, Diagnostic.Kind.MissingTypeAnnotation)
                     Type.Error
                 }
             }
@@ -660,7 +639,6 @@ class Analyzer(
                 if (expectedReturnType == null) {
                     // TODO: We can infer block return types using the return statement
                     //       inside the closure if it exists. For now, we can just show an error
-                    error(expression.body.block.startToken, Diagnostic.Kind.ReturnTypeNotInferred)
                 }
                 checkBlock(expression.body.block)
                 expectedReturnType ?: Type.Error
@@ -691,7 +669,6 @@ class Analyzer(
 
     private fun checkNullPtrExpression(expression: Expression.NullPtr, expectedType: Type): Type {
         if (expectedType !is Type.Ptr) {
-            error(expression, Diagnostic.Kind.NotAPointerType(expectedType))
         }
         return expectedType
     }
@@ -737,7 +714,6 @@ class Analyzer(
         inferExpression(expression.value)
         val firstArmExpr = expression.arms.firstOrNull()
         if (firstArmExpr == null) {
-            error(expression.value, Diagnostic.Kind.NonExhaustivePatterns)
             return Type.Error
         }
         val type = inferExpression(firstArmExpr.value)
@@ -771,7 +747,6 @@ class Analyzer(
             getTypeArgsCache[expression.lhs] = expression.args.map { annotationToType(it) }
             lhsType.body.applySubstitution(substitution)
         } else {
-            error(expression, Diagnostic.Kind.InvalidTypeApplication)
             Type.Error
         }
     }
@@ -812,14 +787,12 @@ class Analyzer(
     private fun checkConstructorFunction(path: QualifiedPath): Type {
         return when (val declaration = ctx.resolver.resolveDeclaration(path)) {
             null -> {
-                error(path, Diagnostic.Kind.UnboundTypePath(path))
                 Type.Error
             }
             is Declaration.Struct -> {
                 typeOfBinder(declaration.binder)
             }
             else -> {
-                error(path, Diagnostic.Kind.NotAConstructor)
                 Type.Error
             }
         }
@@ -828,7 +801,6 @@ class Analyzer(
     private fun inferDerefExpression(expression: Expression.Deref): Type {
         val ptrType = inferExpression(expression.expression)
         return if (ptrType !is Type.Ptr) {
-            error(expression, Diagnostic.Kind.NotAPointerType(ptrType))
             Type.Error
         } else {
             ptrType.to
@@ -852,7 +824,6 @@ class Analyzer(
                 Type.Bool
             } else {
                 inferExpression(expression.rhs)
-                error(expression.location, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
                 Type.Error
             }
         }
@@ -862,7 +833,6 @@ class Analyzer(
         val targetPointerToType = annotationToType(expression.toType)
         val argType = inferExpression(expression.arg)
         return if (argType !is Type.Ptr) {
-            error(expression.toType, Diagnostic.Kind.NotAPointerType(argType))
             Type.Ptr(targetPointerToType, isMutable = true)
         } else {
             Type.Ptr(targetPointerToType, isMutable = argType.isMutable)
@@ -870,7 +840,6 @@ class Analyzer(
     }
 
     private fun inferNullPtrExpression(expression: Expression.NullPtr): Type {
-        error(expression, Diagnostic.Kind.MissingTypeAnnotation)
         return Type.Error
     }
 
@@ -920,7 +889,6 @@ class Analyzer(
     private fun inferVarExpresion(expression: Expression.Var): Type {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
             null -> {
-                error(expression.name, Diagnostic.Kind.UnboundVariable(expression.name.name))
                 Type.Error
             }
             else -> typeOfBinding(binding)
@@ -1077,7 +1045,6 @@ class Analyzer(
             for (arg in args) {
                 inferExpression(arg.expression)
             }
-            error(callNode, Diagnostic.Kind.TypeNotCallable(calleeType))
             Type.Error
         } else {
             val substitution = instantiateSubstitution(
@@ -1117,11 +1084,7 @@ class Analyzer(
     private fun checkTraitInstances(callNode: Expression, requiredInstances: List<TraitRequirement>) {
         for (requirement in requiredInstances) {
             if (!isTraitRequirementSatisfied(callNode, requirement)) {
-                error(callNode, Diagnostic.Kind.TraitRequirementNotSatisfied(
-                        TraitRequirement(
-                                requirement.traitRef,
-                                requirement.arguments.map { reduceGenericInstances(it) })
-                ))
+
             }
         }
     }
@@ -1273,13 +1236,6 @@ class Analyzer(
             args: List<Expression>,
             functionType: FunctionTypeComponents
     ) {
-        if (args.size < functionType.from.size) {
-            error(callNode, Diagnostic.Kind.MissingArgs(required = functionType.from.size))
-        }
-
-        if (args.size > functionType.from.size) {
-            error(callNode, Diagnostic.Kind.TooManyArgs(required = functionType.from.size))
-        }
     }
 
     fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
@@ -1364,7 +1320,6 @@ class Analyzer(
     private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
         val binding = ctx.resolver.resolveQualifiedType(annotation.qualifiedPath)
         return if (binding == null) {
-            error(annotation, Diagnostic.Kind.UnboundTypePath(annotation.qualifiedPath))
             Type.Error
         } else {
             return typeOfTypeBinding(binding)
@@ -1442,9 +1397,6 @@ class Analyzer(
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
         val resolved = resolveTypeVariable(annotation)
-        if (resolved == null) {
-            error(annotation, Diagnostic.Kind.UnboundType(annotation.name.name))
-        }
         return resolved ?: Type.Error
     }
 
@@ -1496,10 +1448,6 @@ class Analyzer(
                 }
             }
         }.lowerType(type)
-    }
-
-    private fun error(node: HasLocation, kind: Diagnostic.Kind) {
-        ctx.diagnosticReporter.report(node.location, kind)
     }
 
     fun getSealedTypeDeclaration(type: Type): Declaration.SealedType {
