@@ -575,6 +575,7 @@ class Analyzer(
     }
 
     private val closureParamTypes = mutableMapOf<Binder, Type>()
+    private val inferredParamTypes = MutableNodeMap<Binder, Type>()
     private fun checkOrInferClosureExpression(expression: Expression.Closure, expectedType: Type?): Type {
         val functionTypeComponents = expectedType?.let { getFunctionTypeComponents(it) }
         val expectedReturnType = functionTypeComponents?.to ?: expression.returnType?.let { annotationToType(it) }
@@ -602,6 +603,7 @@ class Analyzer(
                     annotatedType
                 }
                 expectedParamType != null -> {
+                    inferredParamTypes[param.binder] = expectedParamType
                     expectedParamType
                 }
                 else -> {
@@ -630,6 +632,20 @@ class Analyzer(
             to = returnType,
             traitRequirements = null
         )
+    }
+
+    fun getInferredParamType(param: Param): Type? {
+        val function = ctx.resolver.getEnclosingFunction(param)
+        if (function == null) {
+            ctx.resolver.getSourceFile(param.binder.location.file).let { sourceFile ->
+                sourceFile.declarations.forEach {
+                    visitDeclaration(it)
+                }
+            }
+        } else {
+            visitDeclaration(function)
+        }
+        return inferredParamTypes[param.binder]
     }
 
     private fun isTypeOrderComparable(type: Type): Boolean {

@@ -462,11 +462,26 @@ class Checker(val ctx: Context) {
             is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
             is Expression.New -> TODO()
             is Expression.This -> TODO()
-            is Expression.Closure -> TODO()
+            is Expression.Closure -> checkClosureExpression(expression)
             is Expression.TraitMethodCall -> checkTraitMethodCall(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
         })
+    }
+
+    private fun checkClosureExpression(expression: Expression.Closure) {
+        val expressionType = expression.type
+        require(expressionType is Type.Function)
+        val returnType = expressionType.to
+        returnTypeStack.push(returnType)
+        checkFunctionParams(expression.params)
+        expression.returnType?.let { checkTypeAnnotation(it) }
+
+        when (expression.body) {
+            is ClosureBody.Block -> checkBlock(expression.body.block)
+            is ClosureBody.Expression -> checkExpressionHasType(expression.body.expression, returnType)
+        }
+        returnTypeStack.pop()
     }
 
     private fun checkWhenExpression(expression: Expression.When) {
@@ -719,7 +734,9 @@ class Checker(val ctx: Context) {
         val binders = mutableMapOf<Name, Binder>()
         for (param in params) {
             if (param.annotation == null) {
-                error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                if (ctx.analyzer.getInferredParamType(param) == null) {
+                    error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                }
             } else {
                 checkTypeAnnotation(param.annotation)
             }
