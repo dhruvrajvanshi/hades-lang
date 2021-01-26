@@ -538,10 +538,37 @@ class HIRGen(
         is Expression.New -> TODO()
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
-        is Expression.Closure -> TODO()
+        is Expression.Closure -> lowerClosure(expression)
         is Expression.TraitMethodCall -> lowerTraitMethodCall(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
+    }
+
+    private fun lowerClosure(expression: Expression.Closure): HIRExpression {
+        val body = when (expression.body) {
+            is ClosureBody.Block -> lowerBlock(expression.body.block)
+            is ClosureBody.Expression -> HIRBlock(
+                expression.body.location,
+                listOf(
+                    HIRStatement.Return(
+                        expression.body.location,
+                        lowerExpression(expression.body.expression)
+                    )
+                )
+            )
+        }
+        return HIRExpression.Closure(
+            expression.location,
+            typeOfExpression(expression),
+            expression.params.map {
+                HIRParam(
+                    it.location,
+                    it.binder.name,
+                    ctx.analyzer.getParamType(it))
+            },
+            ctx.analyzer.getReturnType(expression),
+            body
+        )
     }
 
     private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
@@ -886,7 +913,11 @@ class HIRGen(
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.name)
         )
-        is Binding.ClosureParam -> TODO()
+        is Binding.ClosureParam -> HIRExpression.ParamRef(
+            expression.location,
+            typeOfExpression(expression),
+            lowerLocalBinder(binding.param.binder)
+        )
         is Binding.SealedType -> TODO()
         is Binding.WhenArm -> requireUnreachable()
     }

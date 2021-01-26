@@ -268,7 +268,7 @@ class IRGen(
         is HIRExpression.TraitMethodCall -> requireUnreachable()
         is HIRExpression.UnsafeCast -> lowerUnsafeCast(expression)
         is HIRExpression.When -> requireUnreachable()
-//            lowerWhenExpression(expression)
+        is HIRExpression.Closure -> requireUnreachable()
     }
 
 //    private fun lowerWhenExpression(expression: HIRExpression.When): IRValue {

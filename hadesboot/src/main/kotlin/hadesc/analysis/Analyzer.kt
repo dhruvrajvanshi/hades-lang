@@ -574,7 +574,7 @@ class Analyzer(
         return type
     }
 
-    private val closureParamTypes = mutableMapOf<Binder, Type>()
+    private val closureParamTypes = MutableNodeMap<Binder, Type>()
     private val inferredParamTypes = MutableNodeMap<Binder, Type>()
     private fun checkOrInferClosureExpression(expression: Expression.Closure, expectedType: Type?): Type {
         val functionTypeComponents = expectedType?.let { getFunctionTypeComponents(it) }
@@ -1489,6 +1489,19 @@ class Analyzer(
             resolvePropertyBinding(expression.lhs) is PropertyBinding.SealedTypeCaseConstructor
         }
         else -> false
+    }
+
+    fun getParamType(param: Param): Type {
+        return requireNotNull(closureParamTypes[param.binder])
+    }
+
+    fun getReturnType(expression: Expression): Type {
+        val exprType = typeOfExpression(expression)
+        return if (exprType is Type.Function) {
+            exprType.to
+        } else {
+            Type.Error
+        }
     }
 
 }

@@ -182,6 +182,17 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.TraitMethodCall -> transformTraitMethodCall(expression)
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.When -> transformWhenExpression(expression)
+        is HIRExpression.Closure -> transformClosure(expression)
+    }
+
+    fun transformClosure(expression: HIRExpression.Closure): HIRExpression {
+        return HIRExpression.Closure(
+            expression.location,
+            lowerType(expression.type),
+            expression.params.map { transformParam(it) },
+            lowerType(expression.returnType),
+            transformBlock(expression.body)
+        )
     }
 
     fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
