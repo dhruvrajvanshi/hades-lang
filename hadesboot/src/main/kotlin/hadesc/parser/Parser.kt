@@ -9,6 +9,7 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
@@ -101,17 +102,61 @@ class Parser(
             tt.STRUCT -> parseStructDeclaration(decorators = listOf())
             tt.EXTERN -> parseExternFunctionDef()
             tt.CONST -> parseConstDef()
-            tt.ENUM -> parseEnumDeclaration()
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.EXTENSION -> parseExtensionDef()
             tt.TRAIT -> parseTraitDef()
             tt.IMPLEMENTATION -> parseImplementationDef()
+            tt.SEALED -> parseSealedDef()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseSealedDef(): Declaration {
+        val start = expect(tt.SEALED)
+        expect(tt.TYPE)
+        val name = parseBinder()
+        val typeParams = parseOptionalTypeParams()
+        expect(tt.LBRACE)
+        val cases = buildList {
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                add(parseSealedTypeCase())
+                expect(tt.SEMICOLON)
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.SealedType(
+            makeLocation(start, stop),
+            name,
+            typeParams,
+            cases
+        )
+    }
+
+    private fun parseSealedTypeCase(): Declaration.SealedType.Case {
+        val name = parseBinder()
+        val params = if (at(tt.LPAREN)) {
+            advance()
+            val list = buildList {
+                var first = true
+                while (!at(tt.RPAREN) && !at(tt.EOF)) {
+                    if (!first) {
+                        expect(tt.COMMA)
+                    }
+                    first = false
+                    add(parseParam())
+                }
+            }
+            expect(tt.RPAREN)
+            list
+        } else null
+        return Declaration.SealedType.Case(
+            name,
+            params
+        )
     }
 
     private fun parseImplementationDef(): Declaration {
@@ -264,41 +309,6 @@ class Parser(
 
     }
 
-    private fun parseEnumDeclaration(): Declaration {
-        val start = expect(tt.ENUM)
-        val binder = parseBinder()
-        val typeParams = parseOptionalTypeParams()
-        expect(tt.LBRACE)
-        val cases = buildList {
-            while (at(tt.ID)) {
-                add(parseEnumDeclarationCase())
-                expect(tt.SEMICOLON)
-            }
-        }
-        val stop = expect(tt.RBRACE)
-        return Declaration.Enum(
-                makeLocation(start, stop),
-                binder,
-                typeParams,
-                cases
-        )
-    }
-
-    private fun parseEnumDeclarationCase(): Declaration.Enum.Case {
-        val name = parseBinder()
-        val params = buildList {
-            if (at(tt.LPAREN)) {
-                advance()
-                addAll(parseSeperatedList(tt.COMMA, tt.RPAREN) { parseTypeAnnotation() })
-                expect(tt.RPAREN)
-            }
-        }
-        return Declaration.Enum.Case(
-                name,
-                params
-        )
-    }
-
     private fun parseStructDeclaration(decorators: List<Decorator>): Declaration {
         val start = expect(tt.STRUCT)
         val binder = parseBinder()
@@ -392,12 +402,12 @@ class Parser(
         if (at(tt.LBRACE)) {
             advance()
             var isFirst = true
-            val names = mutableListOf<Identifier>()
+            val names = mutableListOf<Binder>()
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
                 if (!isFirst) {
                     expect(tt.COMMA)
                 }
-                names.add(parseIdentifier())
+                names.add(parseBinder())
                 isFirst = false
             }
             val end = expect(tt.RBRACE)
@@ -787,20 +797,6 @@ class Parser(
                         falseBranch
                 )
             }
-            tt.MATCH -> {
-                val start = advance()
-                val value = parseExpression()
-                expect(tt.LBRACE)
-                val arms = parseSeperatedList(tt.COMMA, tt.RBRACE) {
-                    parseMatchArm()
-                }
-                val stop = expect(tt.RBRACE)
-                Expression.Match(
-                        makeLocation(start, stop),
-                        value,
-                        arms
-                )
-            }
             tt.NEW -> {
                 val start = advance()
                 val path = parseQualifiedPath()
@@ -827,12 +823,65 @@ class Parser(
             }
             tt.VBAR -> parseClosureExpression()
             tt.TRAIT -> parseTraitMethodCall()
+            tt.WHEN -> parseWhenExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         return parseExpressionTail(head)
+    }
+
+    private fun parseWhenExpression(): Expression {
+        val start = expect(tt.WHEN)
+        val value = parseExpression()
+        expect(tt.LBRACE)
+        val arms = buildList {
+            var first = true
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                if (!first) {
+                    expect(tt.COMMA)
+                }
+                first = false
+                add(parseWhenArm())
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        val result = Expression.When(
+            makeLocation(start, stop),
+            value,
+            arms
+        )
+        ctx.resolver.onParseWhenExpression(result)
+        return result
+    }
+
+    private fun parseWhenArm(): Expression.WhenArm {
+        val result = if (currentToken.kind == tt.IS) {
+            advance()
+            val name = if (tokenBuffer.peek(1).kind == tt.COLON) {
+                val binder = parseBinder()
+                expect(tt.COLON)
+                binder
+            } else {
+                null
+            }
+            val caseName = parseIdentifier()
+            expect(tt.ARROW)
+            val value = parseExpression()
+            Expression.WhenArm.Is(
+                name,
+                caseName,
+                value
+            )
+        } else {
+            expect(tt.ELSE)
+            expect(tt.ARROW)
+            val value = parseExpression()
+            Expression.WhenArm.Else(value)
+        }
+        ctx.resolver.onParseWhenArm(result)
+        return result
     }
 
     private fun parseTraitMethodCall(): Expression {
@@ -872,42 +921,6 @@ class Parser(
         )
         ctx.resolver.onParseClosure(closure)
         return closure
-    }
-
-    private fun parseMatchArm(): Expression.Match.Arm {
-        val pattern = parsePattern()
-        expect(tt.ARROW)
-        val expression = parseExpression()
-        val arm = Expression.Match.Arm(
-                pattern, expression
-        )
-        ctx.resolver.onParseMatchArm(arm)
-        return arm
-    }
-
-    private fun parsePattern(): Pattern = when (currentToken.kind) {
-        tt.ID -> {
-            Pattern.Name(parseBinder())
-        }
-        tt.DOT -> {
-            advance()
-            val name = parseIdentifier()
-            val params = buildList {
-                if (at(tt.LPAREN)) {
-                    advance()
-                    addAll(parseSeperatedList(tt.COMMA, tt.RPAREN) { parsePattern() })
-                    expect(tt.RPAREN)
-                }
-            }
-            Pattern.DotName(name, params)
-        }
-        tt.ELSE -> {
-            Pattern.Else(advance().location)
-        }
-        else -> {
-            val location = advance().location
-            syntaxError(location, Diagnostic.Kind.PatternExpected)
-        }
     }
 
     private fun parseExpressionByteString(): Expression {

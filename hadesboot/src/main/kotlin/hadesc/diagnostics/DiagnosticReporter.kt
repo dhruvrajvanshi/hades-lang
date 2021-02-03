@@ -58,7 +58,6 @@ data class Diagnostic(
         object TooFewTypeArgs : Diagnostic.Kind(Severity.ERROR)
         object NotATrait : Diagnostic.Kind(Severity.ERROR)
         object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
-        data class NoImplementationFound(val requirement: TraitRequirement) : Diagnostic.Kind(Severity.ERROR)
         object PatternExpected : Diagnostic.Kind(Severity.ERROR)
         object ExpectedEnumType : Diagnostic.Kind(Severity.ERROR)
         object NestedPatternsNotAllowed : Diagnostic.Kind(Severity.ERROR)
@@ -88,8 +87,14 @@ data class Diagnostic(
         object OnlyFunctionDefsAllowedInsideImplDefs : Diagnostic.Kind(Severity.ERROR)
         object ReturnTypeNotInferred : Diagnostic.Kind(Severity.ERROR)
         object NoSuchMember : Diagnostic.Kind(Severity.ERROR)
+        object ReturningFromVoidFunction : Diagnostic.Kind(Severity.ERROR)
+        object MissingThisParam : Diagnostic.Kind(Severity.ERROR)
+        data class TraitRequirementNotSatisfied(val requirement: TraitRequirement) : Diagnostic.Kind(Severity.ERROR)
+
         data class MissingImplMethod(val name: Name) : Diagnostic.Kind(Severity.ERROR)
         data class TraitMethodTypeMismatch(val expected: Type, val found: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class DuplicateTypeBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
+        data class DuplicateValueBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -117,7 +122,6 @@ data class Diagnostic(
             is TooManyTypeArgs -> "Too many type args"
             NotATrait -> "Not a trait"
             UnboundThisType -> "This type not allowed here"
-            is NoImplementationFound -> "No implementation found for ${requirement.prettyPrint()}"
             PatternExpected -> "Pattern expected"
             TooFewTypeArgs -> "Too few type arguments"
             ExpectedEnumType -> "Expected an enum type"
@@ -153,6 +157,11 @@ data class Diagnostic(
             NoSuchMember -> "No such member."
             is MissingImplMethod -> "Missing implementation for method '${name.text}'."
             is TraitMethodTypeMismatch -> "Trait method type mismatch: expected: ${expected.prettyPrint()}, found ${found.prettyPrint()}"
+            is DuplicateTypeBinding -> "Duplicate type binding."
+            is DuplicateValueBinding -> "Duplicate value binding."
+            ReturningFromVoidFunction -> "Void functions can't return a value."
+            MissingThisParam -> "Missing this param."
+            is TraitRequirementNotSatisfied -> "Trait requirement (${requirement.prettyPrint()}) not satisfied."
         }
 
     }

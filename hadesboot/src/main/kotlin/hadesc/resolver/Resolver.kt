@@ -7,6 +7,7 @@ import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Type
 
 @OptIn(ExperimentalStdlibApi::class)
 class Resolver(private val ctx: Context) {
@@ -40,6 +41,29 @@ class Resolver(private val ctx: Context) {
                 return binding
             }
         }
+        val builtinType = when (ident.name.text) {
+            "Int" -> Type.CInt
+            "Bool" -> Type.Bool
+            "Byte" -> Type.Byte
+            "Size" -> Type.Size
+            "Double" -> Type.Double
+            "Void" -> Type.Void
+            "u8" -> Type.Integral(8, false)
+            "i8" -> Type.Integral(8, true)
+            "u16" -> Type.Integral(16, false)
+            "i16" -> Type.Integral(16, true)
+            "u32" -> Type.Integral(32, false)
+            "i32" -> Type.Integral(32, true)
+            "u64" -> Type.Integral(64, false)
+            "i64" -> Type.Integral(64, true)
+            "f16" -> Type.FloatingPoint(16)
+            "f32" -> Type.FloatingPoint(32)
+            "f64" -> Type.FloatingPoint(64)
+            else -> null
+        }
+        if (builtinType != null) {
+            return TypeBinding.Builtin(builtinType)
+        }
         return null
     }
 
@@ -67,19 +91,16 @@ class Resolver(private val ctx: Context) {
                 }
             }
         }
-        is ScopeTree.Enum -> {
-            val param = scopeNode.declaration.typeParams?.find {
+        is ScopeTree.SealedTypeDef -> {
+            val param = scopeNode.declaration.typeParams?.findLast {
                 it.binder.identifier.name == ident.name
             }
-            when {
-                param != null -> TypeBinding.TypeParam(param.binder)
-                ident.name == scopeNode.declaration.name.identifier.name -> {
-                    TypeBinding.Enum(scopeNode.declaration)
-                }
-                else -> null
+            if (param != null) {
+                TypeBinding.TypeParam(param.binder)
+            } else {
+                null
             }
         }
-        is ScopeTree.MatchArm -> null
         is ScopeTree.TypeAlias -> {
             val param = scopeNode.declaration.typeParams?.find {
                 it.binder.identifier.name == ident.name
@@ -106,6 +127,8 @@ class Resolver(private val ctx: Context) {
             }?.let { TypeBinding.TypeParam(it.binder) }
         }
         is ScopeTree.Closure -> null
+        is ScopeTree.WhenArm -> null
+        is ScopeTree.WhenExpression -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -122,12 +145,12 @@ class Resolver(private val ctx: Context) {
         for (declaration in sourceFile.declarations) {
             val binding = if (declaration is Declaration.Struct && declaration.binder.identifier.name == ident.name) {
                 TypeBinding.Struct(declaration)
-            } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
-                TypeBinding.Enum(declaration)
             } else if (declaration is Declaration.TypeAlias && declaration.name.identifier.name == ident.name) {
                 TypeBinding.TypeAlias(declaration)
             } else if (declaration is Declaration.TraitDef && declaration.name.identifier.name == ident.name) {
                 TypeBinding.Trait(declaration)
+            } else if (declaration is Declaration.SealedType && declaration.name.identifier.name == ident.name) {
+                TypeBinding.SealedType(declaration)
             } else if (declaration is Declaration.ImportMembers) {
                 val binding = declaration.names.find { it.name == ident.name }
                 val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
@@ -151,42 +174,31 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.SourceFile -> findInSourceFile(ident.name, scope.sourceFile)
         is ScopeTree.Block -> findInBlock(ident, scope)
         is ScopeTree.Struct -> null
-        is ScopeTree.Enum -> null
-        is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
         is ScopeTree.TraitDef -> null
         is ScopeTree.ImplementationDef -> findInImplementationDef(ident, scope)
         is ScopeTree.Closure -> findInClosure(ident, scope)
+        is ScopeTree.SealedTypeDef -> null
+        is ScopeTree.WhenArm -> findInWhenArm(ident, scope)
+        is ScopeTree.WhenExpression -> null
+    }
+
+    private fun findInWhenArm(ident: Identifier, scope: ScopeTree.WhenArm): Binding? {
+        return when (scope.whenArm) {
+            is Expression.WhenArm.Is -> {
+                if (scope.whenArm.name?.identifier?.name == ident.name) {
+                    Binding.WhenArm(scope.whenArm)
+                } else {
+                    null
+                }
+            }
+            is Expression.WhenArm.Else -> null
+        }
     }
 
     private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
         return null
-    }
-
-    private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
-        return findInPattern(ident, scope.arm.pattern)
-    }
-
-    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when (pattern) {
-        is Pattern.DotName -> {
-            var binding: Binding? = null
-            for (param in pattern.params) {
-                val found = findInPattern(ident, param)
-                if (found != null) {
-                    binding = found
-                }
-            }
-            binding
-        }
-        is Pattern.Name -> {
-            if (ident.name == pattern.binder.identifier.name) {
-                Binding.Pattern(pattern)
-            } else {
-                null
-            }
-        }
-        is Pattern.Else -> null
     }
 
     private fun findInBlock(ident: Identifier, scope: ScopeTree.Block): Binding? {
@@ -247,7 +259,6 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.Enum -> null
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
                 is Declaration.TraitDef -> null
@@ -259,6 +270,11 @@ class Resolver(private val ctx: Context) {
                     } else {
                         null
                     }
+                }
+                is Declaration.SealedType -> if (name == declaration.name.identifier.name) {
+                    Binding.SealedType(declaration)
+                } else {
+                    null
                 }
             }
             if (binding != null) {
@@ -319,10 +335,6 @@ class Resolver(private val ctx: Context) {
         return sourceFileOf(name).moduleName.append(name.identifier.name)
     }
 
-    fun onParseMatchArm(arm: Expression.Match.Arm) {
-        addScopeNode(arm.location.file, ScopeTree.MatchArm(arm))
-    }
-
     fun onParseClosure(closure: Expression.Closure) {
         addScopeNode(closure.location.file, ScopeTree.Closure(closure))
     }
@@ -341,9 +353,6 @@ class Resolver(private val ctx: Context) {
                     ScopeTree.Struct(declaration)
                 )
             }
-            is Declaration.Enum -> {
-                addScopeNode(declaration.location.file, ScopeTree.Enum(declaration))
-            }
             is Declaration.TypeAlias -> {
                 addScopeNode(declaration.location.file, ScopeTree.TypeAlias(declaration))
             }
@@ -355,6 +364,9 @@ class Resolver(private val ctx: Context) {
             }
             is Declaration.ImplementationDef -> {
                 addScopeNode(declaration.location.file, ScopeTree.ImplementationDef(declaration))
+            }
+            is Declaration.SealedType -> {
+                addScopeNode(declaration.location.file, ScopeTree.SealedTypeDef(declaration))
             }
             else -> {}
         }
@@ -391,7 +403,6 @@ class Resolver(private val ctx: Context) {
                     var binding: Binding? = null
                     for (declaration in scope.sourceFile.declarations) {
                         binding = when (declaration) {
-                            is Declaration.Error -> null
                             is Declaration.ImportAs -> if (declaration.asName.identifier.name == expression.lhs.name.name) {
                                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
                                 if (sourceFile != null) {
@@ -402,32 +413,7 @@ class Resolver(private val ctx: Context) {
                             } else {
                                 null
                             }
-                            is Declaration.FunctionDef -> null
-                            is Declaration.ExternFunctionDef -> null
-                            is Declaration.Struct -> null
-                            is Declaration.ConstDefinition -> {
-                                null
-                            }
-                            is Declaration.Enum -> {
-                                if (declaration.name.identifier.name == expression.lhs.name.name) {
-                                    declaration.cases.indexOfFirst {
-                                        it.name.identifier.name == expression.property.name
-                                    }.let { case ->
-                                        if (case > -1) {
-                                            Binding.EnumCaseConstructor(declaration, case)
-                                        } else {
-                                            null
-                                        }
-                                    }
-                                } else {
-                                    null
-                                }
-                            }
-                            is Declaration.TypeAlias -> null
-                            is Declaration.ExtensionDef -> null
-                            is Declaration.TraitDef -> null
-                            is Declaration.ImplementationDef -> null
-                            is Declaration.ImportMembers -> null
+                            else -> null
                         }
                         if (binding != null) {
                             break
@@ -469,12 +455,12 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ConstDefinition -> decl.name.identifier.name == declName
                 is Declaration.ExternFunctionDef -> decl.binder.identifier.name == declName
                 is Declaration.Struct -> decl.binder.identifier.name == declName
-                is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.TypeAlias -> decl.name.identifier.name == declName
                 is Declaration.ExtensionDef -> false
                 is Declaration.TraitDef -> decl.name.identifier.name == declName
                 is Declaration.ImplementationDef -> false
                 is Declaration.ImportMembers -> false
+                is Declaration.SealedType -> decl.name.identifier.name == declName
             })
             if (match) {
                 return decl
@@ -524,11 +510,6 @@ class Resolver(private val ctx: Context) {
                 } else {
                     null
                 }
-                is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
                 is Declaration.TypeAlias -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
@@ -551,6 +532,7 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
+                is Declaration.SealedType -> TODO()
             }
             if (decl != null) {
                 return decl
@@ -564,6 +546,24 @@ class Resolver(private val ctx: Context) {
         for (scopeNode in getScopeStack(node)) {
             if (scopeNode is ScopeTree.FunctionDef) {
                 return scopeNode.declaration
+            }
+        }
+        return null
+    }
+
+    fun getEnclosingExtensionDef(node: HasLocation): Declaration.ExtensionDef? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeTree.ExtensionDef) {
+                return scopeNode.declaration
+            }
+        }
+        return null
+    }
+
+    fun getEnclosingWhenExpression(node: HasLocation): Expression.When? {
+        for (scopeNode in getScopeStack(node)) {
+            if (scopeNode is ScopeTree.WhenExpression) {
+                return scopeNode.expression
             }
         }
         return null
@@ -651,4 +651,17 @@ class Resolver(private val ctx: Context) {
         }
         return null
     }
+
+    fun onParseWhenArm(arm: Expression.WhenArm) {
+        addScopeNode(arm.value.location.file, ScopeTree.WhenArm(arm))
+    }
+
+    fun onParseWhenExpression(expression: Expression.When) {
+        addScopeNode(expression.value.location.file, ScopeTree.WhenExpression(expression))
+    }
+
+    fun getSourceFile(file: SourcePath): SourceFile {
+        return requireNotNull(sourceFiles[file])
+    }
+
 }

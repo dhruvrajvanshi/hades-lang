@@ -29,7 +29,7 @@ sealed class Declaration : HasLocation {
     data class ImportMembers(
         override val location: SourceLocation,
         val modulePath: QualifiedPath,
-        val names: List<Identifier>,
+        val names: List<Binder>,
     ) : Declaration()
 
     data class FunctionDef(
@@ -85,22 +85,6 @@ sealed class Declaration : HasLocation {
         }
     }
 
-    data class Enum(
-        override val location: SourceLocation,
-        val name: Binder,
-        val typeParams: List<TypeParam>?,
-        val cases: List<Case>
-    ) : Declaration() {
-        override val startLoc: SourceLocation
-            get() = name.location
-
-        data class Case(
-            val name: Binder,
-            val params: List<TypeAnnotation>
-        )
-
-    }
-
     data class TypeAlias(
             override val location: SourceLocation,
             val name: Binder,
@@ -136,6 +120,18 @@ sealed class Declaration : HasLocation {
             val whereClause: WhereClause?,
             val body: List<Declaration>,
     ) : Declaration()
+
+    data class SealedType(
+        override val location: SourceLocation,
+        val name: Binder,
+        val typeParams: List<TypeParam>?,
+        val cases: List<Case>
+    ): Declaration() {
+        data class Case(
+            val name: Binder,
+            val params: List<Param>?,
+        )
+    }
 }
 
 

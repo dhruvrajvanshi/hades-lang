@@ -10,10 +10,10 @@ extension BoolPrinter for Bool {
     }
 
     def print_ptr(*this): Void {
-        return (*this).print();
+        (*this).print();
     }
 
     def print_mut_ptr(*mut this): Void {
-        return this.print_ptr();
+        this.print_ptr();
     }
 }

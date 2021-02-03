@@ -20,13 +20,6 @@ sealed class Binding {
         val param get() = declaration.params[index]
     }
 
-    data class WhereParam(
-            val index: Int,
-            val declaration: WhereBindingDeclaration
-    ) : Binding() {
-        val traitRequirement get() = declaration.traitRequirements[index]
-    }
-
     data class ValBinding(
             val statement: Statement.Val
     ) : Binding()
@@ -39,18 +32,13 @@ sealed class Binding {
             val declaration: Declaration.ConstDefinition
     ) : Binding()
 
-    data class EnumCaseConstructor(
-            val declaration: Declaration.Enum,
-            val caseIndex: Int
-    ) : Binding() {
-        val case get() = declaration.cases[caseIndex]
-    }
-
-    data class Pattern(val pattern: hadesc.ast.Pattern.Name) : Binding()
-
     data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding() {
         val param get() = closure.params[index]
     }
+
+    data class SealedType(val declaration: Declaration.SealedType) : Binding()
+
+    data class WhenArm(val case: Expression.WhenArm): Binding()
 }
 
 sealed class WhereBindingDeclaration {

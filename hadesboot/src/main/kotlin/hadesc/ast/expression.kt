@@ -103,20 +103,6 @@ sealed class Expression : HasLocation {
         val args: List<TypeAnnotation>
     ) : Expression()
 
-    data class Match(
-        override val location: SourceLocation,
-        val value: Expression,
-        val arms: List<Arm>
-    ) : Expression() {
-        data class Arm(
-                val pattern: Pattern,
-                val expression: Expression
-        ) : HasLocation {
-            override val location: SourceLocation
-                get() = SourceLocation.between(pattern, expression)
-        }
-    }
-
     data class New(
         override val location: SourceLocation,
         val qualifiedPath: QualifiedPath,
@@ -148,6 +134,26 @@ sealed class Expression : HasLocation {
         val toType: TypeAnnotation,
         val value: Expression
     ) : Expression()
+
+    data class When(
+        override val location: SourceLocation,
+        val value: Expression,
+        val arms: List<WhenArm>
+    ) : Expression() {
+
+    }
+
+    sealed class WhenArm {
+        abstract val value: Expression
+        data class Is(
+            val name: Binder?,
+            val caseName: Identifier,
+            override val value: Expression
+        ) : WhenArm()
+        data class Else(
+            override val value: Expression
+        ) : WhenArm()
+    }
 }
 
 sealed class ClosureBody : HasLocation {

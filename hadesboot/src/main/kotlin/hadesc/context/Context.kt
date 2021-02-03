@@ -5,10 +5,12 @@ import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
-import hadesc.frontend.Checker
+import hadesc.analysis.Analyzer
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
+import hadesc.frontend.Checker
 import hadesc.hir.HIRGen
+import hadesc.hir.passes.DesugarWhenExpressions
 import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
@@ -18,25 +20,20 @@ import hadesc.parser.Parser
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
+import hadesc.types.Type
 import java.nio.file.Path
 
 class Context(
     val options: BuildOptions
 ) {
-    val checker = Checker(this)
+    val analyzer = Analyzer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
     val diagnosticReporter = DiagnosticReporter()
 
     fun build() = profile("Context::build") {
-        forEachSourceFile {
-            this.checker.enableDiagnostics()
-            for (declaration in it.declarations) {
-                checker.checkDeclaration(declaration)
-            }
-            this.checker.disableDiagnostics()
-        }
+        Checker(this).checkProgram()
 
         if (this.diagnosticReporter.hasErrors) {
             return
@@ -46,6 +43,8 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
+        logger().info("before desugared whens: \n${hirModule.prettyPrint()}")
+        hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         logger().debug(hirModule.prettyPrint())
@@ -129,4 +128,6 @@ class Context(
         _nameIndex++
         return makeName("$_nameIndex")
     }
+
+    fun sealedTypeDiscriminantType(): Type = Type.Integral(64, false)
 }

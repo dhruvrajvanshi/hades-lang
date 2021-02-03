@@ -9,7 +9,6 @@ extern def strlen(*Byte): Size = strlen;
 extern def strcmp(*Byte, *Byte): CInt = strcmp;
 extern def strcpy(*mut Byte, *Byte): *mut Byte = strcpy;
 extern def memcpy(*Void, *Void, Size): Void = memcpy;
-extern def strlen(*Byte): Size = strlen;
 extern def memcmp(*Void, *Void, Size): CInt = memcmp;
 extern def floor(Double): Double = floor;
 /// we don't have variadics right now
@@ -56,7 +55,6 @@ extern def strerror(CInt): *Byte = strerror;
 extern def set_errno(CInt): Void = hdc_set_errno;
 
 extern def open(*Byte, CInt): CInt = open;
-extern def close(CInt): CInt = close;
 
 extern def stdout(): *File = hdc_stdout;
 extern def stdin(): *File = hdc_stdin;

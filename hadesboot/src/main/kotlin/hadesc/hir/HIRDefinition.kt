@@ -93,7 +93,7 @@ sealed class HIRDefinition: HasLocation {
                     "\n}"
         }
         is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
-        is Implementation -> "implementation $traitName[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
+        is Implementation -> "implementation ${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
                 "{\n" +
                 functions.joinToString("\n") { it.prettyPrint() }.prependIndent("  ") +
                 "\n}"
