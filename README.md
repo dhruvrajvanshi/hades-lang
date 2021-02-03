@@ -10,7 +10,7 @@ A systems level programming language that compiles to LLVM
 - [ ] Closures
 - [ ] Named function arguments
 - [x] Interfaces
-- [ ] Algebraic data types (enums)
+- [x] Algebraic data types (enums)
 - Editor integration
     - Syntax hilighting
         - [x] VSCode
