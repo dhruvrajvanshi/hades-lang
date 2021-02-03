@@ -18,6 +18,22 @@ A systems level programming language that compiles to LLVM
     - [ ] Error highlighting
     - [ ] Autocompletion
     - [ ] Debugger support
+    
+## Development
+The current compiler lives under the hadesboot directory (self hosting is a long term goal).
+
+Running the test suite is done using gradle.
+```
+./gradlew test
+```
+
+Building the compiler
+
+```
+./gradlew install
+```
+This installs the compiler executable in hadesboot/target directory. Check out examples directory makefiles
+to see how a typical hades binary is built.
 
 ## Editor support
 Basic syntax hilighting is supported
