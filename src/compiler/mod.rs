@@ -1,3 +1,5 @@
 mod compiler;
+mod flags;
 
-pub type Compiler = compiler::Compiler;
+pub use compiler::*;
+pub use flags::*;
