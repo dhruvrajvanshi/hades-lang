@@ -1,5 +1,6 @@
 package llvm
 
+import com.sun.jna.Pointer
 import org.bytedeco.llvm.LLVM.LLVMDIBuilderRef
 import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.global.LLVM
@@ -17,7 +18,7 @@ fun LLVMDIBuilderRef.createCompileUnit(
         null, 0,
         0,
         null, 0,
-        LLVM.LLVMDWARFEmissionNone,
+        LLVM.LLVMDWARFEmissionFull,
         0,
         false.toLLVMBool(),
         false.toLLVMBool()
@@ -54,8 +55,8 @@ fun LLVMDIBuilderRef.createParam(
 fun LLVMDIBuilderRef.createBasicType(
     name: String,
     sizeInBits: Long,
-    llvmDWARFEncoding: Int,
-    llvmDIFlags: Int
+    llvmDWARFEncoding: Int = 0,
+    llvmDIFlags: Int = LLVM.LLVMDIFlagZero
 ) =
     LLVM.LLVMDIBuilderCreateBasicType(
         this,
@@ -75,7 +76,7 @@ fun LLVMDIBuilderRef.createFunction(
     isDefinition: Boolean,
     scopeLine: Int,
     flags: Int,
-) {
+) =
     LLVM.LLVMDIBuilderCreateFunction(
         this,
         scope,
@@ -92,4 +93,3 @@ fun LLVMDIBuilderRef.createFunction(
         flags,
         false.toLLVMBool(),
     )
-}
