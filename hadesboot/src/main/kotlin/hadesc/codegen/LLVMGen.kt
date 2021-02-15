@@ -13,8 +13,6 @@ import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
-import java.io.File
-import java.nio.charset.StandardCharsets
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
@@ -23,6 +21,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val llvmModule = LLVM.LLVMModuleCreateWithNameInContext(ctx.options.main.toString(), llvmCtx)
     private val builder = LLVM.LLVMCreateBuilderInContext(llvmCtx)
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
+    private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)
 
     fun generate() = profile("LLVM::generate") {
         lower()

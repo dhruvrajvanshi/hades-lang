@@ -33,7 +33,7 @@ class IRGen(
     }
 
     private fun lowerConstDef(definition: HIRDefinition.Const) {
-        module.addConstDef(lowerGlobalName(definition.name), definition.initializer.type, lowerExpression(definition.initializer))
+        module.addConstDef(definition.location, lowerGlobalName(definition.name), definition.initializer.type, lowerExpression(definition.initializer))
     }
 
     private fun lowerStructDef(definition: HIRDefinition.Struct) {
@@ -45,6 +45,7 @@ class IRGen(
                 traitRequirements = null
         )
         module.addStructDef(
+            definition.location,
             constructorType,
             instanceType,
             name = lowerGlobalName(definition.name),
@@ -55,6 +56,7 @@ class IRGen(
 
     private fun lowerExternFunctionDef(definition: HIRDefinition.ExternFunction) {
         module.addExternFunctionDef(
+                definition.location,
                 lowerGlobalName(definition.name),
                 definition.type,
                 definition.externName

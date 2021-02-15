@@ -6,6 +6,7 @@ import hadesc.types.Type
 
 sealed class IRDefinition {
     abstract val module: IRModule
+    abstract val location: SourceLocation
     open fun prettyPrint(): String = when (this) {
         is IRFunctionDef -> this.prettyPrint()
         is IRStructDef -> {
@@ -80,6 +81,7 @@ data class IRInterfaceRef(
 
 class IRFunctionDef(
     override val module: IRModule,
+    override val location: SourceLocation,
     val signature: IRFunctionSignature,
     var entryBlock: IRBlock,
     var blocks: MutableList<IRBlock>
@@ -104,6 +106,7 @@ class IRFunctionDef(
 
 data class IRInterfaceDef(
         override val module: IRModule,
+        override val location: SourceLocation,
         val name: IRGlobalName,
         val typeParams: List<IRTypeParam>?,
         val members: List<IRFunctionSignature>
@@ -111,6 +114,7 @@ data class IRInterfaceDef(
 
 data class IRImplementationDef(
         override val module: IRModule,
+        override val location: SourceLocation,
         val name: IRGlobalName,
         val interfaceRef: IRInterfaceRef,
         val forType: Type,
@@ -131,6 +135,7 @@ data class IRParam(
 
 class IRConstDef(
         override val module: IRModule,
+        override val location: SourceLocation,
         val name: IRGlobalName,
         val type: Type,
         val initializer: IRValue
@@ -142,6 +147,7 @@ class IRConstDef(
 
 class IRStructDef(
         override val module: IRModule,
+        override val location: SourceLocation,
         val constructorType: Type,
         val instanceType: Type,
         val globalName: IRGlobalName,
@@ -151,6 +157,7 @@ class IRStructDef(
 
 class IRExternFunctionDef(
         override val module: IRModule,
+        override val location: SourceLocation,
         val name: IRGlobalName,
         val type: Type.Function,
         val externName: Name
