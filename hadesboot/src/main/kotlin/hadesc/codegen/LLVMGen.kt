@@ -8,6 +8,10 @@ import hadesc.logging.logger
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import jnr.ffi.LibraryLoader
+import jnr.ffi.LibraryOption
+import jnr.ffi.Pointer
+import jnr.ffi.Runtime
 import llvm.*
 import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
@@ -16,6 +20,15 @@ import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
+interface LLVMWrappers {
+    fun LLVMAddModuleFlagi32(
+        module: jnr.ffi.Pointer,
+        flagBehavior: Int,
+        key: String,
+        keyLength: Long,
+        value: Int
+    )
+}
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
     private val log = logger()
@@ -26,6 +39,40 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)
 
     fun generate() = profile("LLVM::generate") {
+
+
+        val wrappers = LibraryLoader.loadLibrary(
+            LLVMWrappers::class.java,
+            emptyMap<LibraryOption, String>(),
+            mapOf(
+                "hadesboot" to listOf(".", "hadesboot", ctx.options.libhadesbootPath ?: ".")
+            ), "hadesboot")
+
+        val key = "Debug Info Version"
+        val value = 3
+
+        wrappers.LLVMAddModuleFlagi32(
+            Pointer.wrap(Runtime.getSystemRuntime(), llvmModule.address()),
+            LLVM.LLVMModuleFlagBehaviorError,
+            key,
+            key.length.toLong(),
+            value
+        )
+
+        val dwarfVersionKey = "Dwarf Version"
+        val dwarfVersionValue = 4
+
+        wrappers.LLVMAddModuleFlagi32(
+            Pointer.wrap(Runtime.getSystemRuntime(), llvmModule.address()),
+            LLVM.LLVMModuleFlagBehaviorError,
+            dwarfVersionKey,
+            dwarfVersionKey.length.toLong(),
+            dwarfVersionValue
+        )
+
+//        LLVM.LLVMAddModuleFlag(llvmModule, LLVM.LLVMModuleFlagBehaviorError, key, key.length.toLong(), value)
+
+
         lower()
         LLVM.LLVMDIBuilderFinalize(diBuilder)
         println(LLVM.LLVMPrintModuleToString(llvmModule).string)
@@ -37,6 +84,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lower() = profile("LLVM::lower") {
+        println(irModule.prettyPrint())
         var defIndex = -1
         for (it in irModule) {
             defIndex++
@@ -142,13 +190,14 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         definition.params.forEachIndexed { index, param ->
             localVariables[param.name] = fn.getParameter(index)
         }
+        attachDebugInfo(definition, fn)
         lowerBlock(definition.entryBlock)
         for (block in definition.blocks) {
             lowerBlock(block)
         }
-        attachDebugInfo(definition, fn)
     }
 
+    private var currentFunctionMetadata: LLVMMetadataRef? = null
     private fun attachDebugInfo(definition: IRFunctionDef, fn: FunctionValue) {
 
         if (!ctx.options.debugSymbols) {
@@ -163,9 +212,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             LLVM.LLVMDIFlagZero
         )
 
+        val name = definition.name.name.names.joinToString(".") { it.text }
         val meta = diBuilder.createFunction(
             scope = fileScope,
-            name = definition.name.name.names.joinToString(".") { it.text },
+            name = name,
+            linkageName = name,
             file = fileScope,
             lineno = definition.location.start.line,
             ty = typeDI,
@@ -175,7 +226,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             flags = LLVM.LLVMDIFlagZero,
 
             )
-        LLVM.LLVMGlobalSetMetadata(fn, LLVM.LLVMDIBasicTypeMetadataKind, meta)
+        currentFunctionMetadata = meta
+        LLVM.LLVMGlobalSetMetadata(fn, LLVM.LLVMMDStringMetadataKind, meta)
+        LLVM.LLVMSetCurrentDebugLocation2(builder, null)
     }
 
     private val fileScopeCache = mutableMapOf<SourcePath, LLVMMetadataRef>()
@@ -333,19 +386,34 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun lowerExpression(value: IRValue): Value = when (value) {
-        is IRBool -> lowerBoolExpression(value)
-        is IRByteString -> lowerByteString(value)
-        is IRVariable -> lowerVariable(value)
-        is IRGetStructField -> lowerGetStructField(value)
-        is IRCIntConstant -> lowerCIntValue(value)
-        is IRNullPtr -> lowerNullPtr(value)
-        is IRSizeOf -> lowerSizeOf(value)
-        is IRMethodRef -> requireUnreachable()
-        is IRPointerCast -> lowerPointerCast(value)
-        is IRAggregate -> lowerAggregate(value)
-        is IRGetElementPointer -> lowerGetElementPointer(value)
-        is IRUnsafeCast -> lowerUnsafeCast(value)
+    private fun lowerExpression(value: IRValue): Value {
+        if (ctx.options.debugSymbols) {
+            val location = LLVM.LLVMDIBuilderCreateDebugLocation(
+                llvmCtx,
+                value.location.start.line,
+                value.location.start.column,
+                currentFunctionMetadata,
+                null
+            )
+            LLVM.LLVMSetCurrentDebugLocation2(builder, location)
+        }
+
+        val result = when (value) {
+            is IRBool -> lowerBoolExpression(value)
+            is IRByteString -> lowerByteString(value)
+            is IRVariable -> lowerVariable(value)
+            is IRGetStructField -> lowerGetStructField(value)
+            is IRCIntConstant -> lowerCIntValue(value)
+            is IRNullPtr -> lowerNullPtr(value)
+            is IRSizeOf -> lowerSizeOf(value)
+            is IRMethodRef -> requireUnreachable()
+            is IRPointerCast -> lowerPointerCast(value)
+            is IRAggregate -> lowerAggregate(value)
+            is IRGetElementPointer -> lowerGetElementPointer(value)
+            is IRUnsafeCast -> lowerUnsafeCast(value)
+        }
+
+        return result
     }
 
     private fun lowerGetElementPointer(value: IRGetElementPointer): Value {
@@ -615,11 +683,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         log.info("Linking using $cc")
         val commandParts = mutableListOf(
             cc,
-            "-O2",
-            "-flto"
         )
         if (ctx.options.debugSymbols) {
             commandParts.add("-g")
+        } else {
+            commandParts.add("-flto")
+            commandParts.add("-O2")
         }
         commandParts.add("-o")
         commandParts.add(ctx.options.output.toString())

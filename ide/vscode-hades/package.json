@@ -17,6 +17,11 @@
     ],
     "main": "client/extension.js",
     "contributes": {
+        "breakpoints": [
+            {
+                "language": "hades"
+            }
+        ],
         "languages": [
             {
                 "id": "hades",

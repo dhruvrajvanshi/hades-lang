@@ -37,12 +37,22 @@ sealed class Options {
                 cSources = cSources,
                 lib = lib,
                 dumpLLVMModule = args.getBool("--dump-llvm-module"),
-                libs = libs
+                libs = libs,
+                libhadesbootPath = args.getOptional("--libhadesboot")
             )
         }
 
         private fun Array<String>.getString(long: String): String {
             assert(indexOf(long) > -1) { "Missing flag $long" }
+            val indexOfNext = indexOf(long) + 1
+            assert(indexOfNext < size)
+            assert(!this[indexOfNext].startsWith("--"))
+            return this[indexOfNext]
+        }
+
+
+        private fun Array<String>.getOptional(long: String): String? {
+            if (indexOf(long) < 0) { return null }
             val indexOfNext = indexOf(long) + 1
             assert(indexOfNext < size)
             assert(!this[indexOfNext].startsWith("--"))
@@ -78,7 +88,8 @@ data class BuildOptions(
     val cSources: List<Path>,
     val lib: Boolean,
     val dumpLLVMModule: Boolean,
-    val libs: List<String>
+    val libs: List<String>,
+    val libhadesbootPath: String?
 ) : Options()
 
 class Compiler(
