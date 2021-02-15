@@ -5,6 +5,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.ir.*
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
@@ -68,7 +69,7 @@ class IRGen(
     private fun lowerFunctionDef(definition: HIRDefinition.Function) {
 
         val functionName = lowerGlobalName(definition.name)
-        val entryBlock = IRBlock()
+        val entryBlock = IRBlock(definition.body.location)
         require(definition.typeParams == null)
 
         val fn = module.addGlobalFunctionDef(
@@ -87,7 +88,7 @@ class IRGen(
 
     private fun lowerBlock(
             body: HIRBlock,
-            block: IRBlock= IRBlock(),
+            block: IRBlock= IRBlock(body.location),
             cleanup: () -> Unit = {}
     ): IRBlock {
         builder.withinBlock(block) {
@@ -120,8 +121,8 @@ class IRGen(
     }
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {
-        val whileBody = buildBlock()
-        val whileExit = forkControlFlow()
+        val whileBody = buildBlock(statement.body.location)
+        val whileExit = forkControlFlow(statement.location)
 
         builder.buildBranch(
                 statement.condition.location,
@@ -155,9 +156,9 @@ class IRGen(
     }
 
     private fun lowerIfStatement(statement: HIRStatement.If) {
-        val ifTrue = buildBlock()
-        val ifFalse = buildBlock()
-        val end = forkControlFlow()
+        val ifTrue = buildBlock(statement.trueBranch.location)
+        val ifFalse = buildBlock(statement.falseBranch.location)
+        val end = forkControlFlow(statement.location)
 
         builder.buildBranch(
                 statement.condition.location,
@@ -217,15 +218,15 @@ class IRGen(
         return requireNotNull(currentFunction?.getBlock(name))
     }
 
-    private fun buildBlock(): IRBlock {
+    private fun buildBlock(location: SourceLocation): IRBlock {
         val name = IRLocalName(ctx.makeUniqueName())
-        val block = IRBlock(name)
+        val block = IRBlock(location, name)
         requireNotNull(currentFunction).appendBlock(block)
         return block
     }
 
-    private fun forkControlFlow(): IRBlock {
-        return buildBlock()
+    private fun forkControlFlow(location: SourceLocation): IRBlock {
+        return buildBlock(location)
     }
 
     private fun lowerValStatement(statement: HIRStatement.ValDeclaration) {
@@ -351,7 +352,7 @@ class IRGen(
         val conditionPtr = IRVariable(Type.Ptr(Type.Bool, isMutable = true), expression.lhs.location, conditionName)
         val lhsName = makeLocalName()
         val lhs = IRVariable(Type.Bool, expression.location, lhsName)
-        val done = forkControlFlow()
+        val done = forkControlFlow(expression.location)
         // %condition = alloca Bool
         // store %condition lhs
         // %lhs = load %condition
@@ -367,8 +368,8 @@ class IRGen(
                 //   jmp .done
                 // .and_short_circuit:
                 //   jmp .done
-                val andRHS = buildBlock()
-                val andShortCircuit = buildBlock()
+                val andRHS = buildBlock(expression.rhs.location)
+                val andShortCircuit = buildBlock(expression.lhs.location)
                 builder.buildBranch(expression.location, lhs, ifTrue = andRHS.name, ifFalse = andShortCircuit.name)
                 builder.withinBlock(andRHS) {
                     builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
@@ -383,8 +384,8 @@ class IRGen(
                 // .or_rhs:
                 //   store %condition rhs
                 //   jmp .done
-                val orShortCircuit = buildBlock()
-                val orRHS = buildBlock()
+                val orShortCircuit = buildBlock(expression.location)
+                val orRHS = buildBlock(expression.rhs.location)
 
                 builder.buildBranch(expression.location, lhs, ifTrue = orShortCircuit.name, ifFalse = orRHS.name)
 
