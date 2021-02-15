@@ -147,7 +147,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             lowerBlock(block)
         }
         attachDebugInfo(definition, fn)
-        fn.verify()
     }
 
     private fun attachDebugInfo(definition: IRFunctionDef, fn: FunctionValue) {
@@ -181,7 +180,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val fileScopeCache = mutableMapOf<SourcePath, LLVMMetadataRef>()
     private fun getFileScope(file: SourcePath): LLVMMetadataRef = fileScopeCache.getOrPut(file) {
-        val f = diBuilder.createFile(file.path.fileName.toString(), file.path.parent.toString())
+        val f = diBuilder.createFile(file.path.fileName.toString(), file.path.toAbsolutePath().parent.toString())
         diBuilder.createCompileUnit(f)
         f
     }
