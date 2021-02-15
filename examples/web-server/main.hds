@@ -3,8 +3,7 @@ import hades.memory as mem;
 import example.StringView as StringView;
 import example.http.Request as HTTPRequest;
 import example.logging as log;
-import example.panic as Panic;
-const panic_with_errno = Panic.panic_with_errno;
+import example.panic.{panic_with_errno};
 
 extern def bind_socket(u16): i32 = bind_socket;
 

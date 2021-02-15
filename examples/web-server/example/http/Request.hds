@@ -2,8 +2,7 @@ import example.http.Method as Method;
 import example.StringView as StringView;
 import example.logging as log;
 
-import example.assert as Assert;
-const assert = Assert.assert;
+import example.assert.{assert};
 
 struct t {
     val m_uri: StringView.t;
