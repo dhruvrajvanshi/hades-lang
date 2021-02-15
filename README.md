@@ -17,7 +17,8 @@ A systems level programming language that compiles to LLVM
         - [x] Intellij
     - [ ] Error highlighting
     - [ ] Autocompletion
-    - [ ] Debugger support
+    - [x] Debugger support:
+          - Very basic support for gdb and lldb debug symbols is supported. This allows stepping through code using VS code. No local variables are shown yet.
     
 ## Development
 The current compiler lives under the hadesboot directory (self hosting is a long term goal).
