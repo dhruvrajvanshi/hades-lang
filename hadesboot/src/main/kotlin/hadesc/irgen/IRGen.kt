@@ -5,8 +5,6 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.ir.*
-import hadesc.location.HasLocation
-import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
@@ -71,11 +69,12 @@ class IRGen(
 
         val functionName = lowerGlobalName(definition.name)
         val entryBlock = IRBlock()
+        require(definition.typeParams == null)
 
         val fn = module.addGlobalFunctionDef(
                 definition.location,
                 functionName,
-                typeParams = definition.typeParams?.map { lowerTypeParam(it) },
+                typeParams = null,
                 constraints = emptyList(),
                 params = definition.params.mapIndexed { index, it -> lowerParam(functionName, index, it) },
                 entryBlock = entryBlock,
@@ -83,13 +82,12 @@ class IRGen(
         )
 
         currentFunction = fn
-        lowerBlock(definition.body, entryBlock, listOf())
+        lowerBlock(definition.body, entryBlock)
     }
 
     private fun lowerBlock(
             body: HIRBlock,
             block: IRBlock= IRBlock(),
-            cleanupBeforeBlocks: List<IRBlock>,
             cleanup: () -> Unit = {}
     ): IRBlock {
         builder.withinBlock(block) {
@@ -105,7 +103,7 @@ class IRGen(
 
     private fun lowerStatement(statement: HIRStatement): Unit = when(statement) {
         is HIRStatement.Expression -> lowerExpressionStatement(statement)
-        is HIRStatement.ReturnVoid -> lowerReturnVoidStatement(statement)
+        is HIRStatement.ReturnVoid -> lowerReturnVoidStatement()
         is HIRStatement.Return -> lowerReturnStatement(statement)
         is HIRStatement.ValDeclaration -> lowerValStatement(statement)
         is HIRStatement.If -> lowerIfStatement(statement)
@@ -132,8 +130,8 @@ class IRGen(
                 whileExit.name
         )
 
-        lowerBlock(statement.body, whileBody, cleanupBeforeBlocks = listOf(whileExit, whileBody)) {
-            terminateBlock(statement.body.location, whileBody) {
+        lowerBlock(statement.body, whileBody) {
+            terminateBlock(whileBody) {
                 builder.buildBranch(
                         statement.condition.location,
                         lowerExpression(statement.condition),
@@ -168,21 +166,21 @@ class IRGen(
                 ifFalse = ifFalse.name
         )
 
-        lowerBlock(statement.trueBranch, ifTrue, cleanupBeforeBlocks = listOf(end)) {
-            terminateBlock(statement.trueBranch.location, ifTrue) {
+        lowerBlock(statement.trueBranch, ifTrue) {
+            terminateBlock(ifTrue) {
                 builder.buildJump(statement.trueBranch.location, end.name)
             }
         }
 
-        lowerBlock(statement.falseBranch, ifFalse, cleanupBeforeBlocks = listOf(end)) {
-            terminateBlock(statement.location, ifFalse) {
+        lowerBlock(statement.falseBranch, ifFalse) {
+            terminateBlock(ifFalse) {
                 builder.buildJump(statement.location, end.name)
             }
         }
 
         builder.positionAtEnd(end)
     }
-    private fun terminateBlock(location: SourceLocation, entryBlock: IRBlock, f: () -> IRInstruction) {
+    private fun terminateBlock(entryBlock: IRBlock, f: () -> IRInstruction) {
         val isVisited = mutableSetOf<IRLocalName>()
         fun visitBlock(branch: IRBlock) {
             if (isVisited.contains(branch.name)) {
@@ -195,8 +193,8 @@ class IRGen(
                 }
             } else {
                 when (val statement = branch.statements.last()) {
-                    is IRReturnInstruction -> {}
-                    IRReturnVoidInstruction -> {}
+                    is IRReturnInstruction -> Unit
+                    IRReturnVoidInstruction -> Unit
                     is IRSwitch -> requireUnreachable()
                     is IRBr -> {
                         val block1 = getBlock(statement.ifTrue)
@@ -208,7 +206,7 @@ class IRGen(
                         val block = getBlock(statement.label)
                         visitBlock(block)
                     }
-                    else -> {}
+                    else -> Unit
                 }
             }
         }
@@ -243,7 +241,7 @@ class IRGen(
         builder.buildReturn(lowerExpression(statement.expression))
     }
 
-    private fun lowerReturnVoidStatement(statement: HIRStatement.ReturnVoid) {
+    private fun lowerReturnVoidStatement() {
         builder.buildRetVoid()
     }
 
@@ -270,25 +268,7 @@ class IRGen(
         is HIRExpression.TraitMethodCall -> requireUnreachable()
         is HIRExpression.UnsafeCast -> lowerUnsafeCast(expression)
         is HIRExpression.When -> requireUnreachable()
-//            lowerWhenExpression(expression)
     }
-
-//    private fun lowerWhenExpression(expression: HIRExpression.When): IRValue {
-//        val resultName = ctx.makeUniqueName()
-//        builder.buildAlloca(expression.type, IRLocalName(resultName))
-//        val discriminantName = ctx.makeUniqueName()
-//        builder.buildAlloca(expression.discriminant.type, IRLocalName(discriminantName))
-//        builder.buildStore(
-//            IRVariable(
-//                Type.Ptr(expression.discriminant.type, isMutable = true),
-//                expression.discriminant.location,
-//                IRLocalName(discriminantName)),
-//            lowerExpression(expression.discriminant)
-//        )
-//        for (case in expression.cases) {
-//            builder.buildBranch(    )
-//        }
-//    }
 
     private fun lowerUnsafeCast(expression: HIRExpression.UnsafeCast): IRValue {
         return IRUnsafeCast(
@@ -375,7 +355,7 @@ class IRGen(
         // %condition = alloca Bool
         // store %condition lhs
         // %lhs = load %condition
-        alloca(Type.Bool, conditionName, expression.lhs.location)
+        alloca(Type.Bool, conditionName)
         builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.lhs))
         builder.buildLoad(name = lhsName, ptr = conditionPtr, type = Type.Bool)
 
@@ -422,10 +402,10 @@ class IRGen(
         builder.withinBlock(done) {
             builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
         }
-        terminateBlock(expression.lhs.location, branch1) {
+        terminateBlock(branch1) {
             builder.buildJump(expression.lhs.location, done.name)
         }
-        terminateBlock(expression.rhs.location, branch2) {
+        terminateBlock(branch2) {
             builder.buildJump(expression.rhs.location, done.name)
         }
         builder.positionAtEnd(done)
@@ -434,7 +414,7 @@ class IRGen(
 
     }
 
-    private fun alloca(type: Type, name: IRLocalName, node: HasLocation) {
+    private fun alloca(type: Type, name: IRLocalName) {
         builder.buildAlloca(type, name)
     }
 
@@ -528,9 +508,5 @@ class IRGen(
                 index = index,
                 functionName =  functionName
         )
-    }
-
-    private fun lowerTypeParam(it: HIRTypeParam): IRTypeParam {
-        requireUnreachable()
     }
 }
