@@ -7,7 +7,7 @@ else
   NAME="$NAME.so"
 fi
 
-gcc -shared -undefined dynamic_lookup \
+clang -shared -undefined dynamic_lookup \
     hadesboot/libhadesboot.cpp \
     $(llvm-config --cflags) \
     $(llvm-config --ldflags) \
