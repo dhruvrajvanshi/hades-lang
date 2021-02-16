@@ -1,4 +1,3 @@
-type CInt = i32;
 
 struct Application {}
 struct Window {}
@@ -18,7 +17,7 @@ implementation IsWidget[ButtonBox] {}
 implementation IsWidget[Container] {}
 
 
-const APPLICATION_FLAGS_NONE: CInt = 0;
+const APPLICATION_FLAGS_NONE: i32 = 0;
 extern def application_new(*Byte, CInt): *Application = gtk_application_new;
 extern def object_unref(*Application): Void = gtk_object_unref;
 extern def application_window_new(*Application): *Window = gtk_application_window_new;
