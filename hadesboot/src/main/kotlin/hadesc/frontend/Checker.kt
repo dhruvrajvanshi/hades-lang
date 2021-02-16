@@ -461,12 +461,21 @@ class Checker(val ctx: Context) {
             is Expression.If -> checkIfExpression(expression)
             is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
             is Expression.New -> TODO()
-            is Expression.This -> TODO()
+            is Expression.This -> checkThisExpression(expression)
             is Expression.Closure -> TODO()
             is Expression.TraitMethodCall -> checkTraitMethodCall(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
         })
+    }
+
+    private fun checkThisExpression(expression: Expression.This) {
+
+        val extension = ctx.resolver.getEnclosingExtensionDef(expression)
+
+        if (extension == null) {
+            error(expression, Diagnostic.Kind.UnboundThis)
+        }
     }
 
     private fun checkWhenExpression(expression: Expression.When) {
@@ -599,6 +608,8 @@ class Checker(val ctx: Context) {
         if (moduleProperty != null) {
             return
         }
+
+        checkExpression(expression.lhs)
         if (!ctx.analyzer.isValidPropertyAccess(expression)) {
             val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
             error(Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
