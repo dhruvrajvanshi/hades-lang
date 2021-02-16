@@ -7,6 +7,14 @@ struct Widget {}
 struct Container {}
 struct Button {}
 
+trait IsWidget[Self] {}
+
+implementation IsWidget[Window] {}
+implementation IsWidget[Button] {}
+implementation IsWidget[Widget] {}
+implementation IsWidget[ButtonBox] {}
+
+
 const APPLICATION_FLAGS_NONE: CInt = 0;
 extern def application_new(*Byte, CInt): *Application = gtk_application_new;
 extern def object_unref(*Application): Void = gtk_object_unref;
@@ -72,8 +80,8 @@ extension WindowExtensions for Window {
 }
 
 extension ContainerExtensions for Container {
-    def add(*this, widget: *Widget): *Container {
-        container_add(this, widget);
+    def add[W](*this, widget: *W): *Container where IsWidget[W] {
+        container_add(this, WIDGET(widget));
         return this;
     }
 }

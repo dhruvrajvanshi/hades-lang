@@ -414,10 +414,7 @@ class Checker(val ctx: Context) {
             error(statement, Diagnostic.Kind.ReturningFromVoidFunction)
         }
         if (statement.value != null) {
-            val actualType = ctx.analyzer.typeOfExpression(statement.value)
-            if (!actualType.isAssignableTo(expectedReturnType)) {
-                error(statement, Diagnostic.Kind.TypeNotAssignable(source = actualType, destination = expectedReturnType))
-            }
+            checkExpressionHasType(statement.value, expectedReturnType)
         }
     }
 
@@ -428,11 +425,8 @@ class Checker(val ctx: Context) {
         checkExpression(statement.rhs)
 
         if (statement.typeAnnotation != null) {
-            val typeOfRhs = ctx.analyzer.typeOfExpression(statement.rhs)
             val annotatedType = ctx.analyzer.annotationToType(statement.typeAnnotation)
-            if (!typeOfRhs.isAssignableTo(annotatedType)) {
-                error(statement.rhs, Diagnostic.Kind.TypeNotAssignable(source = typeOfRhs, destination = annotatedType))
-            }
+            checkExpressionHasType(statement.rhs, annotatedType)
         }
     }
 
@@ -682,10 +676,7 @@ class Checker(val ctx: Context) {
             ?: emptyMap()
         fromTypes.zip(args).forEach { (expectedType, arg) ->
             val actualType = arg.type
-            if (!actualType.isAssignableTo(
-                    expectedType.applySubstitution(substitution))) {
-                error(arg, Diagnostic.Kind.TypeNotAssignable(destination = expectedType, source = actualType))
-            }
+            checkExpressionHasType(arg, expectedType.applySubstitution(substitution))
         }
     }
 

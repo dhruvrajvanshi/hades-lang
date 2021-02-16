@@ -37,12 +37,12 @@ def make_window(app: *Gtk.Application): *Gtk.Window {
 
 //   button_box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
   val button_box = Gtk.button_box_new();
-  window.as_container().add(button_box.as_widget());
+  window.as_container().add(button_box);
 
   val button = Gtk.button_new_with_label(b"Exit");
   connect_exit_button(button, window);
 
   button_box.as_container()
-    .add(button.as_widget());
+    .add(button);
   return window;
 }

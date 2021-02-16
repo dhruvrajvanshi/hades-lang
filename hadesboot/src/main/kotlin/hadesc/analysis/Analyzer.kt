@@ -231,9 +231,9 @@ class Analyzer(
                 to = annotationToType(functionDef.signature.returnType),
                 traitRequirements = null
             )
-            if (extensionDef.typeParams != null) {
+            if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
-                    extensionDef.typeParams.map { Type.Param(it.binder) },
+                    ((extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())).map { Type.Param(it.binder) },
                     methodType
                 )
             }

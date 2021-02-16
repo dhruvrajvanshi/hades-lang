@@ -1,0 +1,17 @@
+extern def puts(*Byte): Void = puts;
+
+struct Pair[First, Second] {
+    val first: First;
+    val second: Second;
+}
+
+def main(): Void {
+    val pair = true.pair_with(b"Hello");
+    puts(pair.second);
+}
+
+extension PairConstructionExtensions[T] for T {
+    def pair_with[U](this, second: U): Pair[T, U] {
+        return Pair(this, second);
+    }
+}
