@@ -1,19 +1,18 @@
 import gtk as Gtk;
 import libc as c;
+import libc.{exit};
 
-type CInt = c.CInt;
-
-def main(argc: CInt, argv: **Byte): Void {
+def main(argc: i32, argv: **Byte): Void {
   val app = Gtk.application_new(b"org.gtk.example", Gtk.APPLICATION_FLAGS_NONE);
   val status = run(app, argc, argv);
-  c.exit(status);
+
+  exit(status);
 }
 
 
-def run(app: *Gtk.Application, argc: CInt, argv: **Byte): CInt {
+def run(app: *Gtk.Application, argc: i32, argv: **Byte): i32 {
   Gtk.signal_connect(app.as_widget(), b"activate", Gtk.CALLBACK(on_app_activate), nullptr);
-  val status = Gtk.application_run(app, argc, argv);
-  return status;
+  return Gtk.application_run(app, argc, argv);
 }
 
 def exit_button_on_click(button: *Gtk.Button, window: *Gtk.Window): Void {
