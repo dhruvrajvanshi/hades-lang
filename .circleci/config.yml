@@ -35,7 +35,7 @@ jobs:
           paths:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
-      - run: ./build-libhadesboot.sh
+      - run: chmod +x build-libhadesboot.sh && ./build-libhadesboot.sh
       # run tests!
       - run: ./gradlew :hadesboot:test
       - run: ./test.sh
