@@ -35,7 +35,6 @@ jobs:
           paths:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
-      - run: sudo apt install -y llvm
       - run: ./build-libhadesboot.sh
       # run tests!
       - run: ./gradlew :hadesboot:test
