@@ -29,7 +29,8 @@ jobs:
             - v1-dependencies-{{ checksum "build.gradle" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-      # - run: sudo apt install -y openjdk-11-jdk gcc
+      - run: sudo apt install -y llvm
+      - run: ./build-libhadesboot.sh
       - run: ./gradlew dependencies
 
       - save_cache:
