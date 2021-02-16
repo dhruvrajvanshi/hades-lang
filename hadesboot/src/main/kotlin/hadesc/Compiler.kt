@@ -38,7 +38,6 @@ sealed class Options {
                 lib = lib,
                 dumpLLVMModule = args.getBool("--dump-llvm-module"),
                 libs = libs,
-                libhadesbootPath = args.getOptional("--libhadesboot")
             )
         }
 
@@ -89,7 +88,6 @@ data class BuildOptions(
     val lib: Boolean,
     val dumpLLVMModule: Boolean,
     val libs: List<String>,
-    val libhadesbootPath: String?
 ) : Options()
 
 class Compiler(

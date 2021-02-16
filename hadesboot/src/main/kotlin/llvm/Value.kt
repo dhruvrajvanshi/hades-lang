@@ -1,9 +1,6 @@
 package llvm
 
-import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef
-import org.bytedeco.llvm.LLVM.LLVMContextRef
-import org.bytedeco.llvm.LLVM.LLVMTypeRef
-import org.bytedeco.llvm.LLVM.LLVMValueRef
+import org.bytedeco.llvm.LLVM.*
 import org.bytedeco.llvm.global.LLVM
 
 
@@ -20,6 +17,9 @@ fun ConstantStruct(type: Type, values: List<Value>): Value {
 
 fun ConstantInt(type: Type, value: Long, signExtend: Boolean = true): V =
     LLVM.LLVMConstInt(type, value, signExtend.toLLVMBool())
+
+fun V.asMetadata(): LLVMMetadataRef =
+    LLVM.LLVMValueAsMetadata(this)
 
 fun ConstantArray(text: String, nullTerminate: Boolean = false, context: LLVMContextRef = LLVM.LLVMGetGlobalContext()) =
     LLVM.LLVMConstStringInContext(context, text, text.length, nullTerminate.toLLVMBool())

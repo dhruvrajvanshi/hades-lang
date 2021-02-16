@@ -8,10 +8,6 @@ import hadesc.logging.logger
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import jnr.ffi.LibraryLoader
-import jnr.ffi.LibraryOption
-import jnr.ffi.Pointer
-import jnr.ffi.Runtime
 import llvm.*
 import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
@@ -20,15 +16,6 @@ import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
-interface LLVMWrappers {
-    fun LLVMAddModuleFlagi32(
-        module: jnr.ffi.Pointer,
-        flagBehavior: Int,
-        key: String,
-        keyLength: Long,
-        value: Int
-    )
-}
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
     private val log = logger()
@@ -39,43 +26,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)
 
     fun generate() = profile("LLVM::generate") {
-
-
-        val wrappers = LibraryLoader.loadLibrary(
-            LLVMWrappers::class.java,
-            emptyMap<LibraryOption, String>(),
-            mapOf(
-                "hadesboot" to listOf(".", "hadesboot", ctx.options.libhadesbootPath ?: ".")
-            ), "hadesboot")
-
-        val key = "Debug Info Version"
-        val value = 3
-
-        wrappers.LLVMAddModuleFlagi32(
-            Pointer.wrap(Runtime.getSystemRuntime(), llvmModule.address()),
-            LLVM.LLVMModuleFlagBehaviorError,
-            key,
-            key.length.toLong(),
-            value
-        )
-
-        val dwarfVersionKey = "Dwarf Version"
-        val dwarfVersionValue = 4
-
-        wrappers.LLVMAddModuleFlagi32(
-            Pointer.wrap(Runtime.getSystemRuntime(), llvmModule.address()),
-            LLVM.LLVMModuleFlagBehaviorError,
-            dwarfVersionKey,
-            dwarfVersionKey.length.toLong(),
-            dwarfVersionValue
-        )
-
-//        LLVM.LLVMAddModuleFlag(llvmModule, LLVM.LLVMModuleFlagBehaviorError, key, key.length.toLong(), value)
-
+        llvmModule.addModuleFlag("Debug Info Version", ConstantInt(i32Ty, 3).asMetadata())
+        llvmModule.addModuleFlag("Dwarf Version", ConstantInt(i32Ty, 4).asMetadata())
 
         lower()
         LLVM.LLVMDIBuilderFinalize(diBuilder)
-        println(LLVM.LLVMPrintModuleToString(llvmModule).string)
         verifyModule()
         writeModuleToFile()
         if (!ctx.options.lib) {
@@ -669,6 +624,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val voidTy = VoidType(llvmCtx)
     private val boolTy = IntType(1, llvmCtx)
     private val cIntTy = IntType(32, llvmCtx)
+    private val i32Ty = IntType(32, llvmCtx)
     private val doubleTy = LLVM.LLVMDoubleTypeInContext(llvmCtx)
     private val trueValue = ConstantInt(boolTy, 1, false)
     private val falseValue = ConstantInt(boolTy, 0, false)

@@ -30,7 +30,6 @@ web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 	CC=$(CC) $(HDC) \
 		--main main.hds \
 		--output web-server \
-		--libhadesboot ../.. \
 		$(HADESC_FLAGS) \
 
 test: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES) $(TEST_SOURCES)
