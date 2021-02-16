@@ -672,12 +672,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val objectFilePath get() = ctx.options.output.toString() + ".o"
 
     private fun writeModuleToFile() {
-        if (ctx.options.output.toAbsolutePath().parent == null ||
-            !ctx.options.output.toAbsolutePath().toFile().exists()) {
-            ctx.options.output.toAbsolutePath().toFile().mkdirs()
-        } else {
-            require(ctx.options.output.parent.toAbsolutePath().toFile().isDirectory)
-        }
         log.debug("Writing object file")
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()
