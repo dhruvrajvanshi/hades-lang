@@ -16,13 +16,9 @@ def run(app: *Gtk.Application, argc: CInt, argv: **Byte): CInt {
   return status;
 }
 
-def print_hello(widget: *Gtk.Widget): Void {
-  Gtk.print(b"Hello World\n");
-}
-
-def connect_exit_button(button: *Gtk.Button, window: *Gtk.Window): Void {
-   Gtk.signal_connect (button.as_widget(), b"clicked", Gtk.CALLBACK(print_hello), nullptr);
-   Gtk.signal_connect_swapped (button.as_widget(), b"clicked", Gtk.CALLBACK(Gtk.widget_destroy), pointer_cast[Void](window));
+def exit_button_on_click(button: *Gtk.Button, window: *Gtk.Window): Void {
+  Gtk.print(b"Destroying window\n");
+  Gtk.widget_destroy(window);
 }
 
 def on_app_activate(app: *Gtk.Application, data: *Void): Void {
@@ -36,13 +32,13 @@ def make_window(app: *Gtk.Application): *Gtk.Window {
     .set_default_size(200, 200);
 
 //   button_box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
-  val button_box = Gtk.button_box_new();
-  window.as_container().add(button_box);
+  window.as_container().add(
+    Gtk.button_box_new().as_container()
+      .add(
+        Gtk.button_new_with_label(b"Exit")
+            .connect(b"clicked", Gtk.CALLBACK(exit_button_on_click), pointer_cast[Void](window))
+      )
+  );
 
-  val button = Gtk.button_new_with_label(b"Exit");
-  connect_exit_button(button, window);
-
-  button_box.as_container()
-    .add(button);
   return window;
 }
