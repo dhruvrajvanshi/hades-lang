@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install LLVM
+      run: sudo apt install -y llvm
     - name: Build libhadesboot
       run: chmod +x build-libhadesboot.sh && ./build-libhadesboot.sh
     - name: Set up JDK 11
