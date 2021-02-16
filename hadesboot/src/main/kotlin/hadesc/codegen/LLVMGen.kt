@@ -39,7 +39,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lower() = profile("LLVM::lower") {
-        println(irModule.prettyPrint())
         var defIndex = -1
         for (it in irModule) {
             defIndex++
