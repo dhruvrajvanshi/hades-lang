@@ -1,8 +1,0 @@
-import lib.panic as Panic;
-const panic = Panic.panic;
-
-def assert(condition: Bool, message: *Byte): Void {
-    if not condition {
-        panic(message);
-    }
-}

@@ -1,7 +1,0 @@
-import libc as c;
-import lib.error as err;
-
-def panic(message: *Byte): Void {
-    c.fprintf(err.stderr(), b"panic: %s\n", message);
-    c.exit(1);
-}

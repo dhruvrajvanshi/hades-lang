@@ -1,5 +1,0 @@
-import lib.string_slice as StringSlice;
-
-struct t {
-    val m_slice: StringSlice.t;
-}
