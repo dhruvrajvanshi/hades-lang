@@ -194,7 +194,7 @@ def main(): Void {
 Implementations can have type parameters and where clauses, making it possible to implement traits
 for generic types based on other traits.
 
-```
+```scala
 struct Box[T] {
   val value: T;
 }
