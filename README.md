@@ -9,7 +9,7 @@ A systems level programming language that compiles to LLVM
 - [x] Extension Methods
 - [ ] Closures
 - [ ] Named function arguments
-- [x] Interfaces
+- [x] Traits
 - [x] Algebraic data types (enums)
 - Editor integration
     - Syntax hilighting
@@ -150,20 +150,21 @@ def main(): Void {
 
 ```
 
-Traits
+## Traits
+Hades has a trait system similar to Rust. traits allow us to define operations on generic
+type parameters. This has the advantage of better error messages than C++ while still
+being more powerful than simpler systems like Java interfaces.
 
 ```scala
 
-trait Printable {
-  // interfaces can refer to the type they
-  // are implemented for using the This type
-  def print(this: *This): Void;
+trait Printable[Self] {
+  def print(self: Self): Void;
 }
 
 // Interfaces are implemented outside the type declaration
 // this means you can make builtin types implement new interfaces
-implementation PrintableBool: Printable[Bool] {
-  def print(this: *Bool): Void {
+implementation Printable[Bool] {
+  def print(self: Bool): Void {
     if *this {
       c.puts(b"true");
     } else {
@@ -172,16 +173,56 @@ implementation PrintableBool: Printable[Bool] {
   }
 }
 
+// Unlike C++, the body of this function can be checked independently
+// of call sites. No type errors on expanded templates :)
+// The where clause is a requirement on type T and a caller can only pass things that are Printable
+def print[T](value: T): Void where Printable[T] {
+  // This syntax is for ease of analysis right now.
+  // The trait keyword here will be dropped
+  // and we will probably allow extension functions defined inside
+  // traits so that you could simply do value.print()
+  trait Printable[T].print(value);
+}
+
 def main(): Void {
-  val boolean = true;
-  val pointer_to_boolean = &boolean;
-  pointer_to_boolean.print(); // prints true
+  print(true);
+  print(10); // type error: Printable[Int] not found
 }
 
 ```
 
+Implementations can have type parameters and where clauses, making it possible to implement traits
+for generic types based on other traits.
+
+```
+struct Box[T] {
+  val value: T;
+}
+
+// this declaration says that for all type Ts, Box[T] is printable if T is printable.
+// This makes it more powerful that Java/C# interfaces where it's not possible
+// to have an interface for Equality/Hashing and have generic containers conform
+// to them based on their type parameter.
+// Equality and Hashing, Stringification is baked into all objects in Java to get around this problem
+// but it doesn't solve it for custom interfaces.
+implementation[T] Printable[Box[T]] where Printable[T] {
+  def print(self: Box[T]): Void {
+     print(b"Box("); // implementation Box[*Byte] is omitted for berevity
+     print(self);
+     print(b")");
+  }
+}
+
+def f() {
+  print(Box(true)); // works
+  print(Box(b"hello")); // works
+  print(Box(10)); // Type error because we haven't provided a Printable[Int] implementation
+}
+```
 
 
+## Misc
 Check the suite directory for a few contrived examples used as an automated test suite.
+There's a gtk-hello-world which is a good representative program.
 Proper documentation coming in the future.
 
