@@ -75,10 +75,7 @@ Hades has constrained generics in the form of interfaces (similar to Rust/Haskel
   runtime checks while being more ergonomic than lifetime annotations, that would be nice.
 
 
-
-## What does it look like?
-
-Hello world
+## Hello world
 ```scala
 import libc as c;
 def main(): Void {
@@ -96,7 +93,11 @@ def main(): Void {
 
 ```
 
-A bigger example
+## Some bindings for a C library
+
+![gtk bindings screenshot](images/screenshot.png)
+
+## A bigger example
 
 ```scala
 // A struct has a packed layout like C
