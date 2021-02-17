@@ -65,7 +65,12 @@ class HIRGen(
     }
 
     private fun lowerTraitRequirement(requirement: TraitRequirementAnnotation): TraitRequirement {
-        TODO()
+        val traitDef = ctx.resolver.resolveDeclaration(requirement.path)
+        require(traitDef is Declaration.TraitDef)
+        return TraitRequirement(
+            ctx.resolver.qualifiedName(traitDef.name),
+            requirement.typeArgs?.map { lowerTypeAnnotation(it) } ?: emptyList()
+        )
     }
 
     private fun lowerInterfaceDef(declaration: Declaration.TraitDef): List<HIRDefinition> {
