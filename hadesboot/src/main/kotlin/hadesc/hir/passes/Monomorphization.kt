@@ -38,6 +38,41 @@ class Monomorphization(
     }
 
     private fun addSpecialization(module: HIRModule, request: SpecializationRequest) {
+        when (request) {
+            is SpecializationRequest.ByName -> addByNameSpecialization(module, request)
+            is SpecializationRequest.FunctionDef -> addFunctionDefSpecialization(module, request)
+        }
+    }
+
+    private val generatedSpecializaionSet = mutableSetOf<QualifiedName>()
+    private fun addFunctionDefSpecialization(module: HIRModule, request: SpecializationRequest.FunctionDef) {
+        if (generatedSpecializaionSet.contains(request.name)) {
+            return
+        }
+        generatedSpecializaionSet.add(request.name)
+        val definition = request.def
+        val oldSpecialization = currentSpecialization
+        currentSpecialization = makeSubstitution(definition.typeParams, request.typeArgs)
+
+        val signature = HIRFunctionSignature(
+            location = definition.location,
+            returnType = lowerType(definition.returnType),
+            typeParams = null,
+            name = request.name,
+            params = definition.params.map { transformParam(it) },
+        )
+        module.addDefinition(
+            HIRDefinition.Function(
+                location = definition.location,
+                signature = signature,
+                body = transformBlock(definition.body)
+            )
+        )
+
+        currentSpecialization = oldSpecialization
+    }
+
+    private fun addByNameSpecialization(module: HIRModule, request: SpecializationRequest.ByName) {
         val definitions = oldModule.findDefinitions(request.name)
         require(definitions.size == 1)
         val definition = definitions[0]
@@ -48,13 +83,14 @@ class Monomorphization(
                 currentSpecialization = makeSubstitution(definition.typeParams, request.typeArgs)
 
                 module.addDefinition(
-                        HIRDefinition.Function(
-                                location = definition.location,
-                                signature = specializeFunctionSignature(
-                                        request,
-                                        definition.signature),
-                                body = transformBlock(definition.body)
-                        )
+                    HIRDefinition.Function(
+                        location = definition.location,
+                        signature = specializeFunctionSignature(
+                            request.name,
+                            request.typeArgs,
+                            definition.signature),
+                        body = transformBlock(definition.body)
+                    )
                 )
 
                 currentSpecialization = oldSpecialization
@@ -63,12 +99,12 @@ class Monomorphization(
                 currentSpecialization = makeSubstitution(definition.typeParams, request.typeArgs)
 
                 module.addDefinition(
-                        HIRDefinition.Struct(
-                                location = definition.location,
-                                name = getSpecializedName(request.name, request.typeArgs),
-                                typeParams = null,
-                                fields = definition.fields.map { it.first to lowerType(it.second) }
-                        )
+                    HIRDefinition.Struct(
+                        location = definition.location,
+                        name = getSpecializedName(request.name, request.typeArgs),
+                        typeParams = null,
+                        fields = definition.fields.map { it.first to lowerType(it.second) }
+                    )
                 )
 
                 currentSpecialization = oldSpecialization
@@ -77,18 +113,21 @@ class Monomorphization(
                 requireUnreachable()
             }
         }
-
     }
 
     override fun lowerGenericInstance(type: Type.GenericInstance): Type {
         requireUnreachable()
     }
-    private fun specializeFunctionSignature(request: SpecializationRequest, definition: HIRFunctionSignature): HIRFunctionSignature {
+    private fun specializeFunctionSignature(
+        name: QualifiedName,
+        typeArgs: List<Type>,
+        definition: HIRFunctionSignature
+    ): HIRFunctionSignature {
         return HIRFunctionSignature(
             location = definition.location,
             returnType = lowerType(definition.returnType),
             typeParams = null,
-            name = getSpecializedName(request.name, request.typeArgs),
+            name = getSpecializedName(name, typeArgs),
             params = definition.params.map { transformParam(it) },
         )
     }
@@ -170,7 +209,7 @@ class Monomorphization(
     }
 
     private fun enqueueSpecialization(name: QualifiedName, typeArgs: List<Type>) {
-        specializationQueue.add(SpecializationRequest(name, typeArgs.map { lowerType(it) }))
+        specializationQueue.add(SpecializationRequest.ByName(name, typeArgs.map { lowerType(it) }))
     }
 
     private fun specializeName(name: QualifiedName, typeArgs: List<Type>): QualifiedName {
@@ -182,12 +221,14 @@ class Monomorphization(
         ))
     }
 
+    private val specializedTypes = mutableMapOf<QualifiedName, Type.Application>()
     override fun lowerTypeApplication(type: Type.Application): Type {
         require(type.callee is Type.Constructor)
         val typeName = type.callee.name
         val definition = oldModule.findGlobalDefinition(typeName)
         require(definition is HIRDefinition.Struct)
         val specializedName = getSpecializedName(typeName, type.args.map { lowerType(it) })
+        specializedTypes[specializedName] = type
         return Type.Constructor(binder = null, name = specializedName)
     }
 
@@ -221,8 +262,9 @@ class Monomorphization(
         // isCandidate(Printable[Box[X, Y]], impl [A, B] Printable[Box[A, B]] where Printable[A], Printable[B]
 
         val traitName = expression.traitName
-        val traitArgs = expression.traitArgs.map { lowerType(it) }
-        val typeAnalyzer = TypeAnalyzer()
+        val traitArgs = expression.traitArgs
+            .map { lowerType(it) }
+            .map { if (it is Type.Constructor) specializedTypes[it.name] ?: it else  it }
 
         val eligibleCandidates = mutableListOf<Pair<HIRDefinition.Implementation, Substitution>>()
         for (candidate in allImpls) {
@@ -252,11 +294,14 @@ class Monomorphization(
                     (substitution.mapValues {
                         requireNotNull(typeAnalyzer.getInstantiatedType(it.value)) }))
         }
+        require(eligibleCandidates.isNotEmpty()) {
+            "Trait implementation not found: ${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}]"
+        }
         require(eligibleCandidates.size == 1) {
             "Overlapping trait implementations."
         }
         val (impl, substitution) = eligibleCandidates.first()
-        val implMethodNames = generateImpl(impl)
+        val implMethodNames = generateImpl(impl, substitution)
         return HIRExpression.Call(
                 location = expression.location,
                 type = expression.type,
@@ -268,12 +313,13 @@ class Monomorphization(
         )
     }
 
-    private val generateImplCache = mutableMapOf<Name, Map<Name, QualifiedName>>()
-    private fun generateImpl(impl: HIRDefinition.Implementation): Map<Name, QualifiedName> {
-        require(impl.typeParams.isNullOrEmpty())
-        val implName = impl.name
+    private val generateImplCache = mutableMapOf<QualifiedName, Map<Name, QualifiedName>>()
+    private fun generateImpl(impl: HIRDefinition.Implementation, substitution: Substitution): Map<Name, QualifiedName> {
+        val typeArgs = impl.typeParams?.map { requireNotNull(substitution[it.location]) } ?: emptyList()
 
-        val cached = generateImplCache[impl.name]
+        val implName = specializeName(QualifiedName(listOf(impl.name)), typeArgs)
+
+        val cached = generateImplCache[implName]
 
         if (cached != null) {
             return cached
@@ -282,15 +328,29 @@ class Monomorphization(
         val result = mutableMapOf<Name, QualifiedName>()
         impl.functions.forEach { fn ->
             require(fn.name.size == 1)
-            val name = QualifiedName(listOf(implName, fn.name.first))
+            val name = implName.append(fn.name.first)
             result[fn.name.first] = name
         }
-        generateImplCache[impl.name] = result
+        generateImplCache[implName] = result
 
         impl.functions.forEach { fn ->
             require(fn.name.size == 1)
-            val name = QualifiedName(listOf(implName, fn.name.first))
-            newDefinitions.addAll(transformFunctionDef(fn, newName = name))
+            val name = implName.append(fn.name.first)
+            queuedSpecializationSet.add(name)
+            if (typeArgs.isEmpty()) {
+                transformFunctionDef(fn, name).forEach { newDefinitions.add(it) }
+            } else {
+
+                specializationQueue.add(SpecializationRequest.FunctionDef(
+                    name = name,
+                    typeArgs = typeArgs,
+                    def = fn.copy(
+                        signature = fn.signature.copy(
+                            typeParams = impl.typeParams
+                        )
+                    )
+                ))
+            }
         }
         return result
     }
@@ -301,7 +361,14 @@ class Monomorphization(
 
 }
 
-data class SpecializationRequest(
+sealed class SpecializationRequest {
+    data class ByName(
         val name: QualifiedName,
         val typeArgs: List<Type>
-)
+    ) : SpecializationRequest()
+    data class FunctionDef(
+        val name: QualifiedName,
+        val typeArgs: List<Type>,
+        val def: HIRDefinition.Function
+    ) : SpecializationRequest()
+}
