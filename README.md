@@ -151,7 +151,7 @@ def main(): Void {
 ```
 
 ## Traits
-Hades has a trait system similar to Rust. traits allow us to define operations on generic
+Hades has a trait system similar to Rust (We don't have assosicated types yet but they'll come soon). traits allow us to define operations on generic
 type parameters. This has the advantage of better error messages than C++ while still
 being more powerful than simpler systems like Java interfaces.
 
@@ -220,6 +220,32 @@ def f() {
 }
 ```
 
+## Sealed types
+Sealed types (also known as algebraic data types) allow you to represent types that can be one of a finite set
+of cases.
+```scala
+
+sealed type Optional[T] {
+  Some(value: T);
+  None;
+}
+
+
+def main(): Void {
+   // Sealed types can be pattern matched on.
+   // The cases are checked at compile time. If you
+   // decide to add a new case, that will have to
+   // be handled in existing match statements.
+   val ten = match Optional.Some(10) {
+      is Some: x -> s.value,
+      is None -> 0
+   };
+   val zero = match Optional.None[Int] {
+     is Some: x -> s.value,
+     is None -> 0
+   };
+}
+```
 
 ## Misc
 Check the suite directory for a few contrived examples used as an automated test suite.
