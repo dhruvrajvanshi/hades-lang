@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
@@ -55,8 +56,20 @@ class HIRGen(
                         traitArgs = declaration.traitArguments.map { lowerTypeAnnotation(it) },
                         functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map {
                             lowerFunctionDef(it, QualifiedName(listOf(it.name.identifier.name)))
-                        }
+                        },
+                        traitRequirements = declaration.whereClause?.traitRequirements?.map {
+                            lowerTraitRequirement(it)
+                        } ?: emptyList()
                 )
+        )
+    }
+
+    private fun lowerTraitRequirement(requirement: TraitRequirementAnnotation): TraitRequirement {
+        val traitDef = ctx.resolver.resolveDeclaration(requirement.path)
+        require(traitDef is Declaration.TraitDef)
+        return TraitRequirement(
+            ctx.resolver.qualifiedName(traitDef.name),
+            requirement.typeArgs?.map { lowerTypeAnnotation(it) } ?: emptyList()
         )
     }
 

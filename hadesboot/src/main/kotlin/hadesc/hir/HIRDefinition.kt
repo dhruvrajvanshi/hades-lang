@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.location.HasLocation
@@ -57,6 +58,7 @@ sealed class HIRDefinition: HasLocation {
 
     data class Implementation(
             override val location: SourceLocation,
+            val traitRequirements: List<TraitRequirement>,
             val typeParams: List<HIRTypeParam>?,
             val traitName: QualifiedName,
             val traitArgs: List<Type>,

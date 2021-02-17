@@ -14,6 +14,12 @@ implementation Printable[Bool] {
     }
 }
 
+implementation Printable[*Byte] {
+    def print(self: *Byte, file: *c.File): Void {
+        c.fputs(self, file);
+    }
+}
+
 implementation[T] Printable[Box[T]] where Printable[T] {
     def print(self: Box[T], file: *c.File): Void {
         c.fputs(b"Box(", file);
@@ -48,4 +54,5 @@ def main(): Void {
     // println[Box[Bool]](Box(true), &printable_box[T]);
     println(Box(true));
     println(Box(false));
+    println(Box(b"hello"));
 }

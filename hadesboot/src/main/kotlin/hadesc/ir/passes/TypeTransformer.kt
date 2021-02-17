@@ -54,11 +54,11 @@ interface TypeTransformer {
     fun lowerFunctionType(type: Type.Function): Type = Type.Function(
             from = type.from.map { lowerType(it) },
             to = lowerType(type.to),
-            traitRequirements = type.traitRequirements?.flatMap { lowerTraitRequirement(it) }
+            traitRequirements = type.traitRequirements?.map { lowerTraitRequirement(it) }
     )
 
-    fun lowerTraitRequirement(requirement: TraitRequirement): List<TraitRequirement> {
-        return listOf(TraitRequirement(requirement.traitRef, requirement.arguments.map { lowerType(it) }))
+    fun lowerTraitRequirement(requirement: TraitRequirement): TraitRequirement {
+        return TraitRequirement(requirement.traitRef, requirement.arguments.map { lowerType(it) })
     }
 
     fun lowerSizeType(type: Type): Type = type
