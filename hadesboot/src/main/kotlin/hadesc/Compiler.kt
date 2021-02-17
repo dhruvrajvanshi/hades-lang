@@ -4,7 +4,6 @@ import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import java.nio.file.Path
-import kotlin.streams.toList
 
 sealed class Options {
 
@@ -67,7 +66,7 @@ sealed class Options {
             return if (indexOf(long) == size - 1) {
                 listOf()
             } else {
-                toList().stream().skip(indexOf(long) + 1L).takeWhile { !it.startsWith("--") }.toList()
+                asSequence().drop(indexOf(long) + 1).takeWhile { !it.startsWith("--") }.toList()
             }
         }
 
