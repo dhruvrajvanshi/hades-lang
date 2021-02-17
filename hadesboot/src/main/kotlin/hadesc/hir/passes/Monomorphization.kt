@@ -1,6 +1,9 @@
 package hadesc.hir.passes
 
 import hadesc.Name
+import hadesc.analysis.TraitClause
+import hadesc.analysis.TraitRequirement
+import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
@@ -8,6 +11,7 @@ import hadesc.hir.*
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Substitution
 import hadesc.types.Type
 import java.util.concurrent.LinkedBlockingQueue
 
@@ -178,9 +182,6 @@ class Monomorphization(
         ))
     }
 
-//    override fun transformInterfaceDef(definition: HIRDefinition.Interface): Collection<HIRDefinition> {
-//    }
-
     override fun lowerTypeApplication(type: Type.Application): Type {
         require(type.callee is Type.Constructor)
         val typeName = type.callee.name
@@ -194,17 +195,67 @@ class Monomorphization(
         return emptyList()
     }
 
+    private val globalTraitClauses by lazy {
+        allImpls.map { impl ->
+            TraitClause.Implementation(
+                params = impl.typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
+                traitRef = impl.traitName,
+                arguments = impl.traitArgs,
+                requirements = impl.traitRequirements.map { TraitRequirement(it.traitRef, it.arguments) }
+
+            )
+        }
+    }
     override fun transformTraitMethodCall(expression: HIRExpression.TraitMethodCall): HIRExpression {
+        // required traitName[...traitArgs]
+
+        // T == traitName
+        // subst = make_subst(...Ps)
+
+        // ------------------------------------------
+        // isCandidate(impl [Ps...] T[...Ps])
+
+
+        //
+        // ------------
+        // isCandidate(Printable[Box[X, Y]], impl [A, B] Printable[Box[A, B]] where Printable[A], Printable[B]
+
         val traitName = expression.traitName
         val traitArgs = expression.traitArgs.map { lowerType(it) }
         val typeAnalyzer = TypeAnalyzer()
-        val impl = requireNotNull(allImpls.find {
-            it.traitName == traitName &&
-                    traitArgs.size == it.traitArgs.size &&
-                    traitArgs.zip(it.traitArgs).all {
-                        (requiredType, foundType) -> typeAnalyzer.isTypeAssignableTo(source = foundType, destination = requiredType)
-                    }
-        })
+
+        val eligibleCandidates = mutableListOf<Pair<HIRDefinition.Implementation, Substitution>>()
+        for (candidate in allImpls) {
+            val typeAnalyzer = TypeAnalyzer()
+            if (candidate.traitName != traitName) continue
+            val substitution = candidate.typeParams
+                ?.map { it.location to typeAnalyzer.makeGenericInstance(it.toBinder()) }
+                ?.toMap()
+                ?: emptyMap()
+            if (!traitArgs.zip(candidate.traitArgs).all { (requiredType, actualType) ->
+                    typeAnalyzer.isTypeAssignableTo(
+                        destination = requiredType,
+                        source = actualType.applySubstitution(substitution))
+            }) continue
+
+            val traitResolver = TraitResolver(
+                TraitResolver.Env(globalTraitClauses),
+                typeAnalyzer
+            )
+
+            if (!candidate.traitRequirements.all { requirement ->
+                    traitResolver.isTraitImplemented(
+                        requirement.traitRef,
+                        requirement.arguments.map { it.applySubstitution(substitution) }) })
+                            continue
+            eligibleCandidates.add(candidate to
+                    (substitution.mapValues {
+                        requireNotNull(typeAnalyzer.getInstantiatedType(it.value)) }))
+        }
+        require(eligibleCandidates.size == 1) {
+            "Overlapping trait implementations."
+        }
+        val (impl, substitution) = eligibleCandidates.first()
         val implMethodNames = generateImpl(impl)
         return HIRExpression.Call(
                 location = expression.location,
