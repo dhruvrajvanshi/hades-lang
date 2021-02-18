@@ -82,15 +82,8 @@ class Analyzer(
         if (binding !is Binding.WhenArm) {
             return null
         }
-        return matchArmPropertyBinding(binding.case, expression.lhs, expression)
-    }
-
-    private fun matchArmPropertyBinding(
-        case: Expression.WhenArm,
-        lhs: Expression.Var,
-        expression: Expression.Property
-    ): PropertyBinding.WhenCaseFieldRef? {
-        return when (case) {
+        val lhs = expression.lhs
+        return when (val case = binding.case) {
             is Expression.WhenArm.Is -> {
                 val whenExpression = requireNotNull(ctx.resolver.getEnclosingWhenExpression(case.caseName))
                 val discriminantType = inferExpression(whenExpression.value)
