@@ -1,5 +1,4 @@
 type CInt = i32;
-
 struct Application {}
 struct Window {}
 struct ButtonBox {}
@@ -7,7 +6,18 @@ struct Widget {}
 struct Container {}
 struct Button {}
 
-const APPLICATION_FLAGS_NONE: CInt = 0;
+trait IsContainer[Self] {}
+
+trait IsWidget[Self] {}
+
+implementation IsWidget[Window] {}
+implementation IsWidget[Button] {}
+implementation IsWidget[Widget] {}
+implementation IsWidget[ButtonBox] {}
+implementation IsWidget[Container] {}
+
+
+const APPLICATION_FLAGS_NONE: i32 = 0;
 extern def application_new(*Byte, CInt): *Application = gtk_application_new;
 extern def object_unref(*Application): Void = gtk_object_unref;
 extern def application_window_new(*Application): *Window = gtk_application_window_new;
@@ -18,17 +28,21 @@ extern def button_new_with_label(*Byte): *Button = gtk_button_new_with_label;
 extern def container_add(*Container, *Widget): Void = gtk_container_add;
 extern def widget_show_all(*Widget): Void = gtk_widget_show_all;
 extern def print(*Byte): Void = g_print;
-extern def widget_destroy(*Widget): Void = gtk_widget_destroy;
+extern def gtk_widget_destroy(*Widget): Void = gtk_widget_destroy;
 extern def signal_connect_data(*Widget, *Byte, *Void, *Void, *Void, CInt): Void = g_signal_connect_data;
 extern def application_run(*Application, CInt, **Byte): CInt = g_application_run;
 
+
+def widget_destroy[W](widget: *W): Void where IsWidget[W] {
+    gtk_widget_destroy(widget.as_widget());
+}
 
 def signal_connect_swapped(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
     signal_connect_data(instance, signal, handler, data, nullptr, 2);
 }
 
-def signal_connect(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
-   signal_connect_data(instance, signal, handler, data, nullptr, 0);
+def signal_connect[W](instance: *W, signal: *Byte, handler: *Void, data: *Void): Void where IsWidget[W] {
+   signal_connect_data(WIDGET(instance), signal, handler, data, nullptr, 0);
 }
 
 def CONTAINER[T](ptr: *T): *Container {
@@ -51,6 +65,11 @@ extension WidgetExtensions[T] for *T {
     def as_container(this): *Container {
         return CONTAINER(this);
     }
+
+    def connect(this, signal: *Byte, handler: *Void, data: *Void): *T {
+        signal_connect(this.as_widget(), signal, handler, data);
+        return this;
+    }
 }
 
 extension ApplicationExtensions for Application {
@@ -72,8 +91,8 @@ extension WindowExtensions for Window {
 }
 
 extension ContainerExtensions for Container {
-    def add(*this, widget: *Widget): *Container {
-        container_add(this, widget);
+    def add[W](*this, widget: *W): *Container where IsWidget[W] {
+        container_add(this, WIDGET(widget));
         return this;
     }
 }

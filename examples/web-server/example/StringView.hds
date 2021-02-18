@@ -1,9 +1,8 @@
 import libc as c;
 import example.logging as log;
-import example.assert as Assert;
+import example.assert.{assert};
 import hades.memory as mem;
 import example.debug as Debug;
-const assert = Assert.assert;
 
 struct t {
     val m_buffer: *Byte;

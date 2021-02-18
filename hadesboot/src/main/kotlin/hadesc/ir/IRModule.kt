@@ -12,21 +12,23 @@ class IRModule {
     fun prettyPrint(): String = definitions.joinToString("\n") { it.prettyPrint() }
 
     fun addExternFunctionDef(
-            name: IRGlobalName,
-            type: Type.Function,
-            externName: Name
+        location: SourceLocation,
+        name: IRGlobalName,
+        type: Type.Function,
+        externName: Name
     ): IRExternFunctionDef {
-        val value = IRExternFunctionDef(this, name, type, externName = externName)
+        val value = IRExternFunctionDef(this, location, name, type, externName = externName)
         add(value)
         return value
     }
 
     fun addConstDef(
+            location: SourceLocation,
             name: IRGlobalName,
             type: Type,
             initializer: IRValue
     ): IRConstDef {
-        val def = IRConstDef(this, name, type, initializer)
+        val def = IRConstDef(this, location, name, type, initializer)
         add(def)
         return def
     }
@@ -42,6 +44,7 @@ class IRModule {
     ): IRFunctionDef {
         val value = IRFunctionDef(
                 this,
+                location,
                 IRFunctionSignature(
                         location,
                         name,
@@ -57,6 +60,7 @@ class IRModule {
     }
 
     fun addStructDef(
+            location: SourceLocation,
             constructorType: Type.Function,
             instanceType: Type,
             name: IRGlobalName,
@@ -64,7 +68,7 @@ class IRModule {
             fields: Map<Name, Type>
     ): IRStructDef {
         val value = IRStructDef(
-                this, constructorType, instanceType, name, typeParams, fields)
+                this, location, constructorType, instanceType, name, typeParams, fields)
         add(value)
         return value
 

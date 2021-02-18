@@ -14,7 +14,7 @@ def main(): Void {
 }
 
 def print[T](value: T): Void where p.Printable[T] {
-    trait p.Printable[T].print(value);
+    p.Printable[T].print(value);
 }
 
 def get_string_value(value: Optional[*Byte]): *Byte {

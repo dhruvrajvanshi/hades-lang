@@ -3,6 +3,7 @@ package hadesc.codegen
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.ir.*
+import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
@@ -10,11 +11,10 @@ import hadesc.types.Type
 import llvm.*
 import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
+import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
-import java.io.File
-import java.nio.charset.StandardCharsets
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
@@ -23,9 +23,14 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val llvmModule = LLVM.LLVMModuleCreateWithNameInContext(ctx.options.main.toString(), llvmCtx)
     private val builder = LLVM.LLVMCreateBuilderInContext(llvmCtx)
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
+    private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)
 
     fun generate() = profile("LLVM::generate") {
+        llvmModule.addModuleFlag("Debug Info Version", ConstantInt(i32Ty, 3).asMetadata())
+        llvmModule.addModuleFlag("Dwarf Version", ConstantInt(i32Ty, 4).asMetadata())
+
         lower()
+        LLVM.LLVMDIBuilderFinalize(diBuilder)
         verifyModule()
         writeModuleToFile()
         if (!ctx.options.lib) {
@@ -43,8 +48,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun sizeOfType(type: llvm.Type): Long {
-        return LLVM.LLVMABISizeOfType(dataLayout, type.ref)
+        return LLVM.LLVMABISizeOfType(dataLayout, type)
     }
+
+    private val Type.sizeInBits get() = LLVM.LLVMSizeOfTypeInBits(dataLayout, lowerType(this))
 
     private fun lowerDefinition(definition: IRDefinition) {
 //        logger().debug("LLVMGen::lowerDefinition")
@@ -99,6 +106,37 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         getDeclaration(definition)
     }
 
+    private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
+        Type.Error -> requireUnreachable()
+        Type.Byte -> diBuilder.createBasicType("Byte", 8)
+        Type.Void -> diBuilder.createBasicType("Void", 0)
+        Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
+        Type.CInt -> diBuilder.createBasicType("CInt", sizeInBits)
+        is Type.Integral -> diBuilder.createBasicType(
+            (if (isSigned) "s" else "u") + sizeInBits,
+            sizeInBits
+        )
+        is Type.FloatingPoint -> diBuilder.createBasicType("f$sizeInBits", sizeInBits)
+        Type.Double -> diBuilder.createBasicType("Double", sizeInBits)
+        Type.Size -> diBuilder.createBasicType("Size", sizeInBits)
+        is Type.Ptr -> LLVM.LLVMDIBuilderCreatePointerType(
+            diBuilder,
+            to.debugInfo,
+            sizeInBits,
+            8,
+            0,
+            null as BytePointer?,
+            0
+        )
+        is Type.Function -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
+        is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
+        is Type.ParamRef -> requireUnreachable()
+        is Type.TypeFunction -> TODO()
+        is Type.GenericInstance -> TODO()
+        is Type.Application -> TODO()
+        is Type.UntaggedUnion -> TODO()
+    }
+
     private fun lowerFunctionDef(definition: IRFunctionDef) {
 //        logger().debug("LLVMGen::lowerFunctionDef(${definition.name.prettyPrint()})")
         val fn = getDeclaration(definition)
@@ -106,11 +144,52 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         definition.params.forEachIndexed { index, param ->
             localVariables[param.name] = fn.getParameter(index)
         }
+        attachDebugInfo(definition, fn)
         lowerBlock(definition.entryBlock)
         for (block in definition.blocks) {
             lowerBlock(block)
         }
-        fn.verify()
+    }
+
+    private var currentFunctionMetadata: LLVMMetadataRef? = null
+    private fun attachDebugInfo(definition: IRFunctionDef, fn: FunctionValue) {
+
+        if (!ctx.options.debugSymbols) {
+            return
+        }
+
+        val fileScope = getFileScope(definition.location.file)
+        val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
+            diBuilder, fileScope,
+            definition.type.from.map { it.debugInfo }.asPointerPointer(),
+            definition.type.from.size,
+            LLVM.LLVMDIFlagZero
+        )
+
+        val name = definition.name.name.names.joinToString(".") { it.text }
+        val meta = diBuilder.createFunction(
+            scope = fileScope,
+            name = name,
+            linkageName = name,
+            file = fileScope,
+            lineno = definition.location.start.line,
+            ty = typeDI,
+            isLocalToUnit = false,
+            isDefinition = true,
+            scopeLine = definition.location.start.line,
+            flags = LLVM.LLVMDIFlagZero,
+
+            )
+        currentFunctionMetadata = meta
+        LLVM.LLVMGlobalSetMetadata(fn, LLVM.LLVMMDStringMetadataKind, meta)
+        LLVM.LLVMSetCurrentDebugLocation2(builder, null)
+    }
+
+    private val fileScopeCache = mutableMapOf<SourcePath, LLVMMetadataRef>()
+    private fun getFileScope(file: SourcePath): LLVMMetadataRef = fileScopeCache.getOrPut(file) {
+        val f = diBuilder.createFile(file.path.fileName.toString(), file.path.toAbsolutePath().parent.toString())
+        diBuilder.createCompileUnit(f)
+        f
     }
 
     private val blocks = mutableMapOf<Pair<String, IRLocalName>, BasicBlock>()
@@ -261,19 +340,34 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun lowerExpression(value: IRValue): Value = when (value) {
-        is IRBool -> lowerBoolExpression(value)
-        is IRByteString -> lowerByteString(value)
-        is IRVariable -> lowerVariable(value)
-        is IRGetStructField -> lowerGetStructField(value)
-        is IRCIntConstant -> lowerCIntValue(value)
-        is IRNullPtr -> lowerNullPtr(value)
-        is IRSizeOf -> lowerSizeOf(value)
-        is IRMethodRef -> requireUnreachable()
-        is IRPointerCast -> lowerPointerCast(value)
-        is IRAggregate -> lowerAggregate(value)
-        is IRGetElementPointer -> lowerGetElementPointer(value)
-        is IRUnsafeCast -> lowerUnsafeCast(value)
+    private fun lowerExpression(value: IRValue): Value {
+        if (ctx.options.debugSymbols) {
+            val location = LLVM.LLVMDIBuilderCreateDebugLocation(
+                llvmCtx,
+                value.location.start.line,
+                value.location.start.column,
+                currentFunctionMetadata,
+                null
+            )
+            LLVM.LLVMSetCurrentDebugLocation2(builder, location)
+        }
+
+        val result = when (value) {
+            is IRBool -> lowerBoolExpression(value)
+            is IRByteString -> lowerByteString(value)
+            is IRVariable -> lowerVariable(value)
+            is IRGetStructField -> lowerGetStructField(value)
+            is IRCIntConstant -> lowerCIntValue(value)
+            is IRNullPtr -> lowerNullPtr(value)
+            is IRSizeOf -> lowerSizeOf(value)
+            is IRMethodRef -> requireUnreachable()
+            is IRPointerCast -> lowerPointerCast(value)
+            is IRAggregate -> lowerAggregate(value)
+            is IRGetElementPointer -> lowerGetElementPointer(value)
+            is IRUnsafeCast -> lowerUnsafeCast(value)
+        }
+
+        return result
     }
 
     private fun lowerGetElementPointer(value: IRGetElementPointer): Value {
@@ -529,6 +623,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val voidTy = VoidType(llvmCtx)
     private val boolTy = IntType(1, llvmCtx)
     private val cIntTy = IntType(32, llvmCtx)
+    private val i32Ty = IntType(32, llvmCtx)
     private val doubleTy = LLVM.LLVMDoubleTypeInContext(llvmCtx)
     private val trueValue = ConstantInt(boolTy, 1, false)
     private val falseValue = ConstantInt(boolTy, 0, false)
@@ -543,11 +638,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         log.info("Linking using $cc")
         val commandParts = mutableListOf(
             cc,
-            "-O2",
-            "-flto"
         )
         if (ctx.options.debugSymbols) {
             commandParts.add("-g")
+        } else {
+            commandParts.add("-flto")
+            commandParts.add("-O2")
         }
         commandParts.add("-o")
         commandParts.add(ctx.options.output.toString())
@@ -575,12 +671,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val objectFilePath get() = ctx.options.output.toString() + ".o"
 
     private fun writeModuleToFile() {
-        if (ctx.options.output.toAbsolutePath().parent == null ||
-            !ctx.options.output.toAbsolutePath().toFile().exists()) {
-            ctx.options.output.toAbsolutePath().toFile().mkdirs()
-        } else {
-            require(ctx.options.output.parent.toAbsolutePath().toFile().isDirectory)
-        }
         log.debug("Writing object file")
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()

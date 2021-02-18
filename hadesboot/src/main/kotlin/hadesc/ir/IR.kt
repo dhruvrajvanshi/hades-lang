@@ -2,6 +2,7 @@ package hadesc.ir
 
 import hadesc.Name
 import hadesc.ast.Binder
+import hadesc.location.SourceLocation
 import hadesc.types.Type
 
 sealed class IRBinding {
@@ -36,7 +37,7 @@ data class IRTypeParam(
     val binderLocation get() = binder.location
 }
 
-class IRBlock(val name: IRLocalName = IRLocalName(Name("entry"))) {
+class IRBlock(val location: SourceLocation, val name: IRLocalName = IRLocalName(Name("entry"))) {
     var statements = mutableListOf<IRInstruction>()
     var deferBlockName: IRLocalName? = null
     fun prettyPrint(): String =

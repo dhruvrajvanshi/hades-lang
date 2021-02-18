@@ -32,7 +32,8 @@ interface HIRTransformer: TypeTransformer {
                         traitName = transformGlobalName(definition.traitName),
                         traitArgs = definition.traitArgs.map { lowerType(it) },
                         functions = definition.functions.flatMap { transformDefinition(it) as Collection<HIRDefinition.Function> }.toList(),
-                        location = definition.location
+                        location = definition.location,
+                        traitRequirements = definition.traitRequirements.map { lowerTraitRequirement(it) }
                 )
         )
     }

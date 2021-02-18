@@ -9,15 +9,32 @@ A systems level programming language that compiles to LLVM
 - [x] Extension Methods
 - [ ] Closures
 - [ ] Named function arguments
-- [x] Interfaces
-- [ ] Algebraic data types (enums)
+- [x] Traits
+- [x] Algebraic data types (enums)
 - Editor integration
     - Syntax hilighting
         - [x] VSCode
         - [x] Intellij
     - [ ] Error highlighting
     - [ ] Autocompletion
-    - [ ] Debugger support
+    - [x] Debugger support:
+          - Very basic support for gdb and lldb debug symbols is supported. This allows stepping through code using VS code. No local variables are shown yet.
+    
+## Development
+The current compiler lives under the hadesboot directory (self hosting is a long term goal).
+
+Running the test suite is done using gradle.
+```
+./gradlew test
+```
+
+Building the compiler
+
+```
+./gradlew install
+```
+This installs the compiler executable in hadesboot/target directory. Check out examples directory makefiles
+to see how a typical hades binary is built.
 
 ## Editor support
 Basic syntax hilighting is supported
@@ -58,10 +75,7 @@ Hades has constrained generics in the form of interfaces (similar to Rust/Haskel
   runtime checks while being more ergonomic than lifetime annotations, that would be nice.
 
 
-
-## What does it look like?
-
-Hello world
+## Hello world
 ```scala
 import libc as c;
 def main(): Void {
@@ -79,7 +93,11 @@ def main(): Void {
 
 ```
 
-A bigger example
+## Some bindings for a C library
+
+![gtk bindings screenshot](images/screenshot.png)
+
+## A bigger example
 
 ```scala
 // A struct has a packed layout like C
@@ -133,20 +151,21 @@ def main(): Void {
 
 ```
 
-Traits
+## Traits
+Hades has a trait system similar to Rust (We don't have assosicated types yet but they'll come soon). traits allow us to define operations on generic
+type parameters. This has the advantage of better error messages than C++ while still
+being more powerful than simpler systems like Java interfaces.
 
 ```scala
 
-trait Printable {
-  // interfaces can refer to the type they
-  // are implemented for using the This type
-  def print(this: *This): Void;
+trait Printable[Self] {
+  def print(self: Self): Void;
 }
 
 // Interfaces are implemented outside the type declaration
 // this means you can make builtin types implement new interfaces
-implementation PrintableBool: Printable[Bool] {
-  def print(this: *Bool): Void {
+implementation Printable[Bool] {
+  def print(self: Bool): Void {
     if *this {
       c.puts(b"true");
     } else {
@@ -155,16 +174,95 @@ implementation PrintableBool: Printable[Bool] {
   }
 }
 
+// Unlike C++, the body of this function can be checked independently
+// of call sites. No type errors on expanded templates :)
+// The where clause is a requirement on type T and a caller can only pass things that are Printable
+def print[T](value: T): Void where Printable[T] {
+  Printable[T].print(value);
+}
+
 def main(): Void {
-  val boolean = true;
-  val pointer_to_boolean = &boolean;
-  pointer_to_boolean.print(); // prints true
+  print(true);
+  print(10); // type error: Printable[Int] not found
 }
 
 ```
 
+Implementations can have type parameters and where clauses, making it possible to implement traits
+for generic types based on other traits.
+
+```scala
+struct Box[T] {
+  val value: T;
+}
+
+// this declaration says that for all type Ts, Box[T] is printable if T is printable.
+// This makes it more powerful that Java/C# interfaces where it's not possible
+// to have an interface for Equality/Hashing and have generic containers conform
+// to them based on their type parameter.
+// Equality and Hashing, Stringification is baked into all objects in Java to get around this problem
+// but it doesn't solve it for custom interfaces.
+implementation[T] Printable[Box[T]] where Printable[T] {
+  def print(self: Box[T]): Void {
+     print(b"Box("); // implementation Box[*Byte] is omitted for berevity
+     print(self);
+     print(b")");
+  }
+}
+
+def f() {
+  print(Box(true)); // works
+  print(Box(b"hello")); // works
+  print(Box(10)); // Type error because we haven't provided a Printable[Int] implementation
+}
+```
+
+Although traits directly can't define extension methods yet, (i.e. you have to call `Trait[Type].method(value)`, instead of `value.method()`,
+extension definitions can have where clauses, allowing you to wrap trait functions as extension methods.
 
 
+```scala
+extension StringifiableExtensions[T] for T where Stringifiable[T] {
+  def to_string(this): *Byte { return Stringifiable[T].print(this); }
+}
+
+def f[T](value: T): Void where Stringifiable[T] {
+  // now you can call to_string as a method
+  value.to_string();
+}
+```
+
+Directly defining methods inside traits is being considered.
+
+## Sealed types
+Sealed types (also known as algebraic data types) allow you to represent types that can be one of a finite set
+of cases.
+```scala
+
+sealed type Optional[T] {
+  Some(value: T);
+  None;
+}
+
+
+def main(): Void {
+   // Sealed types can be pattern matched on.
+   // The cases are checked at compile time. If you
+   // decide to add a new case, that will have to
+   // be handled in existing match statements.
+   val ten = match Optional.Some(10) {
+      is Some: x -> s.value,
+      is None -> 0
+   };
+   val zero = match Optional.None[Int] {
+     is Some: x -> s.value,
+     is None -> 0
+   };
+}
+```
+
+## Misc
 Check the suite directory for a few contrived examples used as an automated test suite.
+There's a gtk-hello-world which is a good representative program.
 Proper documentation coming in the future.
 

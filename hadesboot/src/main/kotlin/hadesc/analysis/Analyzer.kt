@@ -31,18 +31,19 @@ class Analyzer(
             return PropertyBinding.Global(modulePropertyBinding)
         }
 
-        if (expression.lhs is Expression.Var) {
-            val binding = ctx.resolver.resolve(expression.lhs.name)
-            if (binding is Binding.SealedType) {
-                val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
-                if (case == null) {
-                    return null
-                }
-                val type = typeOfSealedTypeCase(binding.declaration, case)
-                return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
-            } else if (binding is Binding.WhenArm) {
-                return whenArmPropertyBinding(binding.case, expression.lhs, expression)
-            }
+
+        val traitFunctionRefBinding = resolveTraitFunctionRefBinding(expression)
+        if (traitFunctionRefBinding != null) return traitFunctionRefBinding
+
+
+        val sealedTypeCaseConstructorBinding = resolveSealedTypeConstructorBinding(expression)
+        if (sealedTypeCaseConstructorBinding != null) {
+            return sealedTypeCaseConstructorBinding
+        }
+
+        val matchArmBinding = resolveMatchArmPropertyBinding(expression)
+        if (matchArmBinding != null) {
+            return matchArmBinding
         }
 
         val fieldBinding = resolveStructFieldBinding(expression)
@@ -68,12 +69,50 @@ class Analyzer(
         return null
     }
 
-    private fun whenArmPropertyBinding(
-        case: Expression.WhenArm,
-        lhs: Expression.Var,
-        expression: Expression.Property
-    ): PropertyBinding? {
-        return when (case) {
+    private fun resolveTraitFunctionRefBinding(expression: Expression.Property): PropertyBinding.TraitFunctionRef? {
+        val traitDef = resolveTraitRef(expression.lhs) ?: return null
+        val signature = traitDef.signatures.find { it.name.identifier.name == expression.property.name } ?: return null
+        val typeArgs = if (expression.lhs is Expression.TypeApplication)
+            expression.lhs.args.map { annotationToType(it) }
+        else emptyList()
+        val substitution = traitDef.params.zip(typeArgs)
+            .map { (param, arg) -> param.location to arg }
+            .toMap()
+        return PropertyBinding.TraitFunctionRef(
+            ctx.resolver.qualifiedName(traitDef.name),
+            typeArgs,
+            Type.Function(
+                from = signature.params.map { it.type.applySubstitution(substitution) },
+                to = annotationToType(signature.returnType).applySubstitution(substitution),
+                traitRequirements = null
+            )
+        )
+    }
+
+    private val Param.type get(): Type = annotation?.let {
+        annotationToType(it)
+    } ?: Type.Error
+
+    private fun resolveSealedTypeConstructorBinding(expression: Expression.Property): PropertyBinding.SealedTypeCaseConstructor? {
+        if (expression.lhs !is Expression.Var) {
+            return null
+        }
+        val binding = ctx.resolver.resolve(expression.lhs.name)
+        if (binding !is Binding.SealedType) return null
+        val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
+            ?: return null
+        val type = typeOfSealedTypeCase(binding.declaration, case)
+        return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
+    }
+
+    private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
+        if (expression.lhs !is Expression.Var) return null
+        val binding = ctx.resolver.resolve(expression.lhs.name)
+        if (binding !is Binding.WhenArm) {
+            return null
+        }
+        val lhs = expression.lhs
+        return when (val case = binding.case) {
             is Expression.WhenArm.Is -> {
                 val whenExpression = requireNotNull(ctx.resolver.getEnclosingWhenExpression(case.caseName))
                 val discriminantType = inferExpression(whenExpression.value)
@@ -183,7 +222,7 @@ class Analyzer(
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
         for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
-            if (isExtensionForType(expression.location, extensionDef, typeOfExpression(expression.lhs))) {
+            if (isExtensionForType(expression, extensionDef, typeOfExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
                     return binding
@@ -231,9 +270,9 @@ class Analyzer(
                 to = annotationToType(functionDef.signature.returnType),
                 traitRequirements = null
             )
-            if (extensionDef.typeParams != null) {
+            if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
-                    extensionDef.typeParams.map { Type.Param(it.binder) },
+                    ((extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())).map { Type.Param(it.binder) },
                     methodType
                 )
             }
@@ -255,14 +294,27 @@ class Analyzer(
         return type.applySubstitution(substitution) to substitution
     }
 
-    private fun isExtensionForType(location: SourceLocation, extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
+    private fun isExtensionForType(callNode: HasLocation, extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
         val forType = annotationToType(extensionDef.forType)
-        return isTypeAssignableTo(
+        val valueAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
+        val pointerAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
+        val isValueAssignable = isTypeAssignableTo(
+                source = type,
+                destination = forType.applySubstitution(valueAssignmentSubstitution)
+            )
+        val isPointerAssignable = isTypeAssignableTo(
             source = type,
-            destination = instantiateType(forType, extensionDef.typeParams)
-        ) || isTypeAssignableTo(
-            source = type,
-            destination = Type.Ptr(instantiateType(forType, extensionDef.typeParams), isMutable = false))
+            destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
+        if (!isValueAssignable && !isPointerAssignable) return false
+
+        val substitution = if (isValueAssignable) valueAssignmentSubstitution else pointerAssignmentSubstitution
+
+        return extensionDef.traitRequirements.all { requirement ->
+            isTraitRequirementSatisfied(callNode, requirement.copy(
+                arguments = requirement.arguments.map { arg -> arg.applySubstitution(substitution) }
+            ))
+        }
+
     }
 
     private fun instantiateType(type: Type, typeParams: List<TypeParam>?): Type {
@@ -692,7 +744,6 @@ class Analyzer(
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
-            is Expression.TraitMethodCall -> inferTraitMethodCall(expression)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.When -> inferWhenExpression(expression)
         })
@@ -714,15 +765,6 @@ class Analyzer(
     private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
         inferExpression(expression.value)
         return annotationToType(expression.toType)
-    }
-
-    private fun inferTraitMethodCall(expression: Expression.TraitMethodCall): Type {
-        return inferOrCheckCallLikeExpression(
-                callNode = expression,
-                typeArgs = null,
-                args = expression.args,
-                expectedReturnType = null
-        )
     }
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
@@ -867,6 +909,7 @@ class Analyzer(
                 is PropertyBinding.SealedTypeCaseConstructor -> binding.type
                 is PropertyBinding.WhenCaseFieldRef -> binding.type
                 null -> Type.Error
+                is PropertyBinding.TraitFunctionRef -> binding.type
             }
 
     private fun typeOfGlobalPropertyBinding(
@@ -1077,13 +1120,14 @@ class Analyzer(
         }
     }
 
-    fun isTraitRequirementSatisfied(callNode: Expression, requiredInstance: TraitRequirement): Boolean {
-        val clauses = globalTraitClauses
+    fun isTraitRequirementSatisfied(callNode: HasLocation, requiredInstance: TraitRequirement): Boolean {
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
+        val enclosingExtensionDef = ctx.resolver.getEnclosingExtensionDef(callNode)
+        val extensionClauses = enclosingExtensionDef?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
         val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
         val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
-        val env = TraitResolver.Env(functionTraitClauses + implTraitClauses + clauses)
+        val env = TraitResolver.Env(extensionClauses + functionTraitClauses + implTraitClauses + globalTraitClauses)
         val traitResolver = TraitResolver(env, typeAnalyzer)
         return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
     }
@@ -1096,6 +1140,9 @@ class Analyzer(
         signature.whereClause
             ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
             ?: emptyList()
+
+    private val Declaration.ExtensionDef.traitRequirements get(): List<TraitRequirement> =
+        whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
 
     private val Declaration.ImplementationDef.traitRequirements get(): List<TraitRequirement> =
         whereClause
@@ -1124,29 +1171,6 @@ class Analyzer(
                 inferExpression(callNode.callee)
             }
             else -> inferExpression(callNode.callee)
-        }
-        is Expression.TraitMethodCall -> {
-            when (val traitDeclaration = ctx.resolver.resolveDeclaration(callNode.traitName)) {
-                !is Declaration.TraitDef -> Type.Error
-                else -> {
-                    val methodSignature = traitDeclaration.findMethodSignature(callNode.methodName)
-                    if (methodSignature == null) {
-                        Type.Error
-                    } else {
-                        val substitution = traitDeclaration.params.zip(callNode.traitArgs).map {
-                            it.first.binder.location to annotationToType(it.second)
-                        }.toMap()
-                        Type.Function(
-                                from = methodSignature.params.map {
-                                    if (it.annotation == null) Type.Error
-                                    else annotationToType(it.annotation).applySubstitution(substitution)
-                                },
-                                to = annotationToType(methodSignature.returnType).applySubstitution(substitution),
-                                traitRequirements = null
-                        )
-                    }
-                }
-            }
         }
         is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
         is Expression.PipelineOperator -> inferExpression(callNode.rhs)
@@ -1502,6 +1526,31 @@ class Analyzer(
         } else {
             Type.Error
         }
+    }
+
+    fun isTraitRef(expression: Expression): Boolean = resolveTraitRef(expression) != null
+
+    private fun resolvePropertyExpressionTraitRef(expression: Expression.Property): Declaration.TraitDef? {
+        if (expression.lhs !is Expression.Var) return null
+
+        if (ctx.resolver.resolve(expression.lhs.name) != null) return null
+
+        val moduleAlias = ctx.resolver.resolveModuleAlias(expression.lhs.name) ?: return null
+
+        return ctx.resolver.findTraitInSourceFile(expression.property, moduleAlias)
+    }
+
+    fun resolveTraitRef(expression: Expression): Declaration.TraitDef? = when(expression) {
+        is Expression.Var -> {
+            ctx.resolver.resolveTraitDef(expression.name)
+        }
+        is Expression.Property -> {
+            resolvePropertyExpressionTraitRef(expression)
+        }
+        is Expression.TypeApplication -> {
+            resolveTraitRef(expression.lhs)
+        }
+        else -> null
     }
 
 }

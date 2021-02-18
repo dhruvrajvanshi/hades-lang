@@ -121,14 +121,6 @@ sealed class Expression : HasLocation {
         val body: ClosureBody
     ) : Expression()
 
-    data class TraitMethodCall(
-            override val location: SourceLocation,
-            val traitName: QualifiedPath,
-            val traitArgs: List<TypeAnnotation>,
-            val methodName: Identifier,
-            val args: List<Arg>
-    ) : Expression()
-
     data class UnsafeCast(
         override val location: SourceLocation,
         val toType: TypeAnnotation,

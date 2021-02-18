@@ -2,7 +2,6 @@ package hadesc.frontend
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
-import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -11,6 +10,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.unit
 import libhades.collections.Stack
 
 class Checker(val ctx: Context) {
@@ -231,13 +231,13 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkTypeAnnotation(annotation: TypeAnnotation): Unit = when(annotation) {
-        is TypeAnnotation.Error -> {}
+        is TypeAnnotation.Error -> unit
         is TypeAnnotation.Var -> {
             val resolved = ctx.resolver.resolveTypeVariable(annotation.name)
             if (resolved == null) {
                 error(annotation, Diagnostic.Kind.UnboundType(annotation.name.name))
             }
-            Unit
+            unit
         }
         is TypeAnnotation.Ptr -> {
             checkTypeAnnotation(annotation.to)
@@ -251,7 +251,7 @@ class Checker(val ctx: Context) {
             if (binding == null) {
                 error(annotation, Diagnostic.Kind.UnboundTypePath(annotation.qualifiedPath))
             }
-            Unit
+            unit
         }
         is TypeAnnotation.Function -> {
             annotation.from.map {
@@ -414,10 +414,7 @@ class Checker(val ctx: Context) {
             error(statement, Diagnostic.Kind.ReturningFromVoidFunction)
         }
         if (statement.value != null) {
-            val actualType = ctx.analyzer.typeOfExpression(statement.value)
-            if (!actualType.isAssignableTo(expectedReturnType)) {
-                error(statement, Diagnostic.Kind.TypeNotAssignable(source = actualType, destination = expectedReturnType))
-            }
+            checkExpressionHasType(statement.value, expectedReturnType)
         }
     }
 
@@ -428,11 +425,8 @@ class Checker(val ctx: Context) {
         checkExpression(statement.rhs)
 
         if (statement.typeAnnotation != null) {
-            val typeOfRhs = ctx.analyzer.typeOfExpression(statement.rhs)
             val annotatedType = ctx.analyzer.annotationToType(statement.typeAnnotation)
-            if (!typeOfRhs.isAssignableTo(annotatedType)) {
-                error(statement.rhs, Diagnostic.Kind.TypeNotAssignable(source = typeOfRhs, destination = annotatedType))
-            }
+            checkExpressionHasType(statement.rhs, annotatedType)
         }
     }
 
@@ -440,9 +434,9 @@ class Checker(val ctx: Context) {
         return ctx.analyzer.isTypeAssignableTo(source = this, destination = destination)
     }
 
-    private fun checkExpression(expression: Expression): Unit {
+    private fun checkExpression(expression: Expression) {
         exhaustive(when (expression) {
-            is Expression.Error -> TODO()
+            is Expression.Error -> unit
             is Expression.Var -> checkVarExpression(expression)
             is Expression.Call -> checkCallExpression(expression)
             is Expression.Property -> checkPropertyExpression(expression)
@@ -461,9 +455,8 @@ class Checker(val ctx: Context) {
             is Expression.If -> checkIfExpression(expression)
             is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
             is Expression.New -> TODO()
-            is Expression.This -> TODO()
             is Expression.Closure -> checkClosureExpression(expression)
-            is Expression.TraitMethodCall -> checkTraitMethodCall(expression)
+            is Expression.This -> checkThisExpression(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
         })
@@ -484,6 +477,15 @@ class Checker(val ctx: Context) {
         returnTypeStack.pop()
     }
 
+    private fun checkThisExpression(expression: Expression.This) {
+
+        val extension = ctx.resolver.getEnclosingExtensionDef(expression)
+
+        if (extension == null) {
+            error(expression, Diagnostic.Kind.UnboundThis)
+        }
+    }
+
     private fun checkWhenExpression(expression: Expression.When) {
         checkExpression(expression.value)
         expression.arms.forEach {
@@ -495,8 +497,18 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkTypeApplicationExpression(expression: Expression.TypeApplication) {
-        checkExpression(expression.lhs)
         expression.args.forEach { checkTypeAnnotation(it) }
+        val traitRef = ctx.analyzer.resolveTraitRef(expression.lhs)
+        if (traitRef != null) {
+            if (traitRef.params.size > expression.args.size) {
+                error(expression.lhs, Diagnostic.Kind.TooFewTypeArgs)
+            } else if (traitRef.params.size < expression.args.size) {
+                error(expression.lhs, Diagnostic.Kind.TooManyTypeArgs)
+            }
+            return
+        }
+
+        checkExpression(expression.lhs)
         val lhsType = expression.lhs.type
         if (lhsType !is Type.TypeFunction) {
             error(expression.lhs, Diagnostic.Kind.InvalidTypeApplication)
@@ -524,26 +536,6 @@ class Checker(val ctx: Context) {
         checkExpression(expression.expression)
         if (expression.expression.type !is Type.Ptr) {
             error(expression.expression, Diagnostic.Kind.NotAPointerType(expression.expression.type))
-        }
-    }
-
-    private fun checkTraitMethodCall(expression: Expression.TraitMethodCall) {
-        expression.traitArgs.forEach { checkTypeAnnotation(it) }
-        expression.args.forEach { checkExpression(it.expression) }
-        val traitDecl = ctx.resolver.resolveDeclaration(expression.traitName)
-        if (traitDecl !is Declaration.TraitDef) {
-            error(expression.traitName, Diagnostic.Kind.NotATrait)
-            return
-        }
-        if (traitDecl.params.size != expression.traitArgs.size) {
-            error(expression.traitName, Diagnostic.Kind.InvalidTypeApplication)
-        }
-        val traitRequirement = TraitRequirement(
-            ctx.resolver.qualifiedName(traitDecl.name),
-            expression.traitArgs.map { it.type }
-        )
-        if (!ctx.analyzer.isTraitRequirementSatisfied(expression, traitRequirement)) {
-            error(expression.traitName, Diagnostic.Kind.TraitRequirementNotSatisfied(traitRequirement))
         }
     }
 
@@ -614,18 +606,22 @@ class Checker(val ctx: Context) {
         if (moduleProperty != null) {
             return
         }
+
+        checkExpression(expression.lhs)
         if (!ctx.analyzer.isValidPropertyAccess(expression)) {
             val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
-            error(Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+            if (lhsType is Type.Error) return
+            error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
         }
     }
 
     private fun checkVarExpression(expression: Expression.Var) {
         val resolved = ctx.resolver.resolve(expression.name)
-        if (resolved == null) {
-            error(expression.name, Diagnostic.Kind.UnboundVariable(expression.name.name))
-            return
-        }
+        if (resolved != null) return
+
+        val traitRef = ctx.resolver.resolveTraitDef(expression.name)
+        if (traitRef != null) return
+        error(expression.name, Diagnostic.Kind.UnboundVariable(expression.name.name))
     }
 
     private fun checkCallLikeExpression(
@@ -635,16 +631,32 @@ class Checker(val ctx: Context) {
         typeArgAnnotations: List<TypeAnnotation>?
     ) {
 
+        if (callee is Expression.Property) {
+            val propertyBinding = ctx.analyzer.resolvePropertyBinding(callee)
+            if (propertyBinding is PropertyBinding.TraitFunctionRef) {
+                val requirement = TraitRequirement(
+                    propertyBinding.traitName,
+                    propertyBinding.args
+                )
+                val traitDef = ctx.resolver.resolveDeclaration(requirement.traitRef)
+                require(traitDef is Declaration.TraitDef)
+
+                if (traitDef.params.size == propertyBinding.args.size &&
+                    !ctx.analyzer.isTraitRequirementSatisfied(callExpression, requirement)) {
+                    error(callee.lhs, Diagnostic.Kind.TraitRequirementNotSatisfied(requirement))
+                }
+            }
+        }
         checkExpression(callee)
         args.forEach { checkExpression(it) }
-        typeArgAnnotations?.let { args ->
-            args.forEach { checkTypeAnnotation(it) }
-        }
+        typeArgAnnotations?.forEach { checkTypeAnnotation(it) }
 
         val calleeType = ctx.analyzer.getCalleeType(callExpression)
         val fnTypeComponents = ctx.analyzer.getFunctionTypeComponents(calleeType)
         if (fnTypeComponents == null) {
-            error(callee, Diagnostic.Kind.TypeNotCallable(calleeType))
+            if (calleeType != Type.Error) {
+                error(callee, Diagnostic.Kind.TypeNotCallable(calleeType))
+            }
             return
         }
 
@@ -685,11 +697,7 @@ class Checker(val ctx: Context) {
             ?.toMap()
             ?: emptyMap()
         fromTypes.zip(args).forEach { (expectedType, arg) ->
-            val actualType = arg.type
-            if (!actualType.isAssignableTo(
-                    expectedType.applySubstitution(substitution))) {
-                error(arg, Diagnostic.Kind.TypeNotAssignable(destination = expectedType, source = actualType))
-            }
+            checkExpressionHasType(arg, expectedType.applySubstitution(substitution))
         }
     }
 
