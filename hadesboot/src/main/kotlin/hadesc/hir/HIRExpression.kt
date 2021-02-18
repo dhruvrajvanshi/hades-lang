@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.analysis.ClosureCaptures
 import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -151,6 +152,7 @@ sealed class HIRExpression: HasLocation {
     data class Closure(
         override val location: SourceLocation,
         override val type: Type,
+        val captures: ClosureCaptures,
         val params: List<HIRParam>,
         val returnType: Type,
         val body: HIRBlock

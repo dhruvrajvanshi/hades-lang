@@ -570,9 +570,11 @@ class HIRGen(
                 )
             )
         }
+        val captures = ctx.analyzer.getClosureCaptures(expression)
         return HIRExpression.Closure(
             expression.location,
             typeOfExpression(expression),
+            captures,
             expression.params.map {
                 HIRParam(
                     it.location,
