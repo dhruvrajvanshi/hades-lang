@@ -457,7 +457,6 @@ class Checker(val ctx: Context) {
             is Expression.New -> TODO()
             is Expression.This -> checkThisExpression(expression)
             is Expression.Closure -> TODO()
-            is Expression.TraitMethodCall -> checkTraitMethodCall(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
         })
@@ -522,26 +521,6 @@ class Checker(val ctx: Context) {
         checkExpression(expression.expression)
         if (expression.expression.type !is Type.Ptr) {
             error(expression.expression, Diagnostic.Kind.NotAPointerType(expression.expression.type))
-        }
-    }
-
-    private fun checkTraitMethodCall(expression: Expression.TraitMethodCall) {
-        expression.traitArgs.forEach { checkTypeAnnotation(it) }
-        expression.args.forEach { checkExpression(it.expression) }
-        val traitDecl = ctx.resolver.resolveDeclaration(expression.traitName)
-        if (traitDecl !is Declaration.TraitDef) {
-            error(expression.traitName, Diagnostic.Kind.NotATrait)
-            return
-        }
-        if (traitDecl.params.size != expression.traitArgs.size) {
-            error(expression.traitName, Diagnostic.Kind.InvalidTypeApplication)
-        }
-        val traitRequirement = TraitRequirement(
-            ctx.resolver.qualifiedName(traitDecl.name),
-            expression.traitArgs.map { it.type }
-        )
-        if (!ctx.analyzer.isTraitRequirementSatisfied(expression, traitRequirement)) {
-            error(expression.traitName, Diagnostic.Kind.TraitRequirementNotSatisfied(traitRequirement))
         }
     }
 

@@ -552,7 +552,6 @@ class HIRGen(
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> TODO()
-        is Expression.TraitMethodCall -> lowerTraitMethodCall(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
     }
@@ -633,19 +632,6 @@ class HIRGen(
             location = expression.location,
             type = lowerTypeAnnotation(expression.toType),
             value = lowerExpression(expression.value)
-        )
-    }
-
-    private fun lowerTraitMethodCall(expression: Expression.TraitMethodCall): HIRExpression {
-        val traitDef = ctx.resolver.resolveDeclaration(expression.traitName)
-        require(traitDef is Declaration.TraitDef)
-        return HIRExpression.TraitMethodCall(
-                expression.location,
-                typeOfExpression(expression),
-                methodName = expression.methodName.name,
-                traitName = ctx.resolver.resolveGlobalName(traitDef.name),
-                traitArgs = expression.traitArgs.map { lowerTypeAnnotation(it) },
-                args = expression.args.map { lowerExpression(it.expression) },
         )
     }
 

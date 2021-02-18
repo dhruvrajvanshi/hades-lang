@@ -4,7 +4,7 @@ trait Trait[Self] {
 }
 
 def main(): Void {
-    trait Trait[Bool].f();
+    Trait[Bool].f();
     func(true);
 }
 

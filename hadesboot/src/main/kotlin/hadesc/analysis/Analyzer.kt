@@ -706,7 +706,6 @@ class Analyzer(
             is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
-            is Expression.TraitMethodCall -> inferTraitMethodCall(expression)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.When -> inferWhenExpression(expression)
         })
@@ -728,15 +727,6 @@ class Analyzer(
     private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
         inferExpression(expression.value)
         return annotationToType(expression.toType)
-    }
-
-    private fun inferTraitMethodCall(expression: Expression.TraitMethodCall): Type {
-        return inferOrCheckCallLikeExpression(
-                callNode = expression,
-                typeArgs = null,
-                args = expression.args,
-                expectedReturnType = null
-        )
     }
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
@@ -1139,29 +1129,6 @@ class Analyzer(
                 inferExpression(callNode.callee)
             }
             else -> inferExpression(callNode.callee)
-        }
-        is Expression.TraitMethodCall -> {
-            when (val traitDeclaration = ctx.resolver.resolveDeclaration(callNode.traitName)) {
-                !is Declaration.TraitDef -> Type.Error
-                else -> {
-                    val methodSignature = traitDeclaration.findMethodSignature(callNode.methodName)
-                    if (methodSignature == null) {
-                        Type.Error
-                    } else {
-                        val substitution = traitDeclaration.params.zip(callNode.traitArgs).map {
-                            it.first.binder.location to annotationToType(it.second)
-                        }.toMap()
-                        Type.Function(
-                                from = methodSignature.params.map {
-                                    if (it.annotation == null) Type.Error
-                                    else annotationToType(it.annotation).applySubstitution(substitution)
-                                },
-                                to = annotationToType(methodSignature.returnType).applySubstitution(substitution),
-                                traitRequirements = null
-                        )
-                    }
-                }
-            }
         }
         is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
         is Expression.PipelineOperator -> inferExpression(callNode.rhs)
