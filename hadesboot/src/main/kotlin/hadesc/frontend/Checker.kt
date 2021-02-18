@@ -606,7 +606,7 @@ class Checker(val ctx: Context) {
         checkExpression(expression.lhs)
         if (!ctx.analyzer.isValidPropertyAccess(expression)) {
             val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
-            error(Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+            error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
         }
     }
 
