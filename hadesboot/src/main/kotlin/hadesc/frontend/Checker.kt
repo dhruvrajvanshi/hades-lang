@@ -2,7 +2,6 @@ package hadesc.frontend
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
-import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -11,6 +10,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.unit
 import libhades.collections.Stack
 
 class Checker(val ctx: Context) {
@@ -231,13 +231,13 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkTypeAnnotation(annotation: TypeAnnotation): Unit = when(annotation) {
-        is TypeAnnotation.Error -> {}
+        is TypeAnnotation.Error -> unit
         is TypeAnnotation.Var -> {
             val resolved = ctx.resolver.resolveTypeVariable(annotation.name)
             if (resolved == null) {
                 error(annotation, Diagnostic.Kind.UnboundType(annotation.name.name))
             }
-            Unit
+            unit
         }
         is TypeAnnotation.Ptr -> {
             checkTypeAnnotation(annotation.to)
@@ -251,7 +251,7 @@ class Checker(val ctx: Context) {
             if (binding == null) {
                 error(annotation, Diagnostic.Kind.UnboundTypePath(annotation.qualifiedPath))
             }
-            Unit
+            unit
         }
         is TypeAnnotation.Function -> {
             annotation.from.map {
@@ -434,9 +434,9 @@ class Checker(val ctx: Context) {
         return ctx.analyzer.isTypeAssignableTo(source = this, destination = destination)
     }
 
-    private fun checkExpression(expression: Expression): Unit {
+    private fun checkExpression(expression: Expression) {
         exhaustive(when (expression) {
-            is Expression.Error -> TODO()
+            is Expression.Error -> unit
             is Expression.Var -> checkVarExpression(expression)
             is Expression.Call -> checkCallExpression(expression)
             is Expression.Property -> checkPropertyExpression(expression)
@@ -627,9 +627,7 @@ class Checker(val ctx: Context) {
 
         checkExpression(callee)
         args.forEach { checkExpression(it) }
-        typeArgAnnotations?.let { args ->
-            args.forEach { checkTypeAnnotation(it) }
-        }
+        typeArgAnnotations?.forEach { checkTypeAnnotation(it) }
 
         val calleeType = ctx.analyzer.getCalleeType(callExpression)
         val fnTypeComponents = ctx.analyzer.getFunctionTypeComponents(calleeType)
@@ -675,7 +673,6 @@ class Checker(val ctx: Context) {
             ?.toMap()
             ?: emptyMap()
         fromTypes.zip(args).forEach { (expectedType, arg) ->
-            val actualType = arg.type
             checkExpressionHasType(arg, expectedType.applySubstitution(substitution))
         }
     }
