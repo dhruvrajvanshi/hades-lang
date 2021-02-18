@@ -31,6 +31,11 @@ class Analyzer(
             return PropertyBinding.Global(modulePropertyBinding)
         }
 
+        val sealedTypeCaseConstructorBinding = resolveSealedTypeConstructorBinding(expression)
+        if (sealedTypeCaseConstructorBinding != null) {
+            return sealedTypeCaseConstructorBinding
+        }
+
         val matchArmBinding = resolveMatchArmPropertyBinding(expression)
         if (matchArmBinding != null) {
             return matchArmBinding
@@ -59,22 +64,28 @@ class Analyzer(
         return null
     }
 
-    private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
-        if (expression.lhs is Expression.Var) {
-            val binding = ctx.resolver.resolve(expression.lhs.name)
-            if (binding is Binding.SealedType) {
-                val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
-                    ?: return null
-                val type = typeOfSealedTypeCase(binding.declaration, case)
-                return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
-            } else if (binding is Binding.WhenArm) {
-                return whenArmPropertyBinding(binding.case, expression.lhs, expression)
-            }
+    private fun resolveSealedTypeConstructorBinding(expression: Expression.Property): PropertyBinding.SealedTypeCaseConstructor? {
+        if (expression.lhs !is Expression.Var) {
+            return null
         }
-        return null
+        val binding = ctx.resolver.resolve(expression.lhs.name)
+        if (binding !is Binding.SealedType) return null
+        val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
+            ?: return null
+        val type = typeOfSealedTypeCase(binding.declaration, case)
+        return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
     }
 
-    private fun whenArmPropertyBinding(
+    private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
+        if (expression.lhs !is Expression.Var) return null
+        val binding = ctx.resolver.resolve(expression.lhs.name)
+        if (binding !is Binding.WhenArm) {
+            return null
+        }
+        return matchArmPropertyBinding(binding.case, expression.lhs, expression)
+    }
+
+    private fun matchArmPropertyBinding(
         case: Expression.WhenArm,
         lhs: Expression.Var,
         expression: Expression.Property
@@ -636,15 +647,6 @@ class Analyzer(
             to = returnType,
             traitRequirements = null
         )
-    }
-
-    private fun isTypeOrderComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.CInt || type is Type.FloatingPoint || type is Type.Size
-    }
-
-    private fun isTypeEqualityComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.CInt || type is Type.Bool ||
-                type is Type.Ptr || type is Type.Size || type is Type.Byte
     }
 
     private fun checkNullPtrExpression(expectedType: Type): Type {
