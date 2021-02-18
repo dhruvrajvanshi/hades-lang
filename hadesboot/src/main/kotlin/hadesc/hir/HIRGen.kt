@@ -552,7 +552,6 @@ class HIRGen(
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> lowerClosure(expression)
-        is Expression.Closure -> TODO()
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
     }

@@ -21,6 +21,9 @@ def main(): Void {
 
     c.puts(b"closure application returned value");
     c.puts(result);
+
+    c.puts(apply(true, |value| if (value) b"true" else b"false"));
+    c.puts(apply(false, |value| if (value) b"true" else b"false"));
 }
 
 extern def f(): Void = f;
@@ -28,4 +31,8 @@ extern def f(): Void = f;
 def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first: (T1) -> Void, print_second: (T2) -> T2R): T2R {
     print_first(first);
     return print_second(second);
+}
+
+def apply[T, U](value: T, fn: (T) -> U): U {
+    return fn(value);
 }

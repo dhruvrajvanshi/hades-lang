@@ -190,6 +190,10 @@ interface HIRTransformer: TypeTransformer {
         return HIRExpression.Closure(
             expression.location,
             lowerType(expression.type),
+            expression.captures.copy(
+                values = expression.captures.values.mapValues { lowerType(it.value) },
+                types = expression.captures.types
+            ),
             expression.params.map { transformParam(it) },
             lowerType(expression.returnType),
             transformBlock(expression.body)

@@ -313,6 +313,10 @@ class Monomorphization(
         )
     }
 
+    override fun transformClosure(expression: HIRExpression.Closure): HIRExpression {
+        requireUnreachable()
+    }
+
     private val generateImplCache = mutableMapOf<QualifiedName, Map<Name, QualifiedName>>()
     private fun generateImpl(impl: HIRDefinition.Implementation, substitution: Substitution): Map<Name, QualifiedName> {
         val typeArgs = impl.typeParams?.map { requireNotNull(substitution[it.location]) } ?: emptyList()
