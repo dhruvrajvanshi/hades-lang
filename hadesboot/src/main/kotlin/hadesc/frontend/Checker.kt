@@ -616,6 +616,22 @@ class Checker(val ctx: Context) {
         typeArgAnnotations: List<TypeAnnotation>?
     ) {
 
+        if (callee is Expression.Property) {
+            val propertyBinding = ctx.analyzer.resolvePropertyBinding(callee)
+            if (propertyBinding is PropertyBinding.TraitFunctionRef) {
+                val requirement = TraitRequirement(
+                    propertyBinding.traitName,
+                    propertyBinding.args
+                )
+                val traitDef = ctx.resolver.resolveDeclaration(requirement.traitRef)
+                require(traitDef is Declaration.TraitDef)
+
+                if (traitDef.params.size == propertyBinding.args.size &&
+                    !ctx.analyzer.isTraitRequirementSatisfied(callExpression, requirement)) {
+                    error(callee.lhs, Diagnostic.Kind.TraitRequirementNotSatisfied(requirement))
+                }
+            }
+        }
         checkExpression(callee)
         args.forEach { checkExpression(it) }
         typeArgAnnotations?.forEach { checkTypeAnnotation(it) }
