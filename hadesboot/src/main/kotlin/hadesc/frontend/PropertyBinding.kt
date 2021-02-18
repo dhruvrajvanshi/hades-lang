@@ -3,6 +3,8 @@ package hadesc.frontend
 import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.Identifier
+import hadesc.ast.QualifiedPath
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 
@@ -53,6 +55,12 @@ sealed class PropertyBinding {
         val name: Identifier,
         val propertyIndex: Int,
         val propertyName: Identifier,
+        val type: Type
+    ) : PropertyBinding()
+
+    data class TraitFunctionRef(
+        val traitName: QualifiedName,
+        val args: List<Type>,
         val type: Type
     ) : PropertyBinding()
 }

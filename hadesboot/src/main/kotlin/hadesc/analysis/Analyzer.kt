@@ -31,6 +31,11 @@ class Analyzer(
             return PropertyBinding.Global(modulePropertyBinding)
         }
 
+
+        val traitFunctionRefBinding = resolveTraitFunctionRefBinding(expression)
+        if (traitFunctionRefBinding != null) return traitFunctionRefBinding
+
+
         val sealedTypeCaseConstructorBinding = resolveSealedTypeConstructorBinding(expression)
         if (sealedTypeCaseConstructorBinding != null) {
             return sealedTypeCaseConstructorBinding
@@ -63,6 +68,30 @@ class Analyzer(
         inferExpression(expression.lhs)
         return null
     }
+
+    private fun resolveTraitFunctionRefBinding(expression: Expression.Property): PropertyBinding.TraitFunctionRef? {
+        val traitDef = resolveTraitRef(expression.lhs) ?: return null
+        val signature = traitDef.signatures.find { it.name.identifier.name == expression.property.name } ?: return null
+        val typeArgs = if (expression.lhs is Expression.TypeApplication)
+            expression.lhs.args.map { annotationToType(it) }
+        else emptyList()
+        val substitution = traitDef.params.zip(typeArgs)
+            .map { (param, arg) -> param.location to arg }
+            .toMap()
+        return PropertyBinding.TraitFunctionRef(
+            ctx.resolver.qualifiedName(traitDef.name),
+            typeArgs,
+            Type.Function(
+                from = signature.params.map { it.type.applySubstitution(substitution) },
+                to = annotationToType(signature.returnType).applySubstitution(substitution),
+                traitRequirements = null
+            )
+        )
+    }
+
+    private val Param.type get(): Type = annotation?.let {
+        annotationToType(it)
+    } ?: Type.Error
 
     private fun resolveSealedTypeConstructorBinding(expression: Expression.Property): PropertyBinding.SealedTypeCaseConstructor? {
         if (expression.lhs !is Expression.Var) {
@@ -852,6 +881,7 @@ class Analyzer(
                 is PropertyBinding.SealedTypeCaseConstructor -> binding.type
                 is PropertyBinding.WhenCaseFieldRef -> binding.type
                 null -> Type.Error
+                is PropertyBinding.TraitFunctionRef -> binding.type
             }
 
     private fun typeOfGlobalPropertyBinding(
@@ -1474,6 +1504,31 @@ class Analyzer(
             resolvePropertyBinding(expression.lhs) is PropertyBinding.SealedTypeCaseConstructor
         }
         else -> false
+    }
+
+    fun isTraitRef(expression: Expression): Boolean = resolveTraitRef(expression) != null
+
+    private fun resolvePropertyExpressionTraitRef(expression: Expression.Property): Declaration.TraitDef? {
+        if (expression.lhs !is Expression.Var) return null
+
+        if (ctx.resolver.resolve(expression.lhs.name) != null) return null
+
+        val moduleAlias = ctx.resolver.resolveModuleAlias(expression.lhs.name) ?: return null
+
+        return ctx.resolver.findTraitInSourceFile(expression.property, moduleAlias)
+    }
+
+    fun resolveTraitRef(expression: Expression): Declaration.TraitDef? = when(expression) {
+        is Expression.Var -> {
+            ctx.resolver.resolveTraitDef(expression.name)
+        }
+        is Expression.Property -> {
+            resolvePropertyExpressionTraitRef(expression)
+        }
+        is Expression.TypeApplication -> {
+            resolveTraitRef(expression.lhs)
+        }
+        else -> null
     }
 
 }

@@ -800,7 +800,10 @@ class HIRGen(
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.SealedTypeCaseConstructor -> lowerSealedTypeCaseConstructor(expression, binding)
         is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
+        is PropertyBinding.TraitFunctionRef -> requireUnreachable()
+        else -> TODO()
     }
+
 
     private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIRExpression {
         return HIRExpression.GetStructField(
@@ -943,21 +946,32 @@ class HIRGen(
 
     private fun lowerCallExpression(expression: Expression.Call): HIRExpression {
         if (expression.callee is Expression.Property) {
-            val binding = ctx.analyzer.resolvePropertyBinding(expression.callee)
-            if (binding is PropertyBinding.ExtensionDef) {
-                val extensionDefName = ctx.resolver.qualifiedName(binding.extensionDef.name)
-                val extensionMethod = binding.extensionDef.functionDefs[binding.functionIndex]
-                val fullName = extensionDefName.append(extensionMethod.name.identifier.name)
-                return buildCall(
+            when(val binding = ctx.analyzer.resolvePropertyBinding(expression.callee)) {
+                is PropertyBinding.ExtensionDef -> {
+                    val extensionDefName = ctx.resolver.qualifiedName(binding.extensionDef.name)
+                    val extensionMethod = binding.extensionDef.functionDefs[binding.functionIndex]
+                    val fullName = extensionDefName.append(extensionMethod.name.identifier.name)
+                    return buildCall(
                         expression,
                         callee = HIRExpression.GlobalRef(
-                                expression.location,
-                                typeOfExpression(expression),
-                                fullName
+                            expression.location,
+                            typeOfExpression(expression),
+                            fullName
                         ),
                         args = listOf(lowerExpression(expression.callee.lhs))
                                 + expression.args.map { lowerExpression(it.expression) }
-                )
+                    )
+                }
+                is PropertyBinding.TraitFunctionRef -> {
+                    return HIRExpression.TraitMethodCall(
+                        expression.location,
+                        typeOfExpression(expression),
+                        methodName = expression.callee.property.name,
+                        traitName = binding.traitName,
+                        traitArgs = binding.args,
+                        args = expression.args.map { lowerExpression(it.expression) },
+                    )
+                }
             }
         }
         return buildCall(

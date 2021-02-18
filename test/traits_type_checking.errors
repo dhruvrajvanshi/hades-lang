@@ -2,3 +2,5 @@ test/traits_type_checking.hds:2: MissingTraitThisParam
 test/traits_type_checking.hds:7: DuplicateDeclaration
 test/traits_type_checking.hds:9: ReceiverParamsNotAllowedInTraitFunctions
 test/traits_type_checking.hds:10: TypeParamsNotAllowedInTraitFunctions
+test/traits_type_checking.hds:23: TooFewTypeArgs
+test/traits_type_checking.hds:24: TooManyTypeArgs

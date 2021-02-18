@@ -483,8 +483,18 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkTypeApplicationExpression(expression: Expression.TypeApplication) {
-        checkExpression(expression.lhs)
         expression.args.forEach { checkTypeAnnotation(it) }
+        val traitRef = ctx.analyzer.resolveTraitRef(expression.lhs)
+        if (traitRef != null) {
+            if (traitRef.params.size > expression.args.size) {
+                error(expression.lhs, Diagnostic.Kind.TooFewTypeArgs)
+            } else if (traitRef.params.size < expression.args.size) {
+                error(expression.lhs, Diagnostic.Kind.TooManyTypeArgs)
+            }
+            return
+        }
+
+        checkExpression(expression.lhs)
         val lhsType = expression.lhs.type
         if (lhsType !is Type.TypeFunction) {
             error(expression.lhs, Diagnostic.Kind.InvalidTypeApplication)
@@ -606,16 +616,18 @@ class Checker(val ctx: Context) {
         checkExpression(expression.lhs)
         if (!ctx.analyzer.isValidPropertyAccess(expression)) {
             val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
+            if (lhsType is Type.Error) return
             error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
         }
     }
 
     private fun checkVarExpression(expression: Expression.Var) {
         val resolved = ctx.resolver.resolve(expression.name)
-        if (resolved == null) {
-            error(expression.name, Diagnostic.Kind.UnboundVariable(expression.name.name))
-            return
-        }
+        if (resolved != null) return
+
+        val traitRef = ctx.resolver.resolveTraitDef(expression.name)
+        if (traitRef != null) return
+        error(expression.name, Diagnostic.Kind.UnboundVariable(expression.name.name))
     }
 
     private fun checkCallLikeExpression(
@@ -632,7 +644,9 @@ class Checker(val ctx: Context) {
         val calleeType = ctx.analyzer.getCalleeType(callExpression)
         val fnTypeComponents = ctx.analyzer.getFunctionTypeComponents(calleeType)
         if (fnTypeComponents == null) {
-            error(callee, Diagnostic.Kind.TypeNotCallable(calleeType))
+            if (calleeType != Type.Error) {
+                error(callee, Diagnostic.Kind.TypeNotCallable(calleeType))
+            }
             return
         }
 

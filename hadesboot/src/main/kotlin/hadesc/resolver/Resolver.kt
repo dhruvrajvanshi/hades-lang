@@ -34,6 +34,18 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
+
+    fun resolveTraitDef(name: Identifier): Declaration.TraitDef? {
+        val scopeStack = getScopeStack(name)
+        for (scope in scopeStack.scopes) {
+            val typeBinding = findTypeInScope(name, scope)
+            if (typeBinding is TypeBinding.Trait) {
+                return typeBinding.declaration
+            }
+        }
+        return null
+    }
+
     private fun findTypeInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding? {
         for (scopeNode in scopeStack) {
             val binding = findTypeInScope(ident, scopeNode)
@@ -662,6 +674,25 @@ class Resolver(private val ctx: Context) {
 
     fun getSourceFile(file: SourcePath): SourceFile {
         return requireNotNull(sourceFiles[file])
+    }
+
+    fun resolveModuleAlias(name: Identifier): SourceFile? {
+        for (scopeTree in getScopeStack(name)) {
+            val found = when (scopeTree) {
+                is ScopeTree.SourceFile ->
+                    scopeTree.sourceFile.declarations.filterIsInstance<Declaration.ImportAs>().find {
+                        it.asName.identifier.name == name.name
+                    }?.let { importAs ->
+                        ctx.resolveSourceFile(importAs.modulePath)
+                    }
+                else -> null
+            }
+
+            if (found != null) {
+                return found
+            }
+        }
+        return null
     }
 
 }
