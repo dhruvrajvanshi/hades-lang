@@ -212,6 +212,7 @@ class Parser(
         val typeParams = parseOptionalTypeParams()
         expect(tt.FOR)
         val forType = parseTypeAnnotation()
+        val whereClause = parseOptionalWhereClause()
         expect(tt.LBRACE)
         val functions = mutableListOf<Declaration>()
         while (!at(tt.EOF) && !at(tt.RBRACE)) {
@@ -223,6 +224,7 @@ class Parser(
                 binder,
                 typeParams,
                 forType,
+                whereClause,
                 functions
         )
     }

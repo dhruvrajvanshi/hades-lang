@@ -93,11 +93,12 @@ sealed class Declaration : HasLocation {
     ) : Declaration()
 
     data class ExtensionDef(
-            override val location: SourceLocation,
-            val name: Binder,
-            val typeParams: List<TypeParam>?,
-            val forType: TypeAnnotation,
-            val declarations: List<Declaration>
+        override val location: SourceLocation,
+        val name: Binder,
+        val typeParams: List<TypeParam>?,
+        val forType: TypeAnnotation,
+        val whereClause: WhereClause?,
+        val declarations: List<Declaration>,
     ) : Declaration() {
         val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
     }

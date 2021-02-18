@@ -222,7 +222,7 @@ class Analyzer(
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
         for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
-            if (isExtensionForType(extensionDef, typeOfExpression(expression.lhs))) {
+            if (isExtensionForType(expression, extensionDef, typeOfExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
                     return binding
@@ -294,14 +294,27 @@ class Analyzer(
         return type.applySubstitution(substitution) to substitution
     }
 
-    private fun isExtensionForType(extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
+    private fun isExtensionForType(callNode: HasLocation, extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
         val forType = annotationToType(extensionDef.forType)
-        return isTypeAssignableTo(
+        val valueAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
+        val pointerAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
+        val isValueAssignable = isTypeAssignableTo(
+                source = type,
+                destination = forType.applySubstitution(valueAssignmentSubstitution)
+            )
+        val isPointerAssignable = isTypeAssignableTo(
             source = type,
-            destination = instantiateType(forType, extensionDef.typeParams)
-        ) || isTypeAssignableTo(
-            source = type,
-            destination = Type.Ptr(instantiateType(forType, extensionDef.typeParams), isMutable = false))
+            destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
+        if (!isValueAssignable && !isPointerAssignable) return false
+
+        val substitution = if (isValueAssignable) valueAssignmentSubstitution else pointerAssignmentSubstitution
+
+        return extensionDef.traitRequirements.all { requirement ->
+            isTraitRequirementSatisfied(callNode, requirement.copy(
+                arguments = requirement.arguments.map { arg -> arg.applySubstitution(substitution) }
+            ))
+        }
+
     }
 
     private fun instantiateType(type: Type, typeParams: List<TypeParam>?): Type {
@@ -1082,13 +1095,14 @@ class Analyzer(
         }
     }
 
-    fun isTraitRequirementSatisfied(callNode: Expression, requiredInstance: TraitRequirement): Boolean {
-        val clauses = globalTraitClauses
+    fun isTraitRequirementSatisfied(callNode: HasLocation, requiredInstance: TraitRequirement): Boolean {
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
+        val enclosingExtensionDef = ctx.resolver.getEnclosingExtensionDef(callNode)
+        val extensionClauses = enclosingExtensionDef?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
         val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
         val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
-        val env = TraitResolver.Env(functionTraitClauses + implTraitClauses + clauses)
+        val env = TraitResolver.Env(extensionClauses + functionTraitClauses + implTraitClauses + globalTraitClauses)
         val traitResolver = TraitResolver(env, typeAnalyzer)
         return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
     }
@@ -1101,6 +1115,9 @@ class Analyzer(
         signature.whereClause
             ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
             ?: emptyList()
+
+    private val Declaration.ExtensionDef.traitRequirements get(): List<TraitRequirement> =
+        whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
 
     private val Declaration.ImplementationDef.traitRequirements get(): List<TraitRequirement> =
         whereClause
