@@ -14,6 +14,7 @@ import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
+import hadesc.unit
 import java.util.*
 import java.util.Collections.singletonList
 import kotlin.math.min
@@ -1553,7 +1554,41 @@ class Analyzer(
         else -> null
     }
 
+    fun getClosureCaptures(closure: Expression.Closure): ClosureCaptures {
+        val values = mutableMapOf<Binder, Type>()
+        val types = mutableSetOf<Binder>()
+        object : SyntaxVisitor {
+            override fun visitVarExpr(expression: Expression.Var) {
+                val binding = ctx.resolver.resolve(expression.name)
+                if (binding != null && !binding.isGlobal() && !binding.isLocalTo(closure)) {
+                    values[binding.binder] = typeOfBinder(binding.binder)
+                }
+            }
+
+            override fun visitVarType(type: TypeAnnotation.Var) {
+                when (val binding = ctx.resolver.resolveTypeVariable(type.name)) {
+                    is TypeBinding.TypeParam -> {
+                        if (!binding.isLocalTo(closure)) {
+                            types.add(binding.binder)
+                        }
+                    }
+                    else -> unit
+                }
+            }
+        }.visitExpression(closure)
+
+        return ClosureCaptures(
+            values,
+            types
+        )
+    }
+
 }
+
+data class ClosureCaptures(
+    val values: Map<Binder, Type>,
+    val types: Set<Binder>
+)
 
 private class MutableNodeMap<T : HasLocation, V> {
     private val map = mutableMapOf<SourceLocation, V>()

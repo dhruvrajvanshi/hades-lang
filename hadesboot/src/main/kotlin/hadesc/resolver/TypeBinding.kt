@@ -2,6 +2,7 @@ package hadesc.resolver
 
 import hadesc.ast.Binder
 import hadesc.ast.Declaration
+import hadesc.location.HasLocation
 import hadesc.types.Type
 
 sealed class TypeBinding {
@@ -23,4 +24,18 @@ sealed class TypeBinding {
         val declaration: Declaration.SealedType) : TypeBinding() {}
 
     data class Builtin(val type: Type) : TypeBinding()
+
+    fun isGlobal() = when(this) {
+        is Builtin -> true
+        is SealedType -> true
+        is Struct -> true
+        is Trait -> true
+        is TypeAlias -> true
+        is TypeParam -> false
+    }
+
+    fun isLocalTo(scope: HasLocation) = when(this) {
+        is TypeParam -> binder.location.isWithin(scope.location)
+        else -> false
+    }
 }
