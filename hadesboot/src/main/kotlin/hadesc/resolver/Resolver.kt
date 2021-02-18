@@ -200,7 +200,7 @@ class Resolver(private val ctx: Context) {
         return when (scope.whenArm) {
             is Expression.WhenArm.Is -> {
                 if (scope.whenArm.name?.identifier?.name == ident.name) {
-                    Binding.WhenArm(scope.whenArm)
+                    Binding.WhenArm(scope.whenArm.name, scope.whenArm)
                 } else {
                     null
                 }
