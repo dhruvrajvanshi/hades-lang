@@ -1,4 +1,4 @@
-
+type CInt = i32;
 struct Application {}
 struct Window {}
 struct ButtonBox {}
