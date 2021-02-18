@@ -193,7 +193,7 @@ class Analyzer(
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
         for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
-            if (isExtensionForType(expression.location, extensionDef, typeOfExpression(expression.lhs))) {
+            if (isExtensionForType(extensionDef, typeOfExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
                     return binding
@@ -265,7 +265,7 @@ class Analyzer(
         return type.applySubstitution(substitution) to substitution
     }
 
-    private fun isExtensionForType(location: SourceLocation, extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
+    private fun isExtensionForType(extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
         val forType = annotationToType(extensionDef.forType)
         return isTypeAssignableTo(
             source = type,
