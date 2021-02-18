@@ -31,18 +31,9 @@ class Analyzer(
             return PropertyBinding.Global(modulePropertyBinding)
         }
 
-        if (expression.lhs is Expression.Var) {
-            val binding = ctx.resolver.resolve(expression.lhs.name)
-            if (binding is Binding.SealedType) {
-                val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
-                if (case == null) {
-                    return null
-                }
-                val type = typeOfSealedTypeCase(binding.declaration, case)
-                return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
-            } else if (binding is Binding.WhenArm) {
-                return whenArmPropertyBinding(binding.case, expression.lhs, expression)
-            }
+        val matchArmBinding = resolveMatchArmPropertyBinding(expression)
+        if (matchArmBinding != null) {
+            return matchArmBinding
         }
 
         val fieldBinding = resolveStructFieldBinding(expression)
@@ -68,11 +59,26 @@ class Analyzer(
         return null
     }
 
+    private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
+        if (expression.lhs is Expression.Var) {
+            val binding = ctx.resolver.resolve(expression.lhs.name)
+            if (binding is Binding.SealedType) {
+                val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
+                    ?: return null
+                val type = typeOfSealedTypeCase(binding.declaration, case)
+                return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
+            } else if (binding is Binding.WhenArm) {
+                return whenArmPropertyBinding(binding.case, expression.lhs, expression)
+            }
+        }
+        return null
+    }
+
     private fun whenArmPropertyBinding(
         case: Expression.WhenArm,
         lhs: Expression.Var,
         expression: Expression.Property
-    ): PropertyBinding? {
+    ): PropertyBinding.WhenCaseFieldRef? {
         return when (case) {
             is Expression.WhenArm.Is -> {
                 val whenExpression = requireNotNull(ctx.resolver.getEnclosingWhenExpression(case.caseName))
