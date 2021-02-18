@@ -217,6 +217,23 @@ def f() {
 }
 ```
 
+Although traits directly can't define extension methods yet, (i.e. you have to call `Trait[Type].method(value)`, instead of `value.method()`,
+extension definitions can have where clauses, allowing you to wrap trait functions as extension methods.
+
+
+```scala
+extension StringifiableExtensions[T] for T where Stringifiable[T] {
+  def to_string(this): *Byte { return Stringifiable[T].print(this); }
+}
+
+def f[T](value: T): Void where Stringifiable[T] {
+  // now you can call to_string as a method
+  value.to_string();
+}
+```
+
+Directly defining methods inside traits is being considered.
+
 ## Sealed types
 Sealed types (also known as algebraic data types) allow you to represent types that can be one of a finite set
 of cases.
