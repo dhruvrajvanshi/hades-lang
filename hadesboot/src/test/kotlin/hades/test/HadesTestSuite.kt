@@ -102,10 +102,10 @@ class HadesTestSuite {
                             )
                         } else {
                             assert(expectedErrorsFile.exists())
-                            val expectedErrors = expectedErrorsFile.readLines()
+                            val expectedErrors = expectedErrorsFile.readLines().joinToString("\n")
                             val actualErrors = diagnostics
                                     .sortedBy { it.sourceLocation.start }
-                                    .map {
+                                    .joinToString("\n") {
                                         "${it.sourceLocation.file.path.toString().replace('\\', '/')}:${it.sourceLocation.start.line}: ${it.kind::class.simpleName}"
                                     }
                             Assertions.assertEquals(
