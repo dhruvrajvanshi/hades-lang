@@ -178,11 +178,7 @@ implementation Printable[Bool] {
 // of call sites. No type errors on expanded templates :)
 // The where clause is a requirement on type T and a caller can only pass things that are Printable
 def print[T](value: T): Void where Printable[T] {
-  // This syntax is for ease of analysis right now.
-  // The trait keyword here will be dropped
-  // and we will probably allow extension functions defined inside
-  // traits so that you could simply do value.print()
-  trait Printable[T].print(value);
+  Printable[T].print(value);
 }
 
 def main(): Void {
