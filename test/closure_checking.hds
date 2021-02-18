@@ -1,0 +1,23 @@
+
+struct S {
+    val closure: () -> Void;
+}
+
+sealed type T {
+    V(closure: () -> Void);
+}
+
+type ReturnsClosure = *() -> () -> Void;
+
+def returns_closure(): () -> Void {
+}
+
+def apply[T, U](value: T, closure: (T) -> U): U {
+    val c = closure;
+    val addr = &c;
+    return closure(value);
+}
+
+def main(): Void {
+
+}

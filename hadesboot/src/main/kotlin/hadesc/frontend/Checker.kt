@@ -59,6 +59,9 @@ class Checker(val ctx: Context) {
                 } else {
                     checkTypeAnnotation(param.annotation)
                 }
+                if (param.annotation?.type is Type.Function) {
+                    error(param.annotation, Diagnostic.Kind.ClosuresCantBeStored)
+                }
             }
         }
     }
@@ -211,6 +214,9 @@ class Checker(val ctx: Context) {
                         declaredFields[member.binder.name] = member
                     }
                     checkTypeAnnotation(member.typeAnnotation)
+                    if (member.typeAnnotation.type is Type.Function) {
+                        error(member.binder, Diagnostic.Kind.ClosuresCantBeStored)
+                    }
                 }
             }
         }
@@ -258,10 +264,18 @@ class Checker(val ctx: Context) {
                 checkTypeAnnotation(it)
             }
             checkTypeAnnotation(annotation.to)
+
+            if (annotation.to.type is Type.Function) {
+                error(annotation.to, Diagnostic.Kind.ClosuresCantBeReturned)
+            }
+            unit
         }
         is TypeAnnotation.Union -> {
             annotation.args.forEach {
                 checkTypeAnnotation(it)
+                if (it.type is Type.Function) {
+                    error(it, Diagnostic.Kind.ClosuresCantBeStored)
+                }
             }
         }
     }
@@ -571,6 +585,10 @@ class Checker(val ctx: Context) {
             error(expression, Diagnostic.Kind.NotAnAddressableValue)
             return
         }
+
+        if (expression.type is Type.Function) {
+            error(expression, Diagnostic.Kind.TakingAddressOfClosureDisallowed)
+        }
     }
 
     private fun checkPipelineOperator(expression: Expression.PipelineOperator) {
@@ -736,6 +754,10 @@ class Checker(val ctx: Context) {
             checkTypeParams(it)
         }
         checkTypeAnnotation(signature.returnType)
+
+        if (signature.returnType.type is Type.Function) {
+            error(signature.returnType, Diagnostic.Kind.ClosuresCantBeReturned)
+        }
     }
 
     private fun checkFunctionParams(params: List<Param>) {
