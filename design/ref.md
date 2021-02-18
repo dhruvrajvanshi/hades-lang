@@ -47,6 +47,25 @@ def f(r: ref SomeStruct) {
   // this is only valid for types that are bitwise copyable. Otherwise, it is a type error.
   val y = deref x; 
 }
+extension StringExtensions for String {
+
+  // extension receivers can be ref
+  def length(ref this): Size {
+    return deref this.m_length;
+  }
+  
+  // or mut refs if they need to modify the value
+  def append(ref mut this, char: Char): Void {
+    /// ...
+  }
+}
+
+def f(str: String, sref: ref String) {
+  str.length(); // values are promoted to refs when calling extensions
+  
+  sref.length(); // or directly accessed when they're already refs
+}
+
 ```
    
   
