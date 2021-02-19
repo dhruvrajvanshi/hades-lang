@@ -237,7 +237,7 @@ Directly defining methods inside traits is being considered.
 ## Sealed types
 Sealed types (also known as algebraic data types) allow you to represent types that can be one of a finite set
 of cases.
-```scala
+```kotlin
 
 sealed type Optional[T] {
   Some(value: T);
@@ -250,7 +250,7 @@ def main(): Void {
    // The cases are checked at compile time. If you
    // decide to add a new case, that will have to
    // be handled in existing match statements.
-   val ten = match Optional.Some(10) {
+   val ten = when Optional.Some(10) {
       is Some: x -> s.value,
       is None -> 0
    };
