@@ -254,7 +254,7 @@ def main(): Void {
       is Some: x -> s.value,
       is None -> 0
    };
-   val zero = match Optional.None[Int] {
+   val zero = when Optional.None[Int] {
      is Some: x -> s.value,
      is None -> 0
    };
