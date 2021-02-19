@@ -22,8 +22,21 @@ def main(): Void {
     c.puts(b"closure application returned value");
     c.puts(result);
 
+    val capture1 = true;
     c.puts(apply(true, |value| if (value) b"true" else b"false"));
-    c.puts(apply(false, |value| if (value) b"true" else b"false"));
+    // struct Ctx$1 {
+    //   val capture1: Bool;
+    // }
+    // def fp$1(value: Bool, ctx: *f$s): *Byte {
+    //    return if (value and ctx.capture1) b"true" else b"false";
+    // }
+    // val ctx$1 = Ctx$1(capture1);
+    // val closure1 = Closure[*Byte](
+    //   pointer_cast[Void](&ctx$1),
+    //   pointer_cast[() -> *Byte](fp$1)
+    // )
+    //
+    c.puts(apply(false, |value| if (value and capture1) b"true" else b"false"));
 }
 
 extern def f(): Void = f;
@@ -33,6 +46,15 @@ def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first
     return print_second(second);
 }
 
+// struct Closure[Result] {
+//   val ctx: *Void;
+//   val fp: *() -> Result;
+// }
 def apply[T, U](value: T, fn: (T) -> U): U {
     return fn(value);
 }
+
+// def apply[T, U](value: T, fn: Closure[U]): U {
+//   val fp = pointer_cast[(T, *Void) -> U](fn.fp);
+//   return fp(tmp$1, fn.ctx);
+// }
