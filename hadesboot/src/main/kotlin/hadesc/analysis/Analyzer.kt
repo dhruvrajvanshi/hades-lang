@@ -7,6 +7,7 @@ import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.ir.BinaryOperator
+import hadesc.ir.IRBinding
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -223,6 +224,9 @@ class Analyzer(
 
     private fun resolveExtensionBinding(expression: Expression.Property): PropertyBinding.ExtensionDef? {
         for (extensionDef in ctx.resolver.extensionDefsInScope(expression)) {
+            if (null == extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>().find { it.name.identifier.name == expression.property.name }) {
+                continue
+            }
             if (isExtensionForType(expression, extensionDef, typeOfExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
@@ -308,7 +312,30 @@ class Analyzer(
             destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
         if (!isValueAssignable && !isPointerAssignable) return false
 
-        val substitution = if (isValueAssignable) valueAssignmentSubstitution else pointerAssignmentSubstitution
+        val substitution = if (isPointerAssignable && isValueAssignable) {
+            val pointerTraitRefsSatisfied = extensionDef.traitRequirements.all { requirement ->
+                isTraitRequirementSatisfied(callNode, requirement.copy(
+                    arguments = requirement.arguments.map { arg -> arg.applySubstitution(pointerAssignmentSubstitution) }
+                ))
+            }
+            val valueTraitRefsSatisfied = extensionDef.traitRequirements.all { requirement ->
+                isTraitRequirementSatisfied(callNode, requirement.copy(
+                    arguments = requirement.arguments.map { arg -> arg.applySubstitution(valueAssignmentSubstitution) }
+                ))
+            }
+
+            if (pointerTraitRefsSatisfied && valueTraitRefsSatisfied) {
+                TODO("Ambiguous extension method")
+            } else if (pointerTraitRefsSatisfied) {
+                pointerAssignmentSubstitution
+            } else {
+                valueAssignmentSubstitution
+            }
+        } else if (isPointerAssignable) {
+            pointerAssignmentSubstitution
+        } else {
+            valueAssignmentSubstitution
+        }
 
         return extensionDef.traitRequirements.all { requirement ->
             isTraitRequirementSatisfied(callNode, requirement.copy(
