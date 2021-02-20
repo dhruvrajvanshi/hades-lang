@@ -9,7 +9,8 @@ import hadesc.location.SourceLocation
  * that bind a name in a scope and regular
  * variables that refer to these bindings.
  */
-inline class Binder(
+@JvmInline
+value class Binder(
     val identifier: Identifier
 ) : HasLocation {
     override val location: SourceLocation

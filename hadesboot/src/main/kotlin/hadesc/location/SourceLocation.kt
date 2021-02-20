@@ -47,7 +47,8 @@ data class Position(
     }
 }
 
-inline class SourcePath(val path: Path) {
+@JvmInline
+value class SourcePath(val path: Path) {
     override fun toString(): String = path.toString()
 }
 
