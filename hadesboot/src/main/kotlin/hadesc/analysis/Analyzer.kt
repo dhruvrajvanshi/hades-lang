@@ -82,11 +82,11 @@ class Analyzer(
         return PropertyBinding.TraitFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
-            Type.Function(
+            Type.Ptr(Type.Function(
                 from = signature.params.map { it.type.applySubstitution(substitution) },
                 to = annotationToType(signature.returnType).applySubstitution(substitution),
                 traitRequirements = null
-            )
+            ), isMutable = false)
         )
     }
 
@@ -264,13 +264,13 @@ class Analyzer(
             } else {
                 annotationToType(extensionDef.forType)
             }
-            var methodType: Type = Type.Function(
+            var methodType: Type = Type.Ptr(Type.Function(
                 from = listOf(receiverType) + functionDef.params.mapIndexed { paramIndex, _ ->
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType),
                 traitRequirements = null
-            )
+            ), isMutable = false)
             if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
                     ((extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())).map { Type.Param(it.binder) },
