@@ -1514,7 +1514,7 @@ class Analyzer(
     }
 
     fun getParamType(param: Param): Type {
-        return requireNotNull(closureParamTypes[param.binder])
+        return reduceGenericInstances(requireNotNull(closureParamTypes[param.binder]))
     }
 
     fun getReturnType(expression: Expression): Type {

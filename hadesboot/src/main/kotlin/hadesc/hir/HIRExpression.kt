@@ -169,7 +169,7 @@ sealed class HIRExpression: HIRNode {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
-        is GlobalRef -> "(${name.mangle()} : ${type.prettyPrint()})"
+        is GlobalRef -> name.mangle()
         is Constant -> constant.prettyPrint()
         is ParamRef -> name.text
         is ValRef -> name.text
