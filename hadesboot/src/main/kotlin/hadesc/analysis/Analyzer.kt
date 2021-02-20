@@ -1028,16 +1028,13 @@ class Analyzer(
                         ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
         )
         val typeParams = declaration.typeParams
-        val type = if (typeParams != null) {
+        val functionPointerType = Type.Ptr(functionType, isMutable = false)
+        return if (typeParams != null) {
             Type.TypeFunction(
                     params = typeParams.map { Type.Param(it.binder) },
-                    body = functionType
+                    body = functionPointerType
             )
-        } else functionType
-        return Type.Ptr(
-                to = type,
-                isMutable = false
-        )
+        } else functionPointerType
     }
 
     data class FunctionTypeComponents(
@@ -1228,7 +1225,7 @@ class Analyzer(
     fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
         fun recurse(type: Type, typeParams: List<Type.Param>?): FunctionTypeComponents? {
             return when (type) {
-                is Type.Ptr -> recurse(type.to, null)
+                is Type.Ptr -> recurse(type.to, typeParams)
                 is Type.Function ->
                     FunctionTypeComponents(
                             from = type.from,
