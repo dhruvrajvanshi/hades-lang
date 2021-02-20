@@ -1,6 +1,8 @@
 # Hades
  [![Hades](https://circleci.com/gh/dhruvrajvanshi/hades-lang.svg?style=shield)](https://app.circleci.com/pipelines/github/dhruvrajvanshi/hades-lang)
-
+ ![](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/gradle.yml/badge.svg?branch=master)
+ 
+ 
 A systems level programming language that compiles to LLVM
 
 - [x] Easy interop with C
