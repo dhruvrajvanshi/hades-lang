@@ -91,6 +91,16 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
         is HIRStatement.While -> transformWhileStatement(statement)
         is HIRStatement.Store -> transformStoreStatement(statement)
+        is HIRStatement.ValWithInitializer -> transformValWithInitializer(statement)
+    }
+
+    fun transformValWithInitializer(statement: HIRStatement.ValWithInitializer): Collection<HIRStatement> {
+        return listOf(HIRStatement.ValWithInitializer(
+            statement.location,
+            statement.name,
+            statement.isMutable,
+            transformExpression(statement.initializer)
+        ))
     }
 
     fun transformStoreStatement(statement: HIRStatement.Store): Collection<HIRStatement> {

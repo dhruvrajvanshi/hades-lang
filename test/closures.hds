@@ -1,45 +1,32 @@
-import libc as c;
+extern def puts(*Byte): Void = puts;
 
 def main(): Void {
     val capture = b"capture";
     val print_str = |str: *Byte|: *Byte {
-        c.puts(capture);
-        c.puts(b"printing string");
-        c.puts(str);
+        puts(capture);
+        puts(b"printing string");
+        puts(str);
         return b"result";
     };
 
     val result = print_both_and_return_second[Bool, *Byte, *Byte](true, b"hello", |b| {
-        c.puts(capture);
-        c.puts(b"printing boolean");
+        puts(capture);
+        puts(b"printing boolean");
         if b {
-            c.puts(b"true");
+            puts(b"true");
         } else {
-            c.puts(b"false");
+            puts(b"false");
         }
     }, print_str);
 
-    c.puts(b"closure application returned value");
-    c.puts(result);
+    puts(b"closure application returned value");
+    puts(result);
 
     val capture1 = true;
-    c.puts(apply(true, |value| if (value) b"true" else b"false"));
-    // struct Ctx$1 {
-    //   val capture1: Bool;
-    // }
-    // def fp$1(value: Bool, ctx: *f$s): *Byte {
-    //    return if (value and ctx.capture1) b"true" else b"false";
-    // }
-    // val ctx$1 = Ctx$1(capture1);
-    // val closure1 = Closure[*Byte](
-    //   pointer_cast[Void](&ctx$1),
-    //   pointer_cast[() -> *Byte](fp$1)
-    // )
-    //
-    c.puts(apply(false, |value| if (value and capture1) b"true" else b"false"));
-}
+    puts(apply(true, |value| if (value) b"true" else b"false"));
 
-extern def f(): Void = f;
+    puts(apply(false, |value| if (value and capture1) b"true" else b"false"));
+}
 
 def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first: (T1) -> Void, print_second: (T2) -> T2R): T2R {
     print_first(first);

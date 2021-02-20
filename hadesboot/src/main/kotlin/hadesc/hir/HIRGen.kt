@@ -479,17 +479,12 @@ class HIRGen(
     private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {
         val name = lowerLocalBinder(statement.binder)
         return listOf(
-                HIRStatement.ValDeclaration(
+                HIRStatement.ValWithInitializer(
                         statement.location,
                         name,
                         statement.isMutable,
-                        typeOfExpression(statement.rhs)
-                ),
-                HIRStatement.Assignment(
-                        statement.location,
-                        name,
                         lowerExpression(statement.rhs)
-                )
+                ),
         )
     }
 
