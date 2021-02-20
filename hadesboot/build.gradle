@@ -49,13 +49,17 @@ compileKotlin {
     kotlinOptions.jvmTarget = "11"
     kotlinOptions.useIR = true
     kotlinOptions {
-        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+        freeCompilerArgs = ["-Xinline-classes"]
         languageVersion = "1.5"
         apiVersion = "1.5"
     }
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
+    kotlinOptions {
+        languageVersion = "1.5"
+        apiVersion = "1.5"
+    }
 }
 
 application {

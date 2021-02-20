@@ -2,7 +2,8 @@ package hadesc.qualifiedname
 
 import hadesc.Name
 
-data class QualifiedName(
+@JvmInline
+value class QualifiedName(
     val names: List<Name> = listOf()
 ) {
     fun append(name: Name): QualifiedName {
