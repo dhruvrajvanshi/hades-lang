@@ -2,6 +2,7 @@ package hadesc.ir.passes
 
 import hadesc.analysis.TraitRequirement
 import hadesc.types.Type
+import hadesc.unit
 
 interface TypeTransformer {
     fun lowerType(type: Type): Type = when (type) {
@@ -84,4 +85,80 @@ interface TypeTransformer {
     fun lowerRawPtrType(type: Type.Ptr): Type = Type.Ptr(lowerType(type.to), isMutable = type.isMutable)
 
     fun lowerByteType(type: Type): Type = type
+}
+
+
+interface TypeVisitor {
+    fun visitType(type: Type): Unit = when (type) {
+        Type.Error -> unit
+        Type.Byte -> visitByteType(type)
+        Type.Void -> visitVoidType(type)
+        Type.Bool -> visitBoolType(type)
+        Type.CInt -> visitCIntType(type)
+        Type.Size -> visitSizeType(type)
+        Type.Double -> visitDoubleType(type)
+        is Type.Ptr -> visitRawPtrType(type)
+        is Type.Function -> visitFunctionType(type)
+        is Type.Constructor -> visitTypeConstructor(type)
+        is Type.ParamRef -> visitParamRefType(type)
+        is Type.GenericInstance -> visitGenericInstance(type)
+        is Type.Application -> visitTypeApplication(type)
+        is Type.UntaggedUnion -> visitUntaggedUnionType(type)
+        is Type.TypeFunction -> visitTypeFunction(type)
+        is Type.Integral -> visitIntegralType(type)
+        is Type.FloatingPoint -> visitFloatingPointType(type)
+    }
+
+    fun visitFloatingPointType(type: Type.FloatingPoint) {
+    }
+
+    fun visitIntegralType(type: Type.Integral) {
+    }
+
+    fun visitGenericInstance(type: Type.GenericInstance) {
+    }
+
+    fun visitTypeFunction(type: Type.TypeFunction) {
+        visitType(type.body)
+    }
+
+    fun visitDoubleType(type: Type) {
+    }
+
+    fun visitUntaggedUnionType(type: Type.UntaggedUnion) {
+        type.members.forEach { visitType(it) }
+    }
+
+    fun visitFunctionType(type: Type.Function) {
+        type.from.forEach() { visitType(it) }
+        visitType(type.to)
+        type.traitRequirements?.forEach { visitTraitRequirement(it) }
+    }
+
+    fun visitTraitRequirement(requirement: TraitRequirement) {
+        requirement.arguments.forEach() { visitType(it) }
+    }
+
+    fun visitSizeType(type: Type) {}
+
+    fun visitCIntType(type: Type) {}
+
+    fun visitBoolType(type: Type) {}
+
+    fun visitTypeConstructor(type: Type.Constructor) {}
+
+    fun visitParamRefType(type: Type.ParamRef) {}
+
+    fun visitTypeApplication(type: Type.Application) {
+        visitType(type.callee)
+        type.args.map { visitType(it) }
+    }
+
+    fun visitVoidType(type: Type) {}
+
+    fun visitRawPtrType(type: Type.Ptr) = visitType(type.to)
+
+    fun visitByteType(type: Type) {
+
+    }
 }

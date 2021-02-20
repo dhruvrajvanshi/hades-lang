@@ -1,0 +1,18 @@
+
+extern def puts(*Byte): Void = puts;
+
+def main(): Void {
+    puts(f(b"World"));
+}
+
+def apply[T, U](value: T, fn: (T) -> U): U {
+    return fn(value);
+}
+
+def f[T](value: T): T {
+    val hello = b"Hello";
+    return apply(value, |x| {
+        puts(hello);
+        return x;
+    });
+}

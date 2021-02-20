@@ -111,9 +111,6 @@ sealed class HIRExpression: HIRNode {
         val toPointerOfType: Type,
         val value: HIRExpression
     ) : HIRExpression() {
-        init {
-            require(value.type is Type.Ptr)
-        }
         override val type: Type
             get() = Type.Ptr(toPointerOfType, isMutable = true)
     }

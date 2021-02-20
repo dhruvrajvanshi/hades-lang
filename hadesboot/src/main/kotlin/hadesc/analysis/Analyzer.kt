@@ -9,6 +9,7 @@ import hadesc.frontend.PropertyBinding
 import hadesc.ir.BinaryOperator
 import hadesc.ir.IRBinding
 import hadesc.ir.passes.TypeTransformer
+import hadesc.ir.passes.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
@@ -1590,6 +1591,24 @@ class Analyzer(
         val values = mutableMapOf<Binder, Type>()
         val types = mutableSetOf<Binder>()
         object : SyntaxVisitor {
+            val typeVisitor = object : TypeVisitor {
+                override fun visitParamRefType(type: Type.ParamRef) {
+                    if (!type.name.location.isWithin(closure.location)) {
+                        types.add(type.name)
+                    }
+                }
+            }
+            override fun visitExpression(expression: Expression) {
+                super.visitExpression(expression)
+
+                typeVisitor.visitType(reduceGenericInstances(typeOfExpression(expression)))
+            }
+
+            override fun visitType(type: TypeAnnotation) {
+                typeVisitor.visitType(annotationToType(type))
+            }
+
+
             override fun visitVarExpr(expression: Expression.Var) {
                 val binding = ctx.resolver.resolve(expression.name)
                 if (binding != null && !binding.isGlobal() && !binding.isLocalTo(closure)) {

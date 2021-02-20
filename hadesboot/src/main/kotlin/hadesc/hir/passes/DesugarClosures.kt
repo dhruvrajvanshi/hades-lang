@@ -191,7 +191,14 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         require(type is Type.Function)
 
         val contextStruct = makeAndAddClosureContextStruct(expression.location, expression.captures)
-        val contextType = Type.Constructor(null, contextStruct.name)
+        val contextTypeConstructor = Type.Constructor(null, contextStruct.name)
+        val capturedTypeArgs = expression.captures.types.map { Type.ParamRef(Binder(Identifier(it.location, it.name))) }
+        val contextType =
+            if (expression.captures.types.isEmpty())
+                contextTypeConstructor
+            else
+                Type.Application(contextTypeConstructor, capturedTypeArgs)
+
         val contextName = ctx.makeUniqueName()
         val contextParamName = ctx.makeName("\$ctx")
         val contextDerefname = ctx.makeName("\$ctx\$deref")
@@ -226,6 +233,23 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                 it.key.name
             )
         }
+
+        val contextConstructorRef = GlobalRef(
+            expression.location,
+            contextStruct.constructorType,
+            contextStruct.name
+        )
+        val contextConstructorCallee =
+            if (expression.captures.types.isEmpty())
+                contextConstructorRef
+            else
+                TypeApplication(
+                    expression.location,
+                    contextConstructorRef.type, // FIXME: This isn't the correct type of this expression.
+                    contextConstructorRef,
+                    capturedTypeArgs
+                )
+
         // context = contextStruct(...pointersToCaptures)
         currentBlockStatements.add(
             Assignment(
@@ -234,11 +258,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
             Call(
                 expression.location,
                 contextType,
-                GlobalRef(
-                    expression.location,
-                    contextStruct.constructorType,
-                    contextStruct.name
-                ),
+                contextConstructorCallee,
                 pointersToCaptures
             )
         )
@@ -272,6 +292,22 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                     closureStructConstructorRef,
                     listOf(type.to)
                 )
+
+        val functionRef = GlobalRef(
+            expression.location,
+            signature.type,
+            functionName.toQualifiedName()
+        )
+        val functionPointer = transformExpression(if (expression.captures.types.isEmpty()) {
+            functionRef
+        } else {
+            TypeApplication(
+                location = expression.location,
+                type = signature.type,
+                expression = functionRef,
+                args = capturedTypeArgs
+            )
+        })
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
         currentBlockStatements.add(
             Assignment(
@@ -298,11 +334,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                             to = expression.returnType,
                             traitRequirements = null,
                         ),
-                        value = GlobalRef(
-                            expression.location,
-                            signature.type,
-                            functionName.toQualifiedName()
-                        )
+                        value = functionPointer
                     )
                 )
             )
@@ -344,12 +376,15 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
     }
 
     private fun makeAndAddClosureContextStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
-        require(captures.types.isEmpty())
         val structName = ctx.makeUniqueName().toQualifiedName()
         val structDef = HIRDefinition.Struct(
             location = location,
             name = structName,
-            typeParams = null,
+            typeParams =
+                if (captures.types.isEmpty())
+                    null
+                else
+                    captures.types.map { HIRTypeParam(it.location, it.name) },
             fields = captures.values.map { it.key.name to Type.Ptr(it.value, isMutable = true) }
         )
         definitions.add(structDef)
