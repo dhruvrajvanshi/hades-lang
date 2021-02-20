@@ -45,6 +45,8 @@ class Context(
         }
         hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
         hirModule = DesugarClosures(this).transformModule(hirModule)
+        println("Desugar closures:\n${hirModule.prettyPrint()}")
+
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)
