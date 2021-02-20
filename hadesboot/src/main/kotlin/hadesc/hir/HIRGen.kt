@@ -995,7 +995,15 @@ class HIRGen(
             }
         }
         if (expression.type is Type.Function) {
-            TODO("Lowering of closure calls not implemented yet.")
+            require(expression.typeArgs == null) {
+                TODO("Closures with type arguments not implemented")
+            }
+            HIRExpression.InvokeClosure(
+                location = expression.location,
+                type = expression.type,
+                closure = lowerExpression(expression.callee),
+                args = expression.args.map { lowerExpression(it.expression)}
+            )
         }
         return buildCall(
                 expression,
