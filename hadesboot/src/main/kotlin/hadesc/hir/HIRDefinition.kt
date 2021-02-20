@@ -74,7 +74,38 @@ sealed class HIRDefinition: HasLocation {
             val name: QualifiedName,
             val typeParams: List<HIRTypeParam>?,
             val fields: List<Pair<Name, Type>>
-    ) : HIRDefinition()
+    ) : HIRDefinition() {
+
+        val constructorType get(): Type {
+            val instanceConstructorType = Type.Constructor(null, name)
+            val instanceType =
+                if (typeParams == null)
+                    instanceConstructorType
+                else
+                    Type.Application(instanceConstructorType, typeParams.map { Type.ParamRef(it.toBinder()) })
+            val fnType = Type.Function(
+                from = fields.map { it.second },
+                to = instanceType,
+                traitRequirements = null
+            )
+
+            val fnPtrType = Type.Ptr(fnType, isMutable = false)
+
+            return if (typeParams == null)
+                fnPtrType
+            else
+                Type.TypeFunction(
+                    params = typeParams.map { Type.Param(it.toBinder()) },
+                    body = fnPtrType
+                )
+        }
+
+        fun constructorRef(location: SourceLocation) = HIRExpression.GlobalRef(
+            location,
+            constructorType,
+            name
+        )
+    }
 
     fun prettyPrint(): String = when(this) {
         is Function -> {

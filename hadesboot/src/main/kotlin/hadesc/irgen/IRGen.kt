@@ -111,6 +111,7 @@ class IRGen(
         is HIRStatement.Assignment -> lowerAssignmentStatement(statement)
         is HIRStatement.While -> lowerWhileStatement(statement)
         is HIRStatement.Store -> lowerStoreStatement(statement)
+        is HIRStatement.ValWithInitializer -> lowerValWithInitializer(statement)
     }
 
     private fun lowerStoreStatement(statement: HIRStatement.Store) {
@@ -234,6 +235,19 @@ class IRGen(
         builder.buildAlloca(statement.type, ptrName)
     }
 
+
+    private fun lowerValWithInitializer(statement: HIRStatement.ValWithInitializer) {
+        val ptrName = localValPtrName(statement.name)
+        builder.buildAlloca(statement.initializer.type, ptrName)
+        val ptr = builder.buildVariable(
+            Type.Ptr(statement.initializer.type, isMutable = true),
+            statement.location,
+            ptrName
+        )
+        builder.buildStore(ptr = ptr, value = lowerExpression(statement.initializer))
+    }
+
+
     private fun localValPtrName(name: Name): IRLocalName {
         return lowerLocalName(ctx.makeName(name.text + "\$ptr"))
     }
@@ -269,6 +283,8 @@ class IRGen(
         is HIRExpression.TraitMethodCall -> requireUnreachable()
         is HIRExpression.UnsafeCast -> lowerUnsafeCast(expression)
         is HIRExpression.When -> requireUnreachable()
+        is HIRExpression.Closure -> requireUnreachable()
+        is HIRExpression.InvokeClosure -> requireUnreachable()
     }
 
     private fun lowerUnsafeCast(expression: HIRExpression.UnsafeCast): IRValue {

@@ -5,7 +5,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed class HIRStatement: HasLocation {
+sealed class HIRStatement: HIRNode {
     data class Expression(
             val expression: HIRExpression
     ) : HIRStatement() {
@@ -23,6 +23,13 @@ sealed class HIRStatement: HasLocation {
             val name: Name,
             val isMutable: Boolean,
             val type: Type
+    ) : HIRStatement()
+
+    data class ValWithInitializer(
+        override val location: SourceLocation,
+        val name: Name,
+        val isMutable: Boolean,
+        val initializer: HIRExpression,
     ) : HIRStatement()
 
 
@@ -51,7 +58,11 @@ sealed class HIRStatement: HasLocation {
             val body: HIRBlock
     ) : HIRStatement()
 
-    fun prettyPrint(): String = when(this) {
+    override fun prettyPrint(): String {
+        return "${prettyPrintInternal()} // $location"
+    }
+
+    private fun prettyPrintInternal(): String = when(this) {
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
         is ReturnVoid -> "return"
@@ -60,5 +71,6 @@ sealed class HIRStatement: HasLocation {
         is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint()}\nelse ${falseBranch.prettyPrint()}"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
+        is ValWithInitializer -> "val ${name.text}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
     }
 }

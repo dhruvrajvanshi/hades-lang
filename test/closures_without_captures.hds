@@ -1,0 +1,10 @@
+extern def puts(*Byte): Void = puts;
+def main(): Void {
+    apply(|| {
+        puts(b"Hello");
+    });
+}
+
+def apply(fn: () -> Void): Void {
+    fn();
+}

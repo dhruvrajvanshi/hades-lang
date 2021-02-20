@@ -5,20 +5,23 @@ import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
+import javax.swing.plaf.nimbus.State
 
 @OptIn(ExperimentalStdlibApi::class)
 class HIRGen(
-        private val ctx: Context
-) {
+        override val ctx: Context
+): HasContext {
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         for (sourceFile in sourceFiles) {
@@ -27,6 +30,8 @@ class HIRGen(
             }
         }
         val result = HIRModule(declarations)
+        logger().debug("HIRGen output")
+        logger().debug(result.prettyPrint())
         return result
     }
 
@@ -474,17 +479,12 @@ class HIRGen(
     private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {
         val name = lowerLocalBinder(statement.binder)
         return listOf(
-                HIRStatement.ValDeclaration(
+                HIRStatement.ValWithInitializer(
                         statement.location,
                         name,
                         statement.isMutable,
-                        typeOfExpression(statement.rhs)
-                ),
-                HIRStatement.Assignment(
-                        statement.location,
-                        name,
                         lowerExpression(statement.rhs)
-                )
+                ),
         )
     }
 
@@ -551,9 +551,37 @@ class HIRGen(
         is Expression.New -> TODO()
         is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
-        is Expression.Closure -> TODO()
+        is Expression.Closure -> lowerClosure(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
+    }
+
+    private fun lowerClosure(expression: Expression.Closure): HIRExpression {
+        val body = when (expression.body) {
+            is ClosureBody.Block -> lowerBlock(expression.body.block)
+            is ClosureBody.Expression -> lowerBlock(Block(expression.body.location, null,  listOf(
+                Block.Member.Statement(
+                    Statement.Return(
+                        expression.body.location,
+                        expression.body.expression
+                    )
+                )
+            )))
+        }
+        val captures = ctx.analyzer.getClosureCaptures(expression)
+        return HIRExpression.Closure(
+            expression.location,
+            typeOfExpression(expression),
+            captures,
+            expression.params.map {
+                HIRParam(
+                    it.location,
+                    it.binder.name,
+                    ctx.analyzer.getParamType(it))
+            },
+            ctx.analyzer.getReturnType(expression),
+            body
+        )
     }
 
     private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
@@ -888,7 +916,11 @@ class HIRGen(
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.name)
         )
-        is Binding.ClosureParam -> TODO()
+        is Binding.ClosureParam -> HIRExpression.ParamRef(
+            expression.location,
+            typeOfExpression(expression),
+            lowerLocalBinder(binding.param.binder)
+        )
         is Binding.SealedType -> TODO()
         is Binding.WhenArm -> requireUnreachable()
     }
@@ -959,6 +991,17 @@ class HIRGen(
                     )
                 }
             }
+        }
+        if (expression.callee.type is Type.Function) {
+            require(expression.typeArgs == null) {
+                TODO("Closures with type arguments not implemented")
+            }
+            return HIRExpression.InvokeClosure(
+                location = expression.location,
+                type = expression.type,
+                closure = lowerExpression(expression.callee),
+                args = expression.args.map { lowerExpression(it.expression)}
+            )
         }
         return buildCall(
                 expression,

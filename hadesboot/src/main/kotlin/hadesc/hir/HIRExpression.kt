@@ -1,13 +1,14 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.analysis.ClosureCaptures
 import hadesc.ir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
-sealed class HIRExpression: HasLocation {
+sealed class HIRExpression: HIRNode {
     abstract val type: Type
     data class Call(
             override val location: SourceLocation,
@@ -148,7 +149,23 @@ sealed class HIRExpression: HasLocation {
         }
     }
 
-    fun prettyPrint(): String = when(this) {
+    data class Closure(
+        override val location: SourceLocation,
+        override val type: Type,
+        val captures: ClosureCaptures,
+        val params: List<HIRParam>,
+        val returnType: Type,
+        val body: HIRBlock
+    ) : HIRExpression()
+
+    data class InvokeClosure(
+        override val location: SourceLocation,
+        override val type: Type,
+        val closure: HIRExpression,
+        val args: List<HIRExpression>,
+    ) : HIRExpression()
+
+    override fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
@@ -156,7 +173,7 @@ sealed class HIRExpression: HasLocation {
         is Constant -> constant.prettyPrint()
         is ParamRef -> name.text
         is ValRef -> name.text
-        is GetStructField -> "${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()}"
+        is GetStructField -> "(${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()})"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
@@ -168,12 +185,14 @@ sealed class HIRExpression: HasLocation {
         }
         is Load -> "*${ptr.prettyPrint()}"
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
-        is GetStructFieldPointer -> "(${lhs.prettyPrint()}.${memberName.text})"
+        is GetStructFieldPointer -> "(gep (${lhs.prettyPrint()} ${memberName.text}) : ${type.prettyPrint()})"
         is TraitMethodCall -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 "${methodName.text}(${args.joinToString(", ") { it.prettyPrint() } })"
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
         is When -> "when (${discriminant.prettyPrint()}) {\n" +
                 cases.joinToString("\n") { "  " + it.prettyPrint() } +
                 "\n} : ${type.prettyPrint()}"
+        is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
+        is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
     }
 }

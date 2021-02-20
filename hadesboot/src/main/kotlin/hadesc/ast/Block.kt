@@ -5,7 +5,7 @@ import hadesc.location.SourceLocation
 
 data class Block(
     override val location: SourceLocation,
-    val startToken: Token,
+    val startToken: Token?,
     val members: List<Member>
 ) : HasLocation {
     sealed class Member: HasLocation {

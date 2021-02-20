@@ -6,23 +6,29 @@ import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
+import hadesc.ast.Expression
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
+import hadesc.hir.HIRChecker
 import hadesc.hir.HIRGen
+import hadesc.hir.passes.DesugarClosures
 import hadesc.hir.passes.DesugarWhenExpressions
 import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
 import hadesc.location.SourcePath
-import hadesc.logging.logger
 import hadesc.parser.Parser
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
 import java.nio.file.Path
+interface HasContext {
+    val ctx: Context
 
+    val Expression.type get() = ctx.analyzer.typeOfExpression(this)
+}
 class Context(
     val options: BuildOptions
 ) {
@@ -44,6 +50,10 @@ class Context(
             return
         }
         hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
+        hirModule = DesugarClosures(this).transformModule(hirModule)
+//        val hirChecker = HIRChecker().checkModule(hirModule)
+        println("Desugar closures:\n${hirModule.prettyPrint()}")
+
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)

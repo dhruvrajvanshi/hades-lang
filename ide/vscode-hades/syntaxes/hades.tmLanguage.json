@@ -149,8 +149,8 @@
 			]
 		},
 		"parameter-list": {
-			"begin": "\\(",
-			"end": "\\)",
+			"begin": "[|(]",
+			"end": "[|)]",
 			"patterns": [
 				{
 					"match": "\\b(\\*)?(mut\\s+)?(this)\\b",
@@ -160,7 +160,7 @@
 					}
 				},
 				{
-					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\:)",
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=[,:)|])",
 					"captures": {
 						"1": { "name": "variable.parameter" }
 					}
@@ -175,7 +175,7 @@
 		},
 		"colon-and-type-annotation": {
 			"begin": "\\:",
-			"end": "(?=([,\\)={;])|where|def)",
+			"end": "(?=([|,\\)={;])|where|def)",
 			"patterns": [
 				{
 					"include": "#type-annotations"
@@ -406,7 +406,7 @@
 					"include": "#if-statement"
 				},
 				{
-					"include": "#block"
+					"include": "#else-statement"
 				},
 				{
 					"include": "#expressions"
@@ -509,8 +509,28 @@
 				}
 			]
 		},
+		"else-statement": {
+			"begin": "\\b(else)\\b",
+			"end": "(?<=[}])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.hades"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#block"
+				},
+				{
+					"include": "#expressions"
+				}
+			]
+		},
 		"expressions": {
 			"patterns": [
+				{
+					"include": "#closure-expression"
+				},
 				{
 					"include": "#boolean-literals"
 				},
@@ -525,6 +545,18 @@
 				},
 				{
 					"include": "#numeric-literals"
+				}
+			]
+		},
+		"closure-expression": {
+			"begin": "(?=\\|)",
+			"end": "(?<=[}])",
+			"patterns": [
+				{
+					"include": "#parameter-list"
+				},
+				{
+					"include": "#block"
 				}
 			]
 		},

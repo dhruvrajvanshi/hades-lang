@@ -59,6 +59,9 @@ class Checker(val ctx: Context) {
                 } else {
                     checkTypeAnnotation(param.annotation)
                 }
+                if (param.annotation?.type is Type.Function) {
+                    error(param.annotation, Diagnostic.Kind.ClosuresCantBeStored)
+                }
             }
         }
     }
@@ -211,6 +214,9 @@ class Checker(val ctx: Context) {
                         declaredFields[member.binder.name] = member
                     }
                     checkTypeAnnotation(member.typeAnnotation)
+                    if (member.typeAnnotation.type is Type.Function) {
+                        error(member.binder, Diagnostic.Kind.ClosuresCantBeStored)
+                    }
                 }
             }
         }
@@ -258,10 +264,18 @@ class Checker(val ctx: Context) {
                 checkTypeAnnotation(it)
             }
             checkTypeAnnotation(annotation.to)
+
+            if (annotation.to.type is Type.Function) {
+                error(annotation.to, Diagnostic.Kind.ClosuresCantBeReturned)
+            }
+            unit
         }
         is TypeAnnotation.Union -> {
             annotation.args.forEach {
                 checkTypeAnnotation(it)
+                if (it.type is Type.Function) {
+                    error(it, Diagnostic.Kind.ClosuresCantBeStored)
+                }
             }
         }
     }
@@ -455,11 +469,26 @@ class Checker(val ctx: Context) {
             is Expression.If -> checkIfExpression(expression)
             is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
             is Expression.New -> TODO()
+            is Expression.Closure -> checkClosureExpression(expression)
             is Expression.This -> checkThisExpression(expression)
-            is Expression.Closure -> TODO()
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
         })
+    }
+
+    private fun checkClosureExpression(expression: Expression.Closure) {
+        val expressionType = expression.type
+        require(expressionType is Type.Function)
+        val returnType = expressionType.to
+        returnTypeStack.push(returnType)
+        checkFunctionParams(expression.params)
+        expression.returnType?.let { checkTypeAnnotation(it) }
+
+        when (expression.body) {
+            is ClosureBody.Block -> checkBlock(expression.body.block)
+            is ClosureBody.Expression -> checkExpressionHasType(expression.body.expression, returnType)
+        }
+        returnTypeStack.pop()
     }
 
     private fun checkThisExpression(expression: Expression.This) {
@@ -555,6 +584,10 @@ class Checker(val ctx: Context) {
         if (binding !is Binding.ValBinding) {
             error(expression, Diagnostic.Kind.NotAnAddressableValue)
             return
+        }
+
+        if (expression.type is Type.Function) {
+            error(expression, Diagnostic.Kind.TakingAddressOfClosureDisallowed)
         }
     }
 
@@ -721,13 +754,19 @@ class Checker(val ctx: Context) {
             checkTypeParams(it)
         }
         checkTypeAnnotation(signature.returnType)
+
+        if (signature.returnType.type is Type.Function) {
+            error(signature.returnType, Diagnostic.Kind.ClosuresCantBeReturned)
+        }
     }
 
     private fun checkFunctionParams(params: List<Param>) {
         val binders = mutableMapOf<Name, Binder>()
         for (param in params) {
             if (param.annotation == null) {
-                error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                if (ctx.analyzer.getInferredParamType(param) == null) {
+                    error(param, Diagnostic.Kind.MissingTypeAnnotation)
+                }
             } else {
                 checkTypeAnnotation(param.annotation)
             }

@@ -1,3 +1,7 @@
 package hadesc
 
-inline class Name constructor(val text: String)
+import hadesc.qualifiedname.QualifiedName
+
+inline class Name constructor(val text: String) {
+    fun toQualifiedName() = QualifiedName(listOf(this))
+}

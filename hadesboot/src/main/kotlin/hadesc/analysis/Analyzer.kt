@@ -14,6 +14,7 @@ import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
 import hadesc.types.Type
+import hadesc.unit
 import java.util.*
 import java.util.Collections.singletonList
 import kotlin.math.min
@@ -81,11 +82,11 @@ class Analyzer(
         return PropertyBinding.TraitFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
-            Type.Function(
+            Type.Ptr(Type.Function(
                 from = signature.params.map { it.type.applySubstitution(substitution) },
                 to = annotationToType(signature.returnType).applySubstitution(substitution),
                 traitRequirements = null
-            )
+            ), isMutable = false)
         )
     }
 
@@ -263,13 +264,13 @@ class Analyzer(
             } else {
                 annotationToType(extensionDef.forType)
             }
-            var methodType: Type = Type.Function(
+            var methodType: Type = Type.Ptr(Type.Function(
                 from = listOf(receiverType) + functionDef.params.mapIndexed { paramIndex, _ ->
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType),
                 traitRequirements = null
-            )
+            ), isMutable = false)
             if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
                     ((extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())).map { Type.Param(it.binder) },
@@ -626,7 +627,8 @@ class Analyzer(
         return type
     }
 
-    private val closureParamTypes = mutableMapOf<Binder, Type>()
+    private val closureParamTypes = MutableNodeMap<Binder, Type>()
+    private val inferredParamTypes = MutableNodeMap<Binder, Type>()
     private fun checkOrInferClosureExpression(expression: Expression.Closure, expectedType: Type?): Type {
         val functionTypeComponents = expectedType?.let { getFunctionTypeComponents(it) }
         val expectedReturnType = functionTypeComponents?.to ?: expression.returnType?.let { annotationToType(it) }
@@ -654,6 +656,7 @@ class Analyzer(
                     annotatedType
                 }
                 expectedParamType != null -> {
+                    inferredParamTypes[param.binder] = expectedParamType
                     expectedParamType
                 }
                 else -> {
@@ -682,6 +685,29 @@ class Analyzer(
             to = returnType,
             traitRequirements = null
         )
+    }
+
+    fun getInferredParamType(param: Param): Type? {
+        val function = ctx.resolver.getEnclosingFunction(param)
+        if (function == null) {
+            ctx.resolver.getSourceFile(param.binder.location.file).let { sourceFile ->
+                sourceFile.declarations.forEach {
+                    visitDeclaration(it)
+                }
+            }
+        } else {
+            visitDeclaration(function)
+        }
+        return inferredParamTypes[param.binder]
+    }
+
+    private fun isTypeOrderComparable(type: Type): Boolean {
+        return type is Type.Integral || type is Type.CInt || type is Type.FloatingPoint || type is Type.Size
+    }
+
+    private fun isTypeEqualityComparable(type: Type): Boolean {
+        return type is Type.Integral || type is Type.CInt || type is Type.Bool ||
+                type is Type.Ptr || type is Type.Size || type is Type.Byte
     }
 
     private fun checkNullPtrExpression(expectedType: Type): Type {
@@ -1002,16 +1028,13 @@ class Analyzer(
                         ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
         )
         val typeParams = declaration.typeParams
-        val type = if (typeParams != null) {
+        val functionPointerType = Type.Ptr(functionType, isMutable = false)
+        return if (typeParams != null) {
             Type.TypeFunction(
                     params = typeParams.map { Type.Param(it.binder) },
-                    body = functionType
+                    body = functionPointerType
             )
-        } else functionType
-        return Type.Ptr(
-                to = type,
-                isMutable = false
-        )
+        } else functionPointerType
     }
 
     data class FunctionTypeComponents(
@@ -1202,7 +1225,7 @@ class Analyzer(
     fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
         fun recurse(type: Type, typeParams: List<Type.Param>?): FunctionTypeComponents? {
             return when (type) {
-                is Type.Ptr -> recurse(type.to, null)
+                is Type.Ptr -> recurse(type.to, typeParams)
                 is Type.Function ->
                     FunctionTypeComponents(
                             from = type.from,
@@ -1490,6 +1513,19 @@ class Analyzer(
         else -> false
     }
 
+    fun getParamType(param: Param): Type {
+        return reduceGenericInstances(requireNotNull(closureParamTypes[param.binder]))
+    }
+
+    fun getReturnType(expression: Expression): Type {
+        val exprType = typeOfExpression(expression)
+        return if (exprType is Type.Function) {
+            exprType.to
+        } else {
+            Type.Error
+        }
+    }
+
     fun isTraitRef(expression: Expression): Boolean = resolveTraitRef(expression) != null
 
     private fun resolvePropertyExpressionTraitRef(expression: Expression.Property): Declaration.TraitDef? {
@@ -1515,7 +1551,41 @@ class Analyzer(
         else -> null
     }
 
+    fun getClosureCaptures(closure: Expression.Closure): ClosureCaptures {
+        val values = mutableMapOf<Binder, Type>()
+        val types = mutableSetOf<Binder>()
+        object : SyntaxVisitor {
+            override fun visitVarExpr(expression: Expression.Var) {
+                val binding = ctx.resolver.resolve(expression.name)
+                if (binding != null && !binding.isGlobal() && !binding.isLocalTo(closure)) {
+                    values[binding.binder] = typeOfBinder(binding.binder)
+                }
+            }
+
+            override fun visitVarType(type: TypeAnnotation.Var) {
+                when (val binding = ctx.resolver.resolveTypeVariable(type.name)) {
+                    is TypeBinding.TypeParam -> {
+                        if (!binding.isLocalTo(closure)) {
+                            types.add(binding.binder)
+                        }
+                    }
+                    else -> unit
+                }
+            }
+        }.visitExpression(closure)
+
+        return ClosureCaptures(
+            values,
+            types
+        )
+    }
+
 }
+
+data class ClosureCaptures(
+    val values: Map<Binder, Type>,
+    val types: Set<Binder>
+)
 
 private class MutableNodeMap<T : HasLocation, V> {
     private val map = mutableMapOf<SourceLocation, V>()
