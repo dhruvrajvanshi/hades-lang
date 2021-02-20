@@ -173,7 +173,7 @@ sealed class HIRExpression: HasLocation {
         is Constant -> constant.prettyPrint()
         is ParamRef -> name.text
         is ValRef -> name.text
-        is GetStructField -> "${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()}"
+        is GetStructField -> "(${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()})"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
