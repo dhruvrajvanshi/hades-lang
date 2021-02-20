@@ -16,6 +16,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
+import javax.swing.plaf.nimbus.State
 
 @OptIn(ExperimentalStdlibApi::class)
 class HIRGen(
@@ -563,15 +564,14 @@ class HIRGen(
     private fun lowerClosure(expression: Expression.Closure): HIRExpression {
         val body = when (expression.body) {
             is ClosureBody.Block -> lowerBlock(expression.body.block)
-            is ClosureBody.Expression -> HIRBlock(
-                expression.body.location,
-                listOf(
-                    HIRStatement.Return(
+            is ClosureBody.Expression -> lowerBlock(Block(expression.body.location, null,  listOf(
+                Block.Member.Statement(
+                    Statement.Return(
                         expression.body.location,
-                        lowerExpression(expression.body.expression)
+                        expression.body.expression
                     )
                 )
-            )
+            )))
         }
         val captures = ctx.analyzer.getClosureCaptures(expression)
         return HIRExpression.Closure(

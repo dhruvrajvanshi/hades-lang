@@ -4,7 +4,6 @@ import hadesc.Name
 import hadesc.analysis.ClosureCaptures
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
-import hadesc.ast.Statement
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.hir.HIRExpression.*
@@ -65,9 +64,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                 closureCtxFieldName to Type.Ptr(Type.Void, isMutable = true),
                 closureFunctionPtrName to
                         Type.Ptr(Type.Function(
-                            from = listOf(
-                                Type.Ptr(Type.Void, isMutable = true)
-                            ), traitRequirements = emptyList(), to = Type.Void), isMutable = false)
+                            from = listOf(), traitRequirements = emptyList(), to = Type.Void), isMutable = false)
             ),
             name = structName.toQualifiedName()
         )
@@ -251,6 +248,17 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         )
 
         val closureTypeStruct = getClosureTypeStruct(type)
+        val closureStructConstructorRef = closureTypeStruct.constructorRef(expression.location)
+        val closureConstructorCallee =
+            if (type.to is Type.Void)
+                closureStructConstructorRef
+            else
+                TypeApplication(
+                    expression.location,
+                    closureStructConstructorRef.type,
+                    closureStructConstructorRef,
+                    listOf(type.to)
+                )
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
         currentBlockStatements.add(
             Assignment(
@@ -259,7 +267,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
             Call(
                 expression.location,
                 closureType,
-                closureTypeStruct.constructorRef(expression.location),
+                closureConstructorCallee,
                 args = listOf(
                     PointerCast(
                         expression.location,
@@ -273,7 +281,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                     PointerCast(
                         expression.location,
                         toPointerOfType = Type.Function(
-                            from = listOf(Type.Ptr(Type.Void, isMutable = true)),
+                            from = listOf(),
                             to = expression.returnType,
                             traitRequirements = null,
                         ),
