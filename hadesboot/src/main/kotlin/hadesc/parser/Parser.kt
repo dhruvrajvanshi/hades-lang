@@ -694,7 +694,7 @@ class Parser(
         )
     }
 
-    private fun parsePrimaryExpression(): Expression {
+    private fun parsePrimaryExpression(withTail: Boolean = true): Expression {
         val head = when (currentToken.kind) {
             tt.LPAREN -> {
                 advance()
@@ -740,7 +740,7 @@ class Parser(
                     advance()
                     true
                 } else false
-                val expression = parsePrimaryExpression()
+                val expression = parsePrimaryExpression(withTail = false)
                 if (isMut) {
                     Expression.AddressOfMut(makeLocation(start, expression), expression)
                 } else {
@@ -830,6 +830,7 @@ class Parser(
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
+        if (!withTail) return head
         return parseExpressionTail(head)
     }
 

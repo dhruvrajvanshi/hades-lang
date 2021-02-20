@@ -25,7 +25,7 @@ implementation[T] Iterable[Pair[T, T], T] {
 def main(): Void {
     val pair = Pair(b"Hello", b"World");
 
-    (&pair).for_each(|value| {
+    &pair.for_each(|value| {
         puts(value);
     });
 }
