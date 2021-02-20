@@ -7,7 +7,9 @@ A systems level programming language that compiles to LLVM
 - [x] Structs
 - [x] Generic types
 - [x] Extension Methods
-- [ ] Closures
+- [x] Closures
+      - Pure stack allocated closures (i.e. can't be returned from functions and stored in structs right now)
+      - Once we have proper destructor semantics, I'll implement heap allocated closures that get cleaned up according to their lifetime.
 - [ ] Named function arguments
 - [x] Traits
 - [x] Algebraic data types (enums)
@@ -258,6 +260,31 @@ def main(): Void {
      is Some: x -> s.value,
      is None -> 0
    };
+}
+```
+
+## Closures
+Hades supports a limited form of closures that are allocated on the stack. This means that
+they can't be returned from functions or stored in structs.
+Once proper destruction and move semantics are implemented, this restriction can be lifted by
+heap allocated closures.
+```scala
+
+def main(): Void {
+  puts(apply(true, |value| if (value) b"true" else b"false")); // prints "true"
+  // closures can have a block body
+  // prints "Done"
+  puts(apply(true, |value| {
+    if value {
+      return b"Done";
+    } else {
+      return b"Not done";
+    }
+  });
+}
+
+def apply[T, U](arg: T, fn: (T) -> U): U {
+  return fn(arg);
 }
 ```
 
