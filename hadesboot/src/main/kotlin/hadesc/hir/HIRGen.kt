@@ -479,12 +479,18 @@ class HIRGen(
     private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {
         val name = lowerLocalBinder(statement.binder)
         return listOf(
-                HIRStatement.ValWithInitializer(
-                        statement.location,
-                        name,
-                        statement.isMutable,
-                        lowerExpression(statement.rhs)
-                ),
+            HIRStatement.ValDeclaration(
+                statement.location,
+                name,
+                statement.isMutable,
+                ctx.analyzer.reduceGenericInstances(statement.rhs.type)
+            ),
+            HIRStatement.Assignment(
+                statement.location,
+                name,
+                lowerExpression(statement.rhs),
+
+            )
         )
     }
 
@@ -571,7 +577,7 @@ class HIRGen(
         val captures = ctx.analyzer.getClosureCaptures(expression)
         return HIRExpression.Closure(
             expression.location,
-            typeOfExpression(expression),
+            ctx.analyzer.reduceGenericInstances(expression.type),
             captures,
             expression.params.map {
                 HIRParam(

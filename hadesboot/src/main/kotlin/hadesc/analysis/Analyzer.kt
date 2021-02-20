@@ -616,6 +616,7 @@ class Analyzer(
                 }
                 is Expression.NullPtr -> checkNullPtrExpression(expectedType)
                 is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
+                is Expression.If -> checkIfExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(source = inferredType, destination = expectedType)
@@ -625,6 +626,13 @@ class Analyzer(
         }
         typeOfExpressionCache[expression] = type
         return type
+    }
+
+    private fun checkIfExpression(expression: Expression.If, expectedType: Type): Type {
+        checkExpression(expression.condition, Type.Bool)
+        checkExpression(expression.trueBranch, expectedType)
+        checkExpression(expression.falseBranch, expectedType)
+        return expectedType
     }
 
     private val closureParamTypes = MutableNodeMap<Binder, Type>()
@@ -1520,7 +1528,7 @@ class Analyzer(
     fun getReturnType(expression: Expression): Type {
         val exprType = typeOfExpression(expression)
         return if (exprType is Type.Function) {
-            exprType.to
+            reduceGenericInstances(exprType.to)
         } else {
             Type.Error
         }

@@ -111,7 +111,6 @@ class IRGen(
         is HIRStatement.Assignment -> lowerAssignmentStatement(statement)
         is HIRStatement.While -> lowerWhileStatement(statement)
         is HIRStatement.Store -> lowerStoreStatement(statement)
-        is HIRStatement.ValWithInitializer -> lowerValWithInitializer(statement)
     }
 
     private fun lowerStoreStatement(statement: HIRStatement.Store) {
@@ -234,19 +233,6 @@ class IRGen(
         val ptrName = localValPtrName(statement.name)
         builder.buildAlloca(statement.type, ptrName)
     }
-
-
-    private fun lowerValWithInitializer(statement: HIRStatement.ValWithInitializer) {
-        val ptrName = localValPtrName(statement.name)
-        builder.buildAlloca(statement.initializer.type, ptrName)
-        val ptr = builder.buildVariable(
-            Type.Ptr(statement.initializer.type, isMutable = true),
-            statement.location,
-            ptrName
-        )
-        builder.buildStore(ptr = ptr, value = lowerExpression(statement.initializer))
-    }
-
 
     private fun localValPtrName(name: Name): IRLocalName {
         return lowerLocalName(ctx.makeName(name.text + "\$ptr"))

@@ -79,7 +79,6 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
             definitions.addAll(transformDefinition(definition))
         }
         val result = HIRModule(definitions)
-        logger().debug("Before closure desugaring: ${result.prettyPrint()}")
         return result
     }
 
@@ -171,6 +170,20 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
             name = varName,
             index = captureInfo.index
         )
+    }
+
+    override fun transformValDeclaration(statement: ValDeclaration): Collection<HIRStatement> {
+        if (statement.type is Type.Function) {
+            return listOf(
+                ValDeclaration(
+                    statement.location,
+                    statement.name,
+                    statement.isMutable,
+                    getClosureType(statement.type)
+                )
+            )
+        }
+        return super.transformValDeclaration(statement)
     }
 
     override fun transformClosure(expression: Closure): HIRExpression {

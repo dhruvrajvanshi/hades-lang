@@ -48,7 +48,6 @@ class HIRChecker() {
         is HIRStatement.Store -> TODO()
         is HIRStatement.ValDeclaration -> checkValDeclaration(statement)
         is HIRStatement.While -> TODO()
-        is HIRStatement.ValWithInitializer -> TODO()
     }
 
     private fun checkAssignment(statement: HIRStatement.Assignment) {

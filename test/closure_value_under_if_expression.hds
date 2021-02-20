@@ -1,0 +1,17 @@
+extern def puts(*Byte): Void = puts;
+extern def strlen(*Byte): Int = strlen;
+
+def main(): Void {
+
+    val message1 = b"true";
+    val message2 = b"false";
+
+    val closure: () -> Void = if (strlen(message1) == 4) (|| {
+        puts(message1);
+    }) else (|| {
+        puts(message2);
+    });
+
+    closure();
+
+}

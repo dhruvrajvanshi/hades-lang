@@ -25,14 +25,6 @@ sealed class HIRStatement: HIRNode {
             val type: Type
     ) : HIRStatement()
 
-    data class ValWithInitializer(
-        override val location: SourceLocation,
-        val name: Name,
-        val isMutable: Boolean,
-        val initializer: HIRExpression,
-    ) : HIRStatement()
-
-
     data class Assignment(
             override val location: SourceLocation,
             val name: Name,
@@ -71,6 +63,5 @@ sealed class HIRStatement: HIRNode {
         is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint()}\nelse ${falseBranch.prettyPrint()}"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
-        is ValWithInitializer -> "val ${name.text}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
     }
 }

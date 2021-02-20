@@ -320,8 +320,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         builder.buildStore(
             value = lowerExpression(statement.value),
             toPointer = lowerExpression(statement.ptr),
-            alignment = LLVM.LLVMABIAlignmentOfType(
-                dataLayout, lowerType(ptrType.to))
+            alignment = sizeOfType(lowerType(statement.ptr.type)).toInt()
         )
     }
 
@@ -342,6 +341,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerExpression(value: IRValue): Value {
+        log.debug("lowerExpression(${value.prettyPrint()}) // ${value.location}")
         if (ctx.options.debugSymbols) {
             val location = LLVM.LLVMDIBuilderCreateDebugLocation(
                 llvmCtx,
@@ -367,6 +367,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRGetElementPointer -> lowerGetElementPointer(value)
             is IRUnsafeCast -> lowerUnsafeCast(value)
         }
+        log.debug("Done lowering expression at ${value.location}")
 
         return result
     }
@@ -456,6 +457,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerVariable(expression: IRVariable): Value {
+        log.debug("lowerVariable(${expression.prettyPrint()}) // ${expression.location}")
         return when (expression.name) {
             is IRLocalName -> requireNotNull(localVariables[expression.name]) {
                 "${expression.location}: Unbound variable: ${expression.name.prettyPrint()}"
