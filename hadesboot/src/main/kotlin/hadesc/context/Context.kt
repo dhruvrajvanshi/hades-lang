@@ -6,6 +6,7 @@ import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
+import hadesc.ast.Expression
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
@@ -22,7 +23,11 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
 import java.nio.file.Path
+interface HasContext {
+    val ctx: Context
 
+    val Expression.type get() = ctx.analyzer.typeOfExpression(this)
+}
 class Context(
     val options: BuildOptions
 ) {
