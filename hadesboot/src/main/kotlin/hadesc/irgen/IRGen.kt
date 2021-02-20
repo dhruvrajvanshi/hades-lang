@@ -270,6 +270,7 @@ class IRGen(
         is HIRExpression.UnsafeCast -> lowerUnsafeCast(expression)
         is HIRExpression.When -> requireUnreachable()
         is HIRExpression.Closure -> requireUnreachable()
+        is HIRExpression.InvokeClosure -> requireUnreachable()
     }
 
     private fun lowerUnsafeCast(expression: HIRExpression.UnsafeCast): IRValue {

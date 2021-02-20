@@ -158,6 +158,13 @@ sealed class HIRExpression: HasLocation {
         val body: HIRBlock
     ) : HIRExpression()
 
+    data class InvokeClosure(
+        override val location: SourceLocation,
+        override val type: Type,
+        val closure: HIRExpression,
+        val args: List<HIRExpression>,
+    ) : HIRExpression()
+
     fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -186,5 +193,6 @@ sealed class HIRExpression: HasLocation {
                 cases.joinToString("\n") { "  " + it.prettyPrint() } +
                 "\n} : ${type.prettyPrint()}"
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
+        is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
     }
 }

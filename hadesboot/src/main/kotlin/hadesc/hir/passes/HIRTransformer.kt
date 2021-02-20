@@ -1,12 +1,10 @@
 package hadesc.hir.passes
 
 import hadesc.Name
-import hadesc.ast.Declaration
 import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import kotlin.math.exp
 
 interface HIRTransformer: TypeTransformer {
     fun transformModule(oldModule: HIRModule): HIRModule {
@@ -184,6 +182,16 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.When -> transformWhenExpression(expression)
         is HIRExpression.Closure -> transformClosure(expression)
+        is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
+    }
+
+    fun transformInvokeClosure(expression: HIRExpression.InvokeClosure): HIRExpression {
+        return HIRExpression.InvokeClosure(
+            location = expression.location,
+            type = expression.type,
+            closure = transformExpression(expression.closure),
+            args = expression.args.map { transformExpression(it) },
+        )
     }
 
     fun transformClosure(expression: HIRExpression.Closure): HIRExpression {

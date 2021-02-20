@@ -5,6 +5,7 @@ import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.ir.passes.TypeTransformer
@@ -17,8 +18,8 @@ import libhades.collections.Stack
 
 @OptIn(ExperimentalStdlibApi::class)
 class HIRGen(
-        private val ctx: Context
-) {
+        override val ctx: Context
+): HasContext {
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         for (sourceFile in sourceFiles) {
@@ -992,6 +993,9 @@ class HIRGen(
                     )
                 }
             }
+        }
+        if (expression.type is Type.Function) {
+            TODO("Lowering of closure calls not implemented yet.")
         }
         return buildCall(
                 expression,
