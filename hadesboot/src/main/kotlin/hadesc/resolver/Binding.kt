@@ -61,7 +61,7 @@ sealed class Binding {
 
     data class WhenArm(override val binder: Binder, val case: Expression.WhenArm): Binding()
 
-    fun isLocalTo(scope: HasLocation) = !binder.location.isWithin(scope.location)
+    fun isLocalTo(scope: HasLocation) = binder.location.isWithin(scope.location)
 
     fun isGlobal() = when(this) {
         is ClosureParam -> false
