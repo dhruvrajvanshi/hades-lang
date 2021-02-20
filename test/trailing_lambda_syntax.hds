@@ -1,0 +1,21 @@
+
+extension ApplyExtensions[T] for T {
+    def let(*this, fn: (*T) -> Void): Void {
+        fn(this)
+    }
+}
+
+def main(): Void {
+    val message = b"Hello world"
+
+    &message.let() |msg| {
+        puts(*msg)
+    }
+
+    val another_message = b"Without parens"
+    &another_message.let |msg| {
+        puts(*msg)
+    }
+}
+
+extern def puts(*Byte): Void = puts

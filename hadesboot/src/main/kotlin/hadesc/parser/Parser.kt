@@ -962,20 +962,44 @@ class Parser(
                     ))
                 }
             }
+            tt.VBAR -> {
+                val arg = parseArg()
+                val call = Expression.Call(
+                    location = makeLocation(head, arg),
+                    typeArgs = null,
+                    callee = head,
+                    args = listOf(arg)
+                )
+                if (at(tt.DOT)) {
+                    parseExpressionTail(call)
+                } else {
+                    call
+                }
+            }
             tt.LPAREN -> {
                 advance()
                 val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
                     parseArg()
                 }
                 val stop = expect(tt.RPAREN)
-                parseExpressionTail(
+                if (at(tt.VBAR)) {
+                    val lambda = parseExpression()
+                    Expression.Call(
+                        makeLocation(head, lambda),
+                        null,
+                        head,
+                        args + Arg(lambda)
+                    )
+                } else {
+                    parseExpressionTail(
                         Expression.Call(
-                                makeLocation(head, stop),
-                                null,
-                                head,
-                                args
+                            makeLocation(head, stop),
+                            null,
+                            head,
+                            args
                         )
-                )
+                    )
+                }
             }
             tt.DOT -> {
                 advance()
@@ -1169,7 +1193,14 @@ class Parser(
         return if (currentToken.kind == kind) {
             advance()
         } else {
-            syntaxError(currentToken.location, Diagnostic.Kind.UnexpectedToken(kind, currentToken))
+            val lastToken = tokenBuffer.lastToken
+            if (lastToken != null && kind == tt.SEMICOLON && (
+                        currentToken.kind == tt.EOF ||
+                        currentToken.location.start.line > lastToken.location.start.line)) {
+                currentToken
+            } else {
+                syntaxError(currentToken.location, Diagnostic.Kind.UnexpectedToken(kind, currentToken))
+            }
         }
     }
 
@@ -1206,14 +1237,20 @@ class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
 
     private var current = 0
 
+    private var _lastToken: Token? = null
+
+    val lastToken get() = _lastToken
+
     val currentToken: Token get() {
         return buffer[current]
     }
+
 
     fun advance(): Token {
         val result = currentToken
         buffer[current] = lexer.nextToken()
         current = (current + 1) % maxLookahead
+        _lastToken = result
         return result
     }
 
