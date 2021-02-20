@@ -2,11 +2,14 @@
 extern def puts(*Byte): Void = puts;
 
 def main(): Void {
-    val message = b"Hello";
+    val mut message = b"Hello";
 
     apply(|| {
        puts(message);
+       message = b"World";
     });
+
+    puts(message);
 }
 
 def apply(f: () -> Void): Void {

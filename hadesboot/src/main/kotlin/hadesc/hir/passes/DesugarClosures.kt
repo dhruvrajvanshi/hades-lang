@@ -4,8 +4,11 @@ import hadesc.Name
 import hadesc.analysis.ClosureCaptures
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
+import hadesc.ast.Statement
 import hadesc.context.Context
 import hadesc.hir.*
+import hadesc.hir.HIRExpression.*
+import hadesc.hir.HIRStatement.*
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -96,19 +99,19 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         return HIRBlock(body.location, statements)
     }
 
-    override fun transformInvokeClosure(expression: HIRExpression.InvokeClosure): HIRExpression {
+    override fun transformInvokeClosure(expression: InvokeClosure): HIRExpression {
         val closureRef = transformExpression(expression.closure)
-        return HIRExpression.Call(
+        return Call(
             expression.location,
             expression.type,
-            HIRExpression.PointerCast(
+            PointerCast(
                 closureRef.location,
                 toPointerOfType = Type.Function(
                     from = expression.args.map { it.type } + listOf( Type.Ptr(Type.Void, isMutable = true) ),
                     to = expression.type,
                     traitRequirements = null
                 ),
-                value = HIRExpression.GetStructField(
+                value = GetStructField(
                     closureRef.location,
                     type = Type.Ptr(Type.Function(from = listOf(Type.Ptr(Type.Void, isMutable = true)), to = expression.type, traitRequirements = null), isMutable = false),
                     lhs = closureRef,
@@ -116,7 +119,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                     index = closureFuncPtrFieldIndex
                 )
             ),
-            expression.args.map { transformExpression(it) } + HIRExpression.GetStructField(
+            expression.args.map { transformExpression(it) } + GetStructField(
                 closureRef.location,
                 type = Type.Ptr(Type.Void, isMutable = false),
                 lhs = closureRef,
@@ -126,33 +129,54 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         )
     }
 
-
-    override fun transformValRef(expression: HIRExpression.ValRef): HIRExpression {
-        for (captures in captureStack) {
-            val capture = captures[expression.name]
-            if (capture != null) {
-                val (contextName, contextType) = capture
-                return HIRExpression.Load(
-                    expression.location,
-                    expression.type,
-                    HIRExpression.GetStructField(
-                        expression.location,
-                        Type.Ptr(expression.type, isMutable = true),
-                        lhs = HIRExpression.ParamRef(
-                            expression.location,
-                            contextType,
-                            contextName
-                        ),
-                        name = expression.name,
-                        index = capture.index
-                    )
-                )
-            }
-        }
-        return super.transformValRef(expression)
+    override fun transformAssignmentStatement(statement: Assignment): Collection<HIRStatement> {
+        val capture = findCapture(statement.name) ?: return super.transformAssignmentStatement(statement)
+        val ptr = getCapturedVariablePointer(statement.location, statement.value.type, statement.name, capture)
+        return listOf(Store(
+            statement.location,
+            ptr,
+            transformExpression(statement.value)
+        ))
     }
 
-    override fun transformClosure(expression: HIRExpression.Closure): HIRExpression {
+    private fun findCapture(name: Name): CaptureInfo? {
+        for (captures in captureStack) {
+            val capture = captures[name]
+            if (capture != null) {
+                return capture
+            }
+        }
+        return null
+    }
+
+    override fun transformValRef(expression: ValRef): HIRExpression {
+        val capture = findCapture(expression.name) ?: return super.transformValRef(expression)
+        return Load(
+            expression.location,
+            expression.type,
+            getCapturedVariablePointer(expression.location, expression.type, expression.name, capture)
+        )
+    }
+
+    private fun getCapturedVariablePointer(
+        location: SourceLocation,
+        type: Type,
+        varName: Name,
+        captureInfo: CaptureInfo): HIRExpression {
+        return GetStructField(
+            location,
+            Type.Ptr(type, isMutable = true),
+            lhs = ValRef(
+                location,
+                captureInfo.contextType,
+                captureInfo.contextName
+            ),
+            name = varName,
+            index = captureInfo.index
+        )
+    }
+
+    override fun transformClosure(expression: Closure): HIRExpression {
         val type = expression.type
         require(type is Type.Function)
 
@@ -160,48 +184,55 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         val contextType = Type.Constructor(null, contextStruct.name)
         val contextName = ctx.makeUniqueName()
         val contextParamName = ctx.makeName("\$ctx")
+        val contextDerefname = ctx.makeName("\$ctx\$deref")
 
         val closureName = ctx.makeUniqueName()
         val closureType = getClosureType(type)
 
         // val contextName: contextType
-        currentBlockStatements.add(HIRStatement.ValDeclaration(
+        currentBlockStatements.add(
+            ValDeclaration(
             expression.location,
             contextName,
             isMutable = true,
             contextType
-        ))
+        )
+        )
 
         // val closureName: closureType
-        currentBlockStatements.add(HIRStatement.ValDeclaration(
+        currentBlockStatements.add(
+            ValDeclaration(
             expression.location,
             closureName,
             isMutable = false,
             closureType
-        ))
+        )
+        )
 
         val pointersToCaptures = expression.captures.values.map {
-            HIRExpression.AddressOf(
+            AddressOf(
                 expression.location,
                 Type.Ptr(it.value, isMutable = true),
                 it.key.name
             )
         }
         // context = contextStruct(...pointersToCaptures)
-        currentBlockStatements.add(HIRStatement.Assignment(
+        currentBlockStatements.add(
+            Assignment(
             expression.location,
             contextName,
-            HIRExpression.Call(
+            Call(
                 expression.location,
                 contextType,
-                HIRExpression.GlobalRef(
+                GlobalRef(
                     expression.location,
                     contextStruct.constructorType,
                     contextStruct.name
                 ),
                 pointersToCaptures
             )
-        ))
+        )
+        )
 
 
         val functionName = ctx.makeUniqueName()
@@ -214,55 +245,71 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
             else
                 expression.captures.types.map { HIRTypeParam(it.location, it.name) },
             params = expression.params.map { HIRParam(it.location, it.name, it.type) } + listOf(
-                HIRParam(expression.location, contextParamName, contextType)
+                HIRParam(expression.location, contextParamName, Type.Ptr(contextType, isMutable = true))
             ),
             returnType = expression.returnType
         )
 
         val closureTypeStruct = getClosureTypeStruct(type)
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
-        currentBlockStatements.add(HIRStatement.Assignment(
+        currentBlockStatements.add(
+            Assignment(
             expression.location,
             closureName,
-            HIRExpression.Call(
+            Call(
                 expression.location,
                 closureType,
                 closureTypeStruct.constructorRef(expression.location),
                 args = listOf(
-                    HIRExpression.PointerCast(
+                    PointerCast(
                         expression.location,
                         Type.Void,
-                        HIRExpression.AddressOf(
+                        AddressOf(
                             expression.location,
                             Type.Ptr(Type.Void, isMutable = true),
                             contextName,
-                        )),
-                    HIRExpression.PointerCast(
+                        )
+                    ),
+                    PointerCast(
                         expression.location,
                         toPointerOfType = Type.Function(
                             from = listOf(Type.Ptr(Type.Void, isMutable = true)),
                             to = expression.returnType,
                             traitRequirements = null,
                         ),
-                        value = HIRExpression.GlobalRef(
+                        value = GlobalRef(
                             expression.location,
                             signature.type,
                             functionName.toQualifiedName()
-                        ))
+                        )
+                    )
                 )
             )
         )
         )
 
         captureStack.push(expression.captures.values.entries.mapIndexed { index, it ->
-            it.key.name to CaptureInfo(contextParamName, contextType, index)
+            it.key.name to CaptureInfo(contextDerefname, contextType, index)
         }.toMap())
-        val statements = expression.body.statements.flatMap { transformStatement(it) } + (
+        val statements = listOf(
+            ValDeclaration(expression.location, name = contextDerefname, isMutable = true, type = contextType),
+            Assignment(
+                expression.location,
+                contextDerefname,
+                Load(
+                    expression.location,
+                    contextType,
+                    ParamRef(
+                        expression.location,
+                        Type.Ptr(contextType, isMutable = false),
+                        contextParamName)))
+        ) + expression.body.statements.flatMap { transformStatement(it) } + (
                 if (type.to is Type.Void)
-                    listOf(HIRStatement.ReturnVoid(expression.location))
+                    listOf(ReturnVoid(expression.location))
                 else
                     emptyList()
             )
+        captureStack.pop()
         val body = HIRBlock(expression.body.location, statements)
         val fn = HIRDefinition.Function(
             expression.location,
@@ -272,7 +319,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
 
         definitions.add(fn)
 
-        return HIRExpression.ValRef(expression.location, closureType, closureName)
+        return ValRef(expression.location, closureType, closureName)
     }
 
     private fun makeAndAddClosureContextStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {

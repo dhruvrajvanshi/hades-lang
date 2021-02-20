@@ -5,7 +5,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed class HIRStatement: HasLocation {
+sealed class HIRStatement: HIRNode {
     data class Expression(
             val expression: HIRExpression
     ) : HIRStatement() {
@@ -51,7 +51,11 @@ sealed class HIRStatement: HasLocation {
             val body: HIRBlock
     ) : HIRStatement()
 
-    fun prettyPrint(): String = when(this) {
+    override fun prettyPrint(): String {
+        return "${prettyPrintInternal()} // $location"
+    }
+
+    private fun prettyPrintInternal(): String = when(this) {
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
         is ReturnVoid -> "return"

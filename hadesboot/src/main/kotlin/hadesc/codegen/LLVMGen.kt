@@ -26,6 +26,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)
 
     fun generate() = profile("LLVM::generate") {
+        log.debug(irModule.prettyPrint())
         llvmModule.addModuleFlag("Debug Info Version", ConstantInt(i32Ty, 3).asMetadata())
         llvmModule.addModuleFlag("Dwarf Version", ConstantInt(i32Ty, 4).asMetadata())
 

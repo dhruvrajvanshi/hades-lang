@@ -5,7 +5,6 @@ def main(): Void {
     });
 }
 
-
 def apply(fn: () -> Void): Void {
     fn();
 }

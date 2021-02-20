@@ -8,7 +8,7 @@ import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
-sealed class HIRExpression: HasLocation {
+sealed class HIRExpression: HIRNode {
     abstract val type: Type
     data class Call(
             override val location: SourceLocation,
@@ -165,7 +165,7 @@ sealed class HIRExpression: HasLocation {
         val args: List<HIRExpression>,
     ) : HIRExpression()
 
-    fun prettyPrint(): String = when(this) {
+    override fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
