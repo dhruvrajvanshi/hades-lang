@@ -7,7 +7,6 @@ import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.ir.BinaryOperator
-import hadesc.ir.IRBinding
 import hadesc.ir.passes.TypeTransformer
 import hadesc.ir.passes.TypeVisitor
 import hadesc.location.HasLocation
@@ -228,7 +227,7 @@ class Analyzer(
             if (null == extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>().find { it.name.identifier.name == expression.property.name }) {
                 continue
             }
-            if (isExtensionForType(expression, extensionDef, typeOfExpression(expression.lhs))) {
+            if (hasExtensionMethodForType(expression, extensionDef, expression.property.name, typeOfExpression(expression.lhs))) {
                 val binding = findExtensionMethodBinding(extensionDef, expression)
                 if (binding != null) {
                     return binding
@@ -300,7 +299,7 @@ class Analyzer(
         return type.applySubstitution(substitution) to substitution
     }
 
-    private fun isExtensionForType(callNode: HasLocation, extensionDef: Declaration.ExtensionDef, type: Type): Boolean {
+    private fun hasExtensionMethodForType(callNode: HasLocation, extensionDef: Declaration.ExtensionDef, methodName: Name, type: Type): Boolean {
         val forType = annotationToType(extensionDef.forType)
         val valueAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
         val pointerAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
@@ -313,21 +312,18 @@ class Analyzer(
             destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
         if (!isValueAssignable && !isPointerAssignable) return false
 
+        val methods = extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>()
         val substitution = if (isPointerAssignable && isValueAssignable) {
-            val pointerTraitRefsSatisfied = extensionDef.traitRequirements.all { requirement ->
-                isTraitRequirementSatisfied(callNode, requirement.copy(
-                    arguments = requirement.arguments.map { arg -> arg.applySubstitution(pointerAssignmentSubstitution) }
-                ))
-            }
-            val valueTraitRefsSatisfied = extensionDef.traitRequirements.all { requirement ->
-                isTraitRequirementSatisfied(callNode, requirement.copy(
-                    arguments = requirement.arguments.map { arg -> arg.applySubstitution(valueAssignmentSubstitution) }
-                ))
-            }
+            val pointerMethodAvailable = methods.find {
+                it.name.identifier.name == methodName && (it.signature.thisParamFlags?.isPointer ?: false)
+            } != null
+            val valueMethodAvailable = methods.find {
+                it.name.identifier.name == methodName && (it.signature.thisParamFlags != null && !it.signature.thisParamFlags.isPointer)
+            }  != null
 
-            if (pointerTraitRefsSatisfied && valueTraitRefsSatisfied) {
+            if (pointerMethodAvailable && valueMethodAvailable) {
                 TODO("Ambiguous extension method")
-            } else if (pointerTraitRefsSatisfied) {
+            } else if (pointerMethodAvailable) {
                 pointerAssignmentSubstitution
             } else {
                 valueAssignmentSubstitution
