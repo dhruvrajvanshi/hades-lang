@@ -1,7 +1,9 @@
 package hadesc
 
 import hadesc.qualifiedname.QualifiedName
+import kotlin.jvm.JvmInline
 
-inline class Name constructor(val text: String) {
+@JvmInline
+value class Name constructor(val text: String) {
     fun toQualifiedName() = QualifiedName(listOf(this))
 }

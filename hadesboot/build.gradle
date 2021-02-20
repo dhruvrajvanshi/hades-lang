@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.jetbrains.kotlin.jvm' version '1.4.20'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.30'
 }
 
 def logbackVersion = "1.2.3"
@@ -17,7 +17,6 @@ repositories {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "ch.qos.logback:logback-classic:$logbackVersion"
     implementation "ch.qos.logback:logback-core:$logbackVersion"
     implementation group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
@@ -47,10 +46,12 @@ test {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.useIR = true
     kotlinOptions {
-        freeCompilerArgs += "-XXLanguage:+InlineClasses"
         freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+        languageVersion = "1.5"
+        apiVersion = "1.5"
     }
 }
 compileTestKotlin {
