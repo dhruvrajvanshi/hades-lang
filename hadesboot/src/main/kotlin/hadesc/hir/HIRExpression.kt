@@ -185,7 +185,7 @@ sealed class HIRExpression: HasLocation {
         }
         is Load -> "*${ptr.prettyPrint()}"
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
-        is GetStructFieldPointer -> "(${lhs.prettyPrint()}.${memberName.text})"
+        is GetStructFieldPointer -> "(gep (${lhs.prettyPrint()} ${memberName.text}) : ${type.prettyPrint()})"
         is TraitMethodCall -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 "${methodName.text}(${args.joinToString(", ") { it.prettyPrint() } })"
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"

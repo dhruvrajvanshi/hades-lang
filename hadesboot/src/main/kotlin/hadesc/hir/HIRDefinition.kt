@@ -99,6 +99,12 @@ sealed class HIRDefinition: HasLocation {
                     body = fnPtrType
                 )
         }
+
+        fun constructorRef(location: SourceLocation) = HIRExpression.GlobalRef(
+            location,
+            constructorType,
+            name
+        )
     }
 
     fun prettyPrint(): String = when(this) {

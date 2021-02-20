@@ -11,6 +11,7 @@ import hadesc.frontend.PropertyBinding
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -28,6 +29,8 @@ class HIRGen(
             }
         }
         val result = HIRModule(declarations)
+        logger().debug("HIRGen output")
+        logger().debug(result.prettyPrint())
         return result
     }
 
@@ -994,11 +997,11 @@ class HIRGen(
                 }
             }
         }
-        if (expression.type is Type.Function) {
+        if (expression.callee.type is Type.Function) {
             require(expression.typeArgs == null) {
                 TODO("Closures with type arguments not implemented")
             }
-            HIRExpression.InvokeClosure(
+            return HIRExpression.InvokeClosure(
                 location = expression.location,
                 type = expression.type,
                 closure = lowerExpression(expression.callee),
