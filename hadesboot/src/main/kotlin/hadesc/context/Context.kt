@@ -10,7 +10,6 @@ import hadesc.ast.Expression
 import hadesc.codegen.LLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
-import hadesc.hir.HIRChecker
 import hadesc.hir.HIRGen
 import hadesc.hir.passes.DesugarClosures
 import hadesc.hir.passes.DesugarWhenExpressions
@@ -18,6 +17,7 @@ import hadesc.hir.passes.SystemVABILowering
 import hadesc.hir.passes.Monomorphization
 import hadesc.irgen.IRGen
 import hadesc.location.SourcePath
+import hadesc.logging.logger
 import hadesc.parser.Parser
 import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
@@ -52,7 +52,7 @@ class Context(
         hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
         hirModule = DesugarClosures(this).transformModule(hirModule)
 //        val hirChecker = HIRChecker().checkModule(hirModule)
-        println("Desugar closures:\n${hirModule.prettyPrint()}")
+        logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
         hirModule = Monomorphization(this).transformModule(hirModule)
         hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
