@@ -5,7 +5,7 @@ def main(): Void {
     puts(f(b"World"));
 }
 
-def apply[T, U](value: T, fn: (T) -> U): U {
+def apply[T, U](value: T, fn: |T| -> U): U {
     return fn(value);
 }
 

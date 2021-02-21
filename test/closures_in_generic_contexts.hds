@@ -4,7 +4,7 @@ def main(): Void {
     puts(apply_1(true, |value| if (value) b"World" else b"false"));
 }
 
-def apply_1[T, U](value: T, fn: (T) -> U): U {
+def apply_1[T, U](value: T, fn: |T| -> U): U {
     return fn(value);
 }
 

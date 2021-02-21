@@ -6,6 +6,6 @@ def main(): Void {
     puts(apply(false, |value| if (value and t) b"true" else b"false"));
 }
 
-def apply(bool: Bool, f: (Bool) -> *Byte): *Byte {
+def apply(bool: Bool, f: |Bool| -> *Byte): *Byte {
     return f(bool);
 }

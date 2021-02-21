@@ -1120,12 +1120,12 @@ class Parser(
                     )
                 }
             }
-            tt.LPAREN -> {
+            tt.VBAR -> {
                 val start = advance()
-                val from = parseSeperatedList(tt.COMMA, terminator = tt.RPAREN) {
+                val from = parseSeperatedList(tt.COMMA, terminator = tt.VBAR) {
                     parseTypeAnnotation()
                 }
-                expect(tt.RPAREN)
+                expect(tt.VBAR)
                 expect(tt.ARROW)
                 val to = parseTypeAnnotation()
                 TypeAnnotation.Function(
@@ -1133,6 +1133,12 @@ class Parser(
                         from,
                         to
                 )
+            }
+            tt.LPAREN -> {
+                advance()
+                val annotation = parseTypeAnnotation()
+                expect(tt.RPAREN)
+                annotation
             }
             tt.UNION -> {
                 val start = advance()

@@ -8,6 +8,6 @@ def main(): Void {
     utils.print_bool(invoke(10, greater_than_5));
 }
 
-def invoke[T, U](value: T, fn: *(T) -> U): U {
+def invoke[T, U](value: T, fn: *|T| -> U): U {
     return fn(value);
 }

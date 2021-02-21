@@ -1,6 +1,6 @@
 import submodule.test_utils as utils;
 def main(): Void {
-    val fptr: *(Int) -> Bool = is_greater_than_5;
+    val fptr: *|Int| -> Bool = is_greater_than_5;
     utils.print_bool(fptr(65));
 }
 

@@ -1,6 +1,6 @@
 
 extension ApplyExtensions[T] for T {
-    def let(*this, fn: (*T) -> Void): Void {
+    def let(*this, fn: |*T| -> Void): Void {
         fn(this)
     }
 }

@@ -1,33 +1,33 @@
 
 
 struct Pair[T, U] {
-    val first: T;
-    val second: U;
+    val first: T
+    val second: U
 }
 
 trait Iterable[Self, T] {
-    def for_each(self: *Self, f: (T) -> Void): Void;
+    def for_each(self: *Self, f: |T| -> Void): Void
 }
 
 extension IterableExtensions[Self, T] for Self where Iterable[Self, T] {
-    def for_each(*this, f: (T) -> Void): Void {
-        Iterable[Self, T].for_each(this, f);
+    def for_each(*this, f: |T| -> Void): Void {
+        Iterable[Self, T].for_each(this, f)
     }
 }
 
 implementation[T] Iterable[Pair[T, T], T] {
-    def for_each(self: *Pair[T, T], f: (T) -> Void): Void {
-        f(*self.first);
-        f(*self.second);
+    def for_each(self: *Pair[T, T], f: |T| -> Void): Void {
+        f(*self.first)
+        f(*self.second)
     }
 }
 
 def main(): Void {
-    val pair = Pair(b"Hello", b"World");
+    val pair = Pair(b"Hello", b"World")
 
-    &pair.for_each(|value| {
+    &pair.for_each |value| {
         puts(value);
-    });
+    }
 }
 
-extern def puts(*Byte): Void = puts;
+extern def puts(*Byte): Void = puts

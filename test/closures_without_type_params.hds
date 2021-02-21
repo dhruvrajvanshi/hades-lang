@@ -12,6 +12,6 @@ def main(): Void {
     puts(message);
 }
 
-def apply(f: () -> Void): Void {
+def apply(f: || -> Void): Void {
     f();
 }
