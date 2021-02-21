@@ -32,6 +32,7 @@ dependencies {
 
 test {
     workingDir = new File("..")
+    environment['HADESBOOT_HOME'] = "."
     useJUnitPlatform()
     afterTest { descriptor, result ->
         logger.quiet "[TEST] [${result.resultType}] ${descriptor.className}::${descriptor.displayName}"
