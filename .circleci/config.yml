@@ -40,5 +40,6 @@ jobs:
       - run: ./test.sh
       - run: ./gradlew install
       - run: make --directory examples/web-server
+      - run: make --directory examples/gtk-hello-world
       - store_test_results:
           path: ./hadesboot/build/test-results
