@@ -20,6 +20,8 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
       TERM: dumb
+      HADESBOOT_HOME: hadesboot/build/install/hadesboot
+      PATH: $PATH:$HADESBOOT/bin
 
     steps:
       - checkout
@@ -39,8 +41,6 @@ jobs:
       - run: ./gradlew test jacocoTestReport
       - run: ./test.sh
       - run: ./gradlew install
-      - run: export HADESBOOT=hadesboot/build/install/hadesboot
-      - run: export PATH=$PATH:$HADESBOOT/bin
       - run: make --directory examples/web-server
       - run: make --directory examples/gtk-hello-world
       - store_test_results:
