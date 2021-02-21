@@ -36,7 +36,7 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
       # run tests!
-      - run: ./gradlew :hadesboot:test
+      - run: ./gradlew test jacocoTestReport
       - run: ./test.sh
       - run: ./gradlew install
       - run: export HADESBOOT=hadesboot/build/install/hadesboot
@@ -45,3 +45,5 @@ jobs:
       - run: make --directory examples/gtk-hello-world
       - store_test_results:
           path: ./hadesboot/build/test-results
+      - store_artifacts:
+          path: ./hadesboot/reports/tests/test
