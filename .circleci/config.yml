@@ -43,4 +43,6 @@ jobs:
       - store_test_results:
           path: ./hadesboot/build/test-results
       - store_artifacts:
+          path: ./hadesboot/build/reports/jacoco/test
+      - store_artifacts:
           path: ./hadesboot/build/reports/tests/test
