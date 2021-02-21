@@ -39,6 +39,8 @@ jobs:
       - run: ./gradlew :hadesboot:test
       - run: ./test.sh
       - run: ./gradlew install
+      - run: export HADESBOOT=hadesboot/build/install/hadesboot
+      - run: export PATH=$PATH:$HADESBOOT/bin
       - run: make --directory examples/web-server
       - run: make --directory examples/gtk-hello-world
       - store_test_results:

@@ -1,7 +1,5 @@
-HDC=../../hadesboot/build/install/hadesboot/bin/hadesboot
+HDC=hadesboot
 
-STDLIB_DIR=../../stdlib
-RUNTIME_SOURCE=../../runtime.c
 CC=cc
 
 OUTPUT_NAME=gtk-hello-world
@@ -27,10 +25,9 @@ web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 		--main main.hds \
 		--output $(OUTPUT_NAME) \
 		-g \
-		--directories . $(STDLIB_DIR) \
-		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES) \
 		$(LIBS) \
-		--runtime $(RUNTIME_SOURCE) \
+		--directories . $(STDLIB_DIR) \
+		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES)
 
 clean:
 	- rm $(BUILD_ARTIFACTS)
