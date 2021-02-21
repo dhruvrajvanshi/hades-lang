@@ -1,4 +1,4 @@
-package hades.test
+package hadesc
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement

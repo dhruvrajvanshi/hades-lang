@@ -1,6 +1,5 @@
-package hades.test
+package hadesc
 
-import hadesc.Compiler
 import hadesc.logging.logger
 import org.apache.commons.lang3.SystemUtils
 import org.junit.jupiter.api.*
