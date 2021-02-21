@@ -1,3 +1,4 @@
 module.exports = {
-    "base": "/hades-lang/"
+    title: "Hades language",
+    base: "/hades-lang/"
 }
