@@ -50,16 +50,12 @@ compileKotlin {
     kotlinOptions.useIR = true
     kotlinOptions {
         freeCompilerArgs = ["-Xinline-classes"]
-        languageVersion = "1.4"
-        apiVersion = "1.4"
+        languageVersion = "1.5"
+        apiVersion = "1.5"
     }
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "11"
-    kotlinOptions {
-        languageVersion = "1.4"
-        apiVersion = "1.4"
-    }
 }
 
 application {
@@ -69,4 +65,12 @@ jar {
     manifest {
         attributes "Main-Class": "hadesc.MainKt"
     }
+}
+
+task copyStdlib(type: Copy) {
+    from fileTree(dir: '../stdlib')
+    into 'build/install/hadesboot/stdlib'
+}
+
+installDist.finalizedBy(copyStdlib) {
 }
