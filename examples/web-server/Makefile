@@ -1,4 +1,4 @@
-HDC=$HADESBOOT_HOME/bin/hadesboot
+HDC=$(shell echo $HADESBOOT_HOME)/bin/hadesboot
 
 CC=cc
 
