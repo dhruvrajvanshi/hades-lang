@@ -893,7 +893,10 @@ class Parser(
         val returnType = parseOptionalAnnotation()
         val body = if (at(tt.LBRACE)) {
             ClosureBody.Block(parseBlock())
-        } else ClosureBody.Expression(parseExpression())
+        } else {
+            if (at(tt.ARROW)) advance()
+            ClosureBody.Expression(parseExpression())
+        }
 
         val closure = Expression.Closure(
             makeLocation(start, body),
