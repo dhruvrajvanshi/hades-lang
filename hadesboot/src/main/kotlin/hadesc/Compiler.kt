@@ -3,25 +3,44 @@ package hadesc
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
+import java.nio.file.LinkOption
 import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.exists
+import kotlin.system.exitProcess
 
 sealed class Options {
 
     companion object {
 
+        @OptIn(ExperimentalPathApi::class)
         fun fromArgs(args: Array<String>): Options {
+            val hadesbootHome = System.getenv("HADESBOOT_HOME")
+            if (hadesbootHome == null) {
+                System.err.println("Environment HADESBOOT_HOME must be set to a valid hadesboot install location")
+                exitProcess(1)
+            }
+            val stdlibFile = Path.of(hadesbootHome, "stdlib").toFile()
+            if (!stdlibFile.exists() || !stdlibFile.isDirectory) {
+                System.err.println(
+                    "HADESBOOT_HOME must point to a valid hadesboot installation\n" +
+                            "hint: Directory must contain bin/hadesboot and stdlib directory")
+                exitProcess(1)
+            }
             val output = Path.of(args.getString("--output"))
-            val runtime = Path.of(args.getString("--runtime"))
             val main = Path.of(args.getString("--main"))
             val lib = args.getBool("--lib")
-            val directories = args.getList("--directories").map { Path.of(it) }
+            val directories = args.getList("--directories").map { Path.of(it) } +
+                    listOf(Path.of(hadesbootHome, "stdlib"))
+            val runtime = Path.of(hadesbootHome, "stdlib", "runtime.c")
             val cFlags = if (args.contains("--cflags")) {
                 args.getList("--cflags")
             } else {
                 emptyList()
             }
             val libs = args.getMany("-l")
-            val cSources = args.getList("--c-sources").map { Path.of(it) }
+            val cSources = args.getList("--c-sources").map { Path.of(it) } +
+                    listOf(Path.of(hadesbootHome, "stdlib", "libc.c"))
             val debugSymbols = args.contains("-g")
             directories.forEach {
                 assert(it.toFile().exists())
@@ -62,8 +81,7 @@ sealed class Options {
         }
 
         private fun Array<String>.getList(long: String): List<String> {
-            assert(indexOf(long) > -1) { "Missing flag $long" }
-            return if (indexOf(long) == size - 1) {
+            return if (indexOf(long) < 0 || indexOf(long) == size - 1) {
                 listOf()
             } else {
                 asSequence().drop(indexOf(long) + 1).takeWhile { !it.startsWith("--") }.toList()

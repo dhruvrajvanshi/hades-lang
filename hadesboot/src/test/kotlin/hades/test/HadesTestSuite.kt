@@ -59,11 +59,9 @@ class HadesTestSuite {
                 val compiler = Compiler(
                     arrayOf(
                         "--output", outputPath.toString(),
-                        "--directories", "stdlib", directory.toString(),
+                        "--directories", directory.toString(),
                         "--main", file.toString(),
-                        "--runtime", "runtime.c",
-                        "--dump-llvm-module",
-                        "--c-sources", "stdlib/libc.c", cSources,
+                        "--c-sources", cSources,
                         "--cflags", utilsCLib.toString(), "-D", "DEBUG"
                     )
                         .filter { it.isNotBlank() }
