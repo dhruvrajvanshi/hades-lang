@@ -13,3 +13,4 @@ hdc
 /.metals
 /.bloop
 /.bsp
+/node_modules

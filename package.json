@@ -1,0 +1,15 @@
+{
+  "name": "hades-lang",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:dhruvrajvanshi/hades-lang.git",
+  "author": "Dhruv <dhruvrajvanshi@outlook.com>",
+  "license": "MIT",
+  "scripts": {
+    "docs:dev": "vuepress dev docs-src",
+    "docs:build": "vuepress build docs-src --dest docs"
+  },
+  "devDependencies": {
+    "vuepress": "^1.8.2"
+  }
+}
