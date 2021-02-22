@@ -25,6 +25,11 @@ interface TypeTransformer {
         is Type.Integral -> lowerIntegralType(type)
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.Uninferrable -> requireUnreachable()
+        is Type.Ref -> lowerRefType(type)
+    }
+
+    fun lowerRefType(type: Type.Ref): Type {
+        return Type.Ref(lowerType(type.to), isMutable = type.isMutable)
     }
 
     fun lowerFloatingPointType(type: Type.FloatingPoint): Type {
@@ -110,60 +115,59 @@ interface TypeVisitor {
         is Type.Integral -> visitIntegralType(type)
         is Type.FloatingPoint -> visitFloatingPointType(type)
         is Type.Uninferrable -> visitUninferrableType(type)
+        is Type.Ref -> visitRefType(type)
     }
 
-    fun visitUninferrableType(type: Type.Uninferrable) {}
-
-    fun visitFloatingPointType(type: Type.FloatingPoint) {
+    fun visitRefType(type: Type.Ref) {
+        visitType(type.to)
     }
 
-    fun visitIntegralType(type: Type.Integral) {
-    }
+    fun visitUninferrableType(type: Type.Uninferrable) = Unit
 
-    fun visitGenericInstance(type: Type.GenericInstance) {
-    }
+    fun visitFloatingPointType(type: Type.FloatingPoint) = Unit
+
+    fun visitIntegralType(type: Type.Integral) = Unit
+
+    fun visitGenericInstance(type: Type.GenericInstance) = Unit
 
     fun visitTypeFunction(type: Type.TypeFunction) {
         visitType(type.body)
     }
 
-    fun visitDoubleType(type: Type) {
-    }
+    fun visitDoubleType(type: Type) = Unit
 
     fun visitUntaggedUnionType(type: Type.UntaggedUnion) {
         type.members.forEach { visitType(it) }
     }
 
     fun visitFunctionType(type: Type.Function) {
-        type.from.forEach() { visitType(it) }
+        type.from.forEach { visitType(it) }
         visitType(type.to)
         type.traitRequirements?.forEach { visitTraitRequirement(it) }
     }
 
     fun visitTraitRequirement(requirement: TraitRequirement) {
-        requirement.arguments.forEach() { visitType(it) }
+        requirement.arguments.forEach { visitType(it) }
     }
 
-    fun visitSizeType(type: Type) {}
+    fun visitSizeType(type: Type) = Unit
 
-    fun visitCIntType(type: Type) {}
+    fun visitCIntType(type: Type) = Unit
 
-    fun visitBoolType(type: Type) {}
+    fun visitBoolType(type: Type) = Unit
 
-    fun visitTypeConstructor(type: Type.Constructor) {}
+    fun visitTypeConstructor(type: Type.Constructor) = Unit
 
-    fun visitParamRefType(type: Type.ParamRef) {}
+    fun visitParamRefType(type: Type.ParamRef) = Unit
 
     fun visitTypeApplication(type: Type.Application) {
         visitType(type.callee)
         type.args.map { visitType(it) }
     }
 
-    fun visitVoidType(type: Type) {}
+    fun visitVoidType(type: Type) = Unit
 
     fun visitRawPtrType(type: Type.Ptr) = visitType(type.to)
 
-    fun visitByteType(type: Type) {
-
-    }
+    fun visitByteType(type: Type) = Unit
 }

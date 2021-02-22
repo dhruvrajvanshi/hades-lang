@@ -22,6 +22,7 @@ sealed class Type {
     object Double : Type()
     object Size : Type()
     data class Ptr(val to: Type, val isMutable: Boolean) : Type()
+    data class Ref(val to: Type, val isMutable: Boolean) : Type()
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
             return binder.identifier.name.text
@@ -78,6 +79,7 @@ sealed class Type {
         is Integral -> "${if(isSigned) "i" else "u" }${size}"
         is FloatingPoint -> "f${size}"
         is Uninferrable -> name.name.text
+        is Ref -> "ref ${if (isMutable) "mut " else ""}${to.prettyPrint()}"
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
@@ -118,6 +120,7 @@ sealed class Type {
                     body.recurse()
             )
             is Uninferrable -> this
+            is Ref -> Ref(to.recurse(), isMutable)
         }
     }
 
