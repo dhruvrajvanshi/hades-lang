@@ -1268,7 +1268,13 @@ class Analyzer(
                 is Type.TypeFunction -> {
                     return recurse(type.body, type.params)
                 }
-                is Type.GenericInstance -> recurse(reduceGenericInstances(type), null)
+                is Type.GenericInstance -> {
+                    if (typeAnalyzer.getInstantiatedType(type) == null) {
+                        null
+                    } else {
+                        recurse(reduceGenericInstances(type), null)
+                    }
+                }
                 is Type.Error -> {
                     return null
                 }
