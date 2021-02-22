@@ -8,7 +8,7 @@ def main(): Void {
     print_bool(ref b)
 
     val box = Box(b"message")
-    val box_ref = ref box
+    val box_ref: ref Box[*Byte] = ref box
     val message_ref = ref box.value
     puts(*message_ref)
     print_ref(message_ref)

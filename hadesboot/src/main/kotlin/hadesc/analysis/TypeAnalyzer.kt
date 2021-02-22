@@ -1,7 +1,6 @@
 package hadesc.analysis
 
 import hadesc.ast.Binder
-import hadesc.location.SourceLocation
 import hadesc.types.Substitution
 import hadesc.types.Type
 
@@ -58,10 +57,12 @@ class TypeAnalyzer {
                 }
 
             }
-            destination is Type.Application && source is Type.Application -> {
-                isTypeAssignableTo(source = source.callee, destination = destination.callee)
-                        && source.args.zip(destination.args).all {
-                    isTypeAssignableTo(source = it.first, destination = it.second)
+            destination is Type.Ref && source is Type.Ref -> {
+                val refTypeAssignable = isTypeAssignableTo(source.to, destination.to)
+                if (destination.isMutable && !source.isMutable) {
+                    false
+                } else {
+                    refTypeAssignable
                 }
             }
             destination is Type.Constructor && source is Type.Constructor -> {
