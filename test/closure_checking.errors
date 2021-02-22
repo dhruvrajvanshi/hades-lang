@@ -1,5 +1,3 @@
-test/closure_checking.hds:3: ClosuresCantBeStored
-test/closure_checking.hds:7: ClosuresCantBeStored
-test/closure_checking.hds:10: ClosuresCantBeReturned
-test/closure_checking.hds:12: ClosuresCantBeReturned
+test/closure_checking.hds:10: ReturnTypeMustNotContainClosuresOrRefs
+test/closure_checking.hds:12: ReturnTypeMustNotContainClosuresOrRefs
 test/closure_checking.hds:17: TakingAddressOfClosureDisallowed

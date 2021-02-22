@@ -95,9 +95,8 @@ data class Diagnostic(
         data class TraitMethodTypeMismatch(val expected: Type, val found: Type) : Diagnostic.Kind(Severity.ERROR)
         data class DuplicateTypeBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
         data class DuplicateValueBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
-        object ClosuresCantBeStored: Diagnostic.Kind(Severity.ERROR)
-        object ClosuresCantBeReturned: Diagnostic.Kind(Severity.ERROR)
         object TakingAddressOfClosureDisallowed: Diagnostic.Kind(Severity.ERROR)
+        object ReturnTypeMustNotContainClosuresOrRefs : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -165,9 +164,8 @@ data class Diagnostic(
             ReturningFromVoidFunction -> "Void functions can't return a value."
             MissingThisParam -> "Missing this param."
             is TraitRequirementNotSatisfied -> "Trait requirement (${requirement.prettyPrint()}) not satisfied."
-            ClosuresCantBeStored -> "Closures can't be stored in structs or sealed types."
-            ClosuresCantBeReturned -> "Closures can't be returned from functions."
             TakingAddressOfClosureDisallowed -> "Taking the address of a closure is disallowed."
+            ReturnTypeMustNotContainClosuresOrRefs -> "Return types cannot contain closures or refs"
         }
 
     }

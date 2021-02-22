@@ -2,6 +2,7 @@ package hadesc.frontend
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -12,6 +13,7 @@ import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.unit
 import libhades.collections.Stack
+import java.sql.Struct
 
 class Checker(val ctx: Context) {
     private val returnTypeStack = Stack<Type>()
@@ -51,17 +53,6 @@ class Checker(val ctx: Context) {
                 error(case.name, Diagnostic.Kind.DuplicateVariantName)
             } else {
                 caseNames.add(case.name.name)
-            }
-
-            case.params?.forEach { param ->
-                if (param.annotation == null) {
-                    error(param, Diagnostic.Kind.MissingTypeAnnotation)
-                } else {
-                    checkTypeAnnotation(param.annotation)
-                }
-                if (param.annotation?.type is Type.Function) {
-                    error(param.annotation, Diagnostic.Kind.ClosuresCantBeStored)
-                }
             }
         }
     }
@@ -214,9 +205,6 @@ class Checker(val ctx: Context) {
                         declaredFields[member.binder.name] = member
                     }
                     checkTypeAnnotation(member.typeAnnotation)
-                    if (member.typeAnnotation.type is Type.Function) {
-                        error(member.binder, Diagnostic.Kind.ClosuresCantBeStored)
-                    }
                 }
             }
         }
@@ -263,21 +251,71 @@ class Checker(val ctx: Context) {
             annotation.from.map {
                 checkTypeAnnotation(it)
             }
+            checkReturnType(annotation.to, annotation.to.type)
             checkTypeAnnotation(annotation.to)
 
-            if (annotation.to.type is Type.Function) {
-                error(annotation.to, Diagnostic.Kind.ClosuresCantBeReturned)
-            }
             unit
         }
         is TypeAnnotation.Union -> {
             annotation.args.forEach {
                 checkTypeAnnotation(it)
-                if (it.type is Type.Function) {
-                    error(it, Diagnostic.Kind.ClosuresCantBeStored)
-                }
             }
         }
+    }
+
+    private fun checkReturnType(node: HasLocation, type:Type) {
+        checkReturnTypeWorker(node, ctx.analyzer.reduceGenericInstances(type))
+    }
+    private fun checkReturnTypeWorker(node: HasLocation, type: Type, typeArguments: List<Type>? = null): Unit = when (val type = ctx.analyzer.reduceGenericInstances(type)) {
+        is Type.Application -> {
+            checkReturnTypeWorker(node, type.callee, typeArguments = type.args)
+        }
+        is Type.Constructor -> {
+
+            when (val declaration = ctx.resolver.resolveDeclaration(type.name)) {
+                is Declaration.Struct -> {
+
+                    val substitution =
+                        if (typeArguments != null && declaration.typeParams != null)
+                            declaration.typeParams.zip(typeArguments)
+                                .map { it.first.binder.location to it.second }
+                                .toMap()
+                        else
+                            emptyMap()
+                    val fieldTypes = declaration.members.filterIsInstance<Declaration.Struct.Member.Field>()
+                        .map { it.typeAnnotation.type }
+                        .map { it.applySubstitution(substitution) }
+                    fieldTypes.forEach { checkReturnTypeWorker(node, it) }
+                }
+                is Declaration.SealedType -> {
+
+                    val substitution =
+                        if (typeArguments != null && declaration.typeParams != null)
+                            declaration.typeParams.zip(typeArguments)
+                                .map { it.first.binder.location to it.second }
+                                .toMap()
+                        else
+                            emptyMap()
+                    val memberTypes = declaration.cases
+                        .asSequence()
+                        .mapNotNull { it.params }
+                        .flatten()
+                        .mapNotNull { it.annotation }
+                        .map { it.type }
+                        .map { it.applySubstitution(substitution) }
+                    memberTypes.forEach { checkReturnTypeWorker(node, it) }
+                }
+                is Declaration.TypeAlias -> requireUnreachable()
+                else -> unit
+            }
+        }
+        is Type.TypeFunction -> TODO()
+        is Type.Function -> {
+            error(node, Diagnostic.Kind.ReturnTypeMustNotContainClosuresOrRefs)
+        }
+        is Type.GenericInstance -> requireUnreachable()
+        is Type.UntaggedUnion -> TODO()
+        else -> unit
     }
 
     private fun checkTypeApplicationAnnotation(annotation: TypeAnnotation.Application) {
@@ -480,6 +518,7 @@ class Checker(val ctx: Context) {
         val expressionType = expression.type
         require(expressionType is Type.Function)
         val returnType = expressionType.to
+        checkReturnType(expression.returnType ?: expression.body, returnType)
         returnTypeStack.push(returnType)
         checkFunctionParams(expression.params)
         expression.returnType?.let { checkTypeAnnotation(it) }
@@ -753,11 +792,8 @@ class Checker(val ctx: Context) {
         signature.typeParams?.let {
             checkTypeParams(it)
         }
+        checkReturnType(signature.returnType, signature.returnType.type)
         checkTypeAnnotation(signature.returnType)
-
-        if (signature.returnType.type is Type.Function) {
-            error(signature.returnType, Diagnostic.Kind.ClosuresCantBeReturned)
-        }
     }
 
     private fun checkFunctionParams(params: List<Param>) {

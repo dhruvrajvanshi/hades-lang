@@ -1,0 +1,4 @@
+test/illegal_return_type.hds:13: ReturnTypeMustNotContainClosuresOrRefs
+test/illegal_return_type.hds:16: ReturnTypeMustNotContainClosuresOrRefs
+test/illegal_return_type.hds:20: ReturnTypeMustNotContainClosuresOrRefs
+test/illegal_return_type.hds:21: ReturnTypeMustNotContainClosuresOrRefs
