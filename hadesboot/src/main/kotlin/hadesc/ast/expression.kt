@@ -146,6 +146,12 @@ sealed class Expression : HasLocation {
             override val value: Expression
         ) : WhenArm()
     }
+
+    data class Ref(
+        override val location: SourceLocation,
+        val isMutable: Boolean,
+        val expression: Expression,
+    ) : Expression()
 }
 
 sealed class ClosureBody : HasLocation {

@@ -694,7 +694,7 @@ class Parser(
         )
     }
 
-    private fun parsePrimaryExpression(withTail: Boolean = true): Expression {
+    private fun parsePrimaryExpression(withTail: Boolean = true, allowCalls: Boolean = true): Expression {
         val head = when (currentToken.kind) {
             tt.LPAREN -> {
                 advance()
@@ -825,13 +825,29 @@ class Parser(
             }
             tt.VBAR -> parseClosureExpression()
             tt.WHEN -> parseWhenExpression()
+            tt.REF -> parseRefExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
             }
         }
         if (!withTail) return head
-        return parseExpressionTail(head)
+        return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseRefExpression(): Expression {
+        val start = expect(tt.REF)
+        val isMutable =
+            if (at(tt.MUT)) {
+                advance()
+                true
+            } else false
+        val value = parsePrimaryExpression(allowCalls = false)
+        return Expression.Ref(
+            makeLocation(start, value),
+            isMutable,
+            value
+        )
     }
 
     private fun parseWhenExpression(): Expression {
@@ -935,7 +951,9 @@ class Parser(
         return Expression.ByteString(token.location, bytes.toByteArray())
     }
 
-    private fun parseExpressionTail(head: Expression): Expression {
+    private fun parseExpressionTail(head: Expression, allowCalls: Boolean = true): Expression {
+        if (at(tt.LPAREN) && !allowCalls) return head
+        if (at(tt.LSQB) && !allowCalls) return head
         return when (currentToken.kind) {
             tt.LSQB -> {
                 advance()
@@ -1150,6 +1168,20 @@ class Parser(
                 TypeAnnotation.Union(
                         makeLocation(start, stop),
                         args
+                )
+            }
+            tt.REF -> {
+                val start = advance()
+                val isMutable =
+                    if (at(tt.MUT)) {
+                        advance()
+                        true
+                    } else false
+                val inner = parseTypeAnnotation()
+                TypeAnnotation.Ref(
+                    makeLocation(start, inner),
+                    isMutable,
+                    inner
                 )
             }
             else -> {

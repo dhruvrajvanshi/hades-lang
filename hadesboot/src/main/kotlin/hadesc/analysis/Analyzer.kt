@@ -779,6 +779,7 @@ class Analyzer(
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.When -> inferWhenExpression(expression)
+            is Expression.Ref -> TODO()
         })
     }
 
@@ -1309,7 +1310,12 @@ class Analyzer(
             is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
             is TypeAnnotation.Function -> functionAnnotationToType(annotation)
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
+            is TypeAnnotation.Ref -> refAnnotationToType(annotation)
         }
+    }
+
+    private fun refAnnotationToType(annotation: TypeAnnotation.Ref): Type {
+        TODO()
     }
 
     private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {

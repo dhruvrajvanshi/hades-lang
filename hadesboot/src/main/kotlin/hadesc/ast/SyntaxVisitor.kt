@@ -11,6 +11,11 @@ interface SyntaxVisitor {
         is TypeAnnotation.Qualified -> visitQualifiedType(type)
         is TypeAnnotation.Union -> visitUnionType(type)
         is TypeAnnotation.Var -> visitVarType(type)
+        is TypeAnnotation.Ref -> visitRefType(type)
+    }
+
+    fun visitRefType(type: TypeAnnotation.Ref) {
+        visitType(type.to)
     }
 
     fun visitVarType(type: TypeAnnotation.Var) {
@@ -70,6 +75,11 @@ interface SyntaxVisitor {
         is Expression.UnsafeCast -> visitUnsafeCastExpr(expression)
         is Expression.Var -> visitVarExpr(expression)
         is Expression.When -> visitWhenExpr(expression)
+        is Expression.Ref -> visitRefExpression(expression)
+    }
+
+    fun visitRefExpression(expression: Expression.Ref) {
+        visitExpression(expression.expression)
     }
 
     fun visitByteStringExpr(expression: Expression.ByteString) {

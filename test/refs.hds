@@ -1,0 +1,16 @@
+
+def main(): Void {
+    val b = true
+
+    print_bool(ref b)
+}
+
+extern def puts(*Byte): Void = puts
+
+def print_bool(value: ref Bool): Void {
+    if *value {
+        puts(b"true")
+    } else {
+        puts(b"false")
+    }
+}

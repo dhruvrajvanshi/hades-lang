@@ -40,6 +40,7 @@ data class Token(
         WHERE,
         THIS,
         EXTENSION,
+        REF,
 
         NOT,
         AND,

@@ -43,7 +43,8 @@ val KEYWORDS = mapOf(
     "type" to tt.TYPE,
     "where" to tt.WHERE,
     "this" to tt.THIS,
-    "extension" to tt.EXTENSION
+    "extension" to tt.EXTENSION,
+    "ref" to tt.REF,
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(

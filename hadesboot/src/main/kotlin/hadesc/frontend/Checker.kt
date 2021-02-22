@@ -261,6 +261,7 @@ class Checker(val ctx: Context) {
                 checkTypeAnnotation(it)
             }
         }
+        is TypeAnnotation.Ref -> TODO()
     }
 
     private fun checkReturnType(node: HasLocation, type:Type) {
@@ -511,6 +512,7 @@ class Checker(val ctx: Context) {
             is Expression.This -> checkThisExpression(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
+            is Expression.Ref -> TODO()
         })
     }
 

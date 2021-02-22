@@ -559,6 +559,7 @@ class HIRGen(
         is Expression.Closure -> lowerClosure(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
+        is Expression.Ref -> TODO()
     }
 
     private fun lowerClosure(expression: Expression.Closure): HIRExpression {

@@ -20,6 +20,12 @@ sealed class TypeAnnotation : HasLocation {
         val to: TypeAnnotation
     ) : TypeAnnotation()
 
+    data class Ref(
+        override val location: SourceLocation,
+        val isMutable: Boolean,
+        val to: TypeAnnotation
+    ) : TypeAnnotation()
+
     data class Application(
         override val location: SourceLocation,
         val callee: TypeAnnotation,
