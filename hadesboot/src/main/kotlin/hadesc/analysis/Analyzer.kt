@@ -363,7 +363,12 @@ class Analyzer(
     }
 
     fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
-        val structDecl = getStructDeclOfType(lhsType)
+        val lhsStructType =
+            if (lhsType is Type.Ref)
+                lhsType.to
+            else
+                lhsType
+        val structDecl = getStructDeclOfType(lhsStructType)
         return if (structDecl == null) null else {
             val index = structDecl.members.indexOfFirst {
                 it is Declaration.Struct.Member.Field
@@ -372,15 +377,15 @@ class Analyzer(
             if (index > -1) {
                 val field = structDecl.members[index]
                 require(field is Declaration.Struct.Member.Field)
-                val typeArgs = if (lhsType is Type.Application) {
-                    lhsType.args
+                val typeArgs = if (lhsStructType is Type.Application) {
+                    lhsStructType.args
                 } else emptyList()
                 val substitution = structDecl.typeParams?.zip(typeArgs)
                         ?.map { it.first.binder.location to it.second }
                         ?.toMap()
                         ?: emptyMap()
                 val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
-                isTypeAssignableTo(lhsType, fieldType)
+                isTypeAssignableTo(lhsStructType, fieldType)
                 PropertyBinding.StructField(
                         structDecl = structDecl,
                         memberIndex = index,
@@ -779,8 +784,15 @@ class Analyzer(
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.When -> inferWhenExpression(expression)
-            is Expression.Ref -> TODO()
+            is Expression.Ref -> inferRefExpression(expression)
         })
+    }
+
+    private fun inferRefExpression(expression: Expression.Ref): Type {
+        return Type.Ref(
+            inferExpression(expression.expression),
+            expression.isMutable
+        )
     }
 
     private fun inferWhenExpression(expression: Expression.When): Type {
@@ -1315,7 +1327,10 @@ class Analyzer(
     }
 
     private fun refAnnotationToType(annotation: TypeAnnotation.Ref): Type {
-        TODO()
+        return Type.Ref(
+            annotationToType(annotation.to),
+            annotation.isMutable
+        )
     }
 
     private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {

@@ -261,7 +261,9 @@ class Checker(val ctx: Context) {
                 checkTypeAnnotation(it)
             }
         }
-        is TypeAnnotation.Ref -> TODO()
+        is TypeAnnotation.Ref -> {
+            checkTypeAnnotation(annotation.to)
+        }
     }
 
     private fun checkReturnType(node: HasLocation, type:Type) {
@@ -404,16 +406,24 @@ class Checker(val ctx: Context) {
         checkExpression(statement.lhs)
         checkExpression(statement.value)
 
-        val lhsType = statement.lhs.expression.type
-        if (lhsType !is Type.Ptr) {
-            error(statement.lhs, Diagnostic.Kind.NotAPointerType(lhsType))
-            return
+        when (val lhsType = statement.lhs.expression.type) {
+            is Type.Ptr -> {
+                if (!lhsType.isMutable) {
+                    error(statement.lhs, Diagnostic.Kind.ValNotMutable)
+                }
+                checkExpressionHasType(statement.value, lhsType.to)
+            }
+            is Type.Ref -> {
+                checkExpressionHasType(statement.value, lhsType.to)
+                if (!lhsType.isMutable) {
+                    error(statement.lhs, Diagnostic.Kind.ValNotMutable)
+                }
+            }
+            else -> {
+                error(statement.lhs, Diagnostic.Kind.NotAPointerType(lhsType))
+            }
         }
 
-        if (!lhsType.isMutable) {
-            error(statement.lhs, Diagnostic.Kind.ValNotMutable)
-        }
-        checkExpressionHasType(statement.value, lhsType.to)
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
@@ -620,7 +630,7 @@ class Checker(val ctx: Context) {
 
     private fun checkDeref(expression: Expression.Deref) {
         checkExpression(expression.expression)
-        if (expression.expression.type !is Type.Ptr) {
+        if (expression.expression.type !is Type.Ptr && expression.expression.type !is Type.Ref) {
             error(expression.expression, Diagnostic.Kind.NotAPointerType(expression.expression.type))
         }
     }
