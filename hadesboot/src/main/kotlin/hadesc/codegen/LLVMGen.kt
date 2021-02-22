@@ -132,10 +132,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Function -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
         is Type.ParamRef -> requireUnreachable()
-        is Type.TypeFunction -> TODO()
-        is Type.GenericInstance -> TODO()
-        is Type.Application -> TODO()
+        is Type.TypeFunction -> requireUnreachable()
+        is Type.GenericInstance -> requireUnreachable()
+        is Type.Application -> requireUnreachable()
         is Type.UntaggedUnion -> TODO()
+        is Type.Uninferrable -> requireUnreachable()
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
@@ -614,6 +615,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Integral -> IntType(type.size, llvmCtx)
         is Type.FloatingPoint -> FloatType(type.size, llvmCtx)
         is Type.TypeFunction -> requireUnreachable()
+        is Type.Uninferrable -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0

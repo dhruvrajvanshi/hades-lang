@@ -16,7 +16,6 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
-import javax.swing.plaf.nimbus.State
 
 @OptIn(ExperimentalStdlibApi::class)
 class HIRGen(

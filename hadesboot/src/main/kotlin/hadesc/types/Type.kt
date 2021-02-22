@@ -47,6 +47,8 @@ sealed class Type {
         val id: Long
     ) : Type()
 
+    data class Uninferrable(val name: Binder) : Type()
+
     data class Application(val callee: Type, val args: List<Type>) : Type()
     data class UntaggedUnion(val members: List<Type>) : Type()
 
@@ -75,6 +77,7 @@ sealed class Type {
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
         is Integral -> "${if(isSigned) "i" else "u" }${size}"
         is FloatingPoint -> "f${size}"
+        is Uninferrable -> name.name.text
     }
 
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
@@ -114,6 +117,7 @@ sealed class Type {
                     params,
                     body.recurse()
             )
+            is Uninferrable -> this
         }
     }
 

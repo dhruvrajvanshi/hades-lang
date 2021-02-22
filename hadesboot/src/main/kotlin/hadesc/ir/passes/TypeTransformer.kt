@@ -1,6 +1,7 @@
 package hadesc.ir.passes
 
 import hadesc.analysis.TraitRequirement
+import hadesc.assertions.requireUnreachable
 import hadesc.types.Type
 import hadesc.unit
 
@@ -23,6 +24,7 @@ interface TypeTransformer {
         is Type.TypeFunction -> lowerTypeFunction(type)
         is Type.Integral -> lowerIntegralType(type)
         is Type.FloatingPoint -> lowerFloatingPointType(type)
+        is Type.Uninferrable -> requireUnreachable()
     }
 
     fun lowerFloatingPointType(type: Type.FloatingPoint): Type {
@@ -107,7 +109,10 @@ interface TypeVisitor {
         is Type.TypeFunction -> visitTypeFunction(type)
         is Type.Integral -> visitIntegralType(type)
         is Type.FloatingPoint -> visitFloatingPointType(type)
+        is Type.Uninferrable -> visitUninferrableType(type)
     }
+
+    fun visitUninferrableType(type: Type.Uninferrable) {}
 
     fun visitFloatingPointType(type: Type.FloatingPoint) {
     }
