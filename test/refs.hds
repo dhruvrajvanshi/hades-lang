@@ -1,8 +1,17 @@
 
+struct Box[T] {
+    val value: T;
+}
 def main(): Void {
     val b = true
 
     print_bool(ref b)
+
+    val box = Box(b"message")
+    val box_ref = ref box
+    val message_ref = ref box.value
+    puts(message_ref)
+    puts(box_ref.value)
 }
 
 extern def puts(*Byte): Void = puts

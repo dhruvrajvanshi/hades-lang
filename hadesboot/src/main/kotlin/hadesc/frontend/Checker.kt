@@ -512,8 +512,39 @@ class Checker(val ctx: Context) {
             is Expression.This -> checkThisExpression(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
-            is Expression.Ref -> TODO()
+            is Expression.Ref -> checkRefExpression(expression)
         })
+    }
+
+    private fun checkRefExpression(expression: Expression.Ref) {
+        checkExpression(expression.expression)
+        when (expression.expression) {
+            is Expression.Var -> {
+                when (val binding = ctx.resolver.resolve(expression.expression.name)) {
+                    is Binding.ValBinding -> {
+                        if (expression.isMutable && !binding.statement.isMutable) {
+                            error(expression, Diagnostic.Kind.ValNotMutable)
+                        }
+                    }
+                    else -> {
+                        error(expression, Diagnostic.Kind.NotAnAddressableValue)
+                    }
+                }
+            }
+            is Expression.Property -> {
+                when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expression.expression)) {
+                    is PropertyBinding.StructField -> {
+                        if (expression.isMutable && !propertyBinding.member.isMutable) {
+                            error(expression, Diagnostic.Kind.ValNotMutable)
+                        }
+                    }
+                    else -> {
+                        error(expression, Diagnostic.Kind.NotAnAddressableValue)
+                    }
+                }
+            }
+            else -> unit
+        }
     }
 
     private fun checkClosureExpression(expression: Expression.Closure) {
