@@ -5,6 +5,8 @@ struct ButtonBox {}
 struct Widget {}
 struct Container {}
 struct Button {}
+struct CheckButton {}
+struct ProgressBar {}
 
 trait IsContainer[Self] {}
 
@@ -15,9 +17,12 @@ implementation IsWidget[Window] {}
 implementation IsWidget[Button] {}
 implementation IsWidget[Widget] {}
 implementation IsWidget[ButtonBox] {}
+implementation IsWidget[CheckButton] {}
+implementation IsWidget[ProgressBar] {}
 implementation IsWidget[Container] {}
 implementation IsContainer[ButtonBox] {}
 implementation IsContainer[Window] {}
+implementation IsContainer[Container] {}
 
 
 const APPLICATION_FLAGS_NONE: i32 = 0
@@ -26,7 +31,9 @@ extern def object_unref(*Application): Void = gtk_object_unref
 extern def application_window_new(*Application): *Window = gtk_application_window_new
 extern def window_set_default_size(*Window, CInt, CInt): Void = gtk_window_set_default_size
 extern def window_set_title(*Window, *Byte): Void = gtk_window_set_title
-extern def button_box_new(): *ButtonBox = gtk_button_box_new
+extern def button_box_new(u32): *ButtonBox = gtk_button_box_new
+extern def progress_bar_new(): *ProgressBar = gtk_progress_bar_new;
+extern def progress_bar_set_text(*ProgressBar, *Byte): Void = gtk_progress_bar_set_text;
 extern def button_new_with_label(*Byte): *Button = gtk_button_new_with_label
 extern def container_add(*Container, *Widget): Void = gtk_container_add
 extern def widget_show_all(*Widget): Void = gtk_widget_show_all
@@ -34,6 +41,7 @@ extern def print(*Byte): Void = g_print
 extern def gtk_widget_destroy(*Widget): Void = gtk_widget_destroy
 extern def signal_connect_data(*Widget, *Byte, *Void, *Void, *Void, CInt): Void = g_signal_connect_data
 extern def application_run(*Application, CInt, **Byte): CInt = g_application_run
+extern def check_button_new_with_label(*Byte): *CheckButton = gtk_check_button_new_with_label
 
 
 def widget_destroy[W](widget: *W): Void where IsWidget[W] {
@@ -94,9 +102,9 @@ extension WindowExtensions for Window {
     }
 }
 
-extension ContainerExtensions for Container {
-    def add[W](*this, widget: *W): *Container where IsWidget[W] {
-        container_add(this, WIDGET(widget))
+extension ContainerExtensions[C] for C where IsContainer[C] {
+    def add[W](*this, widget: *W): *C where IsWidget[W] {
+        container_add(CONTAINER(this), WIDGET(widget))
         return this
     }
 }
@@ -104,5 +112,12 @@ extension ContainerExtensions for Container {
 extension WidgetExtensions for Widget {
     def show_all(*this): Void {
         widget_show_all(this)
+    }
+}
+
+extension ProgressBarExtensions for ProgressBar {
+    def set_text(*this, text: *Byte): *ProgressBar {
+        progress_bar_set_text(this, text)
+        return this
     }
 }

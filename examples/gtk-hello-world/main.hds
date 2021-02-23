@@ -11,7 +11,7 @@ def main(argc: i32, argv: **Byte): Void {
 
 
 def run(app: *Gtk.Application, argc: i32, argv: **Byte): i32 {
-  Gtk.signal_connect(app.as_widget(), b"activate", Gtk.CALLBACK(on_app_activate), nullptr)
+  Gtk.signal_connect(app, b"activate", Gtk.CALLBACK(on_app_activate), nullptr)
   return Gtk.application_run(app, argc, argv)
 }
 
@@ -31,12 +31,15 @@ def make_window(app: *Gtk.Application): *Gtk.Window {
     .set_default_size(200, 200)
 
 //   button_box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL)
-  window.as_container().add(
-    Gtk.button_box_new().as_container()
+  window.add(
+    Gtk.button_box_new(1)
       .add(
         Gtk.button_new_with_label(b"Exit")
             .connect(b"clicked", Gtk.CALLBACK(exit_button_on_click), pointer_cast[Void](window))
       )
+      .add(Gtk.check_button_new_with_label(b"Check?"))
+      .add(Gtk.progress_bar_new().set_text(b"Progress Bar"))
+
   )
 
   return window
