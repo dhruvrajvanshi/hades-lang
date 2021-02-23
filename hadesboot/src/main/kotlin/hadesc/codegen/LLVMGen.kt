@@ -617,7 +617,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.FloatingPoint -> FloatType(type.size, llvmCtx)
         is Type.TypeFunction -> requireUnreachable()
         is Type.Uninferrable -> requireUnreachable()
-        is Type.Ref -> requireUnreachable()
+        is Type.Ref -> PointerType(lowerType(type.to))
     }
 
     private var nextLiteralIndex = 0

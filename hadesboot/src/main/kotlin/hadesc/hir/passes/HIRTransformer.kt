@@ -242,9 +242,11 @@ interface HIRTransformer: TypeTransformer {
     }
 
     fun transformGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): HIRExpression {
+        val type = lowerType(expression.type)
+        require(type is Type.Ptr)
         return HIRExpression.GetStructFieldPointer(
                 expression.location,
-                lowerType(expression.type),
+                type,
                 lhs = transformExpression(expression.lhs),
                 memberIndex = expression.memberIndex,
                 memberName = expression.memberName
