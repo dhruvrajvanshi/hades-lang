@@ -731,7 +731,7 @@ class HIRGen(
         val extensionDef = requireNotNull(currentExtensionDef)
         val extensionForType = lowerTypeAnnotation(extensionDef.forType)
         val thisParamFlags = requireNotNull(functionDef.signature.thisParamFlags)
-        return if (thisParamFlags.isPointer)
+        return if (thisParamFlags.isPointer || thisParamFlags.isRef)
             Type.Ptr(extensionForType, isMutable = thisParamFlags.isMutable)
         else extensionForType
     }

@@ -1047,6 +1047,7 @@ class Parser(
     private fun parseParams(lparen: Token? = null): Pair<FunctionSignature.ThisParamFlags?, List<Param>> {
         var hasThis = false
         var isThisPtr = false
+        var isThisRef = false
         var isThisMut = false
         val params = buildList {
             lparen ?: expect(tt.LPAREN)
@@ -1066,6 +1067,16 @@ class Parser(
                         }
                         expect(tt.THIS)
                         continue
+                    } else if (at(tt.REF)) {
+                        advance()
+                        isThisRef = true
+                        hasThis = true
+                        if (at(tt.MINUS)) {
+                            isThisMut = true
+                            advance()
+                        }
+                        expect(tt.THIS)
+                        continue
                     }
                     if (at(tt.THIS)) {
                         hasThis = true
@@ -1080,7 +1091,8 @@ class Parser(
         val thisParamFlags = if (hasThis) {
             FunctionSignature.ThisParamFlags(
                     isPointer = isThisPtr,
-                    isMutable = isThisMut
+                    isMutable = isThisMut,
+                    isRef = isThisRef,
             )
         } else null
         return thisParamFlags to params

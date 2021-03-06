@@ -1,0 +1,24 @@
+
+struct String {
+    val m_buffer: *Byte;
+}
+
+extern def strlen(*Byte): Size = strlen
+extern def puts(*Byte): Size = puts
+
+extension StringExtensions for String {
+    def length(ref this): Size {
+        val buffer = this.m_buffer
+        return strlen(buffer)
+    }
+}
+
+def main(): Void {
+    val s = String(b"Hello")
+    val r = ref s;
+
+    if r.length() == 5 {
+        puts(b"ref method call")
+    }
+
+}

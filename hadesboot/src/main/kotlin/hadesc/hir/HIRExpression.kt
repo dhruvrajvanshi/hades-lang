@@ -58,7 +58,14 @@ sealed class HIRExpression: HIRNode {
             val lhs: HIRExpression,
             val name: Name,
             val index: Int
-    ) : HIRExpression()
+    ) : HIRExpression() {
+        init {
+            require(lhs.type !is Type.Ptr) {
+                TODO()
+            }
+            require(lhs.type !is Type.Ref)
+        }
+    }
 
     data class GetStructFieldPointer(
             override val location: SourceLocation,

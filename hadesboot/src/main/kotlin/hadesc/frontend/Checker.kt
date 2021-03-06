@@ -445,6 +445,7 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkIfStatement(statement: Statement.If) {
+        checkExpression(statement.condition)
         checkExpressionHasType(statement.condition, Type.Bool)
         checkBlock(statement.ifTrue)
         statement.ifFalse?.let { checkBlock(it) }
@@ -693,12 +694,11 @@ class Checker(val ctx: Context) {
 
     private val Expression.type get() = ctx.analyzer.typeOfExpression(this)
 
-    private fun checkNullPtrExpression(expression: Expression.NullPtr) {
-
-    }
+    private fun checkNullPtrExpression(expression: Expression.NullPtr) = unit
 
     private fun checkBinaryOperation(expression: Expression.BinaryOperation) {
-
+        checkExpression(expression.lhs)
+        checkExpression(expression.rhs)
     }
 
     private fun checkPropertyExpression(expression: Expression.Property) {
