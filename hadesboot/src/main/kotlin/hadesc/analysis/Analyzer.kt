@@ -254,7 +254,12 @@ class Analyzer(
                     thisType,
                     isMutable = functionDef.signature.thisParamFlags.isMutable
                 )
-            } else {
+            } else if (functionDef.signature.thisParamFlags.isRef) {
+                Type.Ref(
+                    thisType,
+                    isMutable = functionDef.signature.thisParamFlags.isMutable
+                )
+            }else {
                 thisType
             }
             if (!isTypeAssignableTo(source = inferExpression(expression.lhs), destination = expectedThisType)) {
@@ -262,6 +267,11 @@ class Analyzer(
             }
             val receiverType = if (functionDef.signature.thisParamFlags.isPointer) {
                 Type.Ptr(
+                    annotationToType(extensionDef.forType),
+                    isMutable = functionDef.signature.thisParamFlags.isMutable
+                )
+            } else if (functionDef.signature.thisParamFlags.isRef) {
+                Type.Ref(
                     annotationToType(extensionDef.forType),
                     isMutable = functionDef.signature.thisParamFlags.isMutable
                 )
@@ -300,9 +310,13 @@ class Analyzer(
     }
 
     private fun hasExtensionMethodForType(callNode: HasLocation, extensionDef: Declaration.ExtensionDef, methodName: Name, type: Type): Boolean {
+        val hasRequiredMethodName = extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>()
+            .any { it.name.name ==  methodName }
+        if (!hasRequiredMethodName) return false
         val forType = annotationToType(extensionDef.forType)
         val valueAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
         val pointerAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
+        val refAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
         val isValueAssignable = isTypeAssignableTo(
                 source = type,
                 destination = forType.applySubstitution(valueAssignmentSubstitution)
@@ -310,28 +324,58 @@ class Analyzer(
         val isPointerAssignable = isTypeAssignableTo(
             source = type,
             destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
-        if (!isValueAssignable && !isPointerAssignable) return false
-
+        val isRefAssignable = isTypeAssignableTo(
+            source = type,
+            destination = Type.Ref(forType.applySubstitution(refAssignmentSubstitution), isMutable = false))
+        if (!isValueAssignable && !isPointerAssignable && !isRefAssignable) return false
+        var assignableCount = 0
+        if (isPointerAssignable) assignableCount++
+        if (isValueAssignable) assignableCount++
+        if (isRefAssignable) assignableCount++
         val methods = extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>()
-        val substitution = if (isPointerAssignable && isValueAssignable) {
-            val pointerMethodAvailable = methods.find {
-                it.name.identifier.name == methodName && (it.signature.thisParamFlags?.isPointer ?: false)
-            } != null
-            val valueMethodAvailable = methods.find {
-                it.name.identifier.name == methodName && (it.signature.thisParamFlags != null && !it.signature.thisParamFlags.isPointer)
-            }  != null
+        val substitution = when {
+            assignableCount > 1 -> {
+                val pointerMethodAvailable = methods.find {
+                    it.name.identifier.name == methodName && (it.signature.thisParamFlags?.isPointer ?: false)
+                } != null
+                val refMethodAvailable = methods.find {
+                    it.name.identifier.name == methodName && (it.signature.thisParamFlags?.isRef ?: false)
+                } != null
+                val valueMethodAvailable = methods.find {
+                    it.name.identifier.name == methodName && (it.signature.thisParamFlags != null && !it.signature.thisParamFlags.isPointer)
+                }  != null
 
-            if (pointerMethodAvailable && valueMethodAvailable) {
-                TODO("Ambiguous extension method")
-            } else if (pointerMethodAvailable) {
+                var candidateCount = 0
+                if (pointerMethodAvailable) candidateCount++
+                if (valueMethodAvailable) candidateCount++
+                if (refMethodAvailable) candidateCount++
+
+                when {
+                    candidateCount > 1 -> {
+                        TODO("Ambiguous extension method")
+                    }
+                    refMethodAvailable -> {
+                        refAssignmentSubstitution
+                    }
+                    pointerMethodAvailable -> {
+                        pointerAssignmentSubstitution
+                    }
+                    valueMethodAvailable -> {
+                        valueAssignmentSubstitution
+                    }
+                    else -> requireUnreachable()
+                }
+            }
+            isPointerAssignable -> {
                 pointerAssignmentSubstitution
-            } else {
+            }
+            isValueAssignable -> {
                 valueAssignmentSubstitution
             }
-        } else if (isPointerAssignable) {
-            pointerAssignmentSubstitution
-        } else {
-            valueAssignmentSubstitution
+            isRefAssignable -> {
+                refAssignmentSubstitution
+            }
+            else -> requireUnreachable()
         }
 
         return extensionDef.traitRequirements.all { requirement ->
@@ -837,6 +881,8 @@ class Analyzer(
         val thisParamFlags = enclosingFunction.signature.thisParamFlags
         return if (thisParamFlags.isPointer) {
             Type.Ptr(thisType, thisParamFlags.isMutable)
+        } else if (thisParamFlags.isRef) {
+            Type.Ref(thisType, thisParamFlags.isMutable)
         } else {
             thisType
         }

@@ -27,6 +27,7 @@ class HadesTestSuite {
         return files
             .sortedBy { it.name }
             .filter { it.extension == "hds" }
+            .filter { "ref" in it.name }
             .map { file -> DynamicTest.dynamicTest(file.nameWithoutExtension, file.toURI()) {
                 val expectedStdoutFile = Paths.get(
                     directory.toPath().toString(),

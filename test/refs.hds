@@ -10,7 +10,7 @@ def main(): Void {
     val mut box = Box(b"message")
 
     val mut box_ref: ref mut Box[*Byte] = ref mut box
-    val message_ref = ref box.value
+    val message_ref: ref *Byte = ref box.value
     puts(*message_ref)
     print_ref(message_ref)
     puts(box_ref.value)
