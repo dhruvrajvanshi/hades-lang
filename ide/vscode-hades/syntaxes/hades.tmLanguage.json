@@ -153,10 +153,11 @@
 			"end": "[|)]",
 			"patterns": [
 				{
-					"match": "\\b(\\*)?(mut\\s+)?(this)\\b",
+					"match": "\\b(\\*)?(ref\\s+)?(mut\\s+)?(this)\\b",
 					"captures": {
-						"2": { "name": "keyword.control" },
-						"3": { "name": "keyword" }
+						"2": { "name": "keyword" },
+						"3": { "name": "storage.modifier" },
+						"4": { "name": "constant.language" }
 					}
 				},
 				{
@@ -434,7 +435,7 @@
 			"end": "([;\n])",
 			"beginCaptures": {
 				"1": {
-					"name": "keyword"
+					"name": "keyword.other"
 				},
 				"3": {
 					"name": "storage.modifier"
@@ -529,6 +530,9 @@
 		"expressions": {
 			"patterns": [
 				{
+					"include": "#ref-expression"
+				},
+				{
 					"include": "#closure-expression"
 				},
 				{
@@ -564,6 +568,12 @@
 			"match": "\\b(new)\\b",
 			"captures": {
 				"1": {"name": "keyword.control.new"}
+			}
+		},
+		"ref-expression": {
+			"match": "\\b(ref)\\b",
+			"captures": {
+				"1": {"name": "keyword.operator"}
 			}
 		},
 		"boolean-literals": {
