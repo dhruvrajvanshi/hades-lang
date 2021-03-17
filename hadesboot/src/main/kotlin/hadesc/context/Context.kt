@@ -125,9 +125,9 @@ class Context(
 
         visitSourceFile(sourceFile(QualifiedName(), mainPath()))
 
-//        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
-//                makeName("hades"),
-//                makeName("memory")))))
+        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
+                makeName("hades"),
+                makeName("marker")))))
         collectedFiles.values.forEach(action)
     }
 

@@ -17,7 +17,7 @@ def main(): Void {
         } else {
             puts(b"false");
         }
-    }, print_str);
+    }, ref print_str);
 
     puts(b"closure application returned value");
     puts(result);
@@ -28,7 +28,7 @@ def main(): Void {
     puts(apply(false, |value| if (value and capture1) b"true" else b"false"));
 }
 
-def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first: |T1| -> Void, print_second: |T2| -> T2R): T2R {
+def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first: ref |T1| -> Void, print_second: |T2| -> T2R): T2R {
     print_first(first);
     return print_second(second);
 }

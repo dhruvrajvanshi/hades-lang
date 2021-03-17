@@ -41,6 +41,7 @@ data class Token(
         THIS,
         EXTENSION,
         REF,
+        MOVE,
 
         NOT,
         AND,

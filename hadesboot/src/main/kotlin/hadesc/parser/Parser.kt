@@ -95,18 +95,19 @@ class Parser(
     }.toList()
 
     private fun parseDeclaration(): Declaration {
+        val decorators = parseDecorators()
         val decl = when (currentToken.kind) {
             tt.IMPORT -> parseImportDeclaration()
             tt.DEF,
             tt.AT_SYMBOL -> parseDeclarationFunctionDef()
-            tt.STRUCT -> parseStructDeclaration(decorators = listOf())
+            tt.STRUCT -> parseStructDeclaration(decorators = decorators)
             tt.EXTERN -> parseExternFunctionDef()
             tt.CONST -> parseConstDef()
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.EXTENSION -> parseExtensionDef()
             tt.TRAIT -> parseTraitDef()
             tt.IMPLEMENTATION -> parseImplementationDef()
-            tt.SEALED -> parseSealedDef()
+            tt.SEALED -> parseSealedDef(decorators)
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
@@ -115,7 +116,7 @@ class Parser(
         return decl
     }
 
-    private fun parseSealedDef(): Declaration {
+    private fun parseSealedDef(decorators: List<Decorator>): Declaration {
         val start = expect(tt.SEALED)
         expect(tt.TYPE)
         val name = parseBinder()
@@ -130,6 +131,7 @@ class Parser(
         val stop = expect(tt.RBRACE)
         return Declaration.SealedType(
             makeLocation(start, stop),
+            decorators,
             name,
             typeParams,
             cases
@@ -233,7 +235,13 @@ class Parser(
         while (at(tt.AT_SYMBOL)) {
             val start = advance()
             val name = parseIdentifier()
-            add(Decorator(makeLocation(start, name), name))
+            val args = if (at(tt.LPAREN)) {
+                advance()
+                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) { parseIdentifier() }
+                expect(tt.RPAREN)
+                args
+            } else emptyList()
+            add(Decorator(makeLocation(start, name), name, args))
         }
     }
 
@@ -662,7 +670,10 @@ class Parser(
             parsePrimaryExpression()
         } else {
             var currentExpression = parseExpressionMinPrecedence(minPrecedence + 1)
-            while (currentToken.kind in OPERATORS[minPrecedence]) {
+            while (currentToken.kind in OPERATORS[minPrecedence]
+                // operators are only allowed on the same line as the left hand side expression
+                && currentExpression.location.stop.line == currentToken.location.start.line
+            ) {
                 val opToken = advance()
                 currentExpression = makeBinOp(
                         currentExpression,
@@ -826,6 +837,14 @@ class Parser(
             tt.VBAR -> parseClosureExpression()
             tt.WHEN -> parseWhenExpression()
             tt.REF -> parseRefExpression()
+            tt.MOVE -> {
+                val start = advance()
+                val expression = parseExpression()
+                Expression.Move(
+                    makeLocation(start, expression),
+                    expression
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)

@@ -11,6 +11,7 @@ import hadesc.ir.passes.TypeTransformer
 import hadesc.ir.passes.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
@@ -26,6 +27,7 @@ class Analyzer(
 ) {
     private val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
+    val copyTraitName = QualifiedName(listOf(ctx.makeName("hades"), ctx.makeName("marker"), ctx.makeName("Copy")))
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
@@ -829,6 +831,7 @@ class Analyzer(
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.When -> inferWhenExpression(expression)
             is Expression.Ref -> inferRefExpression(expression)
+            is Expression.Move -> inferExpression(expression.expression)
         })
     }
 
@@ -1205,6 +1208,48 @@ class Analyzer(
                         arguments = implementationDef.traitArguments.map { annotationToType(it) },
                         requirements = implementationDef.whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
                 )
+            }
+        } + ctx.resolver.structDefs.mapNotNull { structDef ->
+            val deriveDecorator = structDef.decorators.find { it.name.name == ctx.makeName("Derive") }
+            if (deriveDecorator == null) {
+                null
+            } else {
+                val isCopyDerived = deriveDecorator.args.any { it.name == ctx.makeName("Copy") }
+                if (structDef.typeParams == null && isCopyDerived) {
+                    val instanceType = Type.Constructor(
+                        structDef.binder,
+                        ctx.resolver.qualifiedStructName(structDef)
+                    )
+                    TraitClause.Implementation(
+                        params = emptyList(),
+                        traitRef = copyTraitName,
+                        arguments = listOf(instanceType),
+                        requirements = emptyList()
+                    )
+                } else {
+                    null
+                }
+            }
+        } + ctx.resolver.sealedTypeDefs.mapNotNull { def ->
+            val deriveDecorator = def.decorators.find { it.name.name == ctx.makeName("Derive") }
+            if (deriveDecorator == null) {
+                null
+            } else {
+                val isCopyDerived = deriveDecorator.args.any { it.name == ctx.makeName("Copy") }
+                if (def.typeParams == null && isCopyDerived) {
+                    val instanceType = Type.Constructor(
+                        def.name,
+                        ctx.resolver.qualifiedName(def.name)
+                    )
+                    TraitClause.Implementation(
+                        params = emptyList(),
+                        traitRef = copyTraitName,
+                        arguments = listOf(instanceType),
+                        requirements = emptyList()
+                    )
+                } else {
+                    null
+                }
             }
         }
     }
@@ -1701,6 +1746,12 @@ class Analyzer(
             values,
             types
         )
+    }
+
+    fun isRValue(expression: Expression): Boolean = when(expression) {
+        // FIXME: Filter out more LValue expressions
+        is Expression.Var -> false
+        else -> true
     }
 
 }

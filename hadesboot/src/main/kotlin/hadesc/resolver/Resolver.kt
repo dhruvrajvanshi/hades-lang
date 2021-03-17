@@ -636,6 +636,21 @@ class Resolver(private val ctx: Context) {
         }
     }
 
+    val structDefs by lazy {
+        buildList {
+            ctx.forEachSourceFile {
+                addAll(it.declarations.filterIsInstance<Declaration.Struct>())
+            }
+        }
+    }
+    val sealedTypeDefs by lazy {
+        buildList {
+            ctx.forEachSourceFile {
+                addAll(it.declarations.filterIsInstance<Declaration.SealedType>())
+            }
+        }
+    }
+
     private fun implementationDefsInDeclarations(declarations: List<Declaration>): Sequence<Declaration.ImplementationDef> = sequence {
         for (declaration in declarations) {
             if (declaration is Declaration.ImportAs) {

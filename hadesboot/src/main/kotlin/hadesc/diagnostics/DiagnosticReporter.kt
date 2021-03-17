@@ -97,6 +97,7 @@ data class Diagnostic(
         data class DuplicateValueBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
         object TakingAddressOfClosureDisallowed: Diagnostic.Kind(Severity.ERROR)
         object ReturnTypeMustNotContainClosuresOrRefs : Diagnostic.Kind(Severity.ERROR)
+        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -166,6 +167,7 @@ data class Diagnostic(
             is TraitRequirementNotSatisfied -> "Trait requirement (${requirement.prettyPrint()}) not satisfied."
             TakingAddressOfClosureDisallowed -> "Taking the address of a closure is disallowed."
             ReturnTypeMustNotContainClosuresOrRefs -> "Return types cannot contain closures or refs"
+            is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"
         }
 
     }
