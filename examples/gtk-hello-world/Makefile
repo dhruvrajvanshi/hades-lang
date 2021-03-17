@@ -1,3 +1,4 @@
+HADESBOOT_HOME=../../hadesboot/build/install/hadesboot/
 HDC=${HADESBOOT_HOME}/bin/hadesboot
 
 CC=cc
@@ -21,7 +22,7 @@ C_SOURCES=$(shell find . -name '*.c')
 LIBS=$(shell pkg-config --libs gtk+-3.0)
 
 web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
-	CC=$(CC) $(HDC) \
+	CC=$(CC) HADESBOOT_HOME=$(HADESBOOT_HOME) $(HDC) \
 		--main main.hds \
 		--output $(OUTPUT_NAME) \
 		-g \

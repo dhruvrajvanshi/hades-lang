@@ -1,3 +1,4 @@
+HADESBOOT_HOME=../../hadesboot/build/install/hadesboot/
 HDC=${HADESBOOT_HOME}/bin/hadesboot
 
 CC=cc
@@ -20,7 +21,7 @@ HADESC_FLAGS=-g \
 		--c-sources $(C_SOURCES)
 
 web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
-	CC=$(CC) $(HDC) \
+	CC=$(CC) HADESBOOT_HOME=$(HADESBOOT_HOME) $(HDC) \
 		--main main.hds \
 		--output web-server \
 		$(HADESC_FLAGS)

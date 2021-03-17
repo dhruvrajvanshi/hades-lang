@@ -17,8 +17,8 @@ def debug(text: *Byte): Void {
     log(b"DEBUG", text);
 }
 
-def log_value[T](tag: *Byte, value: T, copy_to_c: *(T) -> *mut Byte): Void {
-    val c_str = copy_to_c(value);
+def log_value[T](tag: *Byte, value: T, copy_to_c: *|T| -> *mut Byte): Void {
+    val c_str = copy_to_c(move value);
     defer mem.free(c_str);
     log(tag, c_str);
 }
