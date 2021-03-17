@@ -1,5 +1,8 @@
 
 import submodule.test_utils as u;
+import hades.marker.{Copy}
+
+implementation Copy[union[Int, Bool]] {}
 
 def main(): Void {
     val x: union[Int, Bool] = cast(1);

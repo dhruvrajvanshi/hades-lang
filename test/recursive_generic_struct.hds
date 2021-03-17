@@ -16,6 +16,6 @@ def main(): Void {
 }
 def allocate_new[T](value: T): *mut T {
     val ptr = memory.allocate[T](1);
-    *ptr = value;
+    *ptr = move value;
     return ptr;
 }

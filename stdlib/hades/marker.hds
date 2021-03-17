@@ -10,5 +10,8 @@ implementation Copy[u32] {}
 implementation Copy[i32] {}
 implementation Copy[u64] {}
 implementation Copy[i64] {}
+implementation Copy[Size] {}
 implementation[T] Copy[*T] {}
+implementation[T] Copy[*mut T] {}
 implementation[T] Copy[ref T] {}
+implementation[T] Copy[ref mut T] {}
