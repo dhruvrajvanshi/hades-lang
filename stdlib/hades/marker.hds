@@ -1,6 +1,7 @@
 
 trait Copy[Self] {}
 implementation Copy[Bool] {}
+implementation Copy[Int] {}
 implementation Copy[u8] {}
 implementation Copy[i8] {}
 implementation Copy[u16] {}
@@ -10,3 +11,4 @@ implementation Copy[i32] {}
 implementation Copy[u64] {}
 implementation Copy[i64] {}
 implementation[T] Copy[*T] {}
+implementation[T] Copy[ref T] {}
