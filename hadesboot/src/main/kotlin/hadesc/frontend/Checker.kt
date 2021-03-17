@@ -445,6 +445,9 @@ class Checker(val ctx: Context) {
         if (ctx.analyzer.isRValue(expression)) {
             return
         }
+        if (expression.type is Type.Function) {
+            return
+        }
         val type = expression.type
         val requirement = TraitRequirement(
             ctx.analyzer.copyTraitName,
