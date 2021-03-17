@@ -1,13 +1,14 @@
+import hades.marker.{Copy}
 
 def main(): Void {
 
 }
 
 def id[T](value: T): T {
-    return id(value);
+    return id(move value);
 }
 
-def s[S](value: S): S {
+def s[S](value: S): S where Copy[S] {
     if false {
         val b: Bool = s(true);
         val x = s[Int](10);

@@ -1,3 +1,2 @@
-test/copy_trait_checking.hds:32: TypeNotCopyable
-test/copy_trait_checking.hds:39: TypeNotCopyable
+test/copy_trait_checking.hds:36: TypeNotCopyable
 test/copy_trait_checking.hds:42: TypeNotCopyable

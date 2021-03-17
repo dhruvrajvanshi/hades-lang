@@ -527,7 +527,7 @@ class Checker(val ctx: Context) {
             is Expression.BoolLiteral -> Unit
             is Expression.NullPtr -> checkNullPtrExpression(expression)
             is Expression.IntLiteral -> Unit
-            is Expression.Not -> TODO()
+            is Expression.Not -> checkNotExpression(expression)
             is Expression.BinaryOperation -> checkBinaryOperation(expression)
             is Expression.PipelineOperator -> checkPipelineOperator(expression)
             is Expression.SizeOf -> checkSizeOf(expression)
@@ -545,6 +545,10 @@ class Checker(val ctx: Context) {
             is Expression.Ref -> checkRefExpression(expression)
             is Expression.Move -> checkMoveExpression(expression)
         })
+    }
+
+    private fun checkNotExpression(expression: Expression.Not) {
+        checkExpressionHasType(expression.expression, Type.Bool)
     }
 
     private fun checkMoveExpression(expression: Expression.Move) {
