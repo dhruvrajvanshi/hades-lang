@@ -9,7 +9,7 @@ def main(): Void {
 }
 
 def id[T](value: T): T {
-    val copy: T = value;
+    val copy: T = move value;
     return copy;
 }
 

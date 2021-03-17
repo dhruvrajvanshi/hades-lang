@@ -12,6 +12,6 @@ def main(): Void {
 
 extension PairConstructionExtensions[T] for T {
     def pair_with[U](this, second: U): Pair[T, U] {
-        return Pair(this, second);
+        return Pair(this, move second);
     }
 }
