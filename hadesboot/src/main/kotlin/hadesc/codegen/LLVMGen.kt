@@ -650,7 +650,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (ctx.options.debugSymbols) {
             commandParts.add("-g")
         } else {
-            commandParts.add("-flto")
+            if (!SystemUtils.IS_OS_WINDOWS) {
+                commandParts.add("-flto")
+            }
             commandParts.add("-O2")
         }
         commandParts.add("-o")
