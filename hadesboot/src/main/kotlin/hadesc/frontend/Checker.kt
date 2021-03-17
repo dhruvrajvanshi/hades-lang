@@ -8,6 +8,7 @@ import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
 import hadesc.location.HasLocation
+import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.types.Type
@@ -16,6 +17,13 @@ import libhades.collections.Stack
 
 class Checker(val ctx: Context) {
     private val returnTypeStack = Stack<Type>()
+    // location at which a given binder location is moved
+    // example:
+    // val x = 4; // line 10
+    // val y = move x; // line 11
+    // moveLocation = mapOf( line 10 to line 11 )
+    private val moveLocationMap = mutableMapOf<SourceLocation, SourceLocation>()
+
     fun checkProgram() {
         ctx.forEachSourceFile { sourceFile ->
             checkSourceFile(sourceFile)
@@ -553,6 +561,23 @@ class Checker(val ctx: Context) {
 
     private fun checkMoveExpression(expression: Expression.Move) {
         checkExpression(expression.expression)
+
+        val binding = if (expression.expression is Expression.Property && expression.expression.lhs is Expression.Var) {
+            ctx.resolver.resolve(expression.expression.lhs.name)
+        } else if (expression.expression is Expression.Var) {
+            ctx.resolver.resolve(expression.expression.name)
+        } else {
+            null
+        }
+        val binder = when (binding) {
+            is Binding.ValBinding -> binding.statement.binder
+            is Binding.FunctionParam -> binding.binder
+            is Binding.ClosureParam -> binding.binder
+            else -> null
+        }
+        if (binder != null) {
+            moveLocationMap[binder.location] = expression.location
+        }
     }
 
     private fun checkRefExpression(expression: Expression.Ref) {
@@ -745,7 +770,22 @@ class Checker(val ctx: Context) {
 
     private fun checkVarExpression(expression: Expression.Var) {
         val resolved = ctx.resolver.resolve(expression.name)
-        if (resolved != null) return
+        if (resolved != null) {
+            val binder = when (resolved) {
+                is Binding.ValBinding -> resolved.statement.binder
+                is Binding.ClosureParam -> resolved.binder
+                is Binding.FunctionParam -> resolved.binder
+                else -> null
+            }
+
+            if (binder != null) {
+                val moveLocation = moveLocationMap[binder.location]
+                if (moveLocation != null && moveLocation.stop.lte(expression.location.start)) {
+                    error(expression, Diagnostic.Kind.UseAfterMove)
+                }
+            }
+            return
+        }
 
         val traitRef = ctx.resolver.resolveTraitDef(expression.name)
         if (traitRef != null) return
