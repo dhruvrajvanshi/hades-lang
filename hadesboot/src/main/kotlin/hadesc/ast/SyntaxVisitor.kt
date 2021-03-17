@@ -76,6 +76,11 @@ interface SyntaxVisitor {
         is Expression.Var -> visitVarExpr(expression)
         is Expression.When -> visitWhenExpr(expression)
         is Expression.Ref -> visitRefExpression(expression)
+        is Expression.Move -> visitMoveExpression(expression)
+    }
+
+    fun visitMoveExpression(expression: Expression.Move) {
+        visitExpression(expression.expression)
     }
 
     fun visitRefExpression(expression: Expression.Ref) {

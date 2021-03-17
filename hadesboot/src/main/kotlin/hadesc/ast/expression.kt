@@ -152,6 +152,11 @@ sealed class Expression : HasLocation {
         val isMutable: Boolean,
         val expression: Expression,
     ) : Expression()
+
+    data class Move(
+        override val location: SourceLocation,
+        val expression: Expression
+    ) : Expression()
 }
 
 sealed class ClosureBody : HasLocation {

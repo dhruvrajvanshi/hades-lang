@@ -124,6 +124,7 @@ sealed class Declaration : HasLocation {
 
     data class SealedType(
         override val location: SourceLocation,
+        val decorators: List<Decorator>,
         val name: Binder,
         val typeParams: List<TypeParam>?,
         val cases: List<Case>

@@ -564,6 +564,7 @@ class HIRGen(
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
         is Expression.Ref -> lowerRefExpression(expression)
+        is Expression.Move -> lowerExpression(expression.expression)
     }
 
     private fun lowerRefExpression(expression: Expression.Ref): HIRExpression {
