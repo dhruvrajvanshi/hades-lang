@@ -1,5 +1,6 @@
 import submodule.test_utils as u;
 import hades.memory as memory;
+
 struct Buffer[T] {
     val m_pointer: *T;
     val m_size: Size;
@@ -16,6 +17,6 @@ def get_ptr[T](self: Buffer[T], index: Size): *T {
 }
 
 def get[T](self: Buffer[T], index: Size): T {
-    return *get_ptr(self, index);
+    return *get_ptr(move self, index);
 }
 

@@ -5,7 +5,7 @@ def main(): Void {
 }
 
 def apply_1[T, U](value: T, fn: |T| -> U): U {
-    return fn(value);
+    return fn(move value);
 }
 
 extern def puts(*Byte): Void = puts;
