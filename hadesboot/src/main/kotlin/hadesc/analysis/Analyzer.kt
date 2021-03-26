@@ -785,11 +785,11 @@ class Analyzer(
     }
 
     private fun isTypeOrderComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.CInt || type is Type.FloatingPoint || type is Type.Size
+        return type is Type.Integral || type is Type.FloatingPoint || type is Type.Size
     }
 
     private fun isTypeEqualityComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.CInt || type is Type.Bool ||
+        return type is Type.Integral || type is Type.Bool ||
                 type is Type.Ptr || type is Type.Size || type is Type.Byte
     }
 
@@ -799,7 +799,6 @@ class Analyzer(
 
     private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
         is Type.Size,
-        is Type.CInt -> true
         is Type.Integral -> true
         is Type.Byte -> true
         else -> false
@@ -832,6 +831,10 @@ class Analyzer(
             is Expression.When -> inferWhenExpression(expression)
             is Expression.Ref -> inferRefExpression(expression)
             is Expression.Move -> inferExpression(expression.expression)
+            is Expression.As -> {
+                inferExpression(expression.lhs)
+                annotationToType(expression.rhs)
+            }
         })
     }
 
@@ -980,7 +983,7 @@ class Analyzer(
         @Suppress("UNUSED_PARAMETER")
         expression: Expression.IntLiteral
     ): Type {
-        return Type.CInt
+        return Type.Integral(32, true)
     }
 
     private fun inferIfExpression(expression: Expression.If): Type {
@@ -1786,14 +1789,6 @@ private class MutableNodeMap<T : HasLocation, V> {
 typealias op = BinaryOperator
 
 val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
-        (op.PLUS to Type.CInt) to (Type.CInt to Type.CInt),
-        (op.MINUS to Type.CInt) to (Type.CInt to Type.CInt),
-        (op.TIMES to Type.CInt) to (Type.CInt to Type.CInt),
-
-        (op.GREATER_THAN_EQUAL to Type.CInt) to (Type.CInt to Type.Bool),
-        (op.LESS_THAN_EQUAL to Type.CInt) to (Type.CInt to Type.Bool),
-        (op.GREATER_THAN to Type.CInt) to (Type.CInt to Type.Bool),
-        (op.LESS_THAN to Type.CInt) to (Type.CInt to Type.Bool),
 
         (op.PLUS to Type.Size) to (Type.Size to Type.Size),
         (op.MINUS to Type.Size) to (Type.Size to Type.Size),
@@ -1808,8 +1803,6 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
         (op.OR to Type.Bool) to (Type.Bool to Type.Bool),
 
 
-        (op.EQUALS to Type.CInt) to (Type.CInt to Type.Bool),
-        (op.NOT_EQUALS to Type.CInt) to (Type.CInt to Type.Bool),
         (op.EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
         (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
         (op.EQUALS to Type.Size) to (Type.Size to Type.Bool),

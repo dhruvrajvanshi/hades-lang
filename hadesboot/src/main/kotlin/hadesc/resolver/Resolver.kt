@@ -54,7 +54,7 @@ class Resolver(private val ctx: Context) {
             }
         }
         val builtinType = when (ident.name.text) {
-            "Int" -> Type.CInt
+            "Int" -> Type.Integral(32, true)
             "Bool" -> Type.Bool
             "Byte" -> Type.Byte
             "Size" -> Type.Size

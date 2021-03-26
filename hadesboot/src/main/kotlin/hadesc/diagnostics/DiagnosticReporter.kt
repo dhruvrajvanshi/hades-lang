@@ -98,6 +98,7 @@ data class Diagnostic(
         object TakingAddressOfClosureDisallowed: Diagnostic.Kind(Severity.ERROR)
         object ReturnTypeMustNotContainClosuresOrRefs : Diagnostic.Kind(Severity.ERROR)
         object UseAfterMove : Diagnostic.Kind(Severity.ERROR)
+        object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
 
         data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
 
@@ -171,6 +172,7 @@ data class Diagnostic(
             ReturnTypeMustNotContainClosuresOrRefs -> "Return types cannot contain closures or refs"
             is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"
             UseAfterMove -> "Use after move"
+            NotAnIntegralValue -> "Not an integral value"
         }
 
     }
@@ -198,7 +200,7 @@ class DiagnosticReporter {
         }
         val severity = colorize(kind.severity.toString(), severityColor, Attribute.BOLD())
         val path = colorize(location.file.path.toString(), Attribute.BOLD())
-        val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD());
+        val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD())
         val coloredKind = colorize(kind.prettyPrint(), Attribute.BOLD())
         printErrLn("${path}:${lineInfo}: ${severity}: $coloredKind")
         printLocationLine(location)

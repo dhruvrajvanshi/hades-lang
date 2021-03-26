@@ -61,3 +61,9 @@ fun B.buildExtractValue(value: Value, index: Int, name: String): Value =
 
 fun B.buildCall(callee: Value, args: List<Value>, name: String?) =
     LLVM.LLVMBuildCall(this, callee, args.asPointerPointer(), args.size, name ?: "")
+
+fun B.buildZExt(value: Value, toType: Type, name: String) =
+    LLVM.LLVMBuildZExt(this, value, toType, name)
+
+fun B.buildTrunc(value: Value, toType: Type, name: String) =
+    LLVM.LLVMBuildTrunc(this, value, toType, name)

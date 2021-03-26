@@ -2,14 +2,8 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.analysis.TypeAnalyzer
-import hadesc.location.HasLocation
-import hadesc.location.SourceLocation
 import hadesc.types.Type
 import hadesc.unit
-import javax.print.attribute.standard.Destination
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
-import kotlin.math.exp
 
 class HIRChecker() {
     private val typeAnalyzer = TypeAnalyzer()
@@ -94,6 +88,7 @@ class HIRChecker() {
         is HIRExpression.UnsafeCast -> TODO()
         is HIRExpression.ValRef -> TODO()
         is HIRExpression.When -> TODO()
+        is HIRExpression.IntegerConvert -> TODO()
     }
 
     private fun checkConstant(expression: HIRExpression.Constant) {

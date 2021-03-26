@@ -11,7 +11,6 @@ interface TypeTransformer {
         Type.Byte -> lowerByteType(type)
         Type.Void -> lowerVoidType(type)
         Type.Bool -> lowerBoolType(type)
-        Type.CInt -> lowerCIntType(type)
         Type.Size -> lowerSizeType(type)
         Type.Double -> lowerDoubleType(type)
         is Type.Ptr -> lowerRawPtrType(type)
@@ -71,8 +70,6 @@ interface TypeTransformer {
 
     fun lowerSizeType(type: Type): Type = type
 
-    fun lowerCIntType(type: Type): Type = type
-
     fun lowerBoolType(type: Type): Type = type
 
     fun lowerTypeConstructor(type: Type.Constructor): Type = Type.Constructor(
@@ -101,7 +98,6 @@ interface TypeVisitor {
         Type.Byte -> visitByteType(type)
         Type.Void -> visitVoidType(type)
         Type.Bool -> visitBoolType(type)
-        Type.CInt -> visitCIntType(type)
         Type.Size -> visitSizeType(type)
         Type.Double -> visitDoubleType(type)
         is Type.Ptr -> visitRawPtrType(type)

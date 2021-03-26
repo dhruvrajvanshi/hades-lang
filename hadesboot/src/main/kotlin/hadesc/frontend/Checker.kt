@@ -552,7 +552,24 @@ class Checker(val ctx: Context) {
             is Expression.When -> checkWhenExpression(expression)
             is Expression.Ref -> checkRefExpression(expression)
             is Expression.Move -> checkMoveExpression(expression)
+            is Expression.As -> checkAsExpression(expression)
         })
+    }
+
+    private fun checkAsExpression(expression: Expression.As) {
+        checkExpression(expression.lhs)
+        checkTypeAnnotation(expression.rhs)
+
+        val lhsType = expression.lhs.type
+
+
+        if (!lhsType.isIntegral()) {
+            error(expression.lhs, Diagnostic.Kind.NotAnIntegralValue)
+        }
+
+        if (!expression.rhs.type.isIntegral()) {
+            error(expression.rhs, Diagnostic.Kind.NotAnIntegralValue)
+        }
     }
 
     private fun checkNotExpression(expression: Expression.Not) {

@@ -8,6 +8,8 @@ import hadesc.ir.*
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import kotlin.math.exp
+import kotlin.math.sign
 
 class IRGen(
         private val ctx: Context
@@ -271,6 +273,32 @@ class IRGen(
         is HIRExpression.When -> requireUnreachable()
         is HIRExpression.Closure -> requireUnreachable()
         is HIRExpression.InvokeClosure -> requireUnreachable()
+        is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
+    }
+
+    private fun lowerIntegerConvert(expression: HIRExpression.IntegerConvert): IRValue {
+        val fromType = expression.value.type
+        require(fromType is Type.Integral)
+        val toType = expression.type
+        return when {
+            toType.size > fromType.size -> {
+                IRZExt(
+                    toType,
+                    expression.location,
+                    lowerExpression(expression.value)
+                )
+            }
+            toType.size < fromType.size -> {
+                IRTruncate(
+                    toType,
+                    expression.location,
+                    lowerExpression(expression.value)
+                )
+            }
+            else -> {
+                lowerExpression(expression.value)
+            }
+        }
     }
 
     private fun lowerUnsafeCast(expression: HIRExpression.UnsafeCast): IRValue {

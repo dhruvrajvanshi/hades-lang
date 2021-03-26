@@ -1,0 +1,9 @@
+import submodule.test_utils.{print_u32}
+
+def main(): Void {
+    val x: u8 = 10
+    val y: u64 = 20
+
+    print_u32(x as u32)
+    print_u32(y as u32)
+}

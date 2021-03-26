@@ -183,6 +183,17 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.When -> transformWhenExpression(expression)
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
+        is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
+    }
+
+    fun transformIntegerConvert(expression: HIRExpression.IntegerConvert): HIRExpression {
+        val type = lowerType(expression.type)
+        require(type is Type.Integral)
+        return HIRExpression.IntegerConvert(
+            expression.location,
+            type,
+            transformExpression(expression.value)
+        )
     }
 
     fun transformInvokeClosure(expression: HIRExpression.InvokeClosure): HIRExpression {

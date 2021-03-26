@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 void print_int(int value) {
+    printf("%d\n", value);
+}
+
+void print_u32(uint32_t value) {
     printf("%d\n", value);
 }
 

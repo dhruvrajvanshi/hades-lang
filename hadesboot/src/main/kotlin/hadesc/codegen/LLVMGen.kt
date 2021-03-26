@@ -112,7 +112,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Byte -> diBuilder.createBasicType("Byte", 8)
         Type.Void -> diBuilder.createBasicType("Void", 0)
         Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
-        Type.CInt -> diBuilder.createBasicType("CInt", sizeInBits)
         is Type.Integral -> diBuilder.createBasicType(
             (if (isSigned) "s" else "u") + sizeInBits,
             sizeInBits
@@ -368,10 +367,28 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRAggregate -> lowerAggregate(value)
             is IRGetElementPointer -> lowerGetElementPointer(value)
             is IRUnsafeCast -> lowerUnsafeCast(value)
+            is IRTruncate -> lowerTruncate(value)
+            is IRZExt -> lowerZExt(value)
         }
         log.debug("Done lowering expression at ${value.location}")
 
         return result
+    }
+
+    private fun lowerZExt(value: IRZExt): Value {
+        return builder.buildZExt(
+            lowerExpression(value.value),
+            lowerType(value.type),
+            ctx.makeUniqueName().text,
+        )
+    }
+
+    private fun lowerTruncate(value: IRTruncate): Value {
+        return builder.buildTrunc(
+            lowerExpression(value.value),
+            lowerType(value.type),
+            ctx.makeUniqueName().text
+        )
     }
 
     private fun lowerGetElementPointer(value: IRGetElementPointer): Value {
@@ -578,7 +595,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.Bool -> boolTy
-        Type.CInt -> cIntTy
         Type.Double -> doubleTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Function -> {

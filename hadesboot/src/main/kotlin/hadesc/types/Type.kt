@@ -10,7 +10,6 @@ sealed class Type {
     object Byte : Type()
     object Void : Type()
     object Bool : Type()
-    object CInt : Type()
     data class Integral(val size: Int, val isSigned: Boolean) : Type()
     data class FloatingPoint(val size: Int) : Type() {
         init {
@@ -59,7 +58,6 @@ sealed class Type {
         Byte -> "Byte"
         Void -> "Void"
         Bool -> "Bool"
-        CInt -> "Int"
         Double -> "Double"
         is Ptr -> {
             if (isMutable)
@@ -82,6 +80,11 @@ sealed class Type {
         is Ref -> "ref ${if (isMutable) "mut " else ""}${to.prettyPrint()}"
     }
 
+    fun isIntegral() = when(this) {
+        is Integral -> true
+        else -> false
+    }
+
     fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
         fun Type.recurse(): Type {
             return applySubstitution(substitution, thisType)
@@ -91,7 +94,6 @@ sealed class Type {
             Error,
             Byte,
             Void,
-            CInt,
             Size,
             Double,
             is Integral,

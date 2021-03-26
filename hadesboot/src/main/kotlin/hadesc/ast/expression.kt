@@ -157,6 +157,12 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val expression: Expression
     ) : Expression()
+
+    data class As(
+        override val location: SourceLocation,
+        val lhs: Expression,
+        val rhs: TypeAnnotation,
+    ) : Expression()
 }
 
 sealed class ClosureBody : HasLocation {

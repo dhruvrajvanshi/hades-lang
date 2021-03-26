@@ -1052,6 +1052,15 @@ class Parser(
                         )
                 )
             }
+            tt.AS -> {
+                advance()
+                val type = parseTypeAnnotation()
+                Expression.As(
+                    makeLocation(head, type),
+                    head,
+                    type,
+                )
+            }
             else -> head
         }
     }

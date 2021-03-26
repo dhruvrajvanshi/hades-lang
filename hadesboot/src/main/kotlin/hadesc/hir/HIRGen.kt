@@ -565,6 +565,17 @@ class HIRGen(
         is Expression.When -> lowerWhenExpression(expression)
         is Expression.Ref -> lowerRefExpression(expression)
         is Expression.Move -> lowerExpression(expression.expression)
+        is Expression.As -> lowerAsExpression(expression)
+    }
+
+    private fun lowerAsExpression(expression: Expression.As): HIRExpression {
+        val type = expression.type
+        require(type is Type.Integral)
+        return HIRExpression.IntegerConvert(
+            expression.location,
+            type,
+            lowerExpression(expression.lhs)
+        )
     }
 
     private fun lowerRefExpression(expression: Expression.Ref): HIRExpression {

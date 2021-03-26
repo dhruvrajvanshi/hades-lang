@@ -27,6 +27,8 @@ sealed class IRValue : HasLocation {
         is IRAggregate -> "${type.prettyPrint()} { ${values.joinToString(", ") {it.prettyPrint()}} }"
         is IRGetElementPointer -> "gep(${ptr.prettyPrint()}, $offset)"
         is IRUnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
+        is IRTruncate -> "truncate ${value.prettyPrint()} to ${type.prettyPrint()}"
+        is IRZExt -> "zext ${value.prettyPrint()} to ${type.prettyPrint()}"
     }
 }
 
@@ -104,5 +106,17 @@ class IRUnsafeCast(
     override val type: Type,
     override val location: SourceLocation,
     val value: IRValue
+) : IRValue()
+
+class IRZExt(
+    override val type: Type,
+    override val location: SourceLocation,
+    val value: IRValue
+) : IRValue()
+
+class IRTruncate(
+    override val type: Type,
+    override val location: SourceLocation,
+    val value: IRValue,
 ) : IRValue()
 
