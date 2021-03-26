@@ -8,6 +8,7 @@ extern def exit(CInt): Void = exit;
 extern def malloc(Size): *mut Void = malloc;
 extern def free(*mut Void): Void = free;
 extern def strlen(*Byte): Size = strlen;
+extern def strcat(*Byte, *Byte): *Byte = strcat;
 extern def strcmp(*Byte, *Byte): CInt = strcmp;
 extern def strcpy(*mut Byte, *Byte): *mut Byte = strcpy;
 extern def memcpy(*Void, *Void, Size): Void = memcpy;
