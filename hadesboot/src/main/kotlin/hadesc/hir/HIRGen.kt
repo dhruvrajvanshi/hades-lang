@@ -47,6 +47,18 @@ class HIRGen(
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
         is Declaration.SealedType -> lowerSealedType(declaration)
+        is Declaration.ExternConst -> lowerExternConstDef(declaration)
+    }
+
+    private fun lowerExternConstDef(declaration: Declaration.ExternConst): List<HIRDefinition> {
+        return listOf(
+            HIRDefinition.ExternConst(
+                declaration.location,
+                lowerGlobalName(declaration.name),
+                lowerTypeAnnotation(declaration.type),
+                declaration.externName.name
+            )
+        )
     }
 
     private fun lowerImplementationDef(declaration: Declaration.ImplementationDef): List<HIRDefinition> {
@@ -1028,6 +1040,11 @@ class HIRGen(
         )
         is Binding.SealedType -> TODO()
         is Binding.WhenArm -> requireUnreachable()
+        is Binding.ExternConst -> HIRExpression.GlobalRef(
+            expression.location,
+            typeOfExpression(expression),
+            lowerGlobalName(binding.declaration.name)
+        )
     }
 
     private fun lowerByteString(expression: Expression.ByteString): HIRExpression {

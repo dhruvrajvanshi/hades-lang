@@ -16,22 +16,6 @@ unsigned char hdc_dirent_is_directory(struct dirent* entry) {
     return S_ISDIR(entry->d_type);
 }
 
-int hdc_get_errno() {
-    return errno;
-}
 void hdc_set_errno(int value) {
     errno = value;
 }
-
-FILE* hdc_stdout() {
-    return stdout;
-}
-
-FILE* hdc_stdin() {
-    return stdin;
-}
-
-FILE* hdc_stderr() {
-    return stderr;
-}
-

@@ -2,7 +2,6 @@ package hadesc.ast
 
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
-import kotlin.math.sign
 
 sealed class Declaration : HasLocation {
     /**
@@ -65,6 +64,13 @@ sealed class Declaration : HasLocation {
         override val startLoc: SourceLocation
             get() = binder.location
     }
+
+    data class ExternConst(
+        override val location: SourceLocation,
+        val name: Binder,
+        val type: TypeAnnotation,
+        val externName: Identifier,
+    ) : Declaration()
 
     data class Struct(
         override val location: SourceLocation,

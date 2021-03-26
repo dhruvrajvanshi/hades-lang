@@ -21,6 +21,18 @@ interface HIRTransformer: TypeTransformer {
         is HIRDefinition.Struct -> transformStructDef(definition)
         is HIRDefinition.Const -> transformConstDef(definition)
         is HIRDefinition.Implementation -> transformImplementationDef(definition)
+        is HIRDefinition.ExternConst -> transformExternConstDef(definition)
+    }
+
+    fun transformExternConstDef(definition: HIRDefinition.ExternConst): Collection<HIRDefinition> {
+        return listOf(
+            HIRDefinition.ExternConst(
+                definition.location,
+                transformGlobalName(definition.name),
+                lowerType(definition.type),
+                definition.externName
+            )
+        )
     }
 
     fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {

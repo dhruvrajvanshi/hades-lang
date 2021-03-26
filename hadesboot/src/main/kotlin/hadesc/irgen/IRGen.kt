@@ -31,6 +31,7 @@ class IRGen(
         is HIRDefinition.Struct -> lowerStructDef(definition)
         is HIRDefinition.Const -> lowerConstDef(definition)
         is HIRDefinition.Implementation -> requireUnreachable()
+        is HIRDefinition.ExternConst -> lowerExternConstDef(definition)
     }
 
     private fun lowerConstDef(definition: HIRDefinition.Const) {
@@ -61,6 +62,15 @@ class IRGen(
                 lowerGlobalName(definition.name),
                 definition.type,
                 definition.externName
+        )
+    }
+
+    private fun lowerExternConstDef(definition: HIRDefinition.ExternConst) {
+        module.addExternConstDef(
+            definition.location,
+            lowerGlobalName(definition.name),
+            definition.type,
+            definition.externName
         )
     }
 

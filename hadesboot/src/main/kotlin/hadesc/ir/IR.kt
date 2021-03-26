@@ -19,6 +19,10 @@ sealed class IRBinding {
             get() = def.type
     }
 
+    class ExternConstDef(val def: IRExternConstDef) : IRBinding() {
+        override val type: Type get() = def.type
+    }
+
     class StructDef(val def: IRStructDef) : IRBinding() {
         override val type: Type
             get() = def.constructorType

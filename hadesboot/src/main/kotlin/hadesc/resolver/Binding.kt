@@ -22,6 +22,12 @@ sealed class Binding {
         override val binder: Binder get() = declaration.binder
     }
 
+    data class ExternConst(
+        val declaration: Declaration.ExternConst
+    ) : Binding() {
+        override val binder: Binder get() = declaration.name
+    }
+
     data class FunctionParam(
             val index: Int,
             val declaration: Declaration.FunctionDef
@@ -73,6 +79,7 @@ sealed class Binding {
         is Struct -> true
         is ValBinding -> false
         is WhenArm -> false
+        is ExternConst -> true
     }
 }
 

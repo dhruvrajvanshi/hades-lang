@@ -22,5 +22,9 @@ fun M.getFunction(name: String): Value? {
     return LLVM.LLVMGetNamedFunction(this, name)
 }
 
+fun M.getNamedGlobal(name: String): Value? {
+    return LLVM.LLVMGetNamedGlobal(this, name)
+}
+
 fun M.addFunction(name: String, type: Type) = LLVM.LLVMAddFunction(this, name, type)
 

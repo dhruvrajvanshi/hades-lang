@@ -1,4 +1,5 @@
 import libc as c;
+import libc.{stdout}
 
 trait Printable[Self] {
     def print(self: Self, file: *c.File): Void;
@@ -33,7 +34,7 @@ struct Box[T] {
 }
 
 def print[T](value: T): Void where Printable[T] {
-    Printable[T].print(move value, c.stdout());
+    Printable[T].print(move value, c.stdout);
 }
 
 def print_alias[T](value: T): Void where Printable[T] {
@@ -43,7 +44,7 @@ def print_alias[T](value: T): Void where Printable[T] {
 def println[T](value: T): Void
     where Printable[T] {
     print(move value);
-    c.fputs(b"\n", c.stdout());
+    c.fputs(b"\n", stdout);
 }
 
 def main(): Void {

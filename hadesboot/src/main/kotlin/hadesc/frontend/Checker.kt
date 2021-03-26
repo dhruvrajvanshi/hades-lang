@@ -49,6 +49,7 @@ class Checker(val ctx: Context) {
         is Declaration.TraitDef -> checkTraitDef(declaration)
         is Declaration.ImplementationDef -> checkImplementationDef(declaration)
         is Declaration.SealedType -> checkSealedTypeDef(declaration)
+        is Declaration.ExternConst -> checkExternConstDef(declaration)
     }
 
     private fun checkSealedTypeDef(declaration: Declaration.SealedType) {
@@ -172,6 +173,11 @@ class Checker(val ctx: Context) {
                 names[signature.name.name] = signature.name
             }
         }
+    }
+
+    private fun checkExternConstDef(declaration: Declaration.ExternConst) {
+        checkTypeAnnotation(declaration.type)
+
     }
 
     private fun checkConstDefinition(declaration: Declaration.ConstDefinition) {

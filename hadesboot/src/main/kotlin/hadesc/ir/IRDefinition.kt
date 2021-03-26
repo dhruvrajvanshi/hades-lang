@@ -31,6 +31,9 @@ sealed class IRDefinition {
             "\n}"
             "implementation ${name.prettyPrint()} : ${interfaceRef.prettyPrint()} for ${forType.prettyPrint()} $body"
         }
+        is IRExternConstDef -> {
+            "extern const ${name.prettyPrint()} : ${type.prettyPrint()} = $externName"
+        }
     }
 }
 
@@ -161,4 +164,12 @@ class IRExternFunctionDef(
         val name: IRGlobalName,
         val type: Type.Function,
         val externName: Name
+) : IRDefinition()
+
+class IRExternConstDef(
+    override val module: IRModule,
+    override val location: SourceLocation,
+    val name: IRGlobalName,
+    val type: Type,
+    val externName: Name,
 ) : IRDefinition()

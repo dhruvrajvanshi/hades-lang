@@ -56,6 +56,13 @@ sealed class HIRDefinition: HasLocation {
         )
     }
 
+    data class ExternConst(
+        override val location: SourceLocation,
+        val name: QualifiedName,
+        val type: Type,
+        val externName: Name,
+    ) : HIRDefinition()
+
     data class Implementation(
             override val location: SourceLocation,
             val traitRequirements: List<TraitRequirement>,
@@ -130,5 +137,6 @@ sealed class HIRDefinition: HasLocation {
                 "{\n" +
                 functions.joinToString("\n") { it.prettyPrint() }.prependIndent("  ") +
                 "\n}"
+        is ExternConst -> "extern const ${name.mangle()}: ${type.prettyPrint()} = $externName"
     }
 }

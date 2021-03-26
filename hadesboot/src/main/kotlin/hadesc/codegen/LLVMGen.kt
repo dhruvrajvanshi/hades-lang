@@ -63,6 +63,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRConstDef -> lowerConstDef(definition)
             is IRInterfaceDef -> TODO()
             is IRImplementationDef -> TODO()
+            is IRExternConstDef -> {}
         }
     }
 
@@ -105,6 +106,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerExternFunctionDef(definition: IRExternFunctionDef) {
         getDeclaration(definition)
+    }
+
+    private fun getExternConstRef(definition: IRExternConstDef): Value {
+        return builder.buildLoad(llvmModule.getNamedGlobal(definition.externName.text)
+            ?: llvmModule.addGlobal(definition.externName.text, lowerType(definition.type)), ctx.makeUniqueName().text)
     }
 
     private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
@@ -491,6 +497,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is IRBinding.ExternFunctionDef -> getDeclaration(binding.def)
         is IRBinding.StructDef -> getStructConstructor(binding.def)
         is IRBinding.ConstDef -> getConstDefValue(binding.def)
+        is IRBinding.ExternConstDef -> getExternConstRef(binding.def)
     }
 
     private fun lowerByteString(expression: IRByteString): Value {

@@ -1,5 +1,6 @@
 // TODO: do something better here. This isn't portable.
 type CInt = i32;
+type int = i32;
 
 extern def puts(*Byte): Void = puts;
 extern def exit(CInt): Void = exit;
@@ -50,15 +51,15 @@ type FileDescriptor = CInt;
 extern def read(FileDescriptor, *mut Void, Size): Size = read;
 extern def write(FileDescriptor, *Void, Size): Size = write;
 
-extern def errno(): CInt = hdc_get_errno;
+extern const errno: int = errno;
 extern def strerror(CInt): *Byte = strerror;
 extern def set_errno(CInt): Void = hdc_set_errno;
 
 extern def open(*Byte, CInt): CInt = open;
 
-extern def stdout(): *File = hdc_stdout;
-extern def stdin(): *File = hdc_stdin;
-extern def stderr(): *File = hdc_stderr;
+extern const stdout: *File = stdout;
+extern const stdin: *File = stdin;
+extern const stderr: *File = stderr;
 
 extern def perror(*Byte): Void = perror;
 

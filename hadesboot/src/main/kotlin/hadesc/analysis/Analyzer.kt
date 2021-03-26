@@ -1034,6 +1034,11 @@ class Analyzer(
         is Binding.ClosureParam -> typeOfClosureParam(binding)
         is Binding.SealedType -> requireUnreachable()
         is Binding.WhenArm -> requireUnreachable()
+        is Binding.ExternConst -> typeOfExternConstBinding(binding)
+    }
+
+    private fun typeOfExternConstBinding(binding: Binding.ExternConst): Type {
+        return annotationToType(binding.declaration.type)
     }
 
     private fun typeOfClosureParam(binding: Binding.ClosureParam): Type {

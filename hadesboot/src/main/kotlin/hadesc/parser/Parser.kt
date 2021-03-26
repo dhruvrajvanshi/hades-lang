@@ -101,7 +101,10 @@ class Parser(
             tt.DEF,
             tt.AT_SYMBOL -> parseDeclarationFunctionDef()
             tt.STRUCT -> parseStructDeclaration(decorators = decorators)
-            tt.EXTERN -> parseExternFunctionDef()
+            tt.EXTERN -> when(tokenBuffer.peek(1).kind) {
+                tt.CONST -> parseExternConstDef()
+                else -> parseExternFunctionDef()
+            }
             tt.CONST -> parseConstDef()
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.EXTENSION -> parseExtensionDef()
@@ -114,6 +117,23 @@ class Parser(
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseExternConstDef(): Declaration {
+        val start = expect(tt.EXTERN)
+        expect(tt.CONST)
+        val name = parseBinder()
+        expect(tt.COLON)
+        val typeAnnotation = parseTypeAnnotation()
+        expect(tt.EQ)
+        val externName = parseIdentifier()
+        expect(tt.SEMICOLON)
+        return Declaration.ExternConst(
+            makeLocation(start, externName),
+            name,
+            typeAnnotation,
+            externName,
+        )
     }
 
     private fun parseSealedDef(decorators: List<Decorator>): Declaration {

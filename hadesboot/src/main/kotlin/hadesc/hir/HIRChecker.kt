@@ -18,7 +18,9 @@ class HIRChecker() {
         is HIRDefinition.Function -> checkFunctionDef(definition)
         is HIRDefinition.Implementation -> TODO()
         is HIRDefinition.Struct -> checkStructDef(definition)
+        is HIRDefinition.ExternConst -> TODO()
     }
+
 
     private fun checkStructDef(definition: HIRDefinition.Struct) {
         definition.fields.forEach { checkType(it.second) }

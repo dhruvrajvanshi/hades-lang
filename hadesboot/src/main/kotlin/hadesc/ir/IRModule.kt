@@ -22,6 +22,12 @@ class IRModule {
         return value
     }
 
+    fun addExternConstDef(location: SourceLocation, name: IRGlobalName, type: Type, externName: Name): IRExternConstDef {
+        val value = IRExternConstDef(this, location, name, type, externName = externName)
+        add(value)
+        return value
+    }
+
     fun addConstDef(
             location: SourceLocation,
             name: IRGlobalName,
@@ -85,6 +91,7 @@ class IRModule {
             is IRConstDef -> globals[def.name.name] = IRBinding.ConstDef(def)
             is IRInterfaceDef -> TODO()
             is IRImplementationDef -> TODO()
+            is IRExternConstDef -> globals[def.name.name] = IRBinding.ExternConstDef(def)
         }
     }
 

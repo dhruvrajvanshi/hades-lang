@@ -271,6 +271,13 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
+                is Declaration.ExternConst -> {
+                    if (declaration.name.identifier.name == name) {
+                        Binding.ExternConst(declaration)
+                    } else {
+                        null
+                    }
+                }
                 is Declaration.TypeAlias -> null
                 is Declaration.ExtensionDef -> null
                 is Declaration.TraitDef -> null
@@ -473,6 +480,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ImplementationDef -> false
                 is Declaration.ImportMembers -> false
                 is Declaration.SealedType -> decl.name.identifier.name == declName
+                is Declaration.ExternConst -> decl.name.identifier.name == declName
             })
             if (match) {
                 return decl
@@ -510,6 +518,11 @@ class Resolver(private val ctx: Context) {
                     declaration
                 } else null
                 is Declaration.ConstDefinition -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else {
+                    null
+                }
+                is Declaration.ExternConst -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
                     null
