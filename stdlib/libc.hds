@@ -1,6 +1,7 @@
 // TODO: do something better here. This isn't portable.
 type CInt = i32;
 type int = i32;
+type long = i64
 
 extern def puts(*Byte): Void = puts;
 extern def exit(CInt): Void = exit;
@@ -70,5 +71,17 @@ struct socklen_t {}
 extern def accept(CInt, *mut sockaddr, *mut socklen_t): CInt = accept;
 extern def close(CInt): CInt = close;
 
+
+const EOF: int = -1
+
+const SEEK_SET: int = 0
+const SEEK_CUR: int = 1
+const SEEK_END: int = 2
+
+/// fseek(file, offset, whence)
+/// whence should be SEEK_SET or SEEK_CUR or SEEK_END
+extern def fseek(*File, long, int): Void = fseek
+
+extern def ftell(*File): long = ftell
 
 
