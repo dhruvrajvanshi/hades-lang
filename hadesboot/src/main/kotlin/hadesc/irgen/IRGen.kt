@@ -278,17 +278,31 @@ class IRGen(
 
     private fun lowerIntegerConvert(expression: HIRExpression.IntegerConvert): IRValue {
         val fromType = expression.value.type
-        require(fromType is Type.Integral)
+        require(fromType is Type.Integral || fromType is Type.Size)
         val toType = expression.type
+        require(toType is Type.Integral || toType is Type.Size)
+
+        val fromSize = when (fromType) {
+            is Type.Integral -> fromType.size
+            is Type.Size -> sizeOfSizeInBits()
+            else -> requireUnreachable()
+        }
+
+        val toSize = when (toType) {
+            is Type.Integral -> toType.size
+            is Type.Size -> sizeOfSizeInBits()
+            else -> requireUnreachable()
+        }
+
         return when {
-            toType.size > fromType.size -> {
+            toSize > fromSize -> {
                 IRZExt(
                     toType,
                     expression.location,
                     lowerExpression(expression.value)
                 )
             }
-            toType.size < fromType.size -> {
+            toSize < fromSize -> {
                 IRTruncate(
                     toType,
                     expression.location,
@@ -300,6 +314,8 @@ class IRGen(
             }
         }
     }
+
+    private fun sizeOfSizeInBits(): Int = 64
 
     private fun lowerUnsafeCast(expression: HIRExpression.UnsafeCast): IRValue {
         return IRUnsafeCast(

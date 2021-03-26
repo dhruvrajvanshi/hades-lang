@@ -570,7 +570,7 @@ class HIRGen(
 
     private fun lowerAsExpression(expression: Expression.As): HIRExpression {
         val type = expression.type
-        require(type is Type.Integral)
+        require(type is Type.Integral || type is Type.Size)
         return HIRExpression.IntegerConvert(
             expression.location,
             type,

@@ -82,6 +82,7 @@ sealed class Type {
 
     fun isIntegral() = when(this) {
         is Integral -> true
+        is Size -> true
         else -> false
     }
 

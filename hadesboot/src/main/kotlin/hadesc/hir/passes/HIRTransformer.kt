@@ -188,7 +188,7 @@ interface HIRTransformer: TypeTransformer {
 
     fun transformIntegerConvert(expression: HIRExpression.IntegerConvert): HIRExpression {
         val type = lowerType(expression.type)
-        require(type is Type.Integral)
+        require(type is Type.Integral || type is Type.Size)
         return HIRExpression.IntegerConvert(
             expression.location,
             type,

@@ -175,7 +175,7 @@ sealed class HIRExpression: HIRNode {
 
     data class IntegerConvert(
         override val location: SourceLocation,
-        override val type: Type.Integral,
+        override val type: Type,
         val value: HIRExpression,
     ) : HIRExpression()
 
