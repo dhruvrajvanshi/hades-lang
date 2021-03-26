@@ -530,6 +530,12 @@
 		"expressions": {
 			"patterns": [
 				{
+					"match": "\\b(as)\\b",
+					"captures": {
+						"1": {"name": "keyword"}
+					}
+				},
+				{
 					"include": "#ref-expression"
 				},
 				{
