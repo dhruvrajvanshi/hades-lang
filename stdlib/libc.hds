@@ -84,4 +84,7 @@ extern def fseek(*File, long, int): Void = fseek
 
 extern def ftell(*File): long = ftell
 
+/// fopen(file, mode)
+extern def fopen(*Byte, *Byte): Void = fopen
+
 
