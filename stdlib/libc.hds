@@ -53,7 +53,7 @@ type FileDescriptor = CInt;
 extern def read(FileDescriptor, *mut Void, Size): Size = read;
 extern def write(FileDescriptor, *Void, Size): Size = write;
 
-extern const errno: int = errno;
+extern def errno(): int = hdc_errno;
 extern def strerror(CInt): *Byte = strerror;
 extern def set_errno(CInt): Void = hdc_set_errno;
 

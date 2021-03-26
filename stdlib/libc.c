@@ -19,3 +19,8 @@ unsigned char hdc_dirent_is_directory(struct dirent* entry) {
 void hdc_set_errno(int value) {
     errno = value;
 }
+
+
+int hdc_errno() {
+    return errno;
+}
