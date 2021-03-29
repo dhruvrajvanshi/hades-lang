@@ -1,0 +1,18 @@
+extern def puts(*Byte): Void = puts
+
+def main(): Void {
+    a || {
+        puts(b"outer")
+        b || {
+            puts(b"inner")
+        }
+    }
+}
+
+def a(fn: || -> Void): Void {
+    fn()
+}
+
+def b(fn: || -> Void): Void {
+    fn()
+}

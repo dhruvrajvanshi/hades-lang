@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.analysis.ClosureCaptures
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -9,12 +10,15 @@ import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.ir.passes.TypeTransformer
+import hadesc.ir.passes.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
+import hadesc.resolver.TypeBinding
 import hadesc.types.Type
+import hadesc.unit
 import libhades.collections.Stack
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -864,7 +868,11 @@ class HIRGen(
                 trueBlock,
                 falseBlock
         ))
-        return HIRExpression.ValRef(expression.location, typeOfExpression(expression), name)
+        return HIRExpression.ValRef(
+            expression.location,
+            typeOfExpression(expression),
+            name,
+        )
     }
 
     private fun lowerNullPtr(expression: Expression.NullPtr): HIRExpression {
@@ -924,7 +932,7 @@ class HIRGen(
             HIRExpression.ValRef(
                 expression.lhs.location,
                 caseType(binding),
-                binding.name.name
+                binding.name.name,
             ),
             binding.propertyName.name,
             binding.propertyIndex + 1, // 0th field is tag
