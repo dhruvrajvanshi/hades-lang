@@ -342,9 +342,9 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         )
 
         captureStack.push(expression.captures.values.entries.mapIndexed { index, it ->
-            it.key.name to CaptureInfo(contextDerefname, contextType, index)
+            it.key.name to CaptureInfo(contextDerefname, contextType, it.key.location, index)
         }.toMap())
-        val statements = listOf(
+        val statements = mutableListOf(
             ValDeclaration(expression.location, name = contextDerefname, isMutable = true, type = contextType),
             Assignment(
                 expression.location,
@@ -356,12 +356,17 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                         expression.location,
                         Type.Ptr(contextType, isMutable = false),
                         contextParamName)))
-        ) + expression.body.statements.flatMap { transformStatement(it) } + (
+        )
+        val oldBlockStatements = currentBlockStatements
+        currentBlockStatements = statements
+        val nestedStatements = expression.body.statements.flatMap { transformStatement(it) } + (
                 if (type.to is Type.Void)
                     listOf(ReturnVoid(expression.location))
                 else
                     emptyList()
-            )
+                )
+        statements.addAll(nestedStatements)
+        currentBlockStatements = oldBlockStatements
         captureStack.pop()
         val body = HIRBlock(expression.body.location, statements)
         val fn = HIRDefinition.Function(
@@ -425,5 +430,6 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
 private data class CaptureInfo(
     val contextName: Name,
     val contextType: Type,
+    val declarationLocation: SourceLocation,
     val index: Int,
 )
