@@ -1719,11 +1719,50 @@ class Analyzer(
                         types.add(type.name)
                     }
                 }
-            }
-            override fun visitExpression(expression: Expression) {
-                super.visitExpression(expression)
 
-                typeVisitor.visitType(reduceGenericInstances(typeOfExpression(expression)))
+                override fun visitTypeApplication(type: Type.Application) {
+                    if (type.callee is Type.TypeFunction) {
+                        val subst = type.callee.params.zip(type.args).map {
+                            it.first.binder.location to it.second
+                        }.toMap()
+                        visitType(
+                            type.callee.body.applySubstitution(subst)
+                        )
+                    }
+                    else
+                        super.visitTypeApplication(type)
+                }
+            }
+
+
+            override fun visitExpression(expression: Expression) {
+                val type = reduceGenericInstances(typeOfExpression(expression))
+
+                val typeArgs = when (expression) {
+                    is Expression.Call -> {
+                        expression.args.forEach {
+                            visitExpression(it.expression)
+                        }
+                        getTypeArgs(expression.callee)
+
+                    }
+                    is Expression.TypeApplication -> {
+                        expression.args.map { annotationToType(it) }
+                    }
+                    else -> {
+                        super.visitExpression(expression)
+                        null
+                    }
+                }
+                if (type is Type.TypeFunction && typeArgs != null) {
+                    val subst = type.params.zip(typeArgs).map {
+                        it.first.binder.location to it.second
+                    }.toMap()
+                    typeVisitor.visitType(type.body.applySubstitution(subst))
+                } else {
+                    typeVisitor.visitType(type)
+                }
+
             }
 
             override fun visitType(type: TypeAnnotation) {
