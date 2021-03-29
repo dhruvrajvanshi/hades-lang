@@ -1,0 +1,17 @@
+import hades.assert.{assert}
+import hades.test.{describe, it}
+import hades.collections.array.{Array, new_array}
+import libc.{puts, strcmp}
+
+def main(): Void {
+    describe (b"Array") || {
+        it (b"should allow insertion of elements") || {
+            val mut _array = new_array[*Byte](2)
+            val array = &mut _array
+            array.set(0, b"Hello")
+            array.set(1, b"World")
+            assert(0 == strcmp(*array.get(0), b"Hello"), b"Expected first element to be equal")
+            assert(0 == strcmp(*array.get(1), b"World"), b"Expected second element to be equal")
+        }
+    }
+}
