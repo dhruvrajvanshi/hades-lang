@@ -330,7 +330,11 @@ class Checker(val ctx: Context) {
             error(node, Diagnostic.Kind.ReturnTypeMustNotContainClosuresOrRefs)
         }
         is Type.GenericInstance -> requireUnreachable()
-        is Type.UntaggedUnion -> TODO()
+        is Type.UntaggedUnion -> {
+            type.members.forEach {
+                checkReturnTypeWorker(node, it)
+            }
+        }
         else -> unit
     }
 
