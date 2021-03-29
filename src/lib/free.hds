@@ -1,4 +1,0 @@
-
-interface Free {
-    def free(this: This): Void;
-}
