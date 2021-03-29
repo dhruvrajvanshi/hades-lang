@@ -180,11 +180,11 @@ class Analyzer(
         val withArgs = if (case.params == null) {
             instanceType
         } else {
-            Type.Function(
+            Type.Ptr(Type.Function(
                 from = case.params.map { if (it.annotation != null) annotationToType(it.annotation) else Type.Error },
                 to = instanceType,
                 traitRequirements = null
-            )
+            ), false)
         }
         return if (declaration.typeParams == null) {
             withArgs
