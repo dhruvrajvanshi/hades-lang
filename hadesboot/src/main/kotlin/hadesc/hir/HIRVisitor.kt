@@ -1,9 +1,9 @@
 package hadesc.hir
 
-import hadesc.types.Type
+import hadesc.ir.passes.TypeVisitor
 import hadesc.unit
 
-interface HIRVisitor {
+interface HIRVisitor : TypeVisitor {
     fun visitBlock(block: HIRBlock) {
         block.statements.forEach {
             visitStatement(it)
@@ -32,47 +32,6 @@ interface HIRVisitor {
         visitType(statement.type)
     }
 
-    fun visitType(type: Type) = when(type) {
-        is Type.Application -> unit
-        Type.Bool -> unit
-        Type.Byte -> unit
-        is Type.Constructor -> unit
-        Type.Double -> unit
-        Type.Error -> unit
-        is Type.FloatingPoint -> unit
-        is Type.Function -> visitFunctionType(type)
-        is Type.GenericInstance -> unit
-        is Type.Integral -> unit
-        is Type.ParamRef -> unit
-        is Type.Ptr -> visitPointerType(type)
-        is Type.Ref -> visitRefType(type)
-        Type.Size -> unit
-        is Type.TypeFunction -> visitTypeFunction(type)
-        is Type.Uninferrable -> unit
-        is Type.UntaggedUnion -> visitUntaggedUnion(type)
-        Type.Void -> unit
-    }
-
-    fun visitUntaggedUnion(type: Type.UntaggedUnion) {
-        type.members.forEach { visitType(it) }
-    }
-
-    fun visitTypeFunction(type: Type.TypeFunction) {
-        visitType(type.body)
-    }
-
-    fun visitRefType(type: Type.Ref) {
-        visitType(type.to)
-    }
-
-    fun visitPointerType(type: Type.Ptr) {
-        visitType(type.to)
-    }
-
-    fun visitFunctionType(type: Type.Function) {
-        type.from.forEach { visitType(it) }
-        visitType(type.to)
-    }
 
     fun visitStore(statement: HIRStatement.Store) {
         visitExpression(statement.ptr)
