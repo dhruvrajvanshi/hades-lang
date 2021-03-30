@@ -57,6 +57,11 @@ class Checker(val ctx: Context) {
         checkTopLevelTypeBinding(declaration.name)
         val caseNames = mutableSetOf<Name>()
         declaration.cases.forEach { case ->
+            case.params?.forEach {
+                if (it.annotation != null) {
+                    checkTypeAnnotation(it.annotation)
+                }
+            }
             if (case.name.name in caseNames) {
                 error(case.name, Diagnostic.Kind.DuplicateVariantName)
             } else {
