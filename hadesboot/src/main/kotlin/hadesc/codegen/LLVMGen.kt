@@ -114,7 +114,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
-        Type.Error -> requireUnreachable()
+        is Type.Error -> requireUnreachable { "${this.location}" }
         Type.Byte -> diBuilder.createBasicType("Byte", 8)
         Type.Void -> diBuilder.createBasicType("Void", 0)
         Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
@@ -598,7 +598,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val structTypes = mutableMapOf<QualifiedName, llvm.Type>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
-        Type.Error -> requireUnreachable()
+        is Type.Error -> requireUnreachable { "${type.location}" }
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.Bool -> boolTy

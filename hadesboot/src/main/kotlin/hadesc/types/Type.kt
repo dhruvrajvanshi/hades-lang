@@ -6,7 +6,7 @@ import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
 sealed class Type {
-    object Error : Type()
+    data class Error(val location: SourceLocation) : Type()
     object Byte : Type()
     object Void : Type()
     object Bool : Type()
@@ -54,7 +54,7 @@ sealed class Type {
 
 
     fun prettyPrint(): String = when (this) {
-        Error -> "<ErrorType>"
+        is Error -> "Error<$location>"
         Byte -> "Byte"
         Void -> "Void"
         Bool -> "Bool"
@@ -92,7 +92,7 @@ sealed class Type {
         }
         return when (this) {
             is GenericInstance,
-            Error,
+            is Error,
             Byte,
             Void,
             Size,

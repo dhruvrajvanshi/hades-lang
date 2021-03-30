@@ -114,8 +114,8 @@ class Checker(val ctx: Context) {
             .toMap()
         for (method in signatures) {
             val paramTypes = method.params
-                .map { it.annotation }
-                .map { it?.type ?: Type.Error }
+                .map { it.annotation to it.location }
+                .map { (it, location) -> it?.type ?: Type.Error(location) }
                 .map { it.applySubstitution(substitution) }
             val returnType = method.returnType.type.applySubstitution(substitution)
             val fnType = Type.Function(
@@ -852,7 +852,7 @@ class Checker(val ctx: Context) {
         val calleeType = ctx.analyzer.getCalleeType(callExpression)
         val fnTypeComponents = ctx.analyzer.getFunctionTypeComponents(calleeType)
         if (fnTypeComponents == null) {
-            if (calleeType != Type.Error) {
+            if (calleeType !is Type.Error) {
                 error(callee, Diagnostic.Kind.TypeNotCallable(calleeType))
             }
             return
