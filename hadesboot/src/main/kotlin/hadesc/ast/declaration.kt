@@ -119,6 +119,11 @@ sealed class Declaration : HasLocation {
         val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
         fun findMethodSignature(methodName: Identifier): FunctionSignature? =
             signatures.find { it.name.identifier.name == methodName.name }
+
+        fun hasAssociatedType(name: Identifier): Boolean {
+            return members.filterIsInstance<TraitMember.AssociatedType>()
+                .any { it.binder.identifier.name == name.name }
+        }
     }
 
     sealed class TraitMember: HasLocation {

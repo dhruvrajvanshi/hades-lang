@@ -25,6 +25,11 @@ interface TypeTransformer {
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.Uninferrable -> requireUnreachable()
         is Type.Ref -> lowerRefType(type)
+        is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
+    }
+
+    fun lowerAssociatedTypeRef(type: Type.AssociatedTypeRef): Type {
+        return type
     }
 
     fun lowerRefType(type: Type.Ref): Type {
@@ -112,7 +117,10 @@ interface TypeVisitor {
         is Type.FloatingPoint -> visitFloatingPointType(type)
         is Type.Uninferrable -> visitUninferrableType(type)
         is Type.Ref -> visitRefType(type)
+        is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
     }
+
+    fun visitAssociatedTypeRef(type: Type.AssociatedTypeRef) = unit
 
     fun visitRefType(type: Type.Ref) {
         visitType(type.to)

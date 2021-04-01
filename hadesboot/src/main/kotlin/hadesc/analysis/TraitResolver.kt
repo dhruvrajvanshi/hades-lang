@@ -4,57 +4,67 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Substitution
 import hadesc.types.Type
 
-class TraitResolver(private val env: Env, private val typeAnalyzer: TypeAnalyzer) {
-    data class Env(val clauses: List<TraitClause>) {
-        constructor(vararg clauses: TraitClause): this(listOf(*clauses)) {
+class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: TypeAnalyzer) {
+    data class Env<Def>(val clauses: List<TraitClause<Def>>) {
+        constructor(vararg clauses: TraitClause<Def>): this(listOf(*clauses)) {
         }
+    }
+
+    fun getImplementationClauseAndSubstitution(traitRef: QualifiedName, arguments: List<Type>): Pair<TraitClause<Def>, Substitution>? {
+        for (clause in env.clauses) {
+            val subst = getImplementationSubstitution(traitRef, arguments, clause)
+            if (subst != null) {
+                return clause to subst
+            }
+        }
+        return null
+    }
+
+    private fun isTraitImplementedByClause(traitRef: QualifiedName, arguments: List<Type>, clause: TraitClause<Def>): Boolean {
+        return getImplementationSubstitution(traitRef, arguments, clause) != null
     }
 
     fun isTraitImplemented(traitRef: QualifiedName, arguments: List<Type>): Boolean {
-        for (clause in env.clauses) {
-            if (isTraitImplementedByClause(traitRef, arguments, clause)) {
-                return true
-            }
-        }
-        return false
+        return getImplementationClauseAndSubstitution(traitRef, arguments) != null
     }
 
-    private fun isTraitImplementedByClause(traitRef: QualifiedName, arguments: List<Type>, clause: TraitClause): Boolean {
+
+    private fun getImplementationSubstitution(traitRef: QualifiedName, arguments: List<Type>, clause: TraitClause<Def>): Substitution? {
         return when (clause) {
             is TraitClause.Implementation -> {
                 if (traitRef != clause.traitRef) {
-                    return false
+                    return null
                 }
                 if (clause.arguments.size != arguments.size) {
-                    return false
+                    return null
                 }
                 val substitution = typeAnalyzer.makeParamSubstitution(clause.params)
                 for ((implType, requiredType) in clause.arguments.zip(arguments)) {
                     val implInstantiation = implType.applySubstitution(substitution)
                     if (!(implInstantiation isAssignableTo requiredType)) {
-                        return false
+                        return null
                     }
                 }
                 for (requirement in clause.requirements) {
                     if (!requirement.isSatisfied(substitution)) {
-                        return false
+                        return null
                     }
                 }
-                true
+                substitution
             }
             is TraitClause.Requirement -> {
                 if (clause.requirement.traitRef != traitRef) {
-                    return false
+                    return null
                 }
                 if (clause.requirement.arguments.size != arguments.size) {
-                    return false
+                    return null
                 }
                 for ((clauseArg, arg) in clause.requirement.arguments.zip(arguments)) {
                     if (!(clauseArg isAssignableTo arg)) {
-                        return false
+                        return null
                     }
                 }
-                true
+                emptyMap()
             }
         }
     }
@@ -69,13 +79,14 @@ class TraitResolver(private val env: Env, private val typeAnalyzer: TypeAnalyzer
 
 }
 
-sealed class TraitClause {
-    data class Implementation(
+sealed class TraitClause<Def> {
+    data class Implementation<Def>(
             val params: List<Type.Param>,
             val traitRef: QualifiedName,
             val arguments: List<Type>,
-            val requirements: List<TraitRequirement>
-    ): TraitClause() {
+            val requirements: List<TraitRequirement>,
+            val def: Def? = null,
+    ): TraitClause<Def>() {
         override fun toString(): String {
             return "implementation [${params.joinToString(", ") { it.prettyPrint() } }] : ${traitRef.mangle()}" +
                     "[${arguments.joinToString(", ") { it.prettyPrint() } }] " +
@@ -83,7 +94,7 @@ sealed class TraitClause {
         }
     }
 
-    data class Requirement(val requirement: TraitRequirement): TraitClause()
+    data class Requirement<Def>(val requirement: TraitRequirement): TraitClause<Def>()
 
 }
 

@@ -89,20 +89,38 @@ class Checker(val ctx: Context) {
         val expectedMethods = if (traitDef is Declaration.TraitDef) {
             traitDef.expectedMethods(implDef.traitArguments.map { it.type })
         } else emptyMap()
+        val expectedAssociatedTypes = if (traitDef is Declaration.TraitDef) {
+            traitDef.expectedAssociatedTypes()
+        } else {
+            emptyMap()
+        }
         val foundMethods = mutableSetOf<Name>()
+        val foundAssociatedTypes = mutableSetOf<Name>()
+        val associatedTypeSubstitution =
+            implDef.body.filterIsInstance<Declaration.TypeAlias>()
+                .map {
+                    requireNotNull(expectedAssociatedTypes[it.name.name]).location to ctx.analyzer.annotationToType(it.rhs)
+                }
+                .toMap()
+
         for (declaration in implDef.body) {
             checkDeclaration(declaration)
-            if (declaration !is Declaration.FunctionDef) {
-                error(declaration, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideImplDefs)
-            } else {
+            if (declaration is Declaration.FunctionDef) {
                 foundMethods.add(declaration.name.identifier.name)
                 val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
                 require(typeOfMethod is Type.Ptr)
                 val actualType = typeOfMethod.to
-                val expectedType = expectedMethods[declaration.name.identifier.name]
+                val expectedType = expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
                 if (expectedType != null && !actualType.isAssignableTo(expectedType)) {
-                    error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(expected = expectedType, found = actualType))
+                    error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(
+                        expected = expectedType, found = actualType))
                 }
+            } else if (declaration is Declaration.TypeAlias) {
+                foundAssociatedTypes.add(declaration.name.name)
+                checkTypeAnnotation(declaration.rhs)
+                require(declaration.typeParams == null)
+            } else {
+                error(declaration.startLoc, Diagnostic.Kind.OnlyFunctionDefsAndTypeAliasesAllowedInImplementationDefs)
             }
         }
 
@@ -111,7 +129,19 @@ class Checker(val ctx: Context) {
                 error(implDef.traitRef, Diagnostic.Kind.MissingImplMethod(name))
             }
         }
+
+        for (name in expectedAssociatedTypes.keys) {
+            if (name !in foundAssociatedTypes) {
+                error(implDef.traitRef, Diagnostic.Kind.MissingAssociatedType(name))
+            }
+        }
     }
+
+    private fun Declaration.TraitDef.expectedAssociatedTypes(): Map<Name, Binder> =
+        members.filterIsInstance<Declaration.TraitMember.AssociatedType>()
+            .map { it.binder.identifier.name to it.binder }
+            .toMap()
+
     private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
         val map = mutableMapOf<Name, Type>()
         val substitution = params.zip(typeArguments)
@@ -282,7 +312,22 @@ class Checker(val ctx: Context) {
         is TypeAnnotation.Ref -> {
             checkTypeAnnotation(annotation.to)
         }
-        is TypeAnnotation.Select -> TODO()
+        is TypeAnnotation.Select -> {
+            checkSelectTypeAnnotation(annotation)
+        }
+    }
+
+    private fun checkSelectTypeAnnotation(annotation: TypeAnnotation.Select) {
+        val traitRequirement = ctx.analyzer.asTraitRequirement(annotation.lhs)
+        if (traitRequirement == null) {
+            error(annotation.lhs, Diagnostic.Kind.NotATrait)
+            return
+        }
+        val traitDecl = ctx.analyzer.getTraitDef(traitRequirement)
+        require(traitDecl is Declaration.TraitDef) // otherwise asTraitRequirement would be null
+        if (!traitDecl.hasAssociatedType(annotation.rhs)) {
+            error(annotation.rhs, Diagnostic.Kind.NoSuchAssociatedType(annotation.rhs.name))
+        }
     }
 
     private fun checkReturnType(node: HasLocation, type:Type) {

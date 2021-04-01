@@ -239,6 +239,7 @@ class Monomorphization(
     private val globalTraitClauses by lazy {
         allImpls.map { impl ->
             TraitClause.Implementation(
+                def = impl,
                 params = impl.typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
                 traitRef = impl.traitName,
                 arguments = impl.traitArgs,

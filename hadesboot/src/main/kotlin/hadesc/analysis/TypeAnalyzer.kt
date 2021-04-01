@@ -36,6 +36,9 @@ class TypeAnalyzer {
                     true
                 }
             }
+            source is Type.AssociatedTypeRef && destination is Type.AssociatedTypeRef -> {
+                source.binder.location == destination.binder.location
+            }
             destination is Type.Application && source is Type.Application -> {
                 isTypeAssignableTo(source.callee, destination.callee)
                         && source.args.size == destination.args.size

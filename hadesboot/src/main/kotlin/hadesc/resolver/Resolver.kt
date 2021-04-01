@@ -129,14 +129,30 @@ class Resolver(private val ctx: Context) {
             if (scopeNode.declaration.name.identifier.name == ident.name) {
                 TypeBinding.Trait(scopeNode.declaration)
             }
-            scopeNode.declaration.params.find {
-                it.binder.identifier.name == ident.name
-            }?.let { TypeBinding.TypeParam(it.binder) }
+
+            val associatedType = scopeNode.declaration.members.filterIsInstance<Declaration.TraitMember.AssociatedType>()
+                .find { it.binder.name == ident.name }
+            if (associatedType != null) {
+                TypeBinding.AssociatedType(associatedType.binder)
+            } else {
+                scopeNode.declaration.params.find {
+                    it.binder.identifier.name == ident.name
+                }?.let { TypeBinding.TypeParam(it.binder) }
+            }
+
         }
         is ScopeTree.ImplementationDef -> {
-            scopeNode.declaration.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }?.let { TypeBinding.TypeParam(it.binder) }
+            val aliasDef = scopeNode.declaration.body.filterIsInstance<Declaration.TypeAlias>().find {
+                it.name.name == ident.name
+            }
+            if (aliasDef != null) {
+                TypeBinding.TypeAlias(aliasDef)
+            } else {
+                scopeNode.declaration.typeParams?.find {
+                    it.binder.identifier.name == ident.name
+                }?.let { TypeBinding.TypeParam(it.binder) }
+            }
+
         }
         is ScopeTree.Closure -> null
         is ScopeTree.WhenArm -> null
