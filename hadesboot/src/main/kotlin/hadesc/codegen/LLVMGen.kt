@@ -143,6 +143,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.UntaggedUnion -> TODO()
         is Type.Uninferrable -> requireUnreachable()
         is Type.Ref -> requireUnreachable()
+        is Type.AssociatedTypeRef -> requireUnreachable()
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
@@ -598,7 +599,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val structTypes = mutableMapOf<QualifiedName, llvm.Type>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
-        is Type.Error -> requireUnreachable { "${type.location}" }
+        is Type.Error -> requireUnreachable {
+            "${type.location}"
+        }
         Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.Bool -> boolTy
@@ -641,6 +644,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.TypeFunction -> requireUnreachable()
         is Type.Uninferrable -> requireUnreachable()
         is Type.Ref -> PointerType(lowerType(type.to))
+        is Type.AssociatedTypeRef -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0

@@ -76,7 +76,7 @@ class TraitResolverTest {
         return Type.Application(callee = this, args = listOf(*args))
     }
 
-    private fun makeResolver(vararg clauses: TraitClause): TraitResolver {
+    private fun makeResolver(vararg clauses: TraitClause<Unit>): TraitResolver<Unit> {
         return TraitResolver(TraitResolver.Env(*clauses), TypeAnalyzer())
     }
 
@@ -98,8 +98,8 @@ class TraitResolverTest {
         return listOf(*params)
     }
 
-    private fun impl(params: List<Type.Param>, traitRef: QualifiedName, arguments: List<Type>, requirements: List<TraitRequirement>): TraitClause.Implementation {
-        return TraitClause.Implementation(params, traitRef, arguments, requirements)
+    private fun impl(params: List<Type.Param>, traitRef: QualifiedName, arguments: List<Type>, requirements: List<TraitRequirement>): TraitClause.Implementation<Unit> {
+        return TraitClause.Implementation(params, traitRef, arguments, requirements, def = unit)
     }
 
     private fun forType(vararg types: Type): List<Type> {

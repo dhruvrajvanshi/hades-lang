@@ -25,6 +25,8 @@ sealed class TypeBinding {
 
     data class Builtin(val type: Type) : TypeBinding()
 
+    data class AssociatedType(val binder: Binder) : TypeBinding()
+
     fun isGlobal() = when(this) {
         is Builtin -> true
         is SealedType -> true
@@ -32,6 +34,7 @@ sealed class TypeBinding {
         is Trait -> true
         is TypeAlias -> true
         is TypeParam -> false
+        is AssociatedType -> false
     }
 
     fun isLocalTo(scope: HasLocation) = when(this) {

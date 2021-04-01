@@ -1204,13 +1204,14 @@ class Analyzer(
 
     }
 
-    private val globalTraitClauses by lazy {
+    private val globalTraitClauses: List<TraitClause<Declaration.ImplementationDef>> by lazy {
         ctx.resolver.implementationDefs.mapNotNull { implementationDef ->
             val traitDef = ctx.resolver.resolveDeclaration(implementationDef.traitRef)
             if (traitDef !is Declaration.TraitDef) {
                 null
             } else {
-                TraitClause.Implementation(
+                TraitClause.Implementation<Declaration.ImplementationDef>(
+                        def = implementationDef,
                         params = implementationDef.typeParams?.map { p -> Type.Param(p.binder) } ?: emptyList(),
                         traitRef = ctx.resolver.qualifiedName(traitDef.name),
                         arguments = implementationDef.traitArguments.map { annotationToType(it) },
@@ -1249,7 +1250,7 @@ class Analyzer(
                         def.name,
                         ctx.resolver.qualifiedName(def.name)
                     )
-                    TraitClause.Implementation(
+                    TraitClause.Implementation<Declaration.ImplementationDef>(
                         params = emptyList(),
                         traitRef = copyTraitName,
                         arguments = listOf(instanceType),
@@ -1263,6 +1264,11 @@ class Analyzer(
     }
 
     fun isTraitRequirementSatisfied(callNode: HasLocation, requiredInstance: TraitRequirement): Boolean {
+        val traitResolver = makeTraitResolver(callNode)
+        return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
+    }
+
+    private fun makeTraitResolver(callNode: HasLocation): TraitResolver<Declaration.ImplementationDef> {
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
         val enclosingExtensionDef = ctx.resolver.getEnclosingExtensionDef(callNode)
         val extensionClauses = enclosingExtensionDef?.traitRequirements?.map { it.toClause() } ?: emptyList()
@@ -1270,11 +1276,10 @@ class Analyzer(
         val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
         val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val env = TraitResolver.Env(extensionClauses + functionTraitClauses + implTraitClauses + globalTraitClauses)
-        val traitResolver = TraitResolver(env, typeAnalyzer)
-        return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
+        return TraitResolver<Declaration.ImplementationDef>(env, typeAnalyzer)
     }
 
-    private fun TraitRequirement.toClause(): TraitClause {
+    private fun TraitRequirement.toClause(): TraitClause<Declaration.ImplementationDef> {
         return TraitClause.Requirement(this)
     }
 
@@ -1422,8 +1427,27 @@ class Analyzer(
             is TypeAnnotation.Function -> functionAnnotationToType(annotation)
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
             is TypeAnnotation.Ref -> refAnnotationToType(annotation)
-            is TypeAnnotation.Select -> TODO()
+            is TypeAnnotation.Select -> selectAnnotationToType(annotation)
         }
+    }
+
+    private fun selectAnnotationToType(annotation: TypeAnnotation.Select): Type {
+        val traitResolver = makeTraitResolver(annotation)
+        val requirement = asTraitRequirement(annotation.lhs) ?: return Type.Error(annotation.location)
+        val clauseAndSubstitution = traitResolver.getImplementationClauseAndSubstitution(requirement.traitRef, requirement.arguments)
+            ?: return Type.Error(annotation.location)
+        val (clause, substitution) = clauseAndSubstitution
+        if (clause !is TraitClause.Implementation) {
+            return Type.Error(annotation.location)
+        }
+        val def = clause.def ?: return Type.Error(annotation.location)
+        for (typeAlias in def.body.filterIsInstance<Declaration.TypeAlias>()) {
+            require(typeAlias.typeParams == null)
+            if (typeAlias.name.name == annotation.rhs.name) {
+                return annotationToType(typeAlias.rhs).applySubstitution(substitution)
+            }
+        }
+        return Type.Error(annotation.location)
     }
 
     private fun refAnnotationToType(annotation: TypeAnnotation.Ref): Type {
@@ -1556,6 +1580,7 @@ class Analyzer(
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
             is TypeBinding.SealedType -> typeOfSealedTypeBinding(binding)
             is TypeBinding.Builtin -> binding.type
+            is TypeBinding.AssociatedType -> Type.AssociatedTypeRef(binding.binder)
         }
     }
 
@@ -1800,6 +1825,49 @@ class Analyzer(
         // FIXME: Filter out more LValue expressions
         is Expression.Var -> false
         else -> true
+    }
+
+    fun asTraitRequirement(type: TypeAnnotation): TraitRequirement? = when(type) {
+        is TypeAnnotation.Application -> {
+            asTraitRequirement(type.callee)?.let {
+                require(it.arguments.isEmpty())
+                it.copy(
+                    arguments = type.args.map { annotationToType(it) }
+                )
+            }
+        }
+        is TypeAnnotation.Var -> {
+            val traitDef = ctx.resolver.resolveTraitDef(type.name)
+            if (traitDef != null) {
+                TraitRequirement(
+                    ctx.resolver.qualifiedName(traitDef.name),
+                    emptyList()
+                )
+            } else
+                null
+        }
+        is TypeAnnotation.Qualified -> {
+            ctx.resolver.resolveDeclaration(type.qualifiedPath)?.let {
+                if (it is Declaration.TraitDef) {
+                    TraitRequirement(
+                        ctx.resolver.qualifiedName(it.name),
+                        arguments = emptyList()
+                    )
+                } else {
+                    null
+                }
+            }
+        }
+        else -> null
+    }
+
+    fun getTraitDef(traitRequirement: TraitRequirement): Declaration.TraitDef? {
+        val declaration = ctx.resolver.resolveDeclaration(traitRequirement.traitRef)
+        return if (declaration is Declaration.TraitDef) {
+            declaration
+        } else {
+            null
+        }
     }
 
 }

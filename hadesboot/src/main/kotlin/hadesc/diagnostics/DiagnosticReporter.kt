@@ -84,7 +84,7 @@ data class Diagnostic(
         object MissingTraitThisParam : Diagnostic.Kind(Severity.ERROR)
         object ReceiverParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
         object TypeParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
-        object OnlyFunctionDefsAllowedInsideImplDefs : Diagnostic.Kind(Severity.ERROR)
+        object OnlyFunctionDefsAndTypeAliasesAllowedInImplementationDefs : Diagnostic.Kind(Severity.ERROR)
         object ReturnTypeNotInferred : Diagnostic.Kind(Severity.ERROR)
         object NoSuchMember : Diagnostic.Kind(Severity.ERROR)
         object ReturningFromVoidFunction : Diagnostic.Kind(Severity.ERROR)
@@ -99,8 +99,10 @@ data class Diagnostic(
         object ReturnTypeMustNotContainClosuresOrRefs : Diagnostic.Kind(Severity.ERROR)
         object UseAfterMove : Diagnostic.Kind(Severity.ERROR)
         object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
+        data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
         data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
+        data class MissingAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -157,7 +159,7 @@ data class Diagnostic(
             ReceiverParamsNotAllowedInTraitFunctions -> "Receiver params not are allowed in trait functions."
             TypeParamsNotAllowedInTraitFunctions -> "Type params are not allowed in trait functions."
             is DuplicateDeclaration -> "Duplicate binding. Previously defined at $existingBindingLocation."
-            OnlyFunctionDefsAllowedInsideImplDefs -> "Only functions are allowed inside implementation definitions."
+            OnlyFunctionDefsAndTypeAliasesAllowedInImplementationDefs -> "Only functions are allowed inside implementation definitions."
             MissingTraitThisParam -> "Trait definition must have at least 1 type parameter."
             ReturnTypeNotInferred -> "Return type of this function cannot be inferred. Add an explicit annotation."
             NoSuchMember -> "No such member."
@@ -173,6 +175,8 @@ data class Diagnostic(
             is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"
             UseAfterMove -> "Use after move"
             NotAnIntegralValue -> "Not an integral value"
+            is NoSuchAssociatedType -> "No such associated type ${name.text}"
+            is MissingAssociatedType -> "Missing associated type: ${name.text}"
         }
 
     }

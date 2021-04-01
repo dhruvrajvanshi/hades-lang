@@ -52,6 +52,8 @@ sealed class Type {
     data class Application(val callee: Type, val args: List<Type>) : Type()
     data class UntaggedUnion(val members: List<Type>) : Type()
 
+    data class AssociatedTypeRef(val binder: Binder) : Type()
+
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
@@ -78,6 +80,7 @@ sealed class Type {
         is FloatingPoint -> "f${size}"
         is Uninferrable -> name.name.text
         is Ref -> "ref ${if (isMutable) "mut " else ""}${to.prettyPrint()}"
+        is AssociatedTypeRef -> binder.identifier.name.text
     }
 
     fun isIntegral() = when(this) {
@@ -124,6 +127,9 @@ sealed class Type {
             )
             is Uninferrable -> this
             is Ref -> Ref(to.recurse(), isMutable)
+            is AssociatedTypeRef -> {
+                substitution[this.binder.location] ?: this
+            }
         }
     }
 
