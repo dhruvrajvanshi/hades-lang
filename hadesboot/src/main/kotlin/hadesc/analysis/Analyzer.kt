@@ -1422,6 +1422,7 @@ class Analyzer(
             is TypeAnnotation.Function -> functionAnnotationToType(annotation)
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
             is TypeAnnotation.Ref -> refAnnotationToType(annotation)
+            is TypeAnnotation.Select -> TODO()
         }
     }
 

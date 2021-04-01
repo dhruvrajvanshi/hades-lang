@@ -12,6 +12,11 @@ interface SyntaxVisitor {
         is TypeAnnotation.Union -> visitUnionType(type)
         is TypeAnnotation.Var -> visitVarType(type)
         is TypeAnnotation.Ref -> visitRefType(type)
+        is TypeAnnotation.Select -> visitSelectType(type)
+    }
+
+    fun visitSelectType(type: TypeAnnotation.Select) {
+        visitType(type.lhs)
     }
 
     fun visitRefType(type: TypeAnnotation.Ref) {

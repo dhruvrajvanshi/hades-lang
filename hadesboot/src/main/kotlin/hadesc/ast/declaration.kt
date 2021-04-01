@@ -113,10 +113,26 @@ sealed class Declaration : HasLocation {
             override val location: SourceLocation,
             val name: Binder,
             val params: List<TypeParam>,
-            val signatures: List<FunctionSignature>
+            val members: List<TraitMember>
     ) : Declaration() {
+
+        val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
         fun findMethodSignature(methodName: Identifier): FunctionSignature? =
             signatures.find { it.name.identifier.name == methodName.name }
+    }
+
+    sealed class TraitMember: HasLocation {
+        data class Function(
+            val signature: FunctionSignature
+        ) : TraitMember() {
+            override val location get() = signature.location
+        }
+
+        data class AssociatedType(
+            val binder: Binder
+        ) : TraitMember() {
+            override val location get() = binder.location
+        }
     }
 
     data class ImplementationDef(

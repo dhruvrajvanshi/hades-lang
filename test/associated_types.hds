@@ -1,0 +1,21 @@
+
+trait Iterable[Self] {
+    type Item
+
+    def for_each(self: *Self, fn: |*Item| -> Void): Void
+}
+
+def for_each[Self](value: *Self, fn: |*Iterable[Self].Item| -> Void): Void where Iterable[Self] {
+    Iterable[Self].for_each(value)
+}
+
+struct Box[T] {
+    val value: T
+}
+
+implementation [T] Iterable[Box[T]] {
+    type Item = T
+    def for_each(self: *Box[T], fn: |*Item| -> Void): Void {
+
+    }
+}

@@ -282,6 +282,7 @@ class Checker(val ctx: Context) {
         is TypeAnnotation.Ref -> {
             checkTypeAnnotation(annotation.to)
         }
+        is TypeAnnotation.Select -> TODO()
     }
 
     private fun checkReturnType(node: HasLocation, type:Type) {

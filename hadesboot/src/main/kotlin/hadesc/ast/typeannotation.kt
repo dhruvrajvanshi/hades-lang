@@ -47,4 +47,10 @@ sealed class TypeAnnotation : HasLocation {
         override val location: SourceLocation,
         val args: List<TypeAnnotation>
     ) : TypeAnnotation()
+
+    data class Select(
+        override val location: SourceLocation,
+        val lhs: TypeAnnotation,
+        val rhs: Identifier,
+    ) : TypeAnnotation()
 }

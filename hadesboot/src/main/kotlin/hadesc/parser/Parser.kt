@@ -215,7 +215,7 @@ class Parser(
         expect(tt.LBRACE)
         val signatures = buildList {
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
-                add(parseFunctionSignature())
+                add(parseTraitMember())
                 expect(tt.SEMICOLON)
             }
         }
@@ -226,6 +226,16 @@ class Parser(
                 typeParams,
                 signatures
         )
+    }
+
+    private fun parseTraitMember() = when (currentToken.kind) {
+        tt.DEF -> Declaration.TraitMember.Function(parseFunctionSignature())
+        else -> {
+            expect(tt.TYPE)
+            val result = Declaration.TraitMember.AssociatedType(parseBinder())
+            expect(tt.SEMICOLON)
+            result
+        }
     }
 
     private fun parseExtensionDef(): Declaration.ExtensionDef {
@@ -1265,11 +1275,20 @@ class Parser(
                     parseTypeAnnotation()
                 }
                 val end = expect(tt.RSQB)
-                TypeAnnotation.Application(
+                parseTypeAnnotationTail(TypeAnnotation.Application(
                         makeLocation(head, end),
                         head,
                         args
-                )
+                ))
+            }
+            tt.DOT -> {
+                advance()
+                val identifier = parseIdentifier()
+                parseTypeAnnotationTail(TypeAnnotation.Select(
+                    makeLocation(head, identifier),
+                    head,
+                    identifier
+                ))
             }
             else -> head
         }
