@@ -78,6 +78,14 @@ class TypeAnalyzer {
                     isTypeAssignableTo(source = destParam, destination = sourceParam)
                 }
             }
+            source is Type.Select && destination is Type.Select -> {
+                source.associatedTypeName == destination.associatedTypeName
+                        && source.traitName == destination.traitName
+                        && source.traitArgs.size == destination.traitArgs.size
+                        && source.traitArgs.zip(destination.traitArgs).all { (source, destination) ->
+                            isTypeAssignableTo(source = source, destination = destination)
+                        }
+            }
             else -> false
         }
     }

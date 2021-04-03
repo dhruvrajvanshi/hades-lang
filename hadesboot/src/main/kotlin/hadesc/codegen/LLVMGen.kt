@@ -144,6 +144,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Uninferrable -> requireUnreachable()
         is Type.Ref -> requireUnreachable()
         is Type.AssociatedTypeRef -> requireUnreachable()
+        is Type.Select -> requireUnreachable()
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
@@ -645,6 +646,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Uninferrable -> requireUnreachable()
         is Type.Ref -> PointerType(lowerType(type.to))
         is Type.AssociatedTypeRef -> requireUnreachable()
+        is Type.Select -> requireUnreachable()
     }
 
     private var nextLiteralIndex = 0

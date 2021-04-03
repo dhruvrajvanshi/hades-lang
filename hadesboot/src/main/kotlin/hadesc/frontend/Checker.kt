@@ -111,7 +111,7 @@ class Checker(val ctx: Context) {
                 require(typeOfMethod is Type.Ptr)
                 val actualType = typeOfMethod.to
                 val expectedType = expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
-                if (expectedType != null && !actualType.isAssignableTo(expectedType)) {
+                if (expectedType != null && !actualType.isAssignableTo(declaration, expectedType)) {
                     error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(
                         expected = expectedType, found = actualType))
                 }
@@ -541,7 +541,7 @@ class Checker(val ctx: Context) {
 
     private fun checkExpressionHasType(expression: Expression, type: Type) {
         val exprType = ctx.analyzer.typeOfExpression(expression)
-        if (!exprType.isAssignableTo(type)) {
+        if (!exprType.isAssignableTo(expression, type)) {
             error(expression, Diagnostic.Kind.TypeNotAssignable(source = exprType, destination = type))
         }
     }
@@ -561,7 +561,7 @@ class Checker(val ctx: Context) {
         }
         val expectedReturnType = requireNotNull(returnTypeStack.peek())
 
-        if (expectedReturnType.isAssignableTo(Type.Void)
+        if (expectedReturnType.isAssignableTo(statement, Type.Void)
             && statement.value != null) {
             error(statement, Diagnostic.Kind.ReturningFromVoidFunction)
         }
@@ -582,8 +582,8 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun Type.isAssignableTo(destination: Type): Boolean {
-        return ctx.analyzer.isTypeAssignableTo(source = this, destination = destination)
+    private fun Type.isAssignableTo(at: HasLocation, destination: Type): Boolean {
+        return ctx.analyzer.isTypeAssignableTo(at, source = this, destination = destination)
     }
 
     private fun checkExpression(expression: Expression) {

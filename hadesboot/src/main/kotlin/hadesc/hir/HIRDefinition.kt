@@ -67,6 +67,7 @@ sealed class HIRDefinition: HasLocation {
             override val location: SourceLocation,
             val traitRequirements: List<TraitRequirement>,
             val typeParams: List<HIRTypeParam>?,
+            val typeAliases: Map<Name, Type>,
             val traitName: QualifiedName,
             val traitArgs: List<Type>,
             val functions: List<Function>

@@ -1,7 +1,6 @@
 package hadesc.hir
 
 import hadesc.Name
-import hadesc.analysis.ClosureCaptures
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -10,15 +9,12 @@ import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.ir.passes.TypeTransformer
-import hadesc.ir.passes.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
-import hadesc.resolver.TypeBinding
 import hadesc.types.Type
-import hadesc.unit
 import libhades.collections.Stack
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -77,6 +73,10 @@ class HIRGen(
                         functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map {
                             lowerFunctionDef(it, QualifiedName(listOf(it.name.identifier.name)))
                         },
+                        typeAliases = declaration.body.filterIsInstance<Declaration.TypeAlias>().map {
+                            require(it.typeParams == null)
+                            it.name.name to lowerTypeAnnotation(it.rhs)
+                        }.toMap(),
                         traitRequirements = declaration.whereClause?.traitRequirements?.map {
                             lowerTraitRequirement(it)
                         } ?: emptyList()

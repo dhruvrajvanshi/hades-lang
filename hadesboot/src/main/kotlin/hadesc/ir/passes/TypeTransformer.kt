@@ -26,6 +26,13 @@ interface TypeTransformer {
         is Type.Uninferrable -> requireUnreachable()
         is Type.Ref -> lowerRefType(type)
         is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
+        is Type.Select -> lowerSelectType(type)
+    }
+
+    fun lowerSelectType(type: Type.Select): Type {
+        return type.copy(
+            traitArgs = type.traitArgs.map { lowerType(it) }
+        )
     }
 
     fun lowerAssociatedTypeRef(type: Type.AssociatedTypeRef): Type {
@@ -118,6 +125,11 @@ interface TypeVisitor {
         is Type.Uninferrable -> visitUninferrableType(type)
         is Type.Ref -> visitRefType(type)
         is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
+        is Type.Select -> visitSelectType(type)
+    }
+
+    fun visitSelectType(type: Type.Select) = type.traitArgs.forEach {
+        visitType(it)
     }
 
     fun visitAssociatedTypeRef(type: Type.AssociatedTypeRef) = unit
