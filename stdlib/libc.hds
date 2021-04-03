@@ -61,7 +61,7 @@ extern def open(*Byte, CInt): CInt = open;
 
 extern def stdout(): *File = hdc_get_stdout;
 extern const stdin: *File = stdin;
-extern const stderr: *File = stderr;
+extern def stderr(): *File = hdc_get_stderr;
 
 extern def perror(*Byte): Void = perror;
 
