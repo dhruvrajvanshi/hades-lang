@@ -359,13 +359,15 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         )
         val oldBlockStatements = currentBlockStatements
         currentBlockStatements = statements
-        val nestedStatements = expression.body.statements.flatMap { transformStatement(it) } + (
+        expression.body.statements.forEach {
+            currentBlockStatements.addAll(transformStatement(it))
+        }
+        currentBlockStatements.addAll(
                 if (type.to is Type.Void)
                     listOf(ReturnVoid(expression.location))
                 else
                     emptyList()
                 )
-        statements.addAll(nestedStatements)
         currentBlockStatements = oldBlockStatements
         captureStack.pop()
         val body = HIRBlock(expression.body.location, statements)
