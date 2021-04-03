@@ -4,9 +4,9 @@ def main(): Void {
     val b = Box(30);
 
     val b_ptr: *Box[Int] = &b;
-    val b_value_ptr: *Int = b_ptr.value;
+    val b_value_ptr: *Int = &b_ptr.value;
 
-    u.print_int(*b_ptr.value);
+    u.print_int(b_ptr.value);
     u.print_int(*b_value_ptr);
 }
 

@@ -402,11 +402,10 @@ class Analyzer(
             return null
         }
         val fieldBinding = resolveStructFieldBinding(lhsType.to, expression.property) ?: return null
-        val isMutable = lhsType.isMutable
         return PropertyBinding.StructFieldPointer(
                 fieldBinding.structDecl,
                 fieldBinding.memberIndex,
-                type = Type.Ptr(fieldBinding.type, isMutable)
+                type = fieldBinding.type
         )
 
     }

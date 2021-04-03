@@ -11,10 +11,10 @@ def main(): Void {
     u.print_int(x);
 
     val mut box = Box(10);
-    val box_ptr = &mut box;
-    *box_ptr.value = 40;
+    val mut box_ptr = &mut box;
+    box_ptr.value = 40;
     u.print_int(box.value);
-    u.print_int(*box_ptr.value);
+    u.print_int(box_ptr.value);
 }
 
 struct Box[T] {

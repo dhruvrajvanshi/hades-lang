@@ -6,14 +6,16 @@ extension ApplyExtensions[T] for T {
 }
 
 def main(): Void {
-    val message = b"Hello world"
+    val _message = b"Hello world"
+    val message = &_message
 
-    &message.let() |msg| {
+    message.let() |msg| {
         puts(*msg)
     }
 
-    val another_message = b"Without parens"
-    &another_message.let |msg| {
+    val _another_message = b"Without parens"
+    val another_message = &_another_message
+    another_message.let |msg| {
         puts(*msg)
     }
 }
