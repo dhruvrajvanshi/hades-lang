@@ -25,7 +25,7 @@ import kotlin.math.min
 class Analyzer(
         private val ctx: Context
 ) {
-    private val typeAnalyzer = TypeAnalyzer()
+    val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
     val copyTraitName = QualifiedName(listOf(ctx.makeName("hades"), ctx.makeName("marker"), ctx.makeName("Copy")))
 
@@ -264,7 +264,7 @@ class Analyzer(
             }else {
                 thisType
             }
-            if (!isTypeAssignableTo(source = inferExpression(expression.lhs), destination = expectedThisType)) {
+            if (!isTypeAssignableTo(expression, source = inferExpression(expression.lhs), destination = expectedThisType)) {
                 continue
             }
             val receiverType = if (functionDef.signature.thisParamFlags.isPointer) {
@@ -320,13 +320,16 @@ class Analyzer(
         val pointerAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
         val refAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
         val isValueAssignable = isTypeAssignableTo(
+                callNode,
                 source = type,
                 destination = forType.applySubstitution(valueAssignmentSubstitution)
             )
         val isPointerAssignable = isTypeAssignableTo(
+            callNode,
             source = type,
             destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
         val isRefAssignable = isTypeAssignableTo(
+            callNode,
             source = type,
             destination = Type.Ref(forType.applySubstitution(refAssignmentSubstitution), isMutable = false))
         if (!isValueAssignable && !isPointerAssignable && !isRefAssignable) return false
@@ -431,7 +434,7 @@ class Analyzer(
                         ?.toMap()
                         ?: emptyMap()
                 val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
-                isTypeAssignableTo(lhsStructType, fieldType)
+                isTypeAssignableTo(property, lhsStructType, fieldType)
                 PropertyBinding.StructField(
                         structDecl = structDecl,
                         memberIndex = index,
@@ -472,14 +475,39 @@ class Analyzer(
         }
     }
 
-    private fun equateTypes(source: Type, destination: Type) {
+    private fun equateTypes(at: HasLocation, source: Type, destination: Type) {
         // isTypeAssignable is side effectful in the sense that it instantiates
         // Type.GenericInstance types for matching source and destination types
-        isTypeAssignableTo(source, destination)
+        isTypeAssignableTo(at, source, destination)
     }
 
-    fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
-        return typeAnalyzer.isTypeAssignableTo(source = source, destination = destination)
+    fun isTypeAssignableTo(at: HasLocation, source: Type, destination: Type): Boolean {
+        return typeAnalyzer.isTypeAssignableTo(
+            source = source.reduceSelectTypes(at),
+            destination = destination.reduceSelectTypes(at)
+        )
+    }
+
+    private fun Type.reduceSelectTypes(at: HasLocation): Type {
+        return object : TypeTransformer {
+            override fun lowerSelectType(type: Type.Select): Type {
+                val traitResolver = makeTraitResolver(at)
+                val implAndSubst = traitResolver.getImplementationClauseAndSubstitution(
+                    type.traitName,
+                    type.traitArgs
+                ) ?: return super.lowerSelectType(type)
+                val (impl, subst) = implAndSubst
+                if (impl !is TraitClause.Implementation) {
+                    return super.lowerSelectType(type)
+                }
+                val def = impl.def ?: return super.lowerSelectType(type)
+                val typeAlias = def.body.filterIsInstance<Declaration.TypeAlias>()
+                    .find { it.name.name == type.associatedTypeName }
+                    ?: return super.lowerSelectType(type)
+                require(typeAlias.typeParams == null)
+                return annotationToType(typeAlias.rhs).applySubstitution(subst)
+            }
+        }.lowerType(this)
     }
 
     private val typeOfExpressionCache = MutableNodeMap<Expression, Type>()
@@ -613,8 +641,8 @@ class Analyzer(
         }
     }
 
-    private fun checkAssignability(source: Type, destination: Type) {
-        isTypeAssignableTo(destination = destination, source = source)
+    private fun checkAssignability(at: HasLocation, source: Type, destination: Type) {
+        isTypeAssignableTo(at, destination = destination, source = source)
     }
 
     private fun visitWhileStatement(statement: Statement.While) {
@@ -683,7 +711,7 @@ class Analyzer(
                     } else {
                         inferExpression(expression)
                     }
-                    checkAssignability(source = type, destination = expectedType)
+                    checkAssignability(expression, source = type, destination = expectedType)
                     type
                 }
                 is Expression.Call -> {
@@ -694,7 +722,7 @@ class Analyzer(
                 is Expression.If -> checkIfExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
-                    checkAssignability(source = inferredType, destination = expectedType)
+                    checkAssignability(at = expression, source = inferredType, destination = expectedType)
                     inferredType
                 }
             }
@@ -717,6 +745,7 @@ class Analyzer(
         val expectedReturnType = functionTypeComponents?.to ?: expression.returnType?.let { annotationToType(it) }
         if (functionTypeComponents != null && expression.returnType != null) {
             checkAssignability(
+                at = expression,
                 source = annotationToType(expression.returnType), destination = functionTypeComponents.to)
         }
         returnTypeStack.push(expectedReturnType)
@@ -731,6 +760,7 @@ class Analyzer(
                     val annotatedType = annotationToType(param.annotation)
                     if (expectedParamType != null) {
                         checkAssignability(
+                            param,
                             // params are contravariant
                             destination = annotatedType,
                             source = expectedParamType
@@ -1185,10 +1215,11 @@ class Analyzer(
             val argsWithReceiver = if (receiver == null)
                 args.map { it.expression }
             else listOf(receiver) + args.map { it.expression }
-            checkCallArgs(functionType, explicitTypeArgs, argsWithReceiver, substitution)
+            checkCallArgs(callNode, functionType, explicitTypeArgs, argsWithReceiver, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
                 checkAssignability(
+                        callNode,
                         source = source,
                         destination = expectedReturnType
                 )
@@ -1271,9 +1302,9 @@ class Analyzer(
     private fun makeTraitResolver(callNode: HasLocation): TraitResolver<Declaration.ImplementationDef> {
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
         val enclosingExtensionDef = ctx.resolver.getEnclosingExtensionDef(callNode)
+        val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
         val extensionClauses = enclosingExtensionDef?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
-        val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
         val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val env = TraitResolver.Env(extensionClauses + functionTraitClauses + implTraitClauses + globalTraitClauses)
         return TraitResolver<Declaration.ImplementationDef>(env, typeAnalyzer)
@@ -1350,6 +1381,7 @@ class Analyzer(
     }
 
     private fun checkCallArgs(
+            callNode: HasLocation,
             functionType: FunctionTypeComponents,
             typeArgs: List<Type>?,
             args: List<Expression>,
@@ -1358,7 +1390,7 @@ class Analyzer(
         val length = min(functionType.from.size, args.size)
         typeArgs?.zip(functionType.typeParams ?: emptyList())?.forEach { (arg, param) ->
             val expectedType = Type.ParamRef(param.binder).applySubstitution(substitution)
-            equateTypes(source = arg, destination = expectedType)
+            equateTypes(at = callNode, source = arg, destination = expectedType)
         }
 
         for (i in 0 until length) {
@@ -1437,9 +1469,10 @@ class Analyzer(
         val clauseAndSubstitution = traitResolver.getImplementationClauseAndSubstitution(requirement.traitRef, requirement.arguments)
             ?: return Type.Error(annotation.location)
         val (clause, substitution) = clauseAndSubstitution
-        if (clause !is TraitClause.Implementation) {
-            return Type.Error(annotation.location)
+        if (clause is TraitClause.Requirement) {
+            return Type.Select(clause.requirement.traitRef, clause.requirement.arguments, annotation.rhs.name)
         }
+        require(clause is TraitClause.Implementation)
         val def = clause.def ?: return Type.Error(annotation.location)
         for (typeAlias in def.body.filterIsInstance<Declaration.TypeAlias>()) {
             require(typeAlias.typeParams == null)
@@ -1580,8 +1613,18 @@ class Analyzer(
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
             is TypeBinding.SealedType -> typeOfSealedTypeBinding(binding)
             is TypeBinding.Builtin -> binding.type
-            is TypeBinding.AssociatedType -> Type.AssociatedTypeRef(binding.binder)
+            is TypeBinding.AssociatedType -> typeOfAssociatedTypeBinding(binding)
         }
+    }
+
+    private fun typeOfAssociatedTypeBinding(binding: TypeBinding.AssociatedType): Type {
+        val traitDef = ctx.resolver.getEnclosingTraitDef(binding.binder)
+        requireNotNull(traitDef)
+        return Type.Select(
+            ctx.resolver.qualifiedName(traitDef.name),
+            traitArgs = traitDef.params.map { Type.ParamRef(it.binder) },
+            associatedTypeName = binding.binder.name
+        )
     }
 
     private fun typeOfTypeParam(binding: TypeBinding.TypeParam): Type {

@@ -584,36 +584,29 @@ class Resolver(private val ctx: Context) {
     }
 
     fun getEnclosingFunction(node: HasLocation): Declaration.FunctionDef? {
-        for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeTree.FunctionDef) {
-                return scopeNode.declaration
-            }
-        }
-        return null
+        return getEnclosingScopeTree<ScopeTree.FunctionDef>(node)?.declaration
+    }
+
+    fun getEnclosingTraitDef(node: HasLocation): Declaration.TraitDef? {
+        return getEnclosingScopeTree<ScopeTree.TraitDef>(node)?.declaration
     }
 
     fun getEnclosingExtensionDef(node: HasLocation): Declaration.ExtensionDef? {
-        for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeTree.ExtensionDef) {
-                return scopeNode.declaration
-            }
-        }
-        return null
+        return getEnclosingScopeTree<ScopeTree.ExtensionDef>(node)?.declaration
     }
 
     fun getEnclosingWhenExpression(node: HasLocation): Expression.When? {
-        for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeTree.WhenExpression) {
-                return scopeNode.expression
-            }
-        }
-        return null
+        return getEnclosingScopeTree<ScopeTree.WhenExpression>(node)?.expression
     }
 
     fun getEnclosingImpl(node: HasLocation): Declaration.ImplementationDef? {
-        for (scopeNode in getScopeStack(node)) {
-            if (scopeNode is ScopeTree.ImplementationDef) {
-                return scopeNode.declaration
+        return getEnclosingScopeTree<ScopeTree.ImplementationDef>(node)?.declaration
+    }
+
+    private inline fun <reified Scope: ScopeTree> getEnclosingScopeTree(at: HasLocation): Scope? {
+        for (scopeNode in getScopeStack(at)) {
+            if (scopeNode is Scope) {
+                return scopeNode
             }
         }
         return null

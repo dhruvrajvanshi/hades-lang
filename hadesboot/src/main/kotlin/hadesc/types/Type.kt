@@ -1,5 +1,6 @@
 package hadesc.types
 
+import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
@@ -54,6 +55,8 @@ sealed class Type {
 
     data class AssociatedTypeRef(val binder: Binder) : Type()
 
+    data class Select(val traitName: QualifiedName, val traitArgs: List<Type>, val associatedTypeName: Name) : Type()
+
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
@@ -81,6 +84,7 @@ sealed class Type {
         is Uninferrable -> name.name.text
         is Ref -> "ref ${if (isMutable) "mut " else ""}${to.prettyPrint()}"
         is AssociatedTypeRef -> binder.identifier.name.text
+        is Select -> "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}].${associatedTypeName.text}"
     }
 
     fun isIntegral() = when(this) {
@@ -130,6 +134,9 @@ sealed class Type {
             is AssociatedTypeRef -> {
                 substitution[this.binder.location] ?: this
             }
+            is Select -> copy(
+                traitArgs = traitArgs.map { it.recurse() }
+            )
         }
     }
 
