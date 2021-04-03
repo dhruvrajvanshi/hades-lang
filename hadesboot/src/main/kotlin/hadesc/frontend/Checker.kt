@@ -448,7 +448,7 @@ class Checker(val ctx: Context) {
         checkValueIsCopyable(statement.value)
 
         val field = ctx.analyzer.resolvePropertyBinding(statement.lhs)
-        if (field !is PropertyBinding.StructField) {
+        if (field !is PropertyBinding.StructField && field !is PropertyBinding.StructFieldPointer) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
             return
         }
@@ -790,16 +790,28 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkValueIsAddressable(expression: Expression) {
-        if (expression !is Expression.Var) {
-            error(expression, Diagnostic.Kind.NotAnAddressableValue)
-            return
-        }
-        val binding = ctx.resolver.resolve(expression.name)
-        if (binding !is Binding.ValBinding) {
-            error(expression, Diagnostic.Kind.NotAnAddressableValue)
-            return
-        }
 
+        when (expression) {
+            is Expression.Property -> {
+                when (ctx.analyzer.resolvePropertyBinding(expression)) {
+                    is PropertyBinding.StructField -> {
+                        checkValueIsAddressable(expression.lhs)
+                    }
+                    is PropertyBinding.StructFieldPointer -> unit
+                    else -> {
+                        error(expression, Diagnostic.Kind.NotAnAddressableValue)
+                    }
+                }
+            }
+            is Expression.Var -> {
+                if (ctx.resolver.resolve(expression.name) !is Binding.ValBinding) {
+                    error(expression, Diagnostic.Kind.NotAnAddressableValue)
+                }
+            }
+            else -> {
+                error(expression, Diagnostic.Kind.NotAnAddressableValue)
+            }
+        }
         if (expression.type is Type.Function) {
             error(expression, Diagnostic.Kind.TakingAddressOfClosureDisallowed)
         }

@@ -23,7 +23,7 @@ struct Box[T] {
 implementation [T] Iterable[Box[T]] {
     type Item = T
     def for_each(self: *Box[T], fn: |*Item| -> Void): Void {
-        fn(self.value)
+        fn(&self.value)
     }
 }
 

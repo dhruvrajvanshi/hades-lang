@@ -14,6 +14,7 @@ A systems level programming language that compiles to LLVM
       - Once we have proper destructor semantics, I'll implement heap allocated closures that get cleaned up according to their lifetime.
 - [ ] Named function arguments
 - [x] Traits
+- [x] Associated trait types
 - [x] Algebraic data types (enums)
 - Editor integration
     - Syntax hilighting
@@ -116,6 +117,11 @@ def main(): Void {
     print_pair_second(pair); // function arguments are passed as value (a copy of pair is sent to print_pair
     val pair_ptr = &pair; // you can take address of local variables and pass them as pointers
     pair.print_second(); // this is an extension function call
+
+    val mut_pair_ptr = &mut pair // taking a mutable pointer
+    puts(mut_pair_ptr.second) // calling dot on a pointer dereferences it
+    val second_field_ptr = &pair.second // we can get a field offset using &stuctval.field
+    mut_pair_ptr.second = b"value" // dereferencing dot operator works for assignments as well
   }
 }
 
@@ -132,7 +138,7 @@ extension PairExtensions[T] for Pair[T, *Byte] {
     // Use `*mut this` to treat receiver pointer as mutable
     // and `this` to take it as value
     def print_second(*this): Void {
-      c.puts(*this.second); // this.second gives pointer to the second field of the struct. Dereference it using prefix *
+      c.puts(this.second); // Unlike this.second on a pointer to a struct is equivalent to this->second in C
     }
 }
 

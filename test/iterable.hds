@@ -17,15 +17,16 @@ extension IterableExtensions[Self, T] for Self where Iterable[Self, T] {
 
 implementation[T] Iterable[Pair[T, T], T] {
     def for_each(self: *Pair[T, T], f: |T| -> Void): Void {
-        f(*self.first)
-        f(*self.second)
+        f(self.first)
+        f(self.second)
     }
 }
 
 def main(): Void {
-    val pair = Pair(b"Hello", b"World")
+    val _pair = Pair(b"Hello", b"World")
+    val pair = &_pair
 
-    &pair.for_each |value| {
+    pair.for_each |value| {
         puts(value);
     }
 }

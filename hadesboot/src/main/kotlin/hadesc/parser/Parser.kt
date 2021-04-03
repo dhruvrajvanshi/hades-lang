@@ -781,7 +781,7 @@ class Parser(
                     advance()
                     true
                 } else false
-                val expression = parsePrimaryExpression(withTail = false)
+                val expression = parsePrimaryExpression(withTail = true)
                 if (isMut) {
                     Expression.AddressOfMut(makeLocation(start, expression), expression)
                 } else {

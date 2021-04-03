@@ -12,7 +12,7 @@ struct List[T] {
 
 def main(): Void {
     val l = List(allocate_new(Node(b"hello", nullptr)));
-    c.puts(*l.m_head.m_data);
+    c.puts(l.m_head.m_data);
 }
 def allocate_new[T](value: T): *mut T {
     val ptr = memory.allocate[T](1);
