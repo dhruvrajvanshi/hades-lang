@@ -21,6 +21,11 @@ void hdc_set_errno(int value) {
 }
 
 
+FILE* hdc_get_stdout() {
+    return stdout;
+}
+
+
 int hdc_errno() {
     return errno;
 }

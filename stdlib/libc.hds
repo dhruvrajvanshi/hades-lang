@@ -59,7 +59,7 @@ extern def set_errno(CInt): Void = hdc_set_errno;
 
 extern def open(*Byte, CInt): CInt = open;
 
-extern const stdout: *File = stdout;
+extern def stdout(): *File = hdc_get_stdout;
 extern const stdin: *File = stdin;
 extern const stderr: *File = stderr;
 
