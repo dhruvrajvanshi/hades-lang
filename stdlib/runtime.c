@@ -17,7 +17,7 @@ int main() {
 }
 
 void* __hds_pointer_add(void* ptr, size_t size) {
-    return ptr + size;
+    return (void*)((char*)ptr + size);
 }
 
 int __hds_termimate() {

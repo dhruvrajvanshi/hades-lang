@@ -23,29 +23,12 @@ extern def fflush(*File): Void = fflush;
 
 extern def fputs(*Byte, *File): Void = fputs;
 
-struct Dir {}
-struct dirent {
-    val d_name: *Byte;
-}
 struct File {}
 
-extern def opendir(*Byte): *Dir = opendir;
-extern def closedir(*Dir): Void = closedir;
-extern def readdir(*Dir): *dirent = readdir;
 extern def getline(*mut *mut Byte, *mut Size, *File): Size = getline;
 extern def fgetc(*File): Byte = fgetc;
 extern def strtoul(*Byte, **Byte, CInt): Size = strtoul;
 
-extern def hdc_dirent_name(*dirent): *Byte = hdc_dirent_name;
-extern def hdc_dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;
-
-def name(self: *dirent): *Byte {
-    return hdc_dirent_name(self);
-}
-
-def is_directory(self: *dirent): Bool {
-    return hdc_dirent_is_directory(self);
-}
 
 extern def fread(*Void, Size, Size, *File): Size = fread;
 

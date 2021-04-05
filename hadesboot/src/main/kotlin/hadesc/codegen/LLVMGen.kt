@@ -15,6 +15,8 @@ import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
@@ -670,27 +672,54 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return PointerType(to)
     }
 
+    private val PROGRAMFILES_X86 = "PROGRAMFILES(x86)"
+    private val shouldUseMicrosoftCL get() =
+        SystemUtils.IS_OS_WINDOWS
+            && System.getenv(PROGRAMFILES_X86) != null
+                && File(System.getenv(PROGRAMFILES_X86) + "\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat").exists()
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
-        val cc = System.getenv("CC") ?: if (SystemUtils.IS_OS_MAC_OSX) "clang" else "gcc"
+
+        val cc = when {
+            shouldUseMicrosoftCL -> {
+                log.info("Found MSVC installation. Using cl.exe")
+                System.getenv("HADESBOOT_HOME") + "/windows_compile.bat"
+            }
+            SystemUtils.IS_OS_MAC_OSX -> "clang"
+            else -> "gcc"
+        }
         log.info("Linking using $cc")
         val commandParts = mutableListOf(
             cc,
         )
         if (ctx.options.debugSymbols) {
-            commandParts.add("-g")
+            if (!shouldUseMicrosoftCL) {
+                commandParts.add("-g")
+            } else {
+                commandParts.add("/DEBUG")
+            }
         } else {
             if (!SystemUtils.IS_OS_WINDOWS) {
                 commandParts.add("-flto")
             }
-            commandParts.add("-O2")
+            if (!shouldUseMicrosoftCL) {
+                commandParts.add("-O2")
+            } else {
+                commandParts.add("/O2")
+                commandParts.add("/GL")
+                commandParts.add("/GF")
+                commandParts.add("/Gw")
+
+            }
         }
+
         commandParts.add("-o")
         commandParts.add(ctx.options.output.toString())
+
         commandParts.addAll(ctx.options.cSources.map { it.toString() })
         commandParts.add(ctx.options.runtime.toString())
         commandParts.add(objectFilePath)
         commandParts.addAll(ctx.options.cFlags)
-        commandParts.addAll(ctx.options.libs.map { "-l$it" })
+        commandParts.addAll(ctx.options.libs.map {"-l$it" })
 
         val outputFile = ctx.options.output.toFile()
         if (outputFile.exists()) {
@@ -707,7 +736,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private val objectFilePath get() = ctx.options.output.toString() + ".o"
+    private val objectFilePath get() = ctx.options.output.toString() + if (shouldUseMicrosoftCL) ".obj" else ".o"
 
     private fun writeModuleToFile() {
         log.debug("Writing object file")
