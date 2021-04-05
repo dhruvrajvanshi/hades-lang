@@ -42,7 +42,7 @@ void __hds_free(void* ptr) {
 #ifdef DEBUG
     __hds_allocated--;
 #endif
-    return free(ptr);
+    free(ptr);
 }
 
 double hds_int_to_double(int value) {
