@@ -16,6 +16,7 @@ A systems level programming language that compiles to LLVM
 - [x] Traits
 - [x] Associated trait types
 - [x] Algebraic data types (enums)
+- [x] Windows support
 - Editor integration
     - Syntax hilighting
         - [x] VSCode
