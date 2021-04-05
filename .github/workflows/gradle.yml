@@ -38,10 +38,10 @@ jobs:
       with:
         java-version: 11
     - name: Build with Gradle
-      run: gradlew build -x test
+      run: .\gradlew build -x test
       
     - name: test
-      run: gradlew test
+      run: .\gradlew test
       
       
 
