@@ -59,7 +59,7 @@ compileTestKotlin {
 }
 
 application {
-    mainClassName = 'hadesc.MainKt'
+    mainClass = 'hadesc.MainKt'
 }
 jar {
     manifest {
