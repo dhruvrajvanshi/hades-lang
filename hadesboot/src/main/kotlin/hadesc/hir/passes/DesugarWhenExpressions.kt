@@ -28,26 +28,28 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
     override fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
         val blockStatements = requireNotNull(statements)
         val discriminantName = ctx.makeUniqueName()
-        val resultName = ctx.makeUniqueName()
-        blockStatements.addAll(listOf(
-            HIRStatement.ValDeclaration(
-                expression.discriminant.location,
-                discriminantName,
-                isMutable = false,
-                expression.discriminant.type
-            ),
-            HIRStatement.ValDeclaration(
-                expression.location,
-                resultName,
-                isMutable = true,
-                expression.type
-            ),
-            HIRStatement.Assignment(
-                expression.discriminant.location,
-                discriminantName,
-                transformExpression(expression.discriminant)
+        val resultName = if (expression.type !is Type.Void) ctx.makeUniqueName() else null
+        blockStatements.addAll(
+            listOfNotNull(
+                HIRStatement.ValDeclaration(
+                    expression.discriminant.location,
+                    discriminantName,
+                    isMutable = false,
+                    expression.discriminant.type
+                ),
+                if (resultName != null) HIRStatement.ValDeclaration(
+                    expression.location,
+                    resultName,
+                    isMutable = true,
+                    expression.type
+                ) else null,
+                HIRStatement.Assignment(
+                    expression.discriminant.location,
+                    discriminantName,
+                    transformExpression(expression.discriminant)
+                )
             )
-        ))
+        )
 
         val discriminant = HIRExpression.ValRef(
             expression.location,
@@ -70,7 +72,7 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
         expression.cases.forEachIndexed { index, case ->
             val trueBranch = HIRBlock(
                 case.expression.location,
-                listOf(
+                listOfNotNull(
                     HIRStatement.ValDeclaration(
                         case.expression.location,
                         case.valueBinder,
@@ -89,11 +91,11 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
                                 discriminantPtr
                             ))
                     ),
-                    HIRStatement.Assignment(
+                    if (resultName != null) HIRStatement.Assignment(
                         case.expression.location,
                         resultName,
                         transformExpression(case.expression)
-                    )
+                    ) else null
                 )
             )
             blockStatements.add(
@@ -118,10 +120,15 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
                 )
             )
         }
-        return HIRExpression.ValRef(
+        return if (resultName != null) HIRExpression.ValRef(
             expression.location,
             expression.type,
             resultName
-        )
+        ) else {
+            HIRExpression.NullPtr(
+                expression.location,
+                Type.Ptr(expression.type, isMutable = false)
+            )
+        }
     }
 }
