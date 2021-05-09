@@ -566,13 +566,16 @@
 		},
 		"closure-expression": {
 			"begin": "(?=\\|)",
-			"end": "(?<=[}])",
+			"end": "(?=(val|if|while|return|break|def))",
 			"patterns": [
 				{
 					"include": "#parameter-list"
 				},
 				{
 					"include": "#block"
+				},
+				{
+					"include": "#expressions"
 				}
 			]
 		},
