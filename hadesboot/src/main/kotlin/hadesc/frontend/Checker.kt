@@ -445,7 +445,6 @@ class Checker(val ctx: Context) {
         checkExpression(statement.value)
 
         checkExpressionHasType(statement.value, statement.lhs.type)
-        checkValueIsCopyable(statement.value)
 
         val field = ctx.analyzer.resolvePropertyBinding(statement.lhs)
         if (field !is PropertyBinding.StructField && field !is PropertyBinding.StructFieldPointer) {
@@ -492,13 +491,11 @@ class Checker(val ctx: Context) {
                 error(statement.lhs, Diagnostic.Kind.NotAPointerType(lhsType))
             }
         }
-        checkValueIsCopyable(statement.value)
 
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
         checkExpression(statement.value)
-        checkValueIsCopyable(statement.value)
         val binding = ctx.resolver.resolve(statement.name)
         if (binding !is Binding.ValBinding || !binding.statement.isMutable) {
             error(statement.name, Diagnostic.Kind.ValNotMutable)
@@ -507,23 +504,6 @@ class Checker(val ctx: Context) {
             val expectedType = binding.statement.typeAnnotation?.let { ctx.analyzer.annotationToType(it) }
                 ?: ctx.analyzer.typeOfExpression(binding.statement.rhs)
             checkExpressionHasType(statement.value, expectedType)
-        }
-    }
-
-    private fun checkValueIsCopyable(expression: Expression) {
-        if (ctx.analyzer.isRValue(expression)) {
-            return
-        }
-        if (expression.type is Type.Function) {
-            return
-        }
-        val type = expression.type
-        val requirement = TraitRequirement(
-            ctx.analyzer.copyTraitName,
-            listOf(type)
-        )
-        if (!ctx.analyzer.isTraitRequirementSatisfied(expression, requirement)) {
-            error(expression, Diagnostic.Kind.TypeNotCopyable(type))
         }
     }
 
@@ -908,7 +888,6 @@ class Checker(val ctx: Context) {
         checkExpression(callee)
         args.forEach {
             checkExpression(it)
-            checkValueIsCopyable(it)
         }
         typeArgAnnotations?.forEach { checkTypeAnnotation(it) }
 

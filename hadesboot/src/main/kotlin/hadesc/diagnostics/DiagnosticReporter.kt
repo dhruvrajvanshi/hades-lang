@@ -101,7 +101,7 @@ data class Diagnostic(
         object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
         data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
-        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
+//        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
         data class MissingAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
@@ -172,7 +172,7 @@ data class Diagnostic(
             is TraitRequirementNotSatisfied -> "Trait requirement (${requirement.prettyPrint()}) not satisfied."
             TakingAddressOfClosureDisallowed -> "Taking the address of a closure is disallowed."
             ReturnTypeMustNotContainClosuresOrRefs -> "Return types cannot contain closures or refs"
-            is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"
+//            is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"
             UseAfterMove -> "Use after move"
             NotAnIntegralValue -> "Not an integral value"
             is NoSuchAssociatedType -> "No such associated type ${name.text}"
