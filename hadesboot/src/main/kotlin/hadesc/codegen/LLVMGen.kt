@@ -16,7 +16,6 @@ import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
@@ -672,11 +671,16 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return PointerType(to)
     }
 
-    private val PROGRAMFILES_X86 = "PROGRAMFILES(x86)"
-    private val shouldUseMicrosoftCL get() =
-        SystemUtils.IS_OS_WINDOWS
-            && System.getenv(PROGRAMFILES_X86) != null
-                && File(System.getenv(PROGRAMFILES_X86) + "\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat").exists()
+    private val PROGRAMFILES_X86 = System.getenv("PROGRAMFILES(x86)")
+    private val PROGRAMFILES = System.getenv("PROGRAMFILES")
+    private val vcvarsPath =
+        listOf(
+            "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
+            "$PROGRAMFILES\\Microsoft Visual Studio\\2022\\Preview\\VC\\Auxiliary\\Build\\vcvars64.bat",
+        )
+            .find { File(it).exists() }
+
+    private val shouldUseMicrosoftCL = vcvarsPath != null
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
 
         val cc = when {
@@ -727,6 +731,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         log.info(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
+        if (vcvarsPath != null) {
+            builder.environment()["VCVARS"] = vcvarsPath
+        }
         val process = builder
             .inheritIO()
             .start()
