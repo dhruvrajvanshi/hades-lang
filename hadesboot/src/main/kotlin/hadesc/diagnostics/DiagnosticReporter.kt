@@ -1,6 +1,6 @@
 package hadesc.diagnostics
 
-import com.diogonunes.jcolor.Ansi.colorize
+import com.diogonunes.jcolor.Ansi
 import com.diogonunes.jcolor.Attribute
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
@@ -11,6 +11,7 @@ import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
+import org.apache.commons.lang3.SystemUtils
 import kotlin.streams.toList
 
 data class Diagnostic(
@@ -223,6 +224,12 @@ class DiagnosticReporter {
         System.err.println()
     }
 
+    private fun colorize(text: String, vararg attribute: Attribute): String {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return text
+        }
+        return Ansi.colorize(text, *attribute)
+    }
     private fun printLocationLine(location: SourceLocation) {
         val lines = fileLines.computeIfAbsent(location.file) {
             it.path.toFile().readLines()
