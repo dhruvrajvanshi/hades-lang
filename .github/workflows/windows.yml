@@ -1,0 +1,25 @@
+name: Windows build
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    env:
+      MSYSBIN: C:\msys64\usr\bin\
+      CC: C:\msys64\usr\bin\gcc
+
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v2
+        -
+      - name: Install gcc
+        run: $Env:MSYSBIN\pacman -Sy gcc
+      - name: Build with Gradle
+        run: .\gradlew build -x test
+
+      - name: test
+        run: .\gradlew test
