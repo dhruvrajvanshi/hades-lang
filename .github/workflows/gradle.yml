@@ -19,17 +19,7 @@ jobs:
         java-version: 11
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-  Build:
-    needs: Prepare
-    runs-on: ubuntu-latest
-    steps:
-      - name: gradle build
-        run: ./gradlew build -x test
-
-  Test:
-    needs: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: gradle test
-        run: ./gradlew test
-
+    - name: gradle test
+      run: ./gradlew test
+    - name: gradle build
+      run: ./gradlew build -x test
