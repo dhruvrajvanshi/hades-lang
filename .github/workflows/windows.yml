@@ -16,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install gcc
-        run: C:\msys64\usr\bin\pacman --noconfirm -Sy gcc
+        run: C:\msys64\usr\bin\pacman\bash -c "pacman --noconfirm -Sy gcc"
       - name: Print Java Home
-        run: echo $JAVA_HOME_11
+        run: echo $Env:JAVA_HOME_11
       - name: Build with Gradle
-        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=$$JAVA_HOME_11_X64 ./gradlew build -x test"
+        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=$$JAVA_HOME_11 ./gradlew build -x test"
 
       - name: test
         run: .\gradlew test
