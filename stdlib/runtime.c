@@ -59,3 +59,11 @@ size_t hds_double_to_size(double value) {
 size_t hds_int_to_size(int value) {
     return (size_t) value;
 }
+
+#ifdef __HDC_CHKSTK_UNAVAILABLE
+// calls to __chkstk are automatically inserted by gcc
+// when compiling with mingw, but this function isn't
+// found by the linker. This is a stub to make the linker
+// happy.
+void __chkstk() {}
+#endif

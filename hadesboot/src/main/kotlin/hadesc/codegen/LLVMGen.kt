@@ -716,6 +716,11 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             }
         }
 
+        if (SystemUtils.IS_OS_WINDOWS && !shouldUseMicrosoftCL) {
+            commandParts.add("-D")
+            commandParts.add("__HDC_CHKSTK_UNAVAILABLE")
+        }
+
         commandParts.add("-o")
         commandParts.add(ctx.options.output.toString())
 
