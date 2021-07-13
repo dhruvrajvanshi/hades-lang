@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install gcc
-      - run: ${{ env.MSYSBIN }}/pacman -Sy --noconfirm gcc
+        run: ${{ env.MSYSBIN }}/pacman -Sy --noconfirm gcc
 
       - name: Build with Gradle
         run: |
