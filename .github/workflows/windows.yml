@@ -21,10 +21,10 @@ jobs:
       - name: Build with Gradle
         run: |
           echo $env:JAVA_HOME
-          ${{env.MSYSBIN}}\bash -c "JAVA_HOME=$env:JAVA_HOME_11_X64 ./gradlew build -x test"
+          ${{env.MSYSBIN}}\bash -c "JAVA_HOME=`$JAVA_HOME_11_X64 ./gradlew build -x test"
       - name: test
         run: |
-          ${{env.MSYSBIN}}\bash -c "JAVA_HOME=$env:JAVA_HOME_11_X64 ./gradlew test"
+          ${{env.MSYSBIN}}\bash -c "JAVA_HOME=`$JAVA_HOME_11_X64 ./gradlew test"
 
         env:
           CC: ${{ env.MSYSBIN }}\gcc
