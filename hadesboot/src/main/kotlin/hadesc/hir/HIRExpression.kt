@@ -2,8 +2,8 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.analysis.ClosureCaptures
+import hadesc.ast.Binder
 import hadesc.ir.BinaryOperator
-import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -43,7 +43,8 @@ sealed class HIRExpression: HIRNode {
     data class ParamRef(
             override val location: SourceLocation,
             override val type: Type,
-            val name: Name
+            val name: Name,
+            val binder: Binder,
     ) : HIRExpression()
 
     data class ValRef(

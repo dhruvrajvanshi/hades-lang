@@ -274,8 +274,8 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                 null
             else
                 expression.captures.types.map { HIRTypeParam(it.location, it.name) },
-            params = expression.params.map { HIRParam(it.location, it.name, it.type) } + listOf(
-                HIRParam(expression.location, contextParamName, Type.Ptr(contextType, isMutable = true))
+            params = expression.params.map { HIRParam(it.location, it.binder, it.type) } + listOf(
+                HIRParam(expression.location, Binder(Identifier(expression.location, contextParamName)), Type.Ptr(contextType, isMutable = true))
             ),
             returnType = expression.returnType
         )
@@ -355,7 +355,9 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
                     ParamRef(
                         expression.location,
                         Type.Ptr(contextType, isMutable = false),
-                        contextParamName)))
+                        contextParamName,
+                        Binder(Identifier(expression.location, contextDerefname))
+                    )))
         )
         val oldBlockStatements = currentBlockStatements
         currentBlockStatements = statements
