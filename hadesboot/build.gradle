@@ -8,7 +8,7 @@ plugins {
 def logbackVersion = "1.2.3"
 def slf4jVersion = "1.7.30"
 group 'org.hades'
-version '0.1-SNAPSHOT'
+version 'v0.5-alpha.5'
 
 sourceCompatibility = 11
 
