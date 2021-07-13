@@ -22,6 +22,7 @@ jobs:
           echo $env:JAVA_HOME
       - name: Install gcc
         run: pacman --noconfirm -Sy gcc
+        shell: C:\msys64\usr\bin\bash -c "{0}"
 
       - name: Build with Gradle
         run: .\gradlew build -x test
