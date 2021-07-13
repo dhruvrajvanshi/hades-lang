@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install gcc
-        run: C:\msys64\usr\bin\pacman -Sy gcc
+        run: C:\msys64\usr\bin\pacman --noconfirm -Sy gcc
       - name: Build with Gradle
         run: .\gradlew build -x test
 
