@@ -1808,6 +1808,7 @@ class Analyzer(
 
                 val typeArgs = when (expression) {
                     is Expression.Call -> {
+                        visitExpression(expression.callee)
                         expression.args.forEach {
                             visitExpression(it.expression)
                         }
