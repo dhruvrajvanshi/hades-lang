@@ -9,6 +9,7 @@ jobs:
   build:
     env:
       MSYSBIN: C:\msys64\usr\bin\
+      CC: ${{ env.MSYSBIN }}\gcc
 
     runs-on: windows-2019
 

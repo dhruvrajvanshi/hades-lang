@@ -680,7 +680,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
             .find { File(it).exists() }
 
-    private val shouldUseMicrosoftCL = vcvarsPath != null
+    private val shouldUseMicrosoftCL = vcvarsPath != null && System.getenv("CC") == null
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
 
         val cc = when {
@@ -688,8 +688,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 log.info("Found MSVC installation. Using cl.exe")
                 System.getenv("HADESBOOT_HOME") + "/windows_compile.bat"
             }
-            SystemUtils.IS_OS_MAC_OSX -> "clang"
-            else -> "gcc"
+            SystemUtils.IS_OS_MAC_OSX -> System.getenv()["CC"] ?: "clang"
+            else -> System.getenv()["CC"] ?: "gcc"
         }
         log.info("Linking using $cc")
         val commandParts = mutableListOf(
