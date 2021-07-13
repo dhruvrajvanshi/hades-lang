@@ -851,7 +851,7 @@ class Checker(val ctx: Context) {
 
             if (binder != null) {
                 val moveLocation = moveLocationMap[binder.location]
-                if (moveLocation != null && moveLocation.stop.lte(expression.location.start)) {
+                if (moveLocation != null && moveLocation.stop < expression.location.start) {
                     error(expression, Diagnostic.Kind.UseAfterMove)
                 }
             }
