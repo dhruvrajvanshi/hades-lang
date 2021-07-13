@@ -1121,7 +1121,9 @@ class HIRGen(
 
     private fun lowerVarExpression(expression: Expression.Var): HIRExpression {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
-            null -> requireUnreachable()
+            null -> requireUnreachable {
+                "Found unresolved variable: ${expression.name} at ${expression.location}"
+            }
             else -> lowerBinding(expression, binding)
         }
     }

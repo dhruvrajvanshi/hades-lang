@@ -520,6 +520,7 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkExpressionHasType(expression: Expression, type: Type) {
+        checkExpression(expression)
         val exprType = ctx.analyzer.typeOfExpression(expression)
         if (!exprType.isAssignableTo(expression, type)) {
             error(expression, Diagnostic.Kind.TypeNotAssignable(source = exprType, destination = type))
