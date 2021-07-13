@@ -14,12 +14,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Install gcc
-        run: ${{ env.MSYSBIN }}/pacman -Sy --noconfirm gcc
+      - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Build with Gradle
         run: |
           $env:JAVA_HOME = $env:JAVA_HOME_11_X64
-          $env:CC = ${{ env.MSYSBIN }}/gcc
           .\gradlew build
