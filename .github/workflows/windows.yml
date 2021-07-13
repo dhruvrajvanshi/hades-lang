@@ -23,7 +23,9 @@ jobs:
           echo $env:JAVA_HOME
           echo $env:PPATH
       - name: Install gcc
-        run: PATH=$PPATH pacman --noconfirm -Sy gcc
+        run: |
+          $env:PATH = $env:PPATH
+          pacman --noconfirm -Sy gcc
 
       - name: Build with Gradle
         run: .\gradlew build -x test
