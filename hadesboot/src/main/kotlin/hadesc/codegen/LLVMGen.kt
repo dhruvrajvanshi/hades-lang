@@ -17,6 +17,13 @@ import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 import java.io.File
 
+private val PROGRAMFILES_X86 = System.getenv("PROGRAMFILES(x86)")
+private val VCVARS_PATH =
+    listOf(
+        "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
+        "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
+    )
+        .find { File(it).exists() }
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
     private val log = logger()
@@ -671,31 +678,18 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return PointerType(to)
     }
 
-    private val PROGRAMFILES_X86 = System.getenv("PROGRAMFILES(x86)")
-    private val PROGRAMFILES = System.getenv("PROGRAMFILES")
-    private val vcvarsPath =
-        listOf(
-            "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
-            "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
-            "$PROGRAMFILES\\Microsoft Visual Studio\\2022\\Preview\\VC\\Auxiliary\\Build\\vcvars64.bat",
-        )
-            .find { File(it).exists() }
+    private val cc = when {
+        SystemUtils.IS_OS_WINDOWS -> System.getenv()["CC"] ?: "cl"
+        SystemUtils.IS_OS_MAC_OSX -> System.getenv()["CC"] ?: "clang"
+        else -> System.getenv()["CC"] ?: "gcc"
+    }
 
-    private val shouldUseMicrosoftCL = vcvarsPath != null && System.getenv("CC") == null
+    private val shouldUseMicrosoftCL = cc == "cl" || cc == "cl.exe"
+
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
 
-        val cc = when {
-            shouldUseMicrosoftCL -> {
-                log.info("Found MSVC installation. Using cl.exe")
-                System.getenv("HADESBOOT_HOME") + "/windows_compile.bat"
-            }
-            SystemUtils.IS_OS_MAC_OSX -> System.getenv()["CC"] ?: "clang"
-            else -> System.getenv()["CC"] ?: "gcc"
-        }
         log.info("Linking using $cc")
-        val commandParts = mutableListOf(
-            cc,
-        )
+        val commandParts = mutableListOf(cc)
         if (ctx.options.debugSymbols) {
             if (!shouldUseMicrosoftCL) {
                 commandParts.add("-g")
@@ -704,6 +698,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             }
         } else {
             if (!SystemUtils.IS_OS_WINDOWS) {
+                // -flto doesn't work on windows GCC, that's why this condition isn't `shouldUseMicrosoftCL`
                 commandParts.add("-flto")
             }
             if (!shouldUseMicrosoftCL) {
@@ -737,9 +732,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         log.info(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
-        if (vcvarsPath != null) {
-            builder.environment()["VCVARS"] = vcvarsPath
-        }
+
         val process = builder
             .inheritIO()
             .start()
