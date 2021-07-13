@@ -18,8 +18,8 @@ jobs:
       - name: Install gcc
         run: C:\msys64\usr\bin\bash -c "/c/msys64/usr/bin/pacman --noconfirm -Sy gcc"
       - name: Print Java Home
-        run: C:\msys64\usr\bin\bash -c "echo \$JAVA_HOME_11_X64"
+        run: C:\msys64\usr\bin\bash -c "echo `$JAVA_HOME_11_X64"
       - name: Build with Gradle
-        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=\$JAVA_HOME_11 ./gradlew build -x test"
+        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=`$JAVA_HOME_11 ./gradlew build -x test"
       - name: test
-        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=\$JAVA_HOME_11_X64 .\gradlew test"
+        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=`$JAVA_HOME_11_X64 .\gradlew test"
