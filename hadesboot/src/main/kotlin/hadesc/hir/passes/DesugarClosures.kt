@@ -363,7 +363,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
             currentBlockStatements.addAll(transformStatement(it))
         }
         currentBlockStatements.addAll(
-                if (type.to is Type.Void)
+                if (currentBlockStatements.isEmpty())
                     listOf(ReturnVoid(expression.location))
                 else
                     emptyList()

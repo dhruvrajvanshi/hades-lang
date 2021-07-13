@@ -1,0 +1,12 @@
+extern def puts(*Byte): Void = puts
+
+def pass(): Void {
+    puts(b"PASS")
+}
+def call(f: || -> Void): Void {
+  f()
+}
+
+def main(): Void {
+   call(|| pass())
+}
