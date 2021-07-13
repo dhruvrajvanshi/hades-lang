@@ -25,7 +25,9 @@ jobs:
           ${{ env.MSYSBIN }}\pacman --noconfirm -Sy gcc
 
       - name: Build with Gradle
-        run: .\gradlew build -x test
+        run: |
+          echo $JAVA_HOME
+          .\gradlew build -x test
       - name: test
         run: .\gradlew test
         env:
