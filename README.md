@@ -1,6 +1,7 @@
 # Hades
  [![Hades](https://circleci.com/gh/dhruvrajvanshi/hades-lang.svg?style=shield)](https://app.circleci.com/pipelines/github/dhruvrajvanshi/hades-lang)
  [![](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/gradle.yml?query=branch%3Amaster)
+ [![Windows](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/windows.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/windows.yml)
  
  
 A systems level programming language that compiles to LLVM
