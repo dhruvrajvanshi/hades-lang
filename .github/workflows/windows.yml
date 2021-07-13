@@ -17,7 +17,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install gcc
         run: C:\msys64\usr\bin\bash -c "/c/msys64/usr/bin/pacman --noconfirm -Sy gcc"
-        shell: C:\msys64\usr\bin\bash
       - name: Print Java Home
         run: C:\msys64\usr\bin\bash -c "echo \$JAVA_HOME_11_X64"
       - name: Build with Gradle
