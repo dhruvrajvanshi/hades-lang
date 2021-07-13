@@ -676,6 +676,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val vcvarsPath =
         listOf(
             "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
+            "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
             "$PROGRAMFILES\\Microsoft Visual Studio\\2022\\Preview\\VC\\Auxiliary\\Build\\vcvars64.bat",
         )
             .find { File(it).exists() }
