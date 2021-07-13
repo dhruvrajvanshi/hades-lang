@@ -23,3 +23,15 @@ jobs:
       run: ./gradlew test
     - name: gradle build
       run: ./gradlew build -x test
+
+
+    - name: Create tar
+      run: ./gradlew distTar
+
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: true
+        files: |
+          hadesboot/build/distributions/hadesboot.tar
+
