@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install gcc
-        run: C:\msys64\usr\bin\bash -c "/c/msys64/usr/bin/bash/pacman --noconfirm -Sy gcc"
+        run: C:\msys64\usr\bin\bash -c "/c/msys64/usr/bin/pacman --noconfirm -Sy gcc"
       - name: Print Java Home
         run: echo $Env:JAVA_HOME_11
       - name: Build with Gradle
