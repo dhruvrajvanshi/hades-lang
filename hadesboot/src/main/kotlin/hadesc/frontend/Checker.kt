@@ -962,7 +962,6 @@ class Checker(val ctx: Context) {
 
     private fun checkFunctionSignature(signature: FunctionSignature, skipThisParamCheck: Boolean = false) {
         if (ctx.resolver.getEnclosingExtensionDef(signature) != null) {
-            checkTopLevelExpressionBinding(signature.name)
 
             if (signature.thisParamFlags == null) {
                 error(signature.name, Diagnostic.Kind.MissingThisParam)
