@@ -9,17 +9,21 @@ jobs:
   build:
     env:
       MSYSBIN: C:\msys64\usr\bin\
-      CC: C:\msys64\usr\bin\gcc
 
     runs-on: windows-2019
 
     steps:
       - uses: actions/checkout@v2
+      - name: Set up environment variables
+        run: |
+          $env:PATH = $env:PATH + ";C:\msys64\usr\bin"
+          $env:JAVA_HOME = $JAVA_HOME_11_X64
+          echo $env:PATH
+          echo $env:JAVA_HOME
       - name: Install gcc
-        run: C:\msys64\usr\bin\bash -c "/c/msys64/usr/bin/pacman --noconfirm -Sy gcc"
-      - name: Print Java Home
-        run: C:\msys64\usr\bin\bash -c "echo `$JAVA_HOME_11_X64"
+        run: pacman --noconfirm -Sy gcc
+
       - name: Build with Gradle
-        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=`$JAVA_HOME_11 ./gradlew build -x test"
+        run: .\gradlew build -x test
       - name: test
-        run: C:\msys64\usr\bin\bash -c "JAVA_HOME=`$JAVA_HOME_11_X64 .\gradlew test"
+        run: .\gradlew test
