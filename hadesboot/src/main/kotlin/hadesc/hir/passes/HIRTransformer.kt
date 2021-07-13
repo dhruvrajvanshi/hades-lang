@@ -1,6 +1,8 @@
 package hadesc.hir.passes
 
 import hadesc.Name
+import hadesc.ast.Binder
+import hadesc.ast.Identifier
 import hadesc.hir.*
 import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
@@ -365,7 +367,8 @@ interface HIRTransformer: TypeTransformer {
         return HIRExpression.ParamRef(
                 location = expression.location,
                 type = lowerType(expression.type),
-                name = transformParamName(expression.name)
+                name = transformParamName(expression.name),
+                binder = Binder(Identifier(expression.binder.location, transformParamName(expression.name)))
         )
     }
 
@@ -399,7 +402,7 @@ interface HIRTransformer: TypeTransformer {
     fun transformParam(param: HIRParam): HIRParam {
         return HIRParam(
                 location = param.location,
-                name = transformParamName(param.name),
+                binder = param.binder,
                 type = lowerType(param.type)
         )
     }

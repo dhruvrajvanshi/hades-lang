@@ -1,0 +1,18 @@
+
+extern def puts(*Byte): Void = puts
+
+
+def print_message(getter: || -> *Byte): Void {
+    puts(getter())
+}
+
+def foo(message: *Byte): Void {
+    print_message(|| message)
+}
+
+def main(): Void {
+
+    val message = b"PASS"
+
+    foo(message)
+}
