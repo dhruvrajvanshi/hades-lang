@@ -1,9 +1,7 @@
-import example.assert as Assert;
+import example.assert.{assert};
 import example.StringView as StringView;
 import hades.memory as mem;
 import libc as c;
-
-const assert = Assert.assert;
 
 const s = StringView.from_c;
 
@@ -16,20 +14,21 @@ def main(): Void {
 def test_drop_first_word(): Void {
     assert(
         s(b"test string").drop_first_word().equals(s(b"string")),
-        b"test_drop_first_word"
+        || b"test_drop_first_word"
     );
 }
 
 def test_take_first_word(): Void {
     assert(
         s(b"test string").take_first_word().equals(s(b"test")),
-        b"test_take_first_word"
+        || b"test_take_first_word"
     );
 }
 
 def test_copy_to_c(): Void {
     val copy = s(b"test").copy_to_c();
-    defer mem.free(copy);
-    
-    assert(s(copy).equals(s(b"test")), b"test_copy_to_c");
+
+    assert(s(copy).equals(b"test")) || b"test_copy_to_c"
+
+    mem.free(copy)
 }
