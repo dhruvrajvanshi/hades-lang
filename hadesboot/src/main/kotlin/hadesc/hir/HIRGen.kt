@@ -8,6 +8,7 @@ import hadesc.context.Context
 import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
+import hadesc.hir.transformers.ParamToLocal
 import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -21,6 +22,7 @@ import libhades.collections.Stack
 class HIRGen(
         override val ctx: Context
 ): HasContext {
+    private val paramToLocal = ParamToLocal(ctx)
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         for (sourceFile in sourceFiles) {
@@ -229,7 +231,8 @@ class HIRGen(
                 HIRExpression.ParamRef(
                     it.location,
                     lowerTypeAnnotation(requireNotNull(it.annotation)),
-                    it.binder.name
+                    it.binder.name,
+                    it.binder
                 )
             } ?: emptyList())
         )
@@ -284,7 +287,7 @@ class HIRGen(
                 params = case.params?.map {
                     HIRParam(
                         it.location,
-                        it.binder.name,
+                        it.binder,
                         lowerTypeAnnotation(requireNotNull(it.annotation)))
                 } ?: emptyList(),
                 returnType = instanceType
@@ -316,7 +319,12 @@ class HIRGen(
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
-        val body = lowerBlock(declaration.body, addReturnVoid)
+        val header = paramToLocal.declareParamCopies(signature.params)
+        val body = lowerBlock(
+            declaration.body,
+            addReturnVoid,
+            header,
+        )
         currentFunctionDef = null
         return HIRDefinition.Function(
                 location = declaration.location,
@@ -336,7 +344,7 @@ class HIRGen(
             require(qualifiedName != null)
             params.add(HIRParam(
                     signature.location,
-                    name = ctx.makeName("this"),
+                    binder = checkNotNull(signature.thisParamBinder),
                     type = thisParamType()
             ))
         }
@@ -376,8 +384,13 @@ class HIRGen(
 
     private var currentStatements: MutableList<HIRStatement>? = null
     private val deferStack = Stack<MutableList<HIRStatement>>()
-    private fun lowerBlock(body: Block, addReturnVoid: Boolean = false): HIRBlock = buildBlock(body.location) {
+    private fun lowerBlock(
+        body: Block,
+        addReturnVoid: Boolean = false,
+        header: List<HIRStatement> = emptyList()
+    ): HIRBlock = buildBlock(body.location) {
         deferStack.push(mutableListOf())
+        header.forEach { addStatement(it) }
         for (member in body.members) {
             lowerBlockMember(member).forEach {
                 addStatement(it)
@@ -537,7 +550,7 @@ class HIRGen(
         }
     }
 
-    private fun lowerExpression(expression: Expression): HIRExpression = when(expression) {
+    private fun lowerExpression(expression: Expression): HIRExpression = postLowerExpression(when(expression) {
         is Expression.Error -> requireUnreachable()
         is Expression.Var -> lowerVarExpression(expression)
         is Expression.Call -> lowerCallExpression(expression)
@@ -564,6 +577,13 @@ class HIRGen(
         is Expression.Ref -> lowerRefExpression(expression)
         is Expression.Move -> lowerExpression(expression.expression)
         is Expression.As -> lowerAsExpression(expression)
+    })
+
+    private fun postLowerExpression(expression: HIRExpression): HIRExpression {
+        return when (expression) {
+            is HIRExpression.ParamRef -> paramToLocal.fixParamRef(expression)
+            else -> expression
+        }
     }
 
     private fun lowerAsExpression(expression: Expression.As): HIRExpression {
@@ -630,8 +650,15 @@ class HIRGen(
     }
 
     private fun lowerClosure(expression: Expression.Closure): HIRExpression {
+        val params = expression.params.map {
+            HIRParam(
+                it.location,
+                it.binder,
+                ctx.analyzer.getParamType(it))
+        }
+        val header = paramToLocal.declareParamCopies(params)
         val body = when (expression.body) {
-            is ClosureBody.Block -> lowerBlock(expression.body.block)
+            is ClosureBody.Block -> lowerBlock(expression.body.block, header = header)
             is ClosureBody.Expression -> lowerBlock(Block(expression.body.location, null,  listOf(
                 Block.Member.Statement(
                     Statement.Return(
@@ -639,19 +666,20 @@ class HIRGen(
                         expression.body.expression
                     )
                 )
-            )))
+            )), header = header)
         }
-        val captures = ctx.analyzer.getClosureCaptures(expression)
+        val captureData = ctx.analyzer.getClosureCaptures(expression)
+        val captures = captureData
+            .copy(
+                values = captureData.values.mapKeys {
+                    paramToLocal.fixBinder(it.key)
+                }
+            )
         return HIRExpression.Closure(
             expression.location,
             ctx.analyzer.reduceGenericInstances(expression.type),
             captures,
-            expression.params.map {
-                HIRParam(
-                    it.location,
-                    it.binder.name,
-                    ctx.analyzer.getParamType(it))
-            },
+            params,
             ctx.analyzer.getReturnType(expression),
             body
         )
@@ -750,7 +778,8 @@ class HIRGen(
         return HIRExpression.ParamRef(
                 expression.location,
                 thisParamType(),
-                name = ctx.makeName("this")
+                name = ctx.makeName("this"),
+                binder = Binder(Identifier(expression.location, ctx.makeName("this")))
         )
     }
 
@@ -1058,7 +1087,8 @@ class HIRGen(
         is Binding.FunctionParam -> HIRExpression.ParamRef(
                 expression.location,
                 typeOfExpression(expression),
-                lowerLocalBinder(binding.param.binder)
+                lowerLocalBinder(binding.param.binder),
+                binding.binder
         )
         is Binding.ValBinding -> HIRExpression.ValRef(
                 expression.location,
@@ -1078,7 +1108,8 @@ class HIRGen(
         is Binding.ClosureParam -> HIRExpression.ParamRef(
             expression.location,
             typeOfExpression(expression),
-            lowerLocalBinder(binding.param.binder)
+            lowerLocalBinder(binding.param.binder),
+            binding.binder,
         )
         is Binding.SealedType -> TODO()
         is Binding.WhenArm -> requireUnreachable()
@@ -1227,7 +1258,7 @@ class HIRGen(
     private fun lowerParam(param: Param): HIRParam {
         return HIRParam(
                 param.location,
-                name = param.binder.identifier.name,
+                binder = param.binder,
                 type = ctx.analyzer.typeOfBinder(param.binder)
         )
     }

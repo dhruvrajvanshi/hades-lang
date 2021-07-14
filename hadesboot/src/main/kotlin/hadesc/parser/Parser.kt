@@ -302,7 +302,7 @@ class Parser(
         val start = expect(tt.DEF)
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
-        val (thisParamFlags, params) = parseParams()
+        val (thisParamFlags, thisParam, params) = parseParams()
         expect(tt.COLON)
         val returnType = parseTypeAnnotation()
         val whereClause = parseOptionalWhereClause()
@@ -310,6 +310,7 @@ class Parser(
             makeLocation(start, returnType),
             binder,
             typeParams,
+            thisParam,
             thisParamFlags,
             params,
             returnType,
@@ -472,8 +473,8 @@ class Parser(
         }
     })
 
-    private fun parseIdentifier(): Identifier {
-        val tok = expect(tt.ID)
+    private fun parseIdentifier(tokenKind: TokenKind = tt.ID): Identifier {
+        val tok = expect(tokenKind)
         return Identifier(tok.location, ctx.makeName(tok.text))
     }
 
@@ -1102,11 +1103,12 @@ class Parser(
         return Expression.Var(identifier)
     }
 
-    private fun parseParams(lparen: Token? = null): Pair<FunctionSignature.ThisParamFlags?, List<Param>> {
+    private fun parseParams(lparen: Token? = null): Triple<FunctionSignature.ThisParamFlags?, Binder?, List<Param>> {
         var hasThis = false
         var isThisPtr = false
         var isThisRef = false
         var isThisMut = false
+        var thisBinder: Binder? = null
         val params = buildList {
             lparen ?: expect(tt.LPAREN)
             var first = true
@@ -1123,7 +1125,7 @@ class Parser(
                             isThisMut = true
                             advance()
                         }
-                        expect(tt.THIS)
+                        thisBinder = parseBinder(tt.THIS)
                         continue
                     } else if (at(tt.REF)) {
                         advance()
@@ -1133,12 +1135,12 @@ class Parser(
                             isThisMut = true
                             advance()
                         }
-                        expect(tt.THIS)
+                        thisBinder = parseBinder(tt.THIS)
                         continue
                     }
                     if (at(tt.THIS)) {
                         hasThis = true
-                        advance()
+                        thisBinder = parseBinder(tt.THIS)
                         continue
                     }
                 }
@@ -1153,7 +1155,7 @@ class Parser(
                     isRef = isThisRef,
             )
         } else null
-        return thisParamFlags to params
+        return Triple(thisParamFlags, thisBinder, params)
     }
 
     private fun parseParam(): Param {
@@ -1165,8 +1167,8 @@ class Parser(
         )
     }
 
-    private fun parseBinder(): Binder {
-        return Binder(parseIdentifier())
+    private fun parseBinder(tokenKind: TokenKind = tt.ID): Binder {
+        return Binder(parseIdentifier(tokenKind))
     }
 
     private fun parseOptionalAnnotation(): TypeAnnotation? = if (at(tt.COLON)) {
