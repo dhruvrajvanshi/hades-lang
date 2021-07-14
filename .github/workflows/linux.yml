@@ -27,12 +27,3 @@ jobs:
 
     - name: Create tar
       run: ./gradlew distTar
-
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        prerelease: true
-        automatic_release_tag: latest
-        files: |
-          hadesboot/build/distributions/hadesboot.tar
-

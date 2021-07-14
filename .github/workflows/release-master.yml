@@ -1,14 +1,13 @@
 ---
-name: Release Tag
+name: Release Latest
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [ master ]
 
 jobs:
-  tagged-release:
-    name: "Tagged Release"
+  latest-release:
+    name: "Latest Release"
     runs-on: "ubuntu-latest"
 
     steps:
@@ -32,5 +31,6 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
+          automatic_release_tag: latest
           files: |
             hadesboot/build/distributions/hadesboot.tar
