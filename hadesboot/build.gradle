@@ -60,12 +60,8 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "11"
 }
 
-task copyStdlib(type: Copy) {
-    from fileTree(dir: '../stdlib')
-    into "build/install/$applicationName/stdlib"
-}
-
-installDist.finalizedBy(copyStdlib) {
+applicationDistribution.from('../stdlib') {
+    into 'stdlib'
 }
 
 jacocoTestReport {
