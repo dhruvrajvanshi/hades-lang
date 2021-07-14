@@ -1,0 +1,12 @@
+
+extern def puts(*Byte): Void = puts;
+
+def main(): Void {
+    val message = b"PASS"
+    defer puts(message)
+    call(message) || { return b"MESSAGE"; }
+}
+
+def call(message: *Byte, f: || -> *Byte): Void {
+
+}
