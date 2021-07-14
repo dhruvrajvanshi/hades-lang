@@ -26,7 +26,30 @@ A systems level programming language that compiles to LLVM
     - [ ] Autocompletion
     - [x] Debugger support:
           - Very basic support for gdb and lldb debug symbols is supported. This allows stepping through code using VS code. No local variables are shown yet.
-    
+
+## Getting started
+You can install the latest version of hades using this command
+```sh
+curl https://raw.githubusercontent.com/dhruvrajvanshi/hades-lang/master/install.py | python3 -
+```
+
+On windows, you can run this in prowershell
+```powershell
+# make sure you've installed python 3 beforehand
+(Invoke-webrequest -URI "https://raw.githubusercontent.com/dhruvrajvanshi/hades-lang/master/install.py").Content | python -
+```
+
+This will install the latest build from the master branch in ~/.hades/versions/latest/hades (%APPDATA%\hades on windows).
+Now, restarting your terminal should put `hades` command on your path.
+
+You can install specific releases by appending `---version <TAG>` to the commands, where `<TAG>` can be replaced with any
+[tag version](https://github.com/dhruvrajvanshi/hades-lang/tags) from the releases page. `latest` tag is automatically built when something is pushed to master.
+
+
+The current compiler is written in Java so you'll have to install OpenJDK 11 or later (https://adoptopenjdk.net/ has Java builds).
+On Linux, you can usually find `openjdk-11` builds in your package manager (`apt/dnf install openjdk-11`)
+
+
 ## Development
 The current compiler lives under the hadesboot directory (self hosting is a long term goal).
 
