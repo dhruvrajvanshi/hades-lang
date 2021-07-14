@@ -1,5 +1,5 @@
 import example.StringView as StringView;
-import example.assert as Assert;
+import example.assert.{unreachable};
 import example.logging as log;
 
 struct t {
@@ -23,21 +23,21 @@ def DELETE(): t {
 }
 
 def from_string_view(method: StringView.t): t {
-    if method.equals_c(b"GET") {
+    if method.equals(b"GET") {
         return t(1);
     }
-    if method.equals_c(b"POST") {
+    if method.equals(b"POST") {
         return t(2);
     }
-    if method.equals_c(b"PUT") {
+    if method.equals(b"PUT") {
         return t(3);
     }
-    if method.equals_c(b"DELETE") {
+    if method.equals(b"DELETE") {
         return t(4);
     }
     log.error(b"Invalid method: ");
     log.error(method.buffer());
-    Assert.unreachable(b"Invalid method");
+    unreachable || b"Invalid method";
     return t(0);
 }
 

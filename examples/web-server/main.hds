@@ -50,13 +50,13 @@ def handle_connection(fd: FileDescriptor): Void {
         panic_with_errno(b"handle_connection/read(request_fd)");
     }
     
-    val request_text = pointer_cast[Byte](request_text_buffer);
+    val request_text: *Byte = pointer_cast[Byte](request_text_buffer)
 
     val request_str = StringView.t(request_text, read_bytes);
     val request = HTTPRequest.from_string_view(request_str);
 
     log.info(b"Got request: ");
-    log.info(request_text);
+    log.info(pointer_cast[Byte](request_text));
     
     val response_body = b"hello\n";
     val body_length_str = size_to_string(c.strlen(response_body));
