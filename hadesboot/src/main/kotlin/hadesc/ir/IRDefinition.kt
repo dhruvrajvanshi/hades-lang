@@ -102,7 +102,7 @@ class IRFunctionDef(
     }
 
     override fun prettyPrint(): String {
-        return "def ${name.prettyPrint()}(${params.joinToString(",") { it.prettyPrint() }}): ${type.to.prettyPrint()} {" +
+        return "// $location\ndef ${name.prettyPrint()}(${params.joinToString(",") { it.prettyPrint() }}): ${type.to.prettyPrint()} {" +
                 "${entryBlock.prettyPrint()}\n${blocks.joinToString(""){ it.prettyPrint() }}}"
     }
 }
