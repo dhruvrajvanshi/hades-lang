@@ -1726,6 +1726,10 @@ class Analyzer(
             is Expression.BoolLiteral,
             is Expression.ByteString,
             is Expression.Var, -> true
+            is Expression.Property -> {
+                val binding = ctx.analyzer.resolvePropertyBinding(initializer)
+                binding is PropertyBinding.Global
+            }
             else -> {
                 false
             }
