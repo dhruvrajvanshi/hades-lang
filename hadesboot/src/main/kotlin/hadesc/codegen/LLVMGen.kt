@@ -82,7 +82,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (loweredGlobals[definition.name] == null) {
             val global = llvmModule.addGlobal(name, lowerType(definition.type))
             global.setInitializer(lowerExpression(definition.initializer))
-            loweredGlobals[definition.name] = requireNotNull(global.getInitializer())
+            loweredGlobals[definition.name] = checkNotNull(global.getInitializer())
         }
     }
 
@@ -90,7 +90,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (loweredGlobals[def.name] == null) {
             lowerConstDef(def)
         }
-        return requireNotNull(loweredGlobals[def.name])
+        return checkNotNull(loweredGlobals[def.name])
     }
 
     private fun lowerStructDef(definition: IRStructDef) {
@@ -156,16 +156,21 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
+        try {
 //        logger().debug("LLVMGen::lowerFunctionDef(${definition.name.prettyPrint()})")
-        val fn = getDeclaration(definition)
-        currentFunction = fn
-        definition.params.forEachIndexed { index, param ->
-            localVariables[param.name] = fn.getParameter(index)
-        }
-        attachDebugInfo(definition, fn)
-        lowerBlock(definition.entryBlock)
-        for (block in definition.blocks) {
-            lowerBlock(block)
+            val fn = getDeclaration(definition)
+            currentFunction = fn
+            definition.params.forEachIndexed { index, param ->
+                localVariables[param.name] = fn.getParameter(index)
+            }
+            attachDebugInfo(definition, fn)
+            lowerBlock(definition.entryBlock)
+            for (block in definition.blocks) {
+                lowerBlock(block)
+            }
+        } catch (e: IllegalStateException) {
+            log.error("Cannot compile llvm IR function: ${definition.name.name.mangle()}\n${definition.prettyPrint()}")
+            throw e
         }
     }
 
@@ -212,9 +217,9 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val blocks = mutableMapOf<Pair<String, IRLocalName>, BasicBlock>()
     private fun getBlock(blockName: IRLocalName): BasicBlock {
-        val fnName = requireNotNull(currentFunction?.getName())
+        val fnName = checkNotNull(currentFunction?.getName())
         return blocks.computeIfAbsent(fnName to blockName) {
-            requireNotNull(currentFunction).createBlock(it.second.mangle())
+            checkNotNull(currentFunction).createBlock(it.second.mangle())
         }
     }
 
@@ -494,7 +499,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerVariable(expression: IRVariable): Value {
         log.debug("lowerVariable(${expression.prettyPrint()}) // ${expression.location}")
         return when (expression.name) {
-            is IRLocalName -> requireNotNull(localVariables[expression.name]) {
+            is IRLocalName -> checkNotNull(localVariables[expression.name]) {
                 "${expression.location}: Unbound variable: ${expression.name.prettyPrint()}"
             }
             is IRGlobalName -> lowerGlobalVariable(expression.name)
@@ -524,7 +529,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private fun lowerCallExpression(expression: IRCall): Value {
         log.debug("lowerCallExpression(${expression.location})")
         val callee = lowerExpression(expression.callee)
-        require(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
+        check(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
         val ref = builder.buildCall(callee, args, if (expression.type == Type.Void) null else expression.name.mangle())
 
@@ -551,7 +556,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun getDeclaration(def: IRFunctionDef): FunctionValue {
-        require(def.signature.constraints.isEmpty())
+        check(def.signature.constraints.isEmpty())
         val irName = def.name
         val type = lowerFunctionType(def.type)
         val name = if (irName.mangle() == "main") {
@@ -569,7 +574,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             existing
         } else {
             val constructorType = def.constructorType
-            require(constructorType is Type.Function)
+            check(constructorType is Type.Function)
             val loweredType = lowerFunctionType(constructorType)
             llvmModule.addFunction(name, loweredType)
         }
@@ -591,7 +596,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         // TODO: Handle this in a better way
         val buffer = ByteArray(1000)
         val error = LLVM.LLVMVerifyModule(llvmModule.ref, LLVM.LLVMAbortProcessAction, buffer)
-        require(error == 0) {
+        check(error == 0) {
             log.error(LLVM.LLVMPrintModuleToString(llvmModule.ref).string)
             log.error("Invalid llvm module: ${llvmModule.getSourceFileName()}\n")
             "Invalid LLVM module ${String(buffer.sliceArray(0..error))}"
@@ -626,7 +631,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Constructor ->  {
             if (type.name !in structTypes) {
                 val binding = irModule.resolveGlobal(type.name)
-                require(binding is IRBinding.StructDef)
+                check(binding is IRBinding.StructDef)
                 val memberTypes = binding.def.fields
                 val name = type.name.mangle()
                 val structTy = StructType(name, llvmCtx)
@@ -634,7 +639,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 structTy.setBody(memberTypes.values.map { lowerType(it) }, packed = false)
                 structTy
             } else {
-                requireNotNull(structTypes[type.name])
+                checkNotNull(structTypes[type.name])
             }
         }
         is Type.ParamRef ->
@@ -646,7 +651,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             val maxSizedType = type.members
                     .map { lowerType(it) }
                     .maxByOrNull { sizeOfType(it) }
-            requireNotNull(maxSizedType)
+            checkNotNull(maxSizedType)
         }
         is Type.Integral -> IntType(type.size, llvmCtx)
         is Type.FloatingPoint -> FloatType(type.size, llvmCtx)
@@ -737,7 +742,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             .inheritIO()
             .start()
         val exitCode = process.waitFor()
-        require(exitCode == 0) {
+        check(exitCode == 0) {
             "${commandParts.joinToString(" ")} exited with code $exitCode"
         }
     }
