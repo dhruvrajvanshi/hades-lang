@@ -10,6 +10,8 @@ def slf4jVersion = "1.7.30"
 group 'org.hades'
 
 sourceCompatibility = 11
+applicationName = 'hades'
+mainClassName = 'hadesc.MainKt'
 
 repositories {
     mavenCentral()
@@ -32,7 +34,7 @@ dependencies {
 
 test {
     workingDir = new File("..")
-    environment['HADESBOOT_HOME'] = "."
+    environment['HADES_HOME'] = "."
     useJUnitPlatform()
     afterTest { descriptor, result ->
         logger.quiet "[TEST] [${result.resultType}] ${descriptor.className}::${descriptor.displayName}"
@@ -58,18 +60,9 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "11"
 }
 
-application {
-    mainClass = 'hadesc.MainKt'
-}
-jar {
-    manifest {
-        attributes "Main-Class": "hadesc.MainKt"
-    }
-}
-
 task copyStdlib(type: Copy) {
     from fileTree(dir: '../stdlib')
-    into 'build/install/hadesboot/stdlib'
+    into "build/install/$applicationName/stdlib"
 }
 
 installDist.finalizedBy(copyStdlib) {

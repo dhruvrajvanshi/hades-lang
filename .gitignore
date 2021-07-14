@@ -15,3 +15,4 @@ hdc
 /.bsp
 /node_modules
 *.obj
+/venv

@@ -20,7 +20,7 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
       TERM: dumb
-      HADESBOOT_HOME: hadesboot/build/install/hadesboot
+      HADES_HOME: hadesboot/build/install/hades
 
     steps:
       - checkout

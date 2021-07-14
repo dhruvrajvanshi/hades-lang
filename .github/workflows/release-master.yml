@@ -33,4 +33,4 @@ jobs:
           prerelease: true
           automatic_release_tag: latest
           files: |
-            hadesboot/build/distributions/hadesboot.tar
+            hadesboot/build/distributions/hades.tar
