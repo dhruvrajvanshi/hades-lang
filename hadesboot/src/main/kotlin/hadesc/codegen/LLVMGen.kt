@@ -123,7 +123,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
         is Type.Error -> requireUnreachable { "${this.location}" }
-        Type.Byte -> diBuilder.createBasicType("Byte", 8)
         Type.Void -> diBuilder.createBasicType("Void", 0)
         Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
         is Type.Integral -> diBuilder.createBasicType(
@@ -616,7 +615,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Error -> requireUnreachable {
             "${type.location}"
         }
-        Type.Byte -> byteTy
         Type.Void -> voidTy
         is Type.Bool -> boolTy
         Type.Double -> doubleTy

@@ -8,7 +8,6 @@ import hadesc.unit
 interface TypeTransformer {
     fun lowerType(type: Type): Type = when (type) {
         is Type.Error -> type
-        Type.Byte -> lowerByteType(type)
         Type.Void -> lowerVoidType(type)
         Type.Bool -> lowerBoolType(type)
         Type.Size -> lowerSizeType(type)
@@ -107,7 +106,6 @@ interface TypeTransformer {
 interface TypeVisitor {
     fun visitType(type: Type): Unit = when (type) {
         is Type.Error -> unit
-        Type.Byte -> visitByteType(type)
         Type.Void -> visitVoidType(type)
         Type.Bool -> visitBoolType(type)
         Type.Size -> visitSizeType(type)
