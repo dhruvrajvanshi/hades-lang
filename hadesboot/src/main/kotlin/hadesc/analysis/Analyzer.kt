@@ -819,7 +819,7 @@ class Analyzer(
 
     private fun isTypeEqualityComparable(type: Type): Boolean {
         return type is Type.Integral || type is Type.Bool ||
-                type is Type.Ptr || type is Type.Size || type is Type.Byte
+                type is Type.Ptr || type is Type.Size
     }
 
     private fun checkNullPtrExpression(expectedType: Type): Type {
@@ -829,7 +829,6 @@ class Analyzer(
     private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
         is Type.Size,
         is Type.Integral -> true
-        is Type.Byte -> true
         else -> false
     }
 
@@ -839,7 +838,7 @@ class Analyzer(
             is Expression.Var -> inferVarExpresion(expression)
             is Expression.Call -> inferCallExpression(expression)
             is Expression.Property -> inferPropertyExpression(expression)
-            is Expression.ByteString -> Type.Ptr(Type.Byte, isMutable = false)
+            is Expression.ByteString -> Type.Ptr(Type.Integral(8, isSigned = false), isMutable = false)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.NullPtr -> inferNullPtrExpression(expression)
             is Expression.IntLiteral -> inferIntLiteral(expression)
@@ -1967,9 +1966,6 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
         (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
         (op.EQUALS to Type.Size) to (Type.Size to Type.Bool),
         (op.NOT_EQUALS to Type.Size) to (Type.Size to Type.Bool),
-
-        (op.EQUALS to Type.Byte) to (Type.Byte to Type.Bool),
-        (op.NOT_EQUALS to Type.Byte) to (Type.Byte to Type.Bool),
 )
 
 data class Discriminant(

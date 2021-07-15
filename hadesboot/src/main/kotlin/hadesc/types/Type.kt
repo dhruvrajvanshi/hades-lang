@@ -8,7 +8,6 @@ import hadesc.qualifiedname.QualifiedName
 
 sealed class Type {
     data class Error(val location: SourceLocation) : Type()
-    object Byte : Type()
     object Void : Type()
     object Bool : Type()
     data class Integral(val size: Int, val isSigned: Boolean) : Type()
@@ -60,7 +59,6 @@ sealed class Type {
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
-        Byte -> "Byte"
         Void -> "Void"
         Bool -> "Bool"
         Double -> "Double"
@@ -100,7 +98,6 @@ sealed class Type {
         return when (this) {
             is GenericInstance,
             is Error,
-            Byte,
             Void,
             Size,
             Double,
