@@ -35,6 +35,7 @@ A systems level programming language that compiles to LLVM
 * OpenJDK 11 or later needs to be installed (https://adoptopenjdk.net/ has Java builds for windows).
 On Linux, you can usually find `openjdk-11` builds in your package manager (`apt/dnf install openjdk-11`)
 
+### Installation
 You can install the latest version of hades using this command
 ```sh
 curl https://raw.githubusercontent.com/dhruvrajvanshi/hades-lang/master/install.py | python3 -
