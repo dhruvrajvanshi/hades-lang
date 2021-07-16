@@ -1,0 +1,49 @@
+
+sealed type Foo {
+    A
+    B(value: u32)
+    C(value1: u32, value2: u32)
+}
+
+def main(): Void {
+    val a: Foo = Foo.A
+    val b = Foo.B(10)
+    val c = Foo.C(20, 30)
+
+    val a_pass = when a {
+        is A -> true,
+        is B -> false,
+        is C -> false
+    }
+
+    if not a_pass {
+        puts(b"a FAIL")
+    }
+
+    val b_pass = when b {
+        is b: B -> b.value == 10,
+        is A -> false,
+        is C -> false
+    }
+
+    if not b_pass {
+        puts(b"b FAIL")
+    }
+
+    val c_pass = when c {
+        is c: C -> c.value1 == 20 and c.value2 == 30,
+        is B -> false,
+        is A -> false
+    }
+
+    if not c_pass {
+        puts(b"c FAIL")
+    }
+
+    if not a_pass or not b_pass or not c_pass {
+        exit(1)
+    }
+}
+
+extern def puts(*u8): Bool = puts
+extern def exit(u32): Void = exit
