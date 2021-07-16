@@ -1,0 +1,14 @@
+
+sealed type T {
+    X
+}
+
+def main(): Void {
+    val x = T.X
+
+    puts(when (x) {
+        is X -> b"PASS"
+    })
+}
+
+extern def puts(*u8): Void = puts
