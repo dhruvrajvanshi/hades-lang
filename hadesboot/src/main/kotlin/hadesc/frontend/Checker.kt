@@ -826,12 +826,10 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkPropertyExpression(expression: Expression.Property) {
-        val moduleProperty = ctx.resolver.resolveModuleProperty(expression)
-        if (moduleProperty != null) {
-            return
+        val propertyBinding = ctx.analyzer.resolvePropertyBinding(expression)
+        if (propertyBinding !is PropertyBinding.Global && propertyBinding !is PropertyBinding.SealedTypeCaseConstructor) {
+            checkExpression(expression.lhs)
         }
-
-        checkExpression(expression.lhs)
         if (!ctx.analyzer.isValidPropertyAccess(expression)) {
             val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
             if (lhsType is Type.Error) return
