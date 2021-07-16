@@ -573,7 +573,9 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.SealedType -> TODO()
+                is Declaration.SealedType -> if (declaration.name.identifier.name == name.name) {
+                    declaration
+                } else null
             }
             if (decl != null) {
                 return decl
