@@ -524,7 +524,7 @@ class Analyzer(
         }
 
         return requireNotNull(typeOfExpressionCache[expression]) {
-            "${expression.location}"
+            "${expression.location}: ${expression.location.start.column} ${expression.location.stop.column}"
         }
     }
 
@@ -975,8 +975,14 @@ class Analyzer(
             checkExpression(expression.rhs, matchingRule.first)
             matchingRule.second
         } else {
-            if ((expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS) &&  lhsType is Type.Ptr) {
-                checkExpression(expression.rhs, lhsType.copy(isMutable = false))
+            if (
+                (expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS)
+                && (lhsType is Type.Ptr || lhsType.isIntegral() || lhsType is Type.Bool)) {
+                if (lhsType is Type.Ptr) {
+                    checkExpression(expression.rhs, lhsType.copy(isMutable = false))
+                } else {
+                    checkExpression(expression.rhs, lhsType)
+                }
                 Type.Bool
             } else {
                 inferExpression(expression.rhs)
