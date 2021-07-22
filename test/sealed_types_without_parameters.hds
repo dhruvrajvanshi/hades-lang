@@ -1,0 +1,32 @@
+sealed type T {
+    X(),
+    Y
+}
+
+def main(): Void {
+   val x = T.X()
+   val y = T.Y
+
+   val result = when x {
+      is X -> true
+      is Y -> false
+   }
+
+   if not result {
+        exit(1)
+   }
+
+   val y_result = when y {
+     is X -> false
+     is Y -> true
+   }
+
+   if not y_result {
+        exit(1)
+   }
+
+   puts(b"PASS")
+}
+
+extern def puts(*u8): Void = puts
+extern def exit(u32): Void = exit
