@@ -9,7 +9,6 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
@@ -831,27 +830,6 @@ class Parser(
                         condition,
                         trueBranch,
                         falseBranch
-                )
-            }
-            tt.NEW -> {
-                val start = advance()
-                val path = parseQualifiedPath()
-                val typeArgs = if (at(tt.LSQB)) {
-                    advance()
-                    val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
-                        parseTypeAnnotation()
-                    }
-                    expect(tt.RSQB)
-                    args
-                } else null
-                expect(tt.LPAREN)
-                val args = parseSeperatedList(tt.COMMA, tt.RPAREN) { parseArg() }
-                val stop = expect(tt.RPAREN)
-                Expression.New(
-                        makeLocation(start, stop),
-                        path,
-                        typeArgs,
-                        args
                 )
             }
             tt.THIS -> {

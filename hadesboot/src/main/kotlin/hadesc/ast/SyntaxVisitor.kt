@@ -68,7 +68,6 @@ interface SyntaxVisitor {
         is Expression.Error -> visitErrorExpr(expression)
         is Expression.If -> visitIfExpr(expression)
         is Expression.IntLiteral -> visitIntLiteralExpr(expression)
-        is Expression.New -> visitNewExpr(expression)
         is Expression.Not -> visitNotExpr(expression)
         is Expression.NullPtr -> visitNullPtrExpr(expression)
         is Expression.PointerCast -> visitPointerCast(expression)
@@ -208,11 +207,6 @@ interface SyntaxVisitor {
     }
 
     fun visitIntLiteralExpr(expression: Expression.IntLiteral) {
-    }
-
-    fun visitNewExpr(expression: Expression.New) {
-        expression.typeArgs?.forEach { visitType(it) }
-        expression.args.forEach { visitArg(it) }
     }
 
     fun visitNotExpr(expression: Expression.Not) {
