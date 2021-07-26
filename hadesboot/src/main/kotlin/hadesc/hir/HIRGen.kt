@@ -569,7 +569,6 @@ class HIRGen(
         is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> lowerTypeApplication(expression)
         is Expression.New -> TODO()
-        is Expression.PipelineOperator -> lowerPipelineOperator(expression)
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> lowerClosure(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
@@ -780,14 +779,6 @@ class HIRGen(
                 thisParamType(),
                 name = ctx.makeName("this"),
                 binder = Binder(Identifier(expression.location, ctx.makeName("this")))
-        )
-    }
-
-    private fun lowerPipelineOperator(expression: Expression.PipelineOperator): HIRExpression {
-        return buildCall(
-            call = expression,
-            args = listOf(lowerExpression(expression.lhs)),
-            callee = lowerExpression(expression.rhs)
         )
     }
 

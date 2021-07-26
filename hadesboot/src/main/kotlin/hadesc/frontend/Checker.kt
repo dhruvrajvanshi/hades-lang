@@ -579,7 +579,6 @@ class Checker(val ctx: Context) {
             is Expression.IntLiteral -> Unit
             is Expression.Not -> checkNotExpression(expression)
             is Expression.BinaryOperation -> checkBinaryOperation(expression)
-            is Expression.PipelineOperator -> checkPipelineOperator(expression)
             is Expression.SizeOf -> checkSizeOf(expression)
             is Expression.AddressOf -> checkAddressOf(expression)
             is Expression.AddressOfMut -> checkAddressOfMut(expression)
@@ -796,15 +795,6 @@ class Checker(val ctx: Context) {
         if (expression.type is Type.Function) {
             error(expression, Diagnostic.Kind.TakingAddressOfClosureDisallowed)
         }
-    }
-
-    private fun checkPipelineOperator(expression: Expression.PipelineOperator) {
-        checkCallLikeExpression(
-            callExpression= expression,
-            typeArgAnnotations = null,
-            callee = expression.rhs,
-            args = listOf(expression.lhs)
-        )
     }
 
     private fun checkIfExpression(expression: Expression.If) {

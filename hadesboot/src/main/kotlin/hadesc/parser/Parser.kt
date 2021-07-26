@@ -30,7 +30,6 @@ private val byteStringEscapes = mapOf(
 )
 
 private val OPERATORS = listOf(
-        listOf(tt.PIPELINE),
         listOf(tt.AND, tt.OR),
         listOf(
                 tt.LESS_THAN,
@@ -58,7 +57,7 @@ private val BINARY_OPERATORS = mapOf(
         tt.BANG_EQ to op.NOT_EQUALS
 ).apply {
     for (tokenType in keys) {
-        require(OPERATORS.any { it.contains(tokenType) } || tokenType == tt.PIPELINE) {
+        require(OPERATORS.any { it.contains(tokenType) }) {
             "operator token type $tokenType missing in precedence table"
         }
     }
@@ -718,13 +717,6 @@ class Parser(
     }
 
     private fun makeBinOp(lhs: Expression, operatorToken: TokenKind, rhs: Expression): Expression {
-        if (operatorToken == tt.PIPELINE) {
-            return Expression.PipelineOperator(
-                makeLocation(lhs, rhs),
-                lhs,
-                rhs
-            )
-        }
         val operator = requireNotNull(BINARY_OPERATORS[operatorToken]) {
             "Bug: Token type not found in binary operators table $operatorToken"
         }

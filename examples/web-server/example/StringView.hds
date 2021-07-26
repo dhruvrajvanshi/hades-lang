@@ -43,7 +43,7 @@ extension StringViewExtensions for t {
     }
 
     def starts_with_c(this, start: *Byte): Bool {
-        return this.starts_with(start |> from_c_string);
+        return this.starts_with(from_c_string(start));
     }
 
     def drop_first_word(this): t {
