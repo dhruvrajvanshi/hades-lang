@@ -568,7 +568,6 @@ class HIRGen(
         is Expression.PointerCast -> lowerPointerCast(expression)
         is Expression.If -> lowerIfExpression(expression)
         is Expression.TypeApplication -> lowerTypeApplication(expression)
-        is Expression.New -> TODO()
         is Expression.This -> lowerThisExpression(expression)
         is Expression.Closure -> lowerClosure(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)

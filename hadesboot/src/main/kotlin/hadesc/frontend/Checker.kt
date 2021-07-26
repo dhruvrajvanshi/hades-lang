@@ -586,7 +586,6 @@ class Checker(val ctx: Context) {
             is Expression.PointerCast -> checkPointerCast(expression)
             is Expression.If -> checkIfExpression(expression)
             is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
-            is Expression.New -> TODO()
             is Expression.Closure -> checkClosureExpression(expression)
             is Expression.This -> checkThisExpression(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)

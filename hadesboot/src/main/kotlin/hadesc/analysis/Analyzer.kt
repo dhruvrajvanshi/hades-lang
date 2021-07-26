@@ -851,7 +851,6 @@ class Analyzer(
             is Expression.PointerCast -> inferPointerCast(expression)
             is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> inferTypeApplication(expression)
-            is Expression.New -> inferNewExpression(expression)
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
@@ -919,15 +918,6 @@ class Analyzer(
         } else {
             thisType
         }
-    }
-
-    private fun inferNewExpression(expression: Expression.New): Type {
-        return Type.Ptr(inferOrCheckCallLikeExpression(
-            callNode = expression,
-            args = expression.args,
-            typeArgs = expression.typeArgs,
-            expectedReturnType = null
-        ), isMutable = true)
     }
 
     private fun checkConstructorFunction(path: QualifiedPath): Type {
@@ -1338,7 +1328,6 @@ class Analyzer(
             }
             else -> inferExpression(callNode.callee)
         }
-        is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
         else -> Type.Error(callNode.location)
     }
 

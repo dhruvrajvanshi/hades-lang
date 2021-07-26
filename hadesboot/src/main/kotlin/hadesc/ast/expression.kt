@@ -97,13 +97,6 @@ sealed class Expression : HasLocation {
         val args: List<TypeAnnotation>
     ) : Expression()
 
-    data class New(
-        override val location: SourceLocation,
-        val qualifiedPath: QualifiedPath,
-        val typeArgs: List<TypeAnnotation>?,
-        val args: List<Arg>
-    ) : Expression()
-
     data class This(
             override val location: SourceLocation
     ) : Expression()
