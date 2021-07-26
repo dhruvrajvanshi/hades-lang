@@ -21,11 +21,6 @@ data class FunctionSignature(
     }
     data class ThisParamFlags(
             val isPointer: Boolean,
-            val isRef: Boolean,
             val isMutable: Boolean
-    ) {
-        init {
-            require(!(isPointer && isRef))
-        }
-    }
+    )
 }

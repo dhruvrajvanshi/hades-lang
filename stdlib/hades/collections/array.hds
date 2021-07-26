@@ -22,6 +22,6 @@ extension ArrayExtensions[T] for Array[T] {
 
     def set(*mut this, index: Size, value: T): Void {
         val mut ptr = Mem.offset_mut(*this.m_ptr, index)
-        *ptr = move value
+        *ptr = value
     }
 }

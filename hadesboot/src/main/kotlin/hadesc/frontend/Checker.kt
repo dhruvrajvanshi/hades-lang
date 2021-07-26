@@ -17,12 +17,6 @@ import libhades.collections.Stack
 
 class Checker(val ctx: Context) {
     private val returnTypeStack = Stack<Type>()
-    // location at which a given binder location is moved
-    // example:
-    // val x = 4; // line 10
-    // val y = move x; // line 11
-    // moveLocation = mapOf( line 10 to line 11 )
-    private val moveLocationMap = mutableMapOf<SourceLocation, SourceLocation>()
 
     fun checkProgram() {
         ctx.forEachSourceFile { sourceFile ->
@@ -309,9 +303,6 @@ class Checker(val ctx: Context) {
                 checkTypeAnnotation(it)
             }
         }
-        is TypeAnnotation.Ref -> {
-            checkTypeAnnotation(annotation.to)
-        }
         is TypeAnnotation.Select -> {
             checkSelectTypeAnnotation(annotation)
         }
@@ -481,12 +472,6 @@ class Checker(val ctx: Context) {
                 }
                 checkExpressionHasType(statement.value, lhsType.to)
             }
-            is Type.Ref -> {
-                checkExpressionHasType(statement.value, lhsType.to)
-                if (!lhsType.isMutable) {
-                    error(statement.lhs, Diagnostic.Kind.ValNotMutable)
-                }
-            }
             else -> {
                 error(statement.lhs, Diagnostic.Kind.NotAPointerType(lhsType))
             }
@@ -590,8 +575,6 @@ class Checker(val ctx: Context) {
             is Expression.This -> checkThisExpression(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
-            is Expression.Ref -> checkRefExpression(expression)
-            is Expression.Move -> checkMoveExpression(expression)
             is Expression.As -> checkAsExpression(expression)
         })
     }
@@ -614,58 +597,6 @@ class Checker(val ctx: Context) {
 
     private fun checkNotExpression(expression: Expression.Not) {
         checkExpressionHasType(expression.expression, Type.Bool)
-    }
-
-    private fun checkMoveExpression(expression: Expression.Move) {
-        checkExpression(expression.expression)
-
-        val binding = if (expression.expression is Expression.Property && expression.expression.lhs is Expression.Var) {
-            ctx.resolver.resolve(expression.expression.lhs.name)
-        } else if (expression.expression is Expression.Var) {
-            ctx.resolver.resolve(expression.expression.name)
-        } else {
-            null
-        }
-        val binder = when (binding) {
-            is Binding.ValBinding -> binding.statement.binder
-            is Binding.FunctionParam -> binding.binder
-            is Binding.ClosureParam -> binding.binder
-            else -> null
-        }
-        if (binder != null) {
-            moveLocationMap[binder.location] = expression.location
-        }
-    }
-
-    private fun checkRefExpression(expression: Expression.Ref) {
-        checkExpression(expression.expression)
-        when (expression.expression) {
-            is Expression.Var -> {
-                when (val binding = ctx.resolver.resolve(expression.expression.name)) {
-                    is Binding.ValBinding -> {
-                        if (expression.isMutable && !binding.statement.isMutable) {
-                            error(expression, Diagnostic.Kind.ValNotMutable)
-                        }
-                    }
-                    else -> {
-                        error(expression, Diagnostic.Kind.NotAnAddressableValue)
-                    }
-                }
-            }
-            is Expression.Property -> {
-                when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expression.expression)) {
-                    is PropertyBinding.StructField -> {
-                        if (expression.isMutable && !propertyBinding.member.isMutable) {
-                            error(expression, Diagnostic.Kind.ValNotMutable)
-                        }
-                    }
-                    else -> {
-                        error(expression, Diagnostic.Kind.NotAnAddressableValue)
-                    }
-                }
-            }
-            else -> unit
-        }
     }
 
     private fun checkClosureExpression(expression: Expression.Closure) {
@@ -741,7 +672,7 @@ class Checker(val ctx: Context) {
 
     private fun checkDeref(expression: Expression.Deref) {
         checkExpression(expression.expression)
-        if (expression.expression.type !is Type.Ptr && expression.expression.type !is Type.Ref) {
+        if (expression.expression.type !is Type.Ptr) {
             error(expression.expression, Diagnostic.Kind.NotAPointerType(expression.expression.type))
         }
     }
@@ -831,19 +762,6 @@ class Checker(val ctx: Context) {
     private fun checkVarExpression(expression: Expression.Var) {
         val resolved = ctx.resolver.resolve(expression.name)
         if (resolved != null) {
-            val binder = when (resolved) {
-                is Binding.ValBinding -> resolved.statement.binder
-                is Binding.ClosureParam -> resolved.binder
-                is Binding.FunctionParam -> resolved.binder
-                else -> null
-            }
-
-            if (binder != null) {
-                val moveLocation = moveLocationMap[binder.location]
-                if (moveLocation != null && moveLocation.stop < expression.location.start) {
-                    error(expression, Diagnostic.Kind.UseAfterMove)
-                }
-            }
             return
         }
 

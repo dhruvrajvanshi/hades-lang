@@ -134,17 +134,6 @@ sealed class Expression : HasLocation {
         ) : WhenArm()
     }
 
-    data class Ref(
-        override val location: SourceLocation,
-        val isMutable: Boolean,
-        val expression: Expression,
-    ) : Expression()
-
-    data class Move(
-        override val location: SourceLocation,
-        val expression: Expression
-    ) : Expression()
-
     data class As(
         override val location: SourceLocation,
         val lhs: Expression,

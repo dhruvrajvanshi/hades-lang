@@ -29,8 +29,8 @@ def main(): Void {
 }
 
 def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first: |T1| -> Void, print_second: |T2| -> T2R): T2R {
-    print_first(move first);
-    return print_second(move second);
+    print_first(first);
+    return print_second(second);
 }
 
 // struct Closure[Result] {
@@ -38,7 +38,7 @@ def print_both_and_return_second[T1, T2, T2R](first: T1, second: T2, print_first
 //   val fp: *() -> Result;
 // }
 def apply[T, U](value: T, fn: |T| -> U): U {
-    return fn(move value);
+    return fn(value);
 }
 
 // def apply[T, U](value: T, fn: Closure[U]): U {

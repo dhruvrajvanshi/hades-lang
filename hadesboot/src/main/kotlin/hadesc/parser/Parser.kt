@@ -837,15 +837,6 @@ class Parser(
             }
             tt.VBAR -> parseClosureExpression()
             tt.WHEN -> parseWhenExpression()
-            tt.REF -> parseRefExpression()
-            tt.MOVE -> {
-                val start = advance()
-                val expression = parseExpression()
-                Expression.Move(
-                    makeLocation(start, expression),
-                    expression
-                )
-            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -853,21 +844,6 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
-    }
-
-    private fun parseRefExpression(): Expression {
-        val start = expect(tt.REF)
-        val isMutable =
-            if (at(tt.MUT)) {
-                advance()
-                true
-            } else false
-        val value = parsePrimaryExpression(allowCalls = false)
-        return Expression.Ref(
-            makeLocation(start, value),
-            isMutable,
-            value
-        )
     }
 
     private fun parseWhenExpression(): Expression {
@@ -1076,7 +1052,6 @@ class Parser(
     private fun parseParams(lparen: Token? = null): Triple<FunctionSignature.ThisParamFlags?, Binder?, List<Param>> {
         var hasThis = false
         var isThisPtr = false
-        var isThisRef = false
         var isThisMut = false
         var thisBinder: Binder? = null
         val params = buildList {
@@ -1097,16 +1072,6 @@ class Parser(
                         }
                         thisBinder = parseBinder(tt.THIS)
                         continue
-                    } else if (at(tt.REF)) {
-                        advance()
-                        isThisRef = true
-                        hasThis = true
-                        if (at(tt.MINUS)) {
-                            isThisMut = true
-                            advance()
-                        }
-                        thisBinder = parseBinder(tt.THIS)
-                        continue
                     }
                     if (at(tt.THIS)) {
                         hasThis = true
@@ -1122,7 +1087,6 @@ class Parser(
             FunctionSignature.ThisParamFlags(
                     isPointer = isThisPtr,
                     isMutable = isThisMut,
-                    isRef = isThisRef,
             )
         } else null
         return Triple(thisParamFlags, thisBinder, params)
@@ -1210,20 +1174,6 @@ class Parser(
                 TypeAnnotation.Union(
                         makeLocation(start, stop),
                         args
-                )
-            }
-            tt.REF -> {
-                val start = advance()
-                val isMutable =
-                    if (at(tt.MUT)) {
-                        advance()
-                        true
-                    } else false
-                val inner = parseTypeAnnotation()
-                TypeAnnotation.Ref(
-                    makeLocation(start, inner),
-                    isMutable,
-                    inner
                 )
             }
             else -> {

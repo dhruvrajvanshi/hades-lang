@@ -19,7 +19,7 @@ def debug[T](text: T): Void where ToStringView[T] {
 }
 
 def log_value[T](tag: *Byte, value: T, copy_to_c: *|T| -> *mut Byte): Void {
-    val c_str = copy_to_c(move value);
+    val c_str = copy_to_c(value);
     defer mem.free(pointer_cast[Byte](c_str));
 
     val immutable: *Byte = pointer_cast[Byte](c_str)

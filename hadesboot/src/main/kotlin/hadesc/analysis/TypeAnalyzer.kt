@@ -60,14 +60,6 @@ class TypeAnalyzer {
                 }
 
             }
-            destination is Type.Ref && source is Type.Ref -> {
-                val refTypeAssignable = isTypeAssignableTo(source.to, destination.to)
-                if (destination.isMutable && !source.isMutable) {
-                    false
-                } else {
-                    refTypeAssignable
-                }
-            }
             destination is Type.Constructor && source is Type.Constructor -> {
                 destination.name == source.name
             }

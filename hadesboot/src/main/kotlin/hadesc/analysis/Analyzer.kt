@@ -256,12 +256,7 @@ class Analyzer(
                     thisType,
                     isMutable = functionDef.signature.thisParamFlags.isMutable
                 )
-            } else if (functionDef.signature.thisParamFlags.isRef) {
-                Type.Ref(
-                    thisType,
-                    isMutable = functionDef.signature.thisParamFlags.isMutable
-                )
-            }else {
+            } else {
                 thisType
             }
             if (!isTypeAssignableTo(expression, source = inferExpression(expression.lhs), destination = expectedThisType)) {
@@ -269,11 +264,6 @@ class Analyzer(
             }
             val receiverType = if (functionDef.signature.thisParamFlags.isPointer) {
                 Type.Ptr(
-                    annotationToType(extensionDef.forType),
-                    isMutable = functionDef.signature.thisParamFlags.isMutable
-                )
-            } else if (functionDef.signature.thisParamFlags.isRef) {
-                Type.Ref(
                     annotationToType(extensionDef.forType),
                     isMutable = functionDef.signature.thisParamFlags.isMutable
                 )
@@ -328,23 +318,16 @@ class Analyzer(
             callNode,
             source = type,
             destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
-        val isRefAssignable = isTypeAssignableTo(
-            callNode,
-            source = type,
-            destination = Type.Ref(forType.applySubstitution(refAssignmentSubstitution), isMutable = false))
-        if (!isValueAssignable && !isPointerAssignable && !isRefAssignable) return false
+
+        if (!isValueAssignable && !isPointerAssignable) return false
         var assignableCount = 0
         if (isPointerAssignable) assignableCount++
         if (isValueAssignable) assignableCount++
-        if (isRefAssignable) assignableCount++
         val methods = extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>()
         val substitution = when {
             assignableCount > 1 -> {
                 val pointerMethodAvailable = methods.find {
                     it.name.identifier.name == methodName && (it.signature.thisParamFlags?.isPointer ?: false)
-                } != null
-                val refMethodAvailable = methods.find {
-                    it.name.identifier.name == methodName && (it.signature.thisParamFlags?.isRef ?: false)
                 } != null
                 val valueMethodAvailable = methods.find {
                     it.name.identifier.name == methodName && (it.signature.thisParamFlags != null && !it.signature.thisParamFlags.isPointer)
@@ -353,14 +336,10 @@ class Analyzer(
                 var candidateCount = 0
                 if (pointerMethodAvailable) candidateCount++
                 if (valueMethodAvailable) candidateCount++
-                if (refMethodAvailable) candidateCount++
 
                 when {
                     candidateCount > 1 -> {
                         TODO("Ambiguous extension method")
-                    }
-                    refMethodAvailable -> {
-                        refAssignmentSubstitution
                     }
                     pointerMethodAvailable -> {
                         pointerAssignmentSubstitution
@@ -376,9 +355,6 @@ class Analyzer(
             }
             isValueAssignable -> {
                 valueAssignmentSubstitution
-            }
-            isRefAssignable -> {
-                refAssignmentSubstitution
             }
             else -> requireUnreachable()
         }
@@ -410,13 +386,8 @@ class Analyzer(
 
     }
 
-    fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
-        val lhsStructType =
-            if (lhsType is Type.Ref)
-                lhsType.to
-            else
-                lhsType
-        val structDecl = getStructDeclOfType(lhsStructType)
+    private fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
+        val structDecl = getStructDeclOfType(lhsType)
         return if (structDecl == null) null else {
             val index = structDecl.members.indexOfFirst {
                 it is Declaration.Struct.Member.Field
@@ -425,15 +396,15 @@ class Analyzer(
             if (index > -1) {
                 val field = structDecl.members[index]
                 require(field is Declaration.Struct.Member.Field)
-                val typeArgs = if (lhsStructType is Type.Application) {
-                    lhsStructType.args
+                val typeArgs = if (lhsType is Type.Application) {
+                    lhsType.args
                 } else emptyList()
                 val substitution = structDecl.typeParams?.zip(typeArgs)
                         ?.map { it.first.binder.location to it.second }
                         ?.toMap()
                         ?: emptyMap()
                 val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
-                isTypeAssignableTo(property, lhsStructType, fieldType)
+                isTypeAssignableTo(property, lhsType, fieldType)
                 PropertyBinding.StructField(
                         structDecl = structDecl,
                         memberIndex = index,
@@ -855,20 +826,11 @@ class Analyzer(
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.When -> inferWhenExpression(expression)
-            is Expression.Ref -> inferRefExpression(expression)
-            is Expression.Move -> inferExpression(expression.expression)
             is Expression.As -> {
                 inferExpression(expression.lhs)
                 annotationToType(expression.rhs)
             }
         })
-    }
-
-    private fun inferRefExpression(expression: Expression.Ref): Type {
-        return Type.Ref(
-            inferExpression(expression.expression),
-            expression.isMutable
-        )
     }
 
     private fun inferWhenExpression(expression: Expression.When): Type {
@@ -913,8 +875,6 @@ class Analyzer(
         val thisParamFlags = enclosingFunction.signature.thisParamFlags
         return if (thisParamFlags.isPointer) {
             Type.Ptr(thisType, thisParamFlags.isMutable)
-        } else if (thisParamFlags.isRef) {
-            Type.Ref(thisType, thisParamFlags.isMutable)
         } else {
             thisType
         }
@@ -1434,7 +1394,6 @@ class Analyzer(
             is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
             is TypeAnnotation.Function -> functionAnnotationToType(annotation)
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
-            is TypeAnnotation.Ref -> refAnnotationToType(annotation)
             is TypeAnnotation.Select -> selectAnnotationToType(annotation)
         }
     }
@@ -1457,13 +1416,6 @@ class Analyzer(
             }
         }
         return Type.Error(annotation.location)
-    }
-
-    private fun refAnnotationToType(annotation: TypeAnnotation.Ref): Type {
-        return Type.Ref(
-            annotationToType(annotation.to),
-            annotation.isMutable
-        )
     }
 
     private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {

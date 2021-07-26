@@ -10,12 +10,12 @@ def main(): Void {
 }
 
 def make_nested_pair[A, B, C, D](first: A, second: B, pair: Pair[C, D]): Pair[Pair[A, B], Pair[C, D]] {
-    return Pair(Pair(move first, move second), move pair);
+    return Pair(Pair(first, second), pair);
 }
 
 def make_pair[T, U](first: T, second: U): Pair[T, U] {
 
-    val copy = Pair(move first, move second);
+    val copy = Pair(first, second);
     val copy_of_copy = copy;
     c.puts(
         make_nested_pair(false, b"second", Pair(b"third", true))

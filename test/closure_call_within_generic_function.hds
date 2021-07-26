@@ -6,12 +6,12 @@ def main(): Void {
 }
 
 def apply[T, U](value: T, fn: |T| -> U): U {
-    return fn(move value);
+    return fn(value);
 }
 
 def f[T](value: T): T {
     val hello = b"Hello";
-    return apply(move value, |x| {
+    return apply(value, |x| {
         puts(hello);
         return x;
     });

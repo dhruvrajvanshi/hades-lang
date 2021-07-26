@@ -1,8 +1,5 @@
 import submodule.printable_interface as p;
 import libc as c;
-import hades.marker.{Copy}
-
-implementation[T] Copy[Optional[T]] where Copy[T] {}
 
 def main(): Void {
     val opt = Optional.Some(10);
@@ -17,7 +14,7 @@ def main(): Void {
 }
 
 def print[T](value: T): Void where p.Printable[T] {
-    p.Printable[T].print(move value);
+    p.Printable[T].print(value);
 }
 
 def get_string_value(value: Optional[*Byte]): *Byte {

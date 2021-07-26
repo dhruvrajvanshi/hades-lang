@@ -15,7 +15,7 @@ def returns_closure(): || -> Void {
 def apply[T, U](value: T, closure: |T| -> U): U {
     val c = closure;
     val addr = &c;
-    return closure(move value);
+    return closure(value);
 }
 
 def main(): Void {
