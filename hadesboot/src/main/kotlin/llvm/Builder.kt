@@ -6,7 +6,6 @@ import org.bytedeco.llvm.LLVM.LLVMTypeRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
-typealias LLVMBuilder = LLVMBuilderRef
 private typealias B = LLVMBuilderRef
 
 val B.ref get() = this
@@ -59,11 +58,11 @@ fun B.buildExtractValue(value: Value, index: Int, name: String): Value =
         name
     )
 
-fun B.buildCall(callee: Value, args: List<Value>, name: String?) =
+fun B.buildCall(callee: Value, args: List<Value>, name: String?): LLVMValueRef =
     LLVM.LLVMBuildCall(this, callee, args.asPointerPointer(), args.size, name ?: "")
 
-fun B.buildZExt(value: Value, toType: Type, name: String) =
+fun B.buildZExt(value: Value, toType: Type, name: String): LLVMValueRef =
     LLVM.LLVMBuildZExt(this, value, toType, name)
 
-fun B.buildTrunc(value: Value, toType: Type, name: String) =
+fun B.buildTrunc(value: Value, toType: Type, name: String): LLVMValueRef =
     LLVM.LLVMBuildTrunc(this, value, toType, name)

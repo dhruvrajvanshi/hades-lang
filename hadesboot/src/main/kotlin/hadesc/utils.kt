@@ -15,6 +15,5 @@ inline fun <reified Ctx, T> Ctx.profile(message: String, block: () -> T): T {
     logger().debug("$message took $miliseconds ms")
     return result
 }
-fun printIndent(indent: Int) = (0..(indent * 2)).joinToString("") { " " }
 
 val unit = Unit

@@ -1,13 +1,11 @@
 package llvm
 
-import com.sun.jna.Pointer
-import org.bytedeco.llvm.LLVM.LLVMDIBuilderRef
-import org.bytedeco.llvm.LLVM.LLVMMetadataRef
+import org.bytedeco.llvm.LLVM.*
 import org.bytedeco.llvm.global.LLVM
 
 fun LLVMDIBuilderRef.createCompileUnit(
     fileRef: LLVMMetadataRef
-) =
+): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateCompileUnit(
         this,
         LLVM.LLVMDWARFSourceLanguageC,
@@ -24,12 +22,14 @@ fun LLVMDIBuilderRef.createCompileUnit(
         false.toLLVMBool()
     )
 
-fun LLVMDIBuilderRef.createLexicalBlock(scope: LLVMMetadataRef, file: LLVMMetadataRef, line: Int, column: Int) =
+@Suppress("unused")
+fun LLVMDIBuilderRef.createLexicalBlock(scope: LLVMMetadataRef, file: LLVMMetadataRef, line: Int, column: Int): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateLexicalBlock(this, scope, file, line, column)
 
-fun LLVMDIBuilderRef.createFile(name: String, directory: String) =
+fun LLVMDIBuilderRef.createFile(name: String, directory: String): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateFile(this, name, name.length.toLong(), directory, directory.length.toLong())
 
+@Suppress("unused")
 fun LLVMDIBuilderRef.createParam(
     scope: LLVMMetadataRef,
     name: String,
@@ -38,7 +38,7 @@ fun LLVMDIBuilderRef.createParam(
     type: LLVMMetadataRef,
     lineNumber: Int,
     llvmDIFlags: Int
-) =
+): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateParameterVariable(
         this,
         scope,
@@ -57,7 +57,7 @@ fun LLVMDIBuilderRef.createBasicType(
     sizeInBits: Long,
     llvmDWARFEncoding: Int = 0,
     llvmDIFlags: Int = LLVM.LLVMDIFlagZero
-) =
+): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateBasicType(
         this,
         name,
@@ -77,7 +77,7 @@ fun LLVMDIBuilderRef.createFunction(
     isDefinition: Boolean,
     scopeLine: Int,
     flags: Int,
-) =
+): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateFunction(
         this,
         scope,

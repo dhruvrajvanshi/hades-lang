@@ -91,13 +91,8 @@ class TypeAnalyzer {
                 id = id)
     }
 
-    fun instantiate(implType: Type, params: List<Type.Param>): Type {
-        val substitution = params.map { it.binder.location to makeGenericInstance(it.binder) }.toMap()
-        return implType.applySubstitution(substitution)
-    }
-
     fun makeParamSubstitution(params: List<Type.Param>): Substitution {
-        return params.map { it.binder.location to makeGenericInstance(it.binder) }.toMap()
+        return params.associate { it.binder.location to makeGenericInstance(it.binder) }
     }
 
 }

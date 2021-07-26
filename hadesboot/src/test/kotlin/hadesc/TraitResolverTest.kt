@@ -1,6 +1,5 @@
 package hadesc
 
-import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitClause
 import hadesc.analysis.TraitResolver
@@ -37,7 +36,7 @@ class TraitResolverTest {
 
     @Test
     fun `should check impl requirements`() {
-        val t = param("T")
+        val t = param("T1")
         val resolver = makeResolver(
                 // implementation : Printable[Bool]
                 impl(params(), qn("Printable"), forType(Type.Bool), requires()),

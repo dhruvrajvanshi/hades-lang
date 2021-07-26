@@ -101,10 +101,10 @@ interface TypeTransformer {
 interface TypeVisitor {
     fun visitType(type: Type): Unit = when (type) {
         is Type.Error -> unit
-        Type.Void -> visitVoidType(type)
-        Type.Bool -> visitBoolType(type)
-        Type.Size -> visitSizeType(type)
-        Type.Double -> visitDoubleType(type)
+        is Type.Void -> visitVoidType(type)
+        is Type.Bool -> visitBoolType(type)
+        is Type.Size -> visitSizeType(type)
+        is Type.Double -> visitDoubleType(type)
         is Type.Ptr -> visitRawPtrType(type)
         is Type.Function -> visitFunctionType(type)
         is Type.Constructor -> visitTypeConstructor(type)
@@ -138,7 +138,7 @@ interface TypeVisitor {
         visitType(type.body)
     }
 
-    fun visitDoubleType(type: Type) = Unit
+    fun visitDoubleType(type: Type.Double) = Unit
 
     fun visitUntaggedUnionType(type: Type.UntaggedUnion) {
         type.members.forEach { visitType(it) }
@@ -154,11 +154,9 @@ interface TypeVisitor {
         requirement.arguments.forEach { visitType(it) }
     }
 
-    fun visitSizeType(type: Type) = Unit
+    fun visitSizeType(type: Type.Size) = Unit
 
-    fun visitCIntType(type: Type) = Unit
-
-    fun visitBoolType(type: Type) = Unit
+    fun visitBoolType(type: Type.Bool) = Unit
 
     fun visitTypeConstructor(type: Type.Constructor) = Unit
 
@@ -172,6 +170,4 @@ interface TypeVisitor {
     fun visitVoidType(type: Type) = Unit
 
     fun visitRawPtrType(type: Type.Ptr) = visitType(type.to)
-
-    fun visitByteType(type: Type) = Unit
 }

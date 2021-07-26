@@ -10,9 +10,6 @@ data class QualifiedName(
     }
 
     fun mangle(): String = names.joinToString(separator = ".") { it.text }
-    fun withPrefix(prefix: QualifiedName): QualifiedName {
-        return QualifiedName(prefix.names + names)
-    }
 
     val size get() = names.size
 

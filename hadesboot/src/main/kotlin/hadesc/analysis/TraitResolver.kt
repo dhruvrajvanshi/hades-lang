@@ -6,8 +6,7 @@ import hadesc.types.Type
 
 class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: TypeAnalyzer) {
     data class Env<Def>(val clauses: List<TraitClause<Def>>) {
-        constructor(vararg clauses: TraitClause<Def>): this(listOf(*clauses)) {
-        }
+        constructor(vararg clauses: TraitClause<Def>): this(listOf(*clauses))
     }
 
     fun getImplementationClauseAndSubstitution(traitRef: QualifiedName, arguments: List<Type>): Pair<TraitClause<Def>, Substitution>? {
@@ -18,10 +17,6 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
             }
         }
         return null
-    }
-
-    private fun isTraitImplementedByClause(traitRef: QualifiedName, arguments: List<Type>, clause: TraitClause<Def>): Boolean {
-        return getImplementationSubstitution(traitRef, arguments, clause) != null
     }
 
     fun isTraitImplemented(traitRef: QualifiedName, arguments: List<Type>): Boolean {

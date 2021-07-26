@@ -15,15 +15,7 @@ import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
-import java.io.File
 
-private val PROGRAMFILES_X86 = System.getenv("PROGRAMFILES(x86)")
-private val VCVARS_PATH =
-    listOf(
-        "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
-        "$PROGRAMFILES_X86\\Microsoft Visual Studio\\2017\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat",
-    )
-        .find { File(it).exists() }
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
     private val log = logger()
@@ -35,8 +27,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     fun generate() = profile("LLVM::generate") {
         log.debug(irModule.prettyPrint())
-        llvmModule.addModuleFlag("Debug Info Version", ConstantInt(i32Ty, 3).asMetadata())
-        llvmModule.addModuleFlag("Dwarf Version", ConstantInt(i32Ty, 4).asMetadata())
+        llvmModule.addModuleFlag("Debug Info Version", constantInt(i32Ty, 3).asMetadata())
+        llvmModule.addModuleFlag("Dwarf Version", constantInt(i32Ty, 4).asMetadata())
 
         lower()
         LLVM.LLVMDIBuilderFinalize(diBuilder)
@@ -419,7 +411,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerAggregate(value: IRAggregate): Value {
-        return ConstantStruct(
+        return constantStruct(
                 lowerType(value.type),
                 value.values.map { lowerExpression(it) }
         )
@@ -431,7 +423,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 LLVM.LLVMBuildPointerCast(
                         builder.ref,
                         expr.ref,
-                        PointerType(lowerType(value.toPointerOfType)).ref,
+                        pointerType(lowerType(value.toPointerOfType)).ref,
                         ctx.makeUniqueName().text
                 ))
     }
@@ -441,28 +433,32 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         val toType = lowerType(value.type)
         val fromTypeSize = sizeOfType(fromType)
         val toTypeSize = sizeOfType(toType)
-        return if (toTypeSize < fromTypeSize) {
-            Value(
-                LLVM.LLVMBuildTruncOrBitCast(
-                    builder, lowerExpression(value.value), toType, ctx.makeUniqueName().text)
-            )
-        } else if (toTypeSize > fromTypeSize) {
-            Value(
-                LLVM.LLVMBuildZExt(
-                    builder,
-                    lowerExpression(value.value),
-                    toType,
-                    ctx.makeUniqueName().text
+        return when {
+            toTypeSize < fromTypeSize -> {
+                Value(
+                    LLVM.LLVMBuildTruncOrBitCast(
+                        builder, lowerExpression(value.value), toType, ctx.makeUniqueName().text)
                 )
-            )
-        } else {
-            Value(
-                LLVM.LLVMBuildBitCast(
-                    builder, lowerExpression(value.value),
-                    toType,
-                    ctx.makeUniqueName().text
+            }
+            toTypeSize > fromTypeSize -> {
+                Value(
+                    LLVM.LLVMBuildZExt(
+                        builder,
+                        lowerExpression(value.value),
+                        toType,
+                        ctx.makeUniqueName().text
+                    )
                 )
-            )
+            }
+            else -> {
+                Value(
+                    LLVM.LLVMBuildBitCast(
+                        builder, lowerExpression(value.value),
+                        toType,
+                        ctx.makeUniqueName().text
+                    )
+                )
+            }
         }
     }
 
@@ -471,7 +467,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerCIntValue(value: IRCIntConstant): Value {
-        return ConstantInt(value = value.value.toLong(), type = lowerType(value.type), signExtend = false)
+        return constantInt(value = value.value.toLong(), type = lowerType(value.type), signExtend = false)
     }
 
     private fun lowerNullPtr(value: IRNullPtr): Value {
@@ -515,7 +511,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerByteString(expression: IRByteString): Value {
         val text = expression.value.decodeToString()
-        val constStringRef = ConstantArray(text, nullTerminate = false, context = llvmCtx)
+        val constStringRef = constantArray(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
             constStringRef.getType()
@@ -582,8 +578,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
 
     private fun lowerFunctionType(type: Type): llvm.Type {
-        val lowered = lowerType(type)
-        return lowered
+        return lowerType(type)
     }
 
     private fun lowerName(name: IRName): String {
@@ -601,14 +596,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
     }
 
-    private fun LLVMValueRef.verify() {
-        val validate = LLVM.LLVMVerifyFunction(ref, LLVM.LLVMPrintMessageAction)
-        if (validate > 0) {
-            log.error("Bad function: ${this.dumpToString()}")
-            TODO()
-        }
-    }
-
     private val structTypes = mutableMapOf<QualifiedName, llvm.Type>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
         is Type.Error -> requireUnreachable {
@@ -619,7 +606,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         Type.Double -> doubleTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
-            FunctionType(
+            functionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
                 variadic = false
@@ -631,7 +618,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                 check(binding is IRBinding.StructDef)
                 val memberTypes = binding.def.fields
                 val name = type.name.mangle()
-                val structTy = StructType(name, llvmCtx)
+                val structTy = structType(name, llvmCtx)
                 structTypes[type.name] = structTy
                 structTy.setBody(memberTypes.values.map { lowerType(it) }, packed = false)
                 structTy
@@ -650,8 +637,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
                     .maxByOrNull { sizeOfType(it) }
             checkNotNull(maxSizedType)
         }
-        is Type.Integral -> IntType(type.size, llvmCtx)
-        is Type.FloatingPoint -> FloatType(type.size, llvmCtx)
+        is Type.Integral -> intType(type.size, llvmCtx)
+        is Type.FloatingPoint -> floatType(type.size, llvmCtx)
         is Type.TypeFunction -> requireUnreachable()
         is Type.Uninferrable -> requireUnreachable()
         is Type.AssociatedTypeRef -> requireUnreachable()
@@ -664,19 +651,18 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         return "_hadesboot_string_literal_$nextLiteralIndex"
     }
 
-    private val byteTy = IntType(8, llvmCtx)
-    private val bytePtrTy = PointerType(byteTy)
-    private val voidTy = VoidType(llvmCtx)
-    private val boolTy = IntType(1, llvmCtx)
-    private val cIntTy = IntType(32, llvmCtx)
-    private val i32Ty = IntType(32, llvmCtx)
+    private val byteTy = intType(8, llvmCtx)
+    private val bytePtrTy = pointerType(byteTy)
+    private val voidTy = voidType(llvmCtx)
+    private val boolTy = intType(1, llvmCtx)
+    private val i32Ty = intType(32, llvmCtx)
     private val doubleTy = LLVM.LLVMDoubleTypeInContext(llvmCtx)
-    private val trueValue = ConstantInt(boolTy, 1, false)
-    private val falseValue = ConstantInt(boolTy, 0, false)
-    private val sizeTy = IntType(64, llvmCtx) // FIXME: This isn't portable
+    private val trueValue = constantInt(boolTy, 1, false)
+    private val falseValue = constantInt(boolTy, 0, false)
+    private val sizeTy = intType(64, llvmCtx) // FIXME: This isn't portable
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
-        return PointerType(to)
+        return pointerType(to)
     }
 
     private val cc = when {

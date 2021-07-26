@@ -16,7 +16,7 @@ class IRBuilder {
     }
 
 
-    fun <S : IRInstruction> addStatement(statement: S): S {
+    private fun <S : IRInstruction> addStatement(statement: S): S {
         val statements = requireNotNull(position).statements
         if (statements.isNotEmpty()) {
             require(!statements.last().isTerminator()) {
@@ -43,20 +43,6 @@ class IRBuilder {
 
     fun buildVariable(ty: Type, location: SourceLocation, name: IRName): IRValue {
         return IRVariable(ty, location, name)
-    }
-
-    fun buildMethodRef(
-            type: Type,
-            location: SourceLocation,
-            thisArg: IRValue,
-            method: IRValue
-    ): IRValue {
-        return IRMethodRef(
-                type,
-                location,
-                thisArg,
-                method
-        )
     }
 
     fun buildCall(
@@ -128,9 +114,5 @@ class IRBuilder {
 
     fun buildJump(location: SourceLocation, name: IRLocalName): IRInstruction {
         return addStatement(IRJump(location, name))
-    }
-
-    fun buildSwitch(location: SourceLocation, onValue: IRValue, cases: List<IRLocalName>): IRInstruction {
-        return addStatement(IRSwitch(location, onValue, cases))
     }
 }

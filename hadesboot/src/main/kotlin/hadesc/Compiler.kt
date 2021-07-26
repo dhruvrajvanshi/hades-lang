@@ -4,14 +4,12 @@ import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import java.nio.file.Path
-import kotlin.io.path.ExperimentalPathApi
 import kotlin.system.exitProcess
 
 sealed class Options {
 
     companion object {
 
-        @OptIn(ExperimentalPathApi::class)
         fun fromArgs(args: Array<String>): Options {
             val hadesHome = System.getenv("HADES_HOME")
             if (hadesHome == null) {
@@ -59,15 +57,6 @@ sealed class Options {
 
         private fun Array<String>.getString(long: String): String {
             assert(indexOf(long) > -1) { "Missing flag $long" }
-            val indexOfNext = indexOf(long) + 1
-            assert(indexOfNext < size)
-            assert(!this[indexOfNext].startsWith("--"))
-            return this[indexOfNext]
-        }
-
-
-        private fun Array<String>.getOptional(long: String): String? {
-            if (indexOf(long) < 0) { return null }
             val indexOfNext = indexOf(long) + 1
             assert(indexOfNext < size)
             assert(!this[indexOfNext].startsWith("--"))

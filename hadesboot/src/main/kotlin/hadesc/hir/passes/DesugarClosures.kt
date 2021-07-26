@@ -78,8 +78,7 @@ class DesugarClosures(val ctx: Context): HIRTransformer {
         for (definition in oldModule.definitions) {
             definitions.addAll(transformDefinition(definition))
         }
-        val result = HIRModule(definitions)
-        return result
+        return HIRModule(definitions)
     }
 
     override fun transformBlock(body: HIRBlock): HIRBlock {

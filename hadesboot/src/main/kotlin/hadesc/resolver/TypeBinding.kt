@@ -21,21 +21,11 @@ sealed class TypeBinding {
     ) : TypeBinding()
 
     data class SealedType(
-        val declaration: Declaration.SealedType) : TypeBinding() {}
+        val declaration: Declaration.SealedType) : TypeBinding()
 
     data class Builtin(val type: Type) : TypeBinding()
 
     data class AssociatedType(val binder: Binder) : TypeBinding()
-
-    fun isGlobal() = when(this) {
-        is Builtin -> true
-        is SealedType -> true
-        is Struct -> true
-        is Trait -> true
-        is TypeAlias -> true
-        is TypeParam -> false
-        is AssociatedType -> false
-    }
 
     fun isLocalTo(scope: HasLocation) = when(this) {
         is TypeParam -> binder.location.isWithin(scope.location)

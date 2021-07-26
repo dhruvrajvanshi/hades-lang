@@ -118,9 +118,7 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val value: Expression,
         val arms: List<WhenArm>
-    ) : Expression() {
-
-    }
+    ) : Expression()
 
     sealed class WhenArm {
         abstract val value: Expression

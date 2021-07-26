@@ -8,7 +8,7 @@ private typealias T = LLVMTypeRef
 
 val T.ref get() = this
 
-fun FunctionType(returns: Type, types: List<Type>, variadic: Boolean): Type {
+fun functionType(returns: Type, types: List<Type>, variadic: Boolean): Type {
     return LLVM.LLVMFunctionType(
         returns,
         types.asPointerPointer(),
@@ -17,25 +17,25 @@ fun FunctionType(returns: Type, types: List<Type>, variadic: Boolean): Type {
     )
 }
 
-fun PointerType(type: T, addressSpace: Int = 0): Type = LLVM.LLVMPointerType(type, addressSpace)
+fun pointerType(type: T, addressSpace: Int = 0): Type = LLVM.LLVMPointerType(type, addressSpace)
 
 fun T.getConstantNullPointer(): Value =
     LLVM.LLVMConstPointerNull(this)
 
-fun IntType(size: Int, context: Context = LLVM.LLVMGetGlobalContext()) =
+fun intType(size: Int, context: Context = LLVM.LLVMGetGlobalContext()): LLVMTypeRef =
     LLVM.LLVMIntTypeInContext(context, size)
 
-fun FloatType(size: Int, context: Context) = when(size) {
+fun floatType(size: Int, context: Context): T = when(size) {
     16 -> LLVM.LLVMHalfTypeInContext(context)
     32 -> LLVM.LLVMFloatTypeInContext(context)
     64 -> LLVM.LLVMDoubleTypeInContext(context)
     else -> requireUnreachable()
 }
 
-fun VoidType(context: Context = LLVM.LLVMGetGlobalContext()) =
+fun voidType(context: Context = LLVM.LLVMGetGlobalContext()): T =
     LLVM.LLVMVoidTypeInContext(context)
 
-fun StructType(name: String, context: Context) =
+fun structType(name: String, context: Context): T =
     LLVM.LLVMStructCreateNamed(context, name)
 
 fun T.setBody(elementTypes: List<Type>, packed: Boolean) =

@@ -11,7 +11,6 @@ import hadesc.ir.passes.TypeTransformer
 import hadesc.ir.passes.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
-import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
@@ -21,13 +20,11 @@ import java.util.*
 import java.util.Collections.singletonList
 import kotlin.math.min
 
-@OptIn(ExperimentalStdlibApi::class)
 class Analyzer(
         private val ctx: Context
 ) {
     val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
-    val copyTraitName = QualifiedName(listOf(ctx.makeName("hades"), ctx.makeName("marker"), ctx.makeName("Copy")))
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
@@ -80,8 +77,7 @@ class Analyzer(
             expression.lhs.args.map { annotationToType(it) }
         else emptyList()
         val substitution = traitDef.params.zip(typeArgs)
-            .map { (param, arg) -> param.location to arg }
-            .toMap()
+            .associate { (param, arg) -> param.location to arg }
         return PropertyBinding.TraitFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
@@ -138,9 +134,9 @@ class Analyzer(
                 val type = if (typeDecl.typeParams == null) {
                     annotationType
                 } else {
-                    val substitution = typeDecl.typeParams.zip(typeArgs).map { (param, arg) ->
+                    val substitution = typeDecl.typeParams.zip(typeArgs).associate { (param, arg) ->
                         param.location to arg
-                    }.toMap()
+                    }
                     annotationType.applySubstitution(substitution)
                 }
                 PropertyBinding.WhenCaseFieldRef(
@@ -206,8 +202,9 @@ class Analyzer(
         val memberIndex = traitDef.signatures.indexOfFirst { it.name.identifier.name == expression.property.name }
         val memberSignature = traitDef.signatures[memberIndex]
         val traitTypeArgs = if (lhsType is Type.Application) lhsType.args else emptyList()
-        val substitution = traitDef.params.zip(traitTypeArgs).map {
-            it.first.binder.location to it.second }.toMap()
+        val substitution = traitDef.params.zip(traitTypeArgs).associate {
+            it.first.binder.location to it.second
+        }
         val type = Type.Function(
                 from = memberSignature.params.map {
                     it.annotation?.let { annot -> annotationToType(annot).applySubstitution(substitution) }
@@ -306,9 +303,16 @@ class Analyzer(
             .any { it.name.name ==  methodName }
         if (!hasRequiredMethodName) return false
         val forType = annotationToType(extensionDef.forType)
-        val valueAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
-        val pointerAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
-        val refAssignmentSubstitution = extensionDef.typeParams?.map { it.location to typeAnalyzer.makeGenericInstance(it.binder) }?.toMap() ?: emptyMap()
+        val valueAssignmentSubstitution = extensionDef.typeParams?.associate {
+            it.location to typeAnalyzer.makeGenericInstance(
+                it.binder
+            )
+        } ?: emptyMap()
+        val pointerAssignmentSubstitution = extensionDef.typeParams?.associate {
+            it.location to typeAnalyzer.makeGenericInstance(
+                it.binder
+            )
+        } ?: emptyMap()
         val isValueAssignable = isTypeAssignableTo(
                 callNode,
                 source = type,
@@ -400,9 +404,8 @@ class Analyzer(
                     lhsType.args
                 } else emptyList()
                 val substitution = structDecl.typeParams?.zip(typeArgs)
-                        ?.map { it.first.binder.location to it.second }
-                        ?.toMap()
-                        ?: emptyMap()
+                    ?.associate { it.first.binder.location to it.second }
+                    ?: emptyMap()
                 val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
                 isTypeAssignableTo(property, lhsType, fieldType)
                 PropertyBinding.StructField(
@@ -784,15 +787,6 @@ class Analyzer(
         return inferredParamTypes[param.binder]
     }
 
-    private fun isTypeOrderComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.FloatingPoint || type is Type.Size
-    }
-
-    private fun isTypeEqualityComparable(type: Type): Boolean {
-        return type is Type.Integral || type is Type.Bool ||
-                type is Type.Ptr || type is Type.Size
-    }
-
     private fun checkNullPtrExpression(expectedType: Type): Type {
         return expectedType
     }
@@ -835,10 +829,7 @@ class Analyzer(
 
     private fun inferWhenExpression(expression: Expression.When): Type {
         inferExpression(expression.value)
-        val firstArmExpr = expression.arms.firstOrNull()
-        if (firstArmExpr == null) {
-            return Type.Error(expression.location)
-        }
+        val firstArmExpr = expression.arms.firstOrNull() ?: return Type.Error(expression.location)
         val type = inferExpression(firstArmExpr.value)
         for (whenArm in expression.arms.drop(1)) {
             checkExpression(whenArm.value, type)
@@ -854,10 +845,9 @@ class Analyzer(
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
         val lhsType = inferExpression(expression.lhs)
         return if (lhsType is Type.TypeFunction) {
-            val substitution = lhsType.params.zip(expression.args).map {
-                    (param, annotation) ->
+            val substitution = lhsType.params.zip(expression.args).associate { (param, annotation) ->
                 param.binder.location to annotationToType(annotation)
-            }.toMap()
+            }
             getTypeArgsCache[expression.lhs] = expression.args.map { annotationToType(it) }
             lhsType.body.applySubstitution(substitution)
         } else {
@@ -877,20 +867,6 @@ class Analyzer(
             Type.Ptr(thisType, thisParamFlags.isMutable)
         } else {
             thisType
-        }
-    }
-
-    private fun checkConstructorFunction(path: QualifiedPath): Type {
-        return when (val declaration = ctx.resolver.resolveDeclaration(path)) {
-            null -> {
-                Type.Error(path.location)
-            }
-            is Declaration.Struct -> {
-                typeOfBinder(declaration.binder)
-            }
-            else -> {
-                Type.Error(path.location)
-            }
         }
     }
 
@@ -1052,12 +1028,12 @@ class Analyzer(
     }
 
     private fun structFieldTypes(declaration: Declaration.Struct): Map<Name, Type> {
-        return declaration.members.map {
+        return declaration.members.associate {
             when (it) {
                 is Declaration.Struct.Member.Field ->
                     it.binder.identifier.name to annotationToType(it.typeAnnotation)
             }
-        }.toMap()
+        }
     }
 
     private fun typeOfValRef(binding: Binding.ValBinding): Type {
@@ -1179,55 +1155,13 @@ class Analyzer(
             if (traitDef !is Declaration.TraitDef) {
                 null
             } else {
-                TraitClause.Implementation<Declaration.ImplementationDef>(
+                TraitClause.Implementation(
                         def = implementationDef,
                         params = implementationDef.typeParams?.map { p -> Type.Param(p.binder) } ?: emptyList(),
                         traitRef = ctx.resolver.qualifiedName(traitDef.name),
                         arguments = implementationDef.traitArguments.map { annotationToType(it) },
                         requirements = implementationDef.whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
                 )
-            }
-        } + ctx.resolver.structDefs.mapNotNull { structDef ->
-            val deriveDecorator = structDef.decorators.find { it.name.name == ctx.makeName("Derive") }
-            if (deriveDecorator == null) {
-                null
-            } else {
-                val isCopyDerived = deriveDecorator.args.any { it.name == ctx.makeName("Copy") }
-                if (structDef.typeParams == null && isCopyDerived) {
-                    val instanceType = Type.Constructor(
-                        structDef.binder,
-                        ctx.resolver.qualifiedStructName(structDef)
-                    )
-                    TraitClause.Implementation(
-                        params = emptyList(),
-                        traitRef = copyTraitName,
-                        arguments = listOf(instanceType),
-                        requirements = emptyList()
-                    )
-                } else {
-                    null
-                }
-            }
-        } + ctx.resolver.sealedTypeDefs.mapNotNull { def ->
-            val deriveDecorator = def.decorators.find { it.name.name == ctx.makeName("Derive") }
-            if (deriveDecorator == null) {
-                null
-            } else {
-                val isCopyDerived = deriveDecorator.args.any { it.name == ctx.makeName("Copy") }
-                if (def.typeParams == null && isCopyDerived) {
-                    val instanceType = Type.Constructor(
-                        def.name,
-                        ctx.resolver.qualifiedName(def.name)
-                    )
-                    TraitClause.Implementation<Declaration.ImplementationDef>(
-                        params = emptyList(),
-                        traitRef = copyTraitName,
-                        arguments = listOf(instanceType),
-                        requirements = emptyList()
-                    )
-                } else {
-                    null
-                }
             }
         }
     }
@@ -1245,7 +1179,7 @@ class Analyzer(
         val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
         val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val env = TraitResolver.Env(extensionClauses + functionTraitClauses + implTraitClauses + globalTraitClauses)
-        return TraitResolver<Declaration.ImplementationDef>(env, typeAnalyzer)
+        return TraitResolver(env, typeAnalyzer)
     }
 
     private fun TraitRequirement.toClause(): TraitClause<Declaration.ImplementationDef> {
@@ -1308,12 +1242,12 @@ class Analyzer(
     private fun instantiateSubstitution(
         typeParams: List<Type.Param>?,
     ): Substitution {
-        return typeParams
-                ?.map { it.binder.location to makeGenericInstance(
-                    it.binder
-                ) }
-                ?.toMap()
-                ?: emptyMap()
+        return typeParams?.associate {
+            it.binder.location to makeGenericInstance(
+                it.binder
+            )
+        }
+            ?: emptyMap()
     }
 
     private fun checkCallArgs(
@@ -1436,9 +1370,9 @@ class Analyzer(
         val callee = annotationToType(annotation.callee)
         return if (callee is Type.TypeFunction) {
             val args = annotation.args.map { annotationToType(it) }
-            val substitution = callee.params.zip(args).map {
+            val substitution = callee.params.zip(args).associate {
                 it.first.binder.location to it.second
-            }.toMap()
+            }
             callee.body.applySubstitution(substitution)
         } else {
             Type.Error(annotation.location)
@@ -1578,9 +1512,8 @@ class Analyzer(
             override fun lowerTypeApplication(type: Type.Application): Type {
                 return if (type.callee is Type.TypeFunction) {
                     require(type.callee.params.size == type.args.size)
-                    val substitution = type.callee.params.zip(type.args)
-                            .map { it.first.binder.location to it.second }
-                            .toMap()
+                    val substitution =
+                        type.callee.params.zip(type.args).associate { it.first.binder.location to it.second }
                     return type.callee.body.applySubstitution(substitution)
                 } else {
                     super.lowerTypeApplication(type)
@@ -1609,9 +1542,8 @@ class Analyzer(
 
         val declaration = getSealedTypeDeclaration(type)
 
-        val substitution = (declaration.typeParams ?: emptyList()).zip(args)
-            .map { (param, type) -> param.location to type }
-            .toMap()
+        val substitution =
+            (declaration.typeParams ?: emptyList()).zip(args).associate { (param, type) -> param.location to type }
 
         return declaration.cases.mapIndexed { index, case ->
             Discriminant(
@@ -1685,8 +1617,6 @@ class Analyzer(
         }
     }
 
-    fun isTraitRef(expression: Expression): Boolean = resolveTraitRef(expression) != null
-
     private fun resolvePropertyExpressionTraitRef(expression: Expression.Property): Declaration.TraitDef? {
         if (expression.lhs !is Expression.Var) return null
 
@@ -1723,9 +1653,9 @@ class Analyzer(
 
                 override fun visitTypeApplication(type: Type.Application) {
                     if (type.callee is Type.TypeFunction) {
-                        val subst = type.callee.params.zip(type.args).map {
+                        val subst = type.callee.params.zip(type.args).associate {
                             it.first.binder.location to it.second
-                        }.toMap()
+                        }
                         visitType(
                             type.callee.body.applySubstitution(subst)
                         )
@@ -1757,9 +1687,9 @@ class Analyzer(
                     }
                 }
                 if (type is Type.TypeFunction && typeArgs != null) {
-                    val subst = type.params.zip(typeArgs).map {
+                    val subst = type.params.zip(typeArgs).associate {
                         it.first.binder.location to it.second
-                    }.toMap()
+                    }
                     typeVisitor.visitType(type.body.applySubstitution(subst))
                 } else {
                     typeVisitor.visitType(type)
@@ -1797,17 +1727,11 @@ class Analyzer(
         )
     }
 
-    fun isRValue(expression: Expression): Boolean = when(expression) {
-        // FIXME: Filter out more LValue expressions
-        is Expression.Var -> false
-        else -> true
-    }
-
     fun asTraitRequirement(type: TypeAnnotation): TraitRequirement? = when(type) {
         is TypeAnnotation.Application -> {
-            asTraitRequirement(type.callee)?.let {
-                require(it.arguments.isEmpty())
-                it.copy(
+            asTraitRequirement(type.callee)?.let { traitRequirement ->
+                require(traitRequirement.arguments.isEmpty())
+                traitRequirement.copy(
                     arguments = type.args.map { annotationToType(it) }
                 )
             }

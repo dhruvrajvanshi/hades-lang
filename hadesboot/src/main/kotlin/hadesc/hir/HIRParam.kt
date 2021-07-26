@@ -1,8 +1,6 @@
 package hadesc.hir
 
-import hadesc.Name
 import hadesc.ast.Binder
-import hadesc.ast.Identifier
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.types.Type

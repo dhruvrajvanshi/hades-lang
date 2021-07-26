@@ -9,6 +9,7 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import llvm.makeList
 
 internal typealias tt = Token.Kind
 
@@ -64,7 +65,6 @@ private val BINARY_OPERATORS = mapOf(
 
 object SyntaxError : Error()
 
-@OptIn(ExperimentalStdlibApi::class)
 class Parser(
         private val ctx: Context,
         private val moduleName: QualifiedName,
@@ -82,7 +82,7 @@ class Parser(
         return sourceFile
     }
 
-    private fun parseDeclarations(): List<Declaration> = buildList<Declaration> {
+    private fun parseDeclarations(): List<Declaration> = makeList {
         while (currentToken.kind != tt.EOF) {
             try {
                 add(parseDeclaration())
@@ -140,7 +140,7 @@ class Parser(
         val name = parseBinder()
         val typeParams = parseOptionalTypeParams()
         expect(tt.LBRACE)
-        val cases = buildList {
+        val cases = makeList {
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
                 add(parseSealedTypeCase())
                 expect(tt.SEMICOLON)
@@ -160,7 +160,7 @@ class Parser(
         val name = parseBinder()
         val params = if (at(tt.LPAREN)) {
             advance()
-            val list = buildList {
+            val list = makeList {
                 var first = true
                 while (!at(tt.RPAREN) && !at(tt.EOF)) {
                     if (!first) {
@@ -190,7 +190,7 @@ class Parser(
         expect(tt.RSQB)
         val whereClause = parseOptionalWhereClause()
         expect(tt.LBRACE)
-        val defs = buildList {
+        val defs = makeList {
             while (!at(tt.EOF) && !at(tt.RBRACE)) {
                 add(parseDeclaration())
             }
@@ -211,7 +211,7 @@ class Parser(
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams() ?: emptyList()
         expect(tt.LBRACE)
-        val signatures = buildList {
+        val signatures = makeList {
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
                 add(parseTraitMember())
                 expect(tt.SEMICOLON)
@@ -259,7 +259,7 @@ class Parser(
         )
     }
 
-    private fun parseDecorators(): List<Decorator> = buildList {
+    private fun parseDecorators(): List<Decorator> = makeList {
         while (at(tt.AT_SYMBOL)) {
             val start = advance()
             val name = parseIdentifier()
@@ -354,7 +354,7 @@ class Parser(
         val typeParams = parseOptionalTypeParams()
 
         expect(tt.LBRACE)
-        val members = buildList {
+        val members = makeList {
             while (!isEOF() && !at(tt.RBRACE)) {
                 add(parseStructMember())
             }
@@ -463,7 +463,7 @@ class Parser(
 
     }
 
-    private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(buildList {
+    private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(makeList {
         add(parseIdentifier())
         while (at(tt.DOT)) {
             advance()
@@ -520,7 +520,7 @@ class Parser(
         return result
     }
 
-    private fun parseBlockMembers(): List<Block.Member> = buildList {
+    private fun parseBlockMembers(): List<Block.Member> = makeList {
         while (!(at(tt.RBRACE) || at(tt.EOF))) {
             try {
                 add(parseBlockMember())
@@ -850,7 +850,7 @@ class Parser(
         val start = expect(tt.WHEN)
         val value = parseExpression()
         expect(tt.LBRACE)
-        val arms = buildList {
+        val arms = makeList {
             var first = true
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
                 if (!first) {
@@ -922,7 +922,7 @@ class Parser(
 
     private fun parseExpressionByteString(): Expression {
         val token = expect(tt.BYTE_STRING)
-        val bytes = buildList {
+        val bytes = makeList {
             val firstCharIndexInQuote = 2
             var i = firstCharIndexInQuote
             while (i < token.text.length - 1) {
@@ -932,7 +932,7 @@ class Parser(
                     assert(i < token.text.length - 1) { TODO("Byte string ended abruptly") }
                     val escapeChar = byteStringEscapes[token.text[i]]
                     if (escapeChar != null) {
-                        add(escapeChar.toByte())
+                        add(escapeChar.code.toByte())
                     } else {
                         TODO("Invalid byte string escape $escapeChar in ${token.location}")
                     }
@@ -1054,7 +1054,7 @@ class Parser(
         var isThisPtr = false
         var isThisMut = false
         var thisBinder: Binder? = null
-        val params = buildList {
+        val params = makeList {
             lparen ?: expect(tt.LPAREN)
             var first = true
             while (!(at(tt.RPAREN) || at(tt.EOF))) {
@@ -1216,11 +1216,11 @@ class Parser(
         }
     }
 
-    private fun <T> parseSeperatedList(
+    private inline fun <reified T> parseSeperatedList(
             seperator: Token.Kind,
             terminator: Token.Kind,
             parseItem: () -> T
-    ): List<T> = buildList {
+    ): List<T> = makeList {
         var isFirst = true
         while (currentToken.kind != terminator && currentToken.kind != tt.EOF) {
             if (!isFirst) {

@@ -60,7 +60,6 @@ data class Token(
         ID,
         INT_LITERAL,
         HEX_INT_LITERAL,
-        DOUBLE_LITERAL,
         CONST,
 
         BYTE_STRING,

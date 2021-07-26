@@ -17,8 +17,9 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import libhades.collections.Stack
+import llvm.makeList
 
-@OptIn(ExperimentalStdlibApi::class)
+@Suppress("SimplifiableCallChain")
 class HIRGen(
         override val ctx: Context
 ): HasContext {
@@ -45,7 +46,7 @@ class HIRGen(
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
-        is Declaration.TraitDef -> lowerInterfaceDef(declaration)
+        is Declaration.TraitDef -> emptyList()
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
         is Declaration.SealedType -> lowerSealedType(declaration)
@@ -75,10 +76,10 @@ class HIRGen(
                         functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map {
                             lowerFunctionDef(it, QualifiedName(listOf(it.name.identifier.name)))
                         },
-                        typeAliases = declaration.body.filterIsInstance<Declaration.TypeAlias>().map {
+                        typeAliases = declaration.body.filterIsInstance<Declaration.TypeAlias>().associate {
                             require(it.typeParams == null)
                             it.name.name to lowerTypeAnnotation(it.rhs)
-                        }.toMap(),
+                        },
                         traitRequirements = declaration.whereClause?.traitRequirements?.map {
                             lowerTraitRequirement(it)
                         } ?: emptyList()
@@ -93,10 +94,6 @@ class HIRGen(
             ctx.resolver.qualifiedName(traitDef.name),
             requirement.typeArgs?.map { lowerTypeAnnotation(it) } ?: emptyList()
         )
-    }
-
-    private fun lowerInterfaceDef(declaration: Declaration.TraitDef): List<HIRDefinition> {
-        return emptyList()
     }
 
     private var currentExtensionDef: Declaration.ExtensionDef? = null
@@ -447,7 +444,6 @@ class HIRGen(
         val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
         require(binding is Binding.ValBinding)
         require(binding.statement.isMutable)
-        val name = binding.statement.binder.identifier.name
         val fieldAddr = addressOfStructField(statement.lhs)
         return listOf(
                 HIRStatement.Store(
@@ -633,7 +629,7 @@ class HIRGen(
         val discriminantType = value.type
         val discriminants = ctx.analyzer.getDiscriminants(discriminantType)
         val declaration = ctx.analyzer.getSealedTypeDeclaration(discriminantType)
-        val cases = buildList {
+        val cases = makeList {
             for (discriminant in discriminants) {
                 val arm = expression.arms.find {
                     it is Expression.WhenArm.Is && it.caseName.name == discriminant.name
@@ -681,12 +677,12 @@ class HIRGen(
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
-        val args = requireNotNull(ctx.analyzer.getTypeArgs(expression.lhs))
+
         val typeApplication = HIRExpression.TypeApplication(
             expression.location,
             typeOfExpression(expression),
             expression = lowerExpression(expression.lhs),
-            args = expression.args.map { lowerTypeAnnotation(it) }
+            args = checkNotNull(ctx.analyzer.getTypeArgs(expression.lhs))
         )
         if (ctx.analyzer.isSealedTypeConstructorCall(expression)) {
             return HIRExpression.Call(

@@ -8,8 +8,6 @@ import hadesc.ir.*
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import kotlin.math.exp
-import kotlin.math.sign
 
 class IRGen(
         private val ctx: Context

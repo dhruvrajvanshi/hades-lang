@@ -37,9 +37,7 @@ sealed class IRBinding {
 data class IRTypeParam(
         val name: IRLocalName,
         val binder: Binder
-) {
-    val binderLocation get() = binder.location
-}
+)
 
 class IRBlock(val location: SourceLocation, val name: IRLocalName = IRLocalName(Name("entry"))) {
     var statements = mutableListOf<IRInstruction>()

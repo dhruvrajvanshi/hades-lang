@@ -198,9 +198,9 @@ class Monomorphization(
     private fun makeSubstitution(typeParams: List<HIRTypeParam>?, typeArgs: List<Type>): Map<SourceLocation, Type> {
         require(typeParams != null)
         require(typeParams.size == typeArgs.size)
-        return typeParams.zip(typeArgs).map {
+        return typeParams.zip(typeArgs).associate {
             it.first.location to lowerType(it.second)
-        }.toMap()
+        }
     }
 
     private val queuedSpecializationSet = mutableSetOf<QualifiedName>()
@@ -303,9 +303,8 @@ class Monomorphization(
         for (candidate in allImpls) {
             val typeAnalyzer = TypeAnalyzer()
             if (candidate.traitName != traitName) continue
-            val substitution = candidate.typeParams
-                ?.map { it.location to typeAnalyzer.makeGenericInstance(it.toBinder()) }
-                ?.toMap()
+            val substitution =
+                candidate.typeParams?.associate { it.location to typeAnalyzer.makeGenericInstance(it.toBinder()) }
                 ?: emptyMap()
             if (!traitArgs.zip(candidate.traitArgs).all { (requiredType, actualType) ->
                     typeAnalyzer.isTypeAssignableTo(

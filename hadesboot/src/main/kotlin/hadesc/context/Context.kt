@@ -55,7 +55,7 @@ class Context(
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
         hirModule = Monomorphization(this).transformModule(hirModule)
-        hirModule = SystemVABILowering(hirModule, this).transformModule(hirModule)
+        hirModule = SystemVABILowering(this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)
 
         LLVMGen(this, irModule).use {

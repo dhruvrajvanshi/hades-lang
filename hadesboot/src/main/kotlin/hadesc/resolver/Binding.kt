@@ -5,7 +5,6 @@ import hadesc.ast.Declaration
 import hadesc.ast.Expression
 import hadesc.ast.Statement
 import hadesc.location.HasLocation
-import hadesc.location.SourceLocation
 
 sealed class Binding {
     abstract val binder: Binder

@@ -3,7 +3,6 @@ package hadesc.frontend
 import hadesc.Name
 import hadesc.ast.Declaration
 import hadesc.ast.Identifier
-import hadesc.ast.QualifiedPath
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type

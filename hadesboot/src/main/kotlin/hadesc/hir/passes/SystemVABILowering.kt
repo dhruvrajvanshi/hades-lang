@@ -1,10 +1,6 @@
 package hadesc.hir.passes
 
-import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
-import hadesc.hir.*
-import hadesc.types.Type
 
 /**
  * This transformation pass converts functions and calls
@@ -14,9 +10,9 @@ import hadesc.types.Type
  * This ensures that the compiled code is interoperable with
  * separately compiled C libraries.
  */
-@OptIn(ExperimentalStdlibApi::class)
-class SystemVABILowering(val oldModule: HIRModule, val ctx: Context): HIRTransformer {}
+class SystemVABILowering(val ctx: Context): HIRTransformer
 
+@Suppress("unused")
 enum class TypeClass {
     POINTER,
     /**

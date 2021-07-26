@@ -8,8 +8,8 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import llvm.makeList
 
-@OptIn(ExperimentalStdlibApi::class)
 class Resolver(private val ctx: Context) {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeTree>>()
     private val sourceFiles = mutableMapOf<SourcePath, SourceFile>()
@@ -205,7 +205,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.TypeAlias -> null
         is ScopeTree.ExtensionDef -> null
         is ScopeTree.TraitDef -> null
-        is ScopeTree.ImplementationDef -> findInImplementationDef(ident, scope)
+        is ScopeTree.ImplementationDef -> null
         is ScopeTree.Closure -> findInClosure(ident, scope)
         is ScopeTree.SealedTypeDef -> null
         is ScopeTree.WhenArm -> findInWhenArm(ident, scope)
@@ -223,10 +223,6 @@ class Resolver(private val ctx: Context) {
             }
             is Expression.WhenArm.Else -> null
         }
-    }
-
-    private fun findInImplementationDef(ident: Identifier, scope: ScopeTree.ImplementationDef): Binding? {
-        return null
     }
 
     private fun findInBlock(ident: Identifier, scope: ScopeTree.Block): Binding? {
@@ -355,7 +351,7 @@ class Resolver(private val ctx: Context) {
 
     private fun getScopeStack(node: HasLocation): ScopeStack {
         val scopes = sourceFileScopes
-            .getOrDefault(node.location.file, emptyList<ScopeTree>())
+            .getOrDefault(node.location.file, emptyList())
             .sortedByDescending { it.location }
             .filter { it.location contains node }
 
@@ -623,7 +619,7 @@ class Resolver(private val ctx: Context) {
         yieldAll(extensionDefsInDeclarations(declarations, includeImports = true))
     }
 
-    private fun extensionDefsInDeclarations(declarations: List<Declaration>, includeImports: Boolean): Sequence<Declaration.ExtensionDef> = sequence<Declaration.ExtensionDef> {
+    private fun extensionDefsInDeclarations(declarations: List<Declaration>, includeImports: Boolean): Sequence<Declaration.ExtensionDef> = sequence {
         for (declaration in declarations) {
             if (includeImports && declaration is Declaration.ImportAs) {
                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
@@ -653,24 +649,9 @@ class Resolver(private val ctx: Context) {
     }
 
     val implementationDefs by lazy {
-        buildList {
+        makeList {
             ctx.forEachSourceFile {
                 addAll(implementationDefsInDeclarations(it.declarations))
-            }
-        }
-    }
-
-    val structDefs by lazy {
-        buildList {
-            ctx.forEachSourceFile {
-                addAll(it.declarations.filterIsInstance<Declaration.Struct>())
-            }
-        }
-    }
-    val sealedTypeDefs by lazy {
-        buildList {
-            ctx.forEachSourceFile {
-                addAll(it.declarations.filterIsInstance<Declaration.SealedType>())
             }
         }
     }

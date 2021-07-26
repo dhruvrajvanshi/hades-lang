@@ -56,7 +56,7 @@ class ParamToLocal(private val ctx: Context): HIRTransformer {
                 checkNotNull(paramCopies[expression.binder.taggedLocation()])
             )
 
-    private fun declareParamCopy(param: HIRParam) = makeList<HIRStatement> {
+    private fun declareParamCopy(param: HIRParam) = makeList {
         val copyName = ctx.makeName("%${param.name.text}%copy")
         check(paramCopies[param.binder.taggedLocation()] == null) {"${param.location}: Duplicate param: ${param.name.text}"}
         paramCopies[param.binder.taggedLocation()] = copyName
