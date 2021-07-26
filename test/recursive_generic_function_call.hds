@@ -1,8 +1,5 @@
 import submodule.test_utils as u;
 import hades.memory as memory;
-import hades.marker.{Copy}
-
-implementation[T] Copy[Buffer[T]] {}
 
 struct Buffer[T] {
     val m_pointer: *T;
@@ -20,6 +17,6 @@ def get_ptr[T](self: Buffer[T], index: Size): *T {
 }
 
 def get[T](self: Buffer[T], index: Size): T {
-    return *get_ptr(move self, index);
+    return *get_ptr(self, index);
 }
 

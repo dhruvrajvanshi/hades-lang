@@ -10,11 +10,11 @@ def requires_I[T](value: T): Void where I[T] {
 }
 
 def requires_I_1[T](value: T): Void where I[T] {
-    requires_I(move value);
+    requires_I(value);
 }
 
 def requires_I_U[U](value: Box[U]): Void where I[U] {
-    requires_I(move value);
+    requires_I(value);
 }
 
 implementation I[Bool] {

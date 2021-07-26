@@ -10,7 +10,7 @@ def main(): Void {
 }
 
 def convert[U, T](t: T): U where Convert[T, U] {
-    return Convert[T, U].convert(move t);
+    return Convert[T, U].convert(t);
 }
 
 implementation Convert[Bool, *Byte] {

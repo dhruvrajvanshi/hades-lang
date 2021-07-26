@@ -64,7 +64,6 @@ sealed class HIRExpression: HIRNode {
             require(lhs.type !is Type.Ptr) {
                 TODO()
             }
-            require(lhs.type !is Type.Ref)
         }
     }
 
@@ -76,7 +75,7 @@ sealed class HIRExpression: HIRNode {
             val memberIndex: Int
     ) : HIRExpression() {
         init {
-            require(lhs.type is Type.Ptr || lhs.type is Type.Ref)
+            require(lhs.type is Type.Ptr)
         }
     }
 

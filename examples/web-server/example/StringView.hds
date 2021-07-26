@@ -5,7 +5,6 @@ import example.assert.{assert};
 import hades.memory as mem;
 import example.debug as Debug;
 
-@Derive(Copy)
 struct t {
     val m_buffer: *Byte;
     val m_length: Size;

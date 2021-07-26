@@ -572,8 +572,6 @@ class HIRGen(
         is Expression.Closure -> lowerClosure(expression)
         is Expression.UnsafeCast -> lowerUnsafeCast(expression)
         is Expression.When -> lowerWhenExpression(expression)
-        is Expression.Ref -> lowerRefExpression(expression)
-        is Expression.Move -> lowerExpression(expression.expression)
         is Expression.As -> lowerAsExpression(expression)
     })
 
@@ -592,59 +590,6 @@ class HIRGen(
             type,
             lowerExpression(expression.lhs)
         )
-    }
-
-    private fun lowerRefExpression(expression: Expression.Ref): HIRExpression {
-        return when(expression.expression) {
-            is Expression.Var -> {
-                val binding = ctx.resolver.resolve(expression.expression.name)
-                require(binding is Binding.ValBinding)
-                HIRExpression.AddressOf(
-                    expression.location,
-                    type = Type.Ptr(expression.expression.type, expression.isMutable),
-                    name = binding.statement.binder.name
-                )
-            }
-            is Expression.Property -> {
-                val propertyBinding = ctx.analyzer.resolvePropertyBinding(expression.expression)
-                require(propertyBinding is PropertyBinding.StructField)
-                when (expression.expression.lhs.type) {
-                    is Type.Ref -> {
-                        val memberType = expression.expression.type
-                        HIRExpression.GetStructFieldPointer(
-                            expression.location,
-                            type = Type.Ptr(memberType, isMutable = expression.isMutable),
-                            lowerExpression(expression.expression.lhs),
-                            propertyBinding.member.binder.name,
-                            propertyBinding.memberIndex
-                        )
-                    }
-                    else -> {
-                        require(expression.expression.lhs is Expression.Var)
-                        val valBinding = ctx.resolver.resolve(expression.expression.lhs.name)
-                        require(valBinding is Binding.ValBinding)
-                        val fieldType = expression.expression.type
-
-                        val structPtr = HIRExpression.AddressOf(
-                            expression.location,
-                            Type.Ptr(expression.expression.lhs.type, isMutable = expression.isMutable),
-                            valBinding.binder.name
-                        )
-
-                        HIRExpression.GetStructFieldPointer(
-                            expression.location,
-                            type = Type.Ptr(fieldType, isMutable = expression.isMutable),
-                            structPtr,
-                            propertyBinding.member.binder.name,
-                            propertyBinding.memberIndex
-                        )
-                    }
-                }
-            }
-            else -> requireUnreachable() {
-                "${expression.javaClass.simpleName} not expected"
-            }
-        }
     }
 
     private fun lowerClosure(expression: Expression.Closure): HIRExpression {
@@ -767,7 +712,7 @@ class HIRGen(
         val extensionDef = requireNotNull(currentExtensionDef)
         val extensionForType = lowerTypeAnnotation(extensionDef.forType)
         val thisParamFlags = requireNotNull(functionDef.signature.thisParamFlags)
-        return if (thisParamFlags.isPointer || thisParamFlags.isRef)
+        return if (thisParamFlags.isPointer)
             Type.Ptr(extensionForType, isMutable = thisParamFlags.isMutable)
         else extensionForType
     }
@@ -799,14 +744,6 @@ class HIRGen(
                     expression.location,
                     pointerType.to,
                     lowerExpression(expression.expression))
-            }
-            is Type.Ref -> {
-                val ptr = lowerExpression(expression.expression)
-                HIRExpression.Load(
-                    expression.location,
-                    pointerType.to,
-                    ptr
-                )
             }
             else -> requireUnreachable()
         }
@@ -1034,30 +971,13 @@ class HIRGen(
             expression: Expression.Property,
             binding: PropertyBinding.StructField
     ): HIRExpression {
-        return when(expression.lhs.type) {
-            is Type.Ref -> {
-                val structPtr = lowerExpression(expression.lhs)
-                val memberPtr = HIRExpression.GetStructFieldPointer(
-                    expression.location,
-                    type = Type.Ptr(expression.type, isMutable = false),
-                    structPtr,
-                    memberName = binding.member.binder.name,
-                    memberIndex = binding.memberIndex,
-                )
-                HIRExpression.Load(
-                    expression.location,
-                    expression.type,
-                    memberPtr
-                )
-            }
-            else -> HIRExpression.GetStructField(
-                expression.location,
-                typeOfExpression(expression),
-                lowerExpression(expression.lhs),
-                name = expression.property.name,
-                index = binding.memberIndex
-            )
-        }
+        return HIRExpression.GetStructField(
+            expression.location,
+            typeOfExpression(expression),
+            lowerExpression(expression.lhs),
+            name = expression.property.name,
+            index = binding.memberIndex
+        )
     }
 
     private fun lowerBinding(
