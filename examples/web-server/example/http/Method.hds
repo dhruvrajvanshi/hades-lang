@@ -42,7 +42,7 @@ def from_string_view(method: StringView.t): t {
 }
 
 def from_c_string(method: *Byte): t {
-    return method |> StringView.from_c_string |> from_string_view;
+    return from_string_view(StringView.from_c_string(method));
 }
 
 extension MethodExtensions for t {

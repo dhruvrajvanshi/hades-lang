@@ -852,7 +852,6 @@ class Analyzer(
             is Expression.If -> inferIfExpression(expression)
             is Expression.TypeApplication -> inferTypeApplication(expression)
             is Expression.New -> inferNewExpression(expression)
-            is Expression.PipelineOperator -> inferPipelineOperator(expression)
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
@@ -920,15 +919,6 @@ class Analyzer(
         } else {
             thisType
         }
-    }
-
-    private fun inferPipelineOperator(expression: Expression.PipelineOperator): Type {
-        return inferOrCheckCallLikeExpression(
-            callNode = expression,
-            typeArgs = null,
-            args = listOf(Arg(expression.lhs)),
-            expectedReturnType = null
-        )
     }
 
     private fun inferNewExpression(expression: Expression.New): Type {
@@ -1349,7 +1339,6 @@ class Analyzer(
             else -> inferExpression(callNode.callee)
         }
         is Expression.New -> checkConstructorFunction(callNode.qualifiedPath)
-        is Expression.PipelineOperator -> inferExpression(callNode.rhs)
         else -> Type.Error(callNode.location)
     }
 

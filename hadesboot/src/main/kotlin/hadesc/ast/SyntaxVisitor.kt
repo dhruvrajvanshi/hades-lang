@@ -71,7 +71,6 @@ interface SyntaxVisitor {
         is Expression.New -> visitNewExpr(expression)
         is Expression.Not -> visitNotExpr(expression)
         is Expression.NullPtr -> visitNullPtrExpr(expression)
-        is Expression.PipelineOperator -> visitPipelineOperatorExpr(expression)
         is Expression.PointerCast -> visitPointerCast(expression)
         is Expression.Property -> vistPropertyExpr(expression)
         is Expression.SizeOf -> visitSizeOfExpr(expression)
@@ -222,11 +221,6 @@ interface SyntaxVisitor {
 
     fun visitNullPtrExpr(expression: Expression.NullPtr) {
 
-    }
-
-    fun visitPipelineOperatorExpr(expression: Expression.PipelineOperator) {
-        visitExpression(expression.lhs)
-        visitExpression(expression.rhs)
     }
 
     fun visitPointerCast(expression: Expression.PointerCast) {
