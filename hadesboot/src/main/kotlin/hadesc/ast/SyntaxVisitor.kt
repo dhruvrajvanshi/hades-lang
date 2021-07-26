@@ -66,10 +66,10 @@ interface SyntaxVisitor {
         is Expression.Not -> visitNotExpr(expression)
         is Expression.NullPtr -> visitNullPtrExpr(expression)
         is Expression.PointerCast -> visitPointerCast(expression)
-        is Expression.Property -> vistPropertyExpr(expression)
+        is Expression.Property -> visitPropertyExpr(expression)
         is Expression.SizeOf -> visitSizeOfExpr(expression)
         is Expression.This -> visitThisExpr(expression)
-        is Expression.TypeApplication -> vistTypeApplicationExpr(expression)
+        is Expression.TypeApplication -> visitTypeApplicationExpr(expression)
         is Expression.UnsafeCast -> visitUnsafeCastExpr(expression)
         is Expression.Var -> visitVarExpr(expression)
         is Expression.When -> visitWhenExpr(expression)
@@ -207,7 +207,7 @@ interface SyntaxVisitor {
         visitExpression(expression.arg)
     }
 
-    fun vistPropertyExpr(expression: Expression.Property) {
+    fun visitPropertyExpr(expression: Expression.Property) {
         visitExpression(expression.lhs)
     }
 
@@ -218,7 +218,7 @@ interface SyntaxVisitor {
     fun visitThisExpr(expression: Expression.This) {
     }
 
-    fun vistTypeApplicationExpr(expression: Expression.TypeApplication) {
+    fun visitTypeApplicationExpr(expression: Expression.TypeApplication) {
         visitExpression(expression.lhs)
         expression.args.forEach {
             visitType(it)
