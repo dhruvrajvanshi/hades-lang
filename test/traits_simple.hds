@@ -5,8 +5,8 @@ trait Convert[Self, Other] {
 }
 
 def main(): Void {
-    c.puts(convert[*Byte](true));
-    c.puts(convert[*Byte](false));
+    c.puts(convert[*Byte, Bool](true));
+    c.puts(convert[*Byte, Bool](false));
 }
 
 def convert[U, T](t: T): U where Convert[T, U] {

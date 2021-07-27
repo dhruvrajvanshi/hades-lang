@@ -769,9 +769,9 @@ class Checker(val ctx: Context) {
         callExpression: Expression,
         callee: Expression,
         args: List<Expression>,
-        typeArgAnnotations: List<TypeAnnotation>?
     ) {
 
+        ctx.analyzer.typeOfExpression(callExpression)
         if (callee is Expression.Property) {
             val propertyBinding = ctx.analyzer.resolvePropertyBinding(callee)
             if (propertyBinding is PropertyBinding.TraitFunctionRef) {
@@ -792,7 +792,6 @@ class Checker(val ctx: Context) {
         args.forEach {
             checkExpression(it)
         }
-        typeArgAnnotations?.forEach { checkTypeAnnotation(it) }
 
         val calleeType = ctx.analyzer.getCalleeType(callExpression)
         val fnTypeComponents = ctx.analyzer.getFunctionTypeComponents(calleeType)
@@ -811,13 +810,11 @@ class Checker(val ctx: Context) {
             error(callee, Diagnostic.Kind.MissingArgs(expectedArgSize))
         }
 
-        if (typeArgAnnotations != null) {
-            val expectedTypeArgs = fnTypeComponents.typeParams?.size ?: 0
-            if (expectedTypeArgs < typeArgAnnotations.size) {
-                error(callee, Diagnostic.Kind.TooManyTypeArgs)
-            }
+        val genericCallee = when (callee) {
+            is Expression.TypeApplication -> callee.lhs
+            else -> callee
         }
-        val typeArgs = ctx.analyzer.getTypeArgs(callExpression)
+        val typeArgs = ctx.analyzer.getTypeArgs(genericCallee)
         if (fnTypeComponents.traitRequirements != null) {
             val substitution = (fnTypeComponents.typeParams?: emptyList()).zip(typeArgs ?: emptyList())
                 .associate { (p, arg) -> p.binder.location to arg }
@@ -847,7 +844,6 @@ class Checker(val ctx: Context) {
             callee = expression.callee,
             callExpression = expression,
             args = expression.args.map { it.expression },
-            typeArgAnnotations = expression.typeArgs
         )
     }
 

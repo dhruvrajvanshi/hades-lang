@@ -1000,31 +1000,28 @@ class Analyzer(
     private fun typeOfStructValueRef(binding: Binding.Struct): Type {
         val name = ctx.resolver.resolveGlobalName(binding.declaration.binder)
         val constrType = Type.Constructor(
-                binding.declaration.binder,
-                name
+            binding.declaration.binder,
+            name
         )
         val instanceType = if (binding.declaration.typeParams == null) {
             constrType
         } else {
             Type.Application(
-                    constrType,
-                    binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                constrType,
+                binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
             )
         }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
-        val functionType = Type.Function(from = fieldTypes, to = instanceType, traitRequirements = null)
-        val type = if (binding.declaration.typeParams == null) {
+        val functionType =
+            Type.Ptr(Type.Function(from = fieldTypes, to = instanceType, traitRequirements = null), isMutable = false)
+        return if (binding.declaration.typeParams == null) {
             functionType
         } else {
             Type.TypeFunction(
-                    params = binding.declaration.typeParams.map { Type.Param(it.binder) },
-                    body = functionType
+                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                body = functionType
             )
         }
-        return Type.Ptr(
-                type,
-                isMutable = false
-        )
     }
 
     private fun structFieldTypes(declaration: Declaration.Struct): Map<Name, Type> {
@@ -1093,7 +1090,6 @@ class Analyzer(
     private fun inferCallExpression(expression: Expression.Call): Type {
         return inferOrCheckCallLikeExpression(
                 callNode = expression,
-                typeArgs = expression.typeArgs,
                 args = expression.args,
                 expectedReturnType = null
         )
@@ -1101,7 +1097,6 @@ class Analyzer(
     private fun checkCallExpression(expression: Expression.Call, expectedType: Type): Type {
         return inferOrCheckCallLikeExpression(
                 callNode = expression,
-                typeArgs = expression.typeArgs,
                 args = expression.args,
                 expectedReturnType = expectedType
         )
@@ -1109,12 +1104,11 @@ class Analyzer(
 
     private fun inferOrCheckCallLikeExpression(
             callNode: Expression,
-            typeArgs: List<TypeAnnotation>?,
             args: List<Arg>,
             expectedReturnType: Type?
     ): Type {
-        val explicitTypeArgs = typeArgs?.map { annotationToType(it) }
         val calleeType = getCalleeType(callNode)
+        val callee = getCallee(callNode)
         val functionType = getFunctionTypeComponents(calleeType)
         return if (functionType == null) {
             for (arg in args) {
@@ -1122,13 +1116,28 @@ class Analyzer(
             }
             Type.Error(callNode.location)
         } else {
+            check(callee != null)
             val substitution = instantiateSubstitution(
                 functionType.typeParams,
             )
+
+            if (functionType.typeParams != null) {
+                val genericCallee = when (callee) {
+                    is Expression.TypeApplication -> callee.lhs
+                    else -> callee
+                }
+                getTypeArgsCache[genericCallee] = functionType.typeParams.map {
+                    requireNotNull(substitution[it.binder.location])
+                }
+            }
             val receiver = getCallReceiver(callNode)
             val argsWithReceiver = if (receiver == null)
                 args.map { it.expression }
             else listOf(receiver) + args.map { it.expression }
+            val explicitTypeArgs = when (callee) {
+                is Expression.TypeApplication -> callee.args.map { annotationToType(it) }
+                else -> null
+            }
             checkCallArgs(callNode, functionType, explicitTypeArgs, argsWithReceiver, substitution)
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
@@ -1137,11 +1146,6 @@ class Analyzer(
                         source = source,
                         destination = expectedReturnType
                 )
-            }
-            if (functionType.typeParams != null) {
-                getTypeArgsCache[callNode] = functionType.typeParams.map {
-                    requireNotNull(substitution[it.binder.location])
-                }
             }
 
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
@@ -1214,15 +1218,13 @@ class Analyzer(
         return callNode.callee.lhs
     }
 
-    fun getCalleeType(callNode: Expression): Type = when(callNode) {
-        is Expression.Call -> when (callNode.callee) {
-            is Expression.Property -> {
-                resolvePropertyBinding(callNode.callee)
-                inferExpression(callNode.callee)
-            }
-            else -> inferExpression(callNode.callee)
-        }
-        else -> Type.Error(callNode.location)
+    fun getCalleeType(callNode: Expression): Type = getCallee(callNode)?.let {
+        inferExpression(it)
+    } ?: Type.Error(callNode.location)
+
+    private fun getCallee(callNode: Expression): Expression? = when (callNode) {
+        is Expression.Call -> callNode.callee
+        else -> null
     }
 
     /**
