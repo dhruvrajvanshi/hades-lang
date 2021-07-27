@@ -78,6 +78,7 @@ class Analyzer(
         else emptyList()
         val substitution = traitDef.params.zip(typeArgs)
             .associate { (param, arg) -> param.location to arg }
+        check(signature.typeParams == null)
         return PropertyBinding.TraitFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
@@ -85,7 +86,8 @@ class Analyzer(
                 from = signature.params.map { it.type.applySubstitution(substitution) },
                 to = annotationToType(signature.returnType).applySubstitution(substitution),
                 traitRequirements = null
-            ), isMutable = false)
+            ), isMutable = false),
+            methodName = signature.name.name
         )
     }
 

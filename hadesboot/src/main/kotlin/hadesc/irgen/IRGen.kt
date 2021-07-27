@@ -5,9 +5,11 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.ir.*
+import hadesc.ir.passes.TypeVisitor
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import kotlin.math.exp
 
 class IRGen(
         private val ctx: Context
@@ -260,7 +262,7 @@ class IRGen(
         lowerExpression(statement.expression)
     }
 
-    private fun lowerExpression(expression: HIRExpression): IRValue = when(expression) {
+    private fun lowerExpression(expression: HIRExpression): IRValue = checkMonomorphicType(when(expression) {
         is HIRExpression.Call -> lowerCallExpression(expression)
         is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
         is HIRExpression.Constant -> lowerConstant(expression.constant)
@@ -276,12 +278,33 @@ class IRGen(
         is HIRExpression.PointerCast -> lowerPointerCastExpression(expression)
         is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
         is HIRExpression.TypeApplication -> requireUnreachable()
-        is HIRExpression.TraitMethodCall -> requireUnreachable()
+        is HIRExpression.TraitMethodRef -> requireUnreachable()
         is HIRExpression.UnsafeCast -> lowerUnsafeCast(expression)
         is HIRExpression.When -> requireUnreachable()
         is HIRExpression.Closure -> requireUnreachable()
         is HIRExpression.InvokeClosure -> requireUnreachable()
         is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
+    })
+
+    private fun checkMonomorphicType(expression: IRValue): IRValue {
+        object : TypeVisitor {
+            override fun visitTypeFunction(type: Type.TypeFunction) {
+                requireUnreachable {"Unexpected generic type for expression at ${expression.location}"}
+            }
+
+            override fun visitParamRefType(type: Type.ParamRef) {
+                requireUnreachable {"Unexpected generic type for expression at ${expression.location}"}
+            }
+
+            override fun visitTypeApplication(type: Type.Application) {
+                requireUnreachable {"Unexpected generic type for expression at ${expression.location}"}
+            }
+
+            override fun visitGenericInstance(type: Type.GenericInstance) {
+                requireUnreachable {"Unexpected generic type for expression at ${expression.location}"}
+            }
+        }.visitType(expression.type)
+        return expression
     }
 
     private fun lowerIntegerConvert(expression: HIRExpression.IntegerConvert): IRValue {

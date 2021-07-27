@@ -168,29 +168,17 @@ class Monomorphization(
     private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIRExpression = when(expression) {
         is HIRExpression.GlobalRef -> {
             val name = getSpecializedName(expression.name, typeArgs.map { lowerType(it) })
-            when (val definition = oldModule.findGlobalDefinition(expression.name)) {
-                is HIRDefinition.Function -> {
-                    val substitution = makeSubstitution(definition.typeParams, typeArgs)
-                    val type = lowerType(expression.type.applySubstitution(substitution))
-                    HIRExpression.GlobalRef(
-                            expression.location,
-                            type,
-                            name
-                    )
-                }
-                is HIRDefinition.Struct -> {
-                    val substitution = makeSubstitution(definition.typeParams, typeArgs)
-                    val type = lowerType(expression.type.applySubstitution(substitution))
-                    HIRExpression.GlobalRef(
-                            expression.location,
-                            type,
-                            name
-                    )
-                }
-                else -> {
-                    requireUnreachable()
-                }
-            }
+            val definition = oldModule.findGlobalDefinition(expression.name)
+            check(definition is HIRDefinition.Struct || definition is HIRDefinition.Function)
+            val exprType = expression.type
+            check(exprType is Type.TypeFunction)
+            val substitution = makeSubstitution(exprType.params.map { HIRTypeParam(it.binder.location, it.binder.name) }, typeArgs)
+            val type = lowerType(exprType.body.applySubstitution(substitution))
+            HIRExpression.GlobalRef(
+                expression.location,
+                type,
+                name
+            )
         }
         else -> requireUnreachable()
     }
@@ -261,17 +249,13 @@ class Monomorphization(
             )
         }
     }
-    override fun transformTraitMethodCall(expression: HIRExpression.TraitMethodCall): HIRExpression {
+    override fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIRExpression {
         val impl = getTraitImpl(expression.traitName, expression.traitArgs)
         val implMethodNames = impl.methods
-        return HIRExpression.Call(
-                location = expression.location,
-                type = expression.type,
-                callee = HIRExpression.GlobalRef(
-                        expression.location,
-                        Type.Ptr(Type.Void, isMutable = false),
-                        requireNotNull(implMethodNames[expression.methodName])),
-                args = expression.args.map { transformExpression(it) }
+        return HIRExpression.GlobalRef(
+            expression.location,
+            Type.Ptr(Type.Void, isMutable = false),
+            checkNotNull(implMethodNames[expression.methodName])
         )
     }
 

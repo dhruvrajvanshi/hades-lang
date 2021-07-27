@@ -60,6 +60,7 @@ sealed class PropertyBinding {
     data class TraitFunctionRef(
         val traitName: QualifiedName,
         val args: List<Type>,
-        val type: Type
+        val type: Type,
+        val methodName: Name
     ) : PropertyBinding()
 }

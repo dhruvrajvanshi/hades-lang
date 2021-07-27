@@ -76,7 +76,7 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.ParamRef -> visitParamRef(expression)
             is HIRExpression.PointerCast -> visitPointerCast(expression)
             is HIRExpression.SizeOf -> visitSizeOf(expression)
-            is HIRExpression.TraitMethodCall -> visitTraitMethodCall(expression)
+            is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
             is HIRExpression.TypeApplication -> visitTypeApplication(expression)
             is HIRExpression.UnsafeCast -> visitUnsafeCast(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
@@ -150,8 +150,10 @@ interface HIRVisitor : TypeVisitor {
         visitType(expression.ofType)
     }
 
-    fun visitTraitMethodCall(expression: HIRExpression.TraitMethodCall) {
-        expression.args.forEach { visitExpression(it) }
+    fun visitTraitMethodRef(expression: HIRExpression.TraitMethodRef) {
+        expression.traitArgs.forEach {
+            visitType(it)
+        }
     }
 
     fun visitTypeApplication(expression: HIRExpression.TypeApplication) {
