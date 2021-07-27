@@ -193,7 +193,7 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.Load -> transformLoadExpression(expression)
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
         is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
-        is HIRExpression.TraitMethodCall -> transformTraitMethodCall(expression)
+        is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.When -> transformWhenExpression(expression)
         is HIRExpression.Closure -> transformClosure(expression)
@@ -256,14 +256,13 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformTraitMethodCall(expression: HIRExpression.TraitMethodCall): HIRExpression {
-        return HIRExpression.TraitMethodCall(
+    fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIRExpression {
+        return HIRExpression.TraitMethodRef(
                 expression.location,
                 expression.type,
                 transformGlobalName(expression.traitName),
                 methodName = expression.methodName,
                 traitArgs = expression.traitArgs.map { lowerType(it) },
-                args = expression.args.map { transformExpression(it) }
         )
     }
 

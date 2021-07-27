@@ -126,13 +126,12 @@ sealed class HIRExpression: HIRNode {
             get() = Type.Ptr(toPointerOfType, isMutable = true)
     }
 
-    data class TraitMethodCall(
+    data class TraitMethodRef(
             override val location: SourceLocation,
             override val type: Type,
             val traitName: QualifiedName,
             val traitArgs: List<Type>,
             val methodName: Name,
-            val args: List<HIRExpression>
     ) : HIRExpression()
 
     data class UnsafeCast(
@@ -200,8 +199,8 @@ sealed class HIRExpression: HIRNode {
         is Load -> "*${ptr.prettyPrint()}"
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
         is GetStructFieldPointer -> "(gep (${lhs.prettyPrint()} ${memberName.text}) : ${type.prettyPrint()})"
-        is TraitMethodCall -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
-                "${methodName.text}(${args.joinToString(", ") { it.prettyPrint() } })"
+        is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
+                methodName.text
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
         is When -> "when (${discriminant.prettyPrint()}) {\n" +
                 cases.joinToString("\n") { "  " + it.prettyPrint() } +

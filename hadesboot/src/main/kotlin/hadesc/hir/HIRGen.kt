@@ -577,16 +577,15 @@ class HIRGen(
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
+        checkUninferredGenerics(expression, exprType)
         return if (typeArgs != null) {
             check(exprType is Type.TypeFunction)
             check(exprType.params.size == typeArgs.size)
             HIRExpression.TypeApplication(
                 expression.location,
-                exprType.body.applySubstitution(
-                    exprType.params.zip(typeArgs).associate { it.first.binder.location to it.second }
-                ),
+                applyType(exprType, typeArgs),
                 lowered,
-                typeArgs
+                typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
             )
         } else {
             check(exprType !is Type.TypeFunction)
@@ -912,13 +911,12 @@ class HIRGen(
     }
 
     private fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.TraitFunctionRef): HIRExpression {
-        return HIRExpression.TraitMethodCall(
+        return HIRExpression.TraitMethodRef(
             expression.location,
             expression.type,
             traitName = binding.traitName,
             traitArgs = binding.args,
-            methodName = TODO(),
-            args = TODO(),
+            methodName = binding.methodName,
         )
     }
 
@@ -1062,9 +1060,7 @@ class HIRGen(
 
     private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()
     private fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
-        val type = ctx.analyzer.reduceGenericInstances(ctx.analyzer.typeOfExpression(expression))
-        checkUninferredGenerics(expression, type)
-        return type
+        return ctx.analyzer.reduceGenericInstances(ctx.analyzer.typeOfExpression(expression))
     }
 
     private fun checkUninferredGenerics(node: HasLocation, type: Type) {
@@ -1119,8 +1115,7 @@ class HIRGen(
         )
     }
 
-    private fun applyType(type: Type, args: List<Type>): Type {
-        if (type !is Type.TypeFunction) return type
+    private fun applyType(type: Type.TypeFunction, args: List<Type>): Type {
         require(type.params.size == args.size)
         return type.body.applySubstitution(
             type.params.zip(args).map {
