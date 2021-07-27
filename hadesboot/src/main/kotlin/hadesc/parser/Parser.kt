@@ -957,33 +957,16 @@ class Parser(
                     parseTypeAnnotation()
                 }
                 val rsqb = expect(tt.RSQB)
-                if (at(tt.LPAREN)) {
-                    expect(tt.LPAREN)
-                    val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
-                        parseArg()
-                    }
-                    val stop = expect(tt.RPAREN)
-                    parseExpressionTail(
-                            Expression.Call(
-                                    makeLocation(head, stop),
-                                    typeArgs,
-                                    head,
-                                    args
-                            )
-                    )
-                } else {
-                    parseExpressionTail(Expression.TypeApplication(
-                            makeLocation(head, rsqb),
-                            head,
-                            typeArgs
-                    ))
-                }
+                parseExpressionTail(Expression.TypeApplication(
+                        makeLocation(head, rsqb),
+                        head,
+                        typeArgs
+                ))
             }
             tt.VBAR -> {
                 val arg = parseArg()
                 val call = Expression.Call(
                     location = makeLocation(head, arg),
-                    typeArgs = null,
                     callee = head,
                     args = listOf(arg)
                 )
@@ -1003,7 +986,6 @@ class Parser(
                     val lambda = parseExpression()
                     Expression.Call(
                         makeLocation(head, lambda),
-                        null,
                         head,
                         args + Arg(lambda)
                     )
@@ -1011,7 +993,6 @@ class Parser(
                     parseExpressionTail(
                         Expression.Call(
                             makeLocation(head, stop),
-                            null,
                             head,
                             args
                         )

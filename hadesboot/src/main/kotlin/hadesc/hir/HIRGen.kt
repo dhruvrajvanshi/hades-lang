@@ -104,10 +104,14 @@ class HIRGen(
         for (functionDef in declaration.functionDefs) {
             list.add(lowerFunctionDef(
                     functionDef,
-                    ctx.resolver.qualifiedName(declaration.name).append(functionDef.name.identifier.name)))
+                    extensionMethodName(declaration, functionDef)))
         }
         currentExtensionDef = null
         return list
+    }
+
+    private fun extensionMethodName(declaration: Declaration.ExtensionDef, functionDef: Declaration.FunctionDef): QualifiedName {
+        return ctx.resolver.qualifiedName(declaration.name).append(functionDef.name.identifier.name)
     }
 
     private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {
@@ -546,30 +550,49 @@ class HIRGen(
         }
     }
 
-    private fun lowerExpression(expression: Expression): HIRExpression = postLowerExpression(when(expression) {
-        is Expression.Error -> requireUnreachable()
-        is Expression.Var -> lowerVarExpression(expression)
-        is Expression.Call -> lowerCallExpression(expression)
-        is Expression.Property -> lowerPropertyExpression(expression)
-        is Expression.ByteString -> lowerByteString(expression)
-        is Expression.BoolLiteral -> lowerBoolLiteral(expression)
-        is Expression.NullPtr -> lowerNullPtr(expression)
-        is Expression.IntLiteral -> lowerIntLiteral(expression)
-        is Expression.Not -> lowerNotExpression(expression)
-        is Expression.BinaryOperation -> lowerBinaryExpression(expression)
-        is Expression.SizeOf -> lowerSizeOfExpression(expression)
-        is Expression.AddressOf -> lowerAddressOfExpression(expression)
-        is Expression.AddressOfMut -> lowerAddressOfMut(expression)
-        is Expression.Deref -> lowerDerefExpression(expression)
-        is Expression.PointerCast -> lowerPointerCast(expression)
-        is Expression.If -> lowerIfExpression(expression)
-        is Expression.TypeApplication -> lowerTypeApplication(expression)
-        is Expression.This -> lowerThisExpression(expression)
-        is Expression.Closure -> lowerClosure(expression)
-        is Expression.UnsafeCast -> lowerUnsafeCast(expression)
-        is Expression.When -> lowerWhenExpression(expression)
-        is Expression.As -> lowerAsExpression(expression)
-    })
+    private fun lowerExpression(expression: Expression): HIRExpression {
+        val lowered = when (expression) {
+            is Expression.Error -> requireUnreachable()
+            is Expression.Var -> lowerVarExpression(expression)
+            is Expression.Call -> lowerCallExpression(expression)
+            is Expression.Property -> lowerPropertyExpression(expression)
+            is Expression.ByteString -> lowerByteString(expression)
+            is Expression.BoolLiteral -> lowerBoolLiteral(expression)
+            is Expression.NullPtr -> lowerNullPtr(expression)
+            is Expression.IntLiteral -> lowerIntLiteral(expression)
+            is Expression.Not -> lowerNotExpression(expression)
+            is Expression.BinaryOperation -> lowerBinaryExpression(expression)
+            is Expression.SizeOf -> lowerSizeOfExpression(expression)
+            is Expression.AddressOf -> lowerAddressOfExpression(expression)
+            is Expression.AddressOfMut -> lowerAddressOfMut(expression)
+            is Expression.Deref -> lowerDerefExpression(expression)
+            is Expression.PointerCast -> lowerPointerCast(expression)
+            is Expression.If -> lowerIfExpression(expression)
+            is Expression.TypeApplication -> lowerTypeApplication(expression)
+            is Expression.This -> lowerThisExpression(expression)
+            is Expression.Closure -> lowerClosure(expression)
+            is Expression.UnsafeCast -> lowerUnsafeCast(expression)
+            is Expression.When -> lowerWhenExpression(expression)
+            is Expression.As -> lowerAsExpression(expression)
+        }
+        val typeArgs = ctx.analyzer.getTypeArgs(expression)
+        val exprType = lowered.type
+        return if (typeArgs != null) {
+            check(exprType is Type.TypeFunction)
+            check(exprType.params.size == typeArgs.size)
+            HIRExpression.TypeApplication(
+                expression.location,
+                exprType.body.applySubstitution(
+                    exprType.params.zip(typeArgs).associate { it.first.binder.location to it.second }
+                ),
+                lowered,
+                typeArgs
+            )
+        } else {
+            check(exprType !is Type.TypeFunction)
+            postLowerExpression(lowered)
+        }
+    }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
         return when (expression) {
@@ -677,22 +700,7 @@ class HIRGen(
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
-
-        val typeApplication = HIRExpression.TypeApplication(
-            expression.location,
-            typeOfExpression(expression),
-            expression = lowerExpression(expression.lhs),
-            args = checkNotNull(ctx.analyzer.getTypeArgs(expression.lhs))
-        )
-        if (ctx.analyzer.isSealedTypeConstructorCall(expression)) {
-            return HIRExpression.Call(
-                expression.location,
-                typeOfExpression(expression),
-                callee = typeApplication,
-                args = emptyList()
-            )
-        }
-        return typeApplication
+        return lowerExpression(expression.lhs)
     }
 
     private fun lowerUnsafeCast(expression: Expression.UnsafeCast): HIRExpression {
@@ -746,8 +754,7 @@ class HIRGen(
     }
 
     private fun lowerAddressOfMut(expression: Expression.AddressOfMut): HIRExpression {
-        val expr = expression.expression
-        return when (expr) {
+        return when (val expr = expression.expression) {
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(expr.name)
                 require(binding is Binding.ValBinding)
@@ -896,12 +903,31 @@ class HIRGen(
         is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
-        is PropertyBinding.ExtensionDef -> requireUnreachable()
+        is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.SealedTypeCaseConstructor -> lowerSealedTypeCaseConstructor(expression, binding)
         is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
-        is PropertyBinding.TraitFunctionRef -> requireUnreachable()
+        is PropertyBinding.TraitFunctionRef -> lowerTraitFunctionRef(expression, binding)
         else -> TODO()
+    }
+
+    private fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.TraitFunctionRef): HIRExpression {
+        return HIRExpression.TraitMethodCall(
+            expression.location,
+            expression.type,
+            traitName = binding.traitName,
+            traitArgs = binding.args,
+            methodName = TODO(),
+            args = TODO(),
+        )
+    }
+
+    private fun lowerExtensionPropertyBinding(expression: Expression.Property, binding: PropertyBinding.ExtensionDef): HIRExpression {
+        return HIRExpression.GlobalRef(
+            expression.location,
+            binding.type,
+            extensionMethodName(binding.extensionDef, binding.functionDef)
+        )
     }
 
 
@@ -1066,85 +1092,31 @@ class HIRGen(
     }
 
     private fun lowerCallExpression(expression: Expression.Call): HIRExpression {
-        if (expression.callee is Expression.Property) {
-            when(val binding = ctx.analyzer.resolvePropertyBinding(expression.callee)) {
-                is PropertyBinding.ExtensionDef -> {
-                    val extensionDefName = ctx.resolver.qualifiedName(binding.extensionDef.name)
-                    val extensionMethod = binding.extensionDef.functionDefs[binding.functionIndex]
-                    val fullName = extensionDefName.append(extensionMethod.name.identifier.name)
-                    return buildCall(
-                        expression,
-                        callee = HIRExpression.GlobalRef(
-                            expression.location,
-                            typeOfExpression(expression),
-                            fullName
-                        ),
-                        args = listOf(lowerExpression(expression.callee.lhs))
-                                + expression.args.map { lowerExpression(it.expression) }
-                    )
-                }
-                is PropertyBinding.TraitFunctionRef -> {
-                    return HIRExpression.TraitMethodCall(
-                        expression.location,
-                        typeOfExpression(expression),
-                        methodName = expression.callee.property.name,
-                        traitName = binding.traitName,
-                        traitArgs = binding.args,
-                        args = expression.args.map { lowerExpression(it.expression) },
-                    )
-                }
-            }
-        }
-        if (expression.callee.type is Type.Function) {
-            require(expression.typeArgs == null) {
-                TODO("Closures with type arguments not implemented")
-            }
+        val callee = lowerExpression(expression.callee)
+        if (callee.type is Type.Function) {
             return HIRExpression.InvokeClosure(
                 location = expression.location,
                 type = expression.type,
                 closure = lowerExpression(expression.callee),
                 args = expression.args.map { lowerExpression(it.expression)}
             )
-        }
-        return buildCall(
-                expression,
-                callee = lowerExpression(expression.callee),
-                args = expression.args.map { lowerExpression(it.expression) }
-        )
-    }
-
-    private fun buildCall(
-        call: Expression,
-        callee: HIRExpression,
-        args: List<HIRExpression>
-    ): HIRExpression {
-        val type = typeOfExpression(call)
-        val typeArgs = ctx.analyzer.getTypeArgs(call)
-        typeArgs?.forEach {
-            checkUninferredGenerics(call, it)
-        }
-        return if (typeArgs != null) {
-            val reducedArgs = typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
-            val appliedType = applyType(ctx.analyzer.reduceGenericInstances(callee.type), reducedArgs)
-            HIRExpression.Call(
-                call.location,
-                type,
-                HIRExpression.TypeApplication(
-                    location = callee.location,
-                    type = appliedType,
-                    args = reducedArgs,
-                    expression = callee
-                ),
-                args
-            )
         } else {
-            HIRExpression.Call(
-                call.location,
-                type,
-                callee,
-                args
-            )
+            val calleeType = callee.type
+            check(calleeType is Type.Ptr && calleeType.to is Type.Function)
         }
+        val receiver = ctx.analyzer.getCallReceiver(expression)?.let { lowerExpression(it) }
+        val args =
+            if (receiver != null) {
+                listOf(receiver) + expression.args.map { lowerExpression(it.expression) }
+            } else {
+                expression.args.map { lowerExpression(it.expression) }
+            }
+        return HIRExpression.Call(
+            location = expression.location,
+            type = expression.type,
+            callee = callee,
+            args = args
+        )
     }
 
     private fun applyType(type: Type, args: List<Type>): Type {

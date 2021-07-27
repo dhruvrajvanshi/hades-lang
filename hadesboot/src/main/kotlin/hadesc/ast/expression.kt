@@ -15,7 +15,6 @@ sealed class Expression : HasLocation {
 
     data class Call(
         override val location: SourceLocation,
-        val typeArgs: List<TypeAnnotation>?,
         val callee: Expression,
         val args: List<Arg>
     ) : Expression()
