@@ -977,6 +977,10 @@ class Parser(
                 }
             }
             tt.LPAREN -> {
+                val lparen = currentToken
+                if (head.location.stop.line != lparen.location.start.line) {
+                    return head
+                }
                 advance()
                 val args = parseSeperatedList(tt.COMMA, tt.RPAREN) {
                     parseArg()
