@@ -893,14 +893,24 @@ class Analyzer(
             checkExpression(expression.rhs, matchingRule.first)
             matchingRule.second
         } else {
-            if ((expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS) &&  lhsType is Type.Ptr) {
-                checkExpression(expression.rhs, lhsType.copy(isMutable = false))
+            if ((expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS)
+                && isTypeEquatable(lhsType)
+            ) {
+                checkExpression(expression.rhs, if (lhsType is Type.Ptr) lhsType.copy(isMutable = false) else lhsType)
                 Type.Bool
             } else {
                 inferExpression(expression.rhs)
                 Type.Error(expression.location)
             }
         }
+    }
+
+    private fun isTypeEquatable(lhsType: Type): Boolean = when(reduceGenericInstances(lhsType)) {
+        is Type.Ptr,
+        is Type.Bool,
+        is Type.Integral,
+        is Type.Size -> true
+        else -> false
     }
 
     private fun inferPointerCast(expression: Expression.PointerCast): Type {
