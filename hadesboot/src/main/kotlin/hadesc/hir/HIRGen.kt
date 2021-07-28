@@ -177,15 +177,9 @@ class HIRGen(
         )
     }
 
-    private fun sealedCaseConstructorOrConst(
-        declaration: Declaration.SealedType,
-        sealedTypeName: QualifiedName,
-        case: Declaration.SealedType.Case,
-        index: Int
-    ): HIRDefinition {
-        val caseConstructorName = sealedTypeName.append(case.name.name).append(ctx.makeName("constructor"))
+    private fun sealedTypeInstanceType(declaration: Declaration.SealedType): Type {
         val typeConstructor = Type.Constructor(binder = null, name = ctx.resolver.qualifiedName(declaration.name))
-        val instanceType = if (declaration.typeParams != null) {
+        return if (declaration.typeParams != null) {
             Type.Application(
                 typeConstructor,
                 declaration.typeParams.map { Type.ParamRef(it.binder) }
@@ -193,6 +187,16 @@ class HIRGen(
         } else {
             typeConstructor
         }
+    }
+
+    private fun sealedCaseConstructorOrConst(
+        declaration: Declaration.SealedType,
+        sealedTypeName: QualifiedName,
+        case: Declaration.SealedType.Case,
+        index: Int
+    ): HIRDefinition {
+        val caseConstructorName = sealedTypeName.append(case.name.name).append(ctx.makeName("constructor"))
+        val instanceType = sealedTypeInstanceType(declaration)
         val caseStructName = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
         val caseTypeConstructor = Type.Constructor(binder = null, name = caseStructName)
         val caseInstanceType = if (declaration.typeParams != null) {
@@ -211,13 +215,13 @@ class HIRGen(
         val resultName = ctx.makeUniqueName()
         val caseConstructorRef = HIRExpression.GlobalRef(
             loc,
-            type = Type.Bool, // NOCOMMIT
+            type = sealedTypeCaseConstructorRefType(declaration, case),
             name = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
         )
         val caseConstructorTypeApplication = if (declaration.typeParams != null) {
             HIRExpression.TypeApplication(
                 loc,
-                type = Type.Bool, // NOCOMMIT
+                type = caseTypeConstructor,
                 expression = caseConstructorRef,
                 args = declaration.typeParams.map { Type.ParamRef(it.binder) }
             )
@@ -295,6 +299,26 @@ class HIRGen(
             ),
             HIRBlock(case.name.location, statements)
         )
+    }
+
+    private fun sealedTypeCaseConstructorRefType(
+        declaration: Declaration.SealedType,
+        case: Declaration.SealedType.Case
+    ): Type {
+        val instanceType = sealedTypeInstanceType(declaration)
+        val from = case.params?.map { lowerTypeAnnotation(checkNotNull(it.annotation)) } ?: emptyList()
+        val functionType = Type.Function(
+            from,
+            null,
+            instanceType
+        )
+
+        return if (declaration.typeParams != null) {
+            Type.TypeFunction(
+                declaration.typeParams.map { Type.Param(it.binder) },
+                functionType
+            )
+        } else functionType
     }
 
 
@@ -578,7 +602,7 @@ class HIRGen(
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
         checkUninferredGenerics(expression, exprType)
-        return if (typeArgs != null) {
+        val withAppliedTypes = if (typeArgs != null) {
             check(exprType is Type.TypeFunction)
             check(exprType.params.size == typeArgs.size)
             HIRExpression.TypeApplication(
@@ -588,9 +612,25 @@ class HIRGen(
                 typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
             )
         } else {
-            check(exprType !is Type.TypeFunction)
+            check(exprType !is Type.TypeFunction) {
+                "${expression.location}"
+            }
             postLowerExpression(lowered)
         }
+
+        val sealedTypeConstructorBinding = ctx.analyzer.getSealedTypeConstructorBinding(expression)
+        return if (sealedTypeConstructorBinding != null && expression !is Expression.TypeApplication) {
+            if (sealedTypeConstructorBinding.case.params == null) {
+                HIRExpression.Call(
+                    expression.location,
+                    withAppliedTypes.type,
+                    withAppliedTypes,
+                    emptyList(),
+                )
+            } else {
+                withAppliedTypes
+            }
+        } else withAppliedTypes
     }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
