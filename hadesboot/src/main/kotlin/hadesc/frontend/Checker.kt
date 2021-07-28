@@ -766,7 +766,7 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkCallLikeExpression(
-        callExpression: Expression,
+        callExpression: Expression.Call,
         callee: Expression,
         args: List<Expression>,
     ) {
