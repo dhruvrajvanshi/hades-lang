@@ -44,6 +44,8 @@ def main(): Void {
         exit(1)
     }
 
+    puts(b"PASS")
+}
 
 extern def puts(*u8): Bool = puts
 extern def exit(u32): Void = exit
