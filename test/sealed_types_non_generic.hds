@@ -43,7 +43,7 @@ def main(): Void {
     if not a_pass or not b_pass or not c_pass {
         exit(1)
     }
-}
+
 
 extern def puts(*u8): Bool = puts
 extern def exit(u32): Void = exit
