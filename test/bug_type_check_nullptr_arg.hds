@@ -1,0 +1,10 @@
+
+def main(): Void {
+    foo(nullptr)
+}
+
+struct S {
+    val x: Bool
+}
+
+def foo(value: S): Void {}

@@ -692,7 +692,7 @@ class Analyzer(
                 is Expression.Call -> {
                     checkCallExpression(expression, expectedType)
                 }
-                is Expression.NullPtr -> checkNullPtrExpression(expectedType)
+                is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
                 is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
                 is Expression.If -> checkIfExpression(expression, expectedType)
                 else -> {
@@ -789,8 +789,9 @@ class Analyzer(
         return inferredParamTypes[param.binder]
     }
 
-    private fun checkNullPtrExpression(expectedType: Type): Type {
-        return expectedType
+    private fun checkNullPtrExpression(expression: Expression.NullPtr, expectedType: Type): Type = when (expectedType) {
+        !is Type.Ptr -> Type.Ptr(Type.Error(expression.location), isMutable = false)
+        else -> expectedType
     }
 
     private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
