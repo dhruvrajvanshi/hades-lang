@@ -1601,12 +1601,21 @@ class Analyzer(
         }
     }
 
-    fun isSealedTypeConstructorCall(expression: Expression.TypeApplication): Boolean = when(expression.lhs) {
-        is Expression.Property -> {
-            resolvePropertyBinding(expression.lhs) is PropertyBinding.SealedTypeCaseConstructor
+    fun isSealedTypeConstructorCall(expression: Expression): Boolean = getSealedTypeConstructorBinding(expression) != null
+
+    fun getSealedTypeConstructorBinding(expression: Expression): PropertyBinding.SealedTypeCaseConstructor? =
+        when(expression) {
+            is Expression.Property -> {
+                val binding = resolvePropertyBinding(expression)
+                if (binding is PropertyBinding.SealedTypeCaseConstructor) {
+                    binding
+                } else {
+                    null
+                }
+            }
+            is Expression.TypeApplication -> getSealedTypeConstructorBinding(expression.lhs)
+            else -> null
         }
-        else -> false
-    }
 
     fun getParamType(param: Param): Type {
         return reduceGenericInstances(requireNotNull(closureParamTypes[param.binder]))
