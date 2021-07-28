@@ -1115,7 +1115,7 @@ class Analyzer(
     }
 
     private fun inferOrCheckCallLikeExpression(
-            callNode: Expression,
+            callNode: Expression.Call,
             args: List<Arg>,
             expectedReturnType: Type?
     ): Type {
@@ -1217,18 +1217,24 @@ class Analyzer(
                 ?: emptyList()
 
 
-    fun getCallReceiver(callNode: Expression): Expression? {
-        if (callNode !is Expression.Call) {
-            return null
+    fun getCallReceiver(callNode: Expression.Call): Expression? = when(callNode.callee) {
+        is Expression.Property -> getPropertyExpressionReceiver(callNode.callee)
+        is Expression.TypeApplication -> when (callNode.callee.lhs) {
+            is Expression.Property -> getPropertyExpressionReceiver(callNode.callee.lhs)
+            else -> null
         }
-        if (callNode.callee !is Expression.Property) {
-            return null
-        }
-        if (resolvePropertyBinding(callNode.callee) !is PropertyBinding.ExtensionDef) {
-            return null
-        }
-        return callNode.callee.lhs
+        else -> null
     }
+
+    private fun getPropertyExpressionReceiver(expression: Expression.Property): Expression? =
+        when (resolvePropertyBinding(expression)) {
+            is PropertyBinding.ExtensionDef -> {
+                expression.lhs
+            }
+            else -> {
+                null
+            }
+        }
 
     fun getCalleeType(callNode: Expression): Type = getCallee(callNode)?.let {
         inferExpression(it)
