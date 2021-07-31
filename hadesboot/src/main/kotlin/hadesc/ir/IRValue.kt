@@ -13,7 +13,6 @@ sealed class IRValue : HasLocation {
         return prettyPrint()
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     fun prettyPrint(): String = when (this) {
         is IRBool -> value.toString()
         is IRByteString -> "b\"${value.decodeToString()}\""
@@ -29,6 +28,7 @@ sealed class IRValue : HasLocation {
         is IRUnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
         is IRTruncate -> "truncate ${value.prettyPrint()} to ${type.prettyPrint()}"
         is IRZExt -> "zext ${value.prettyPrint()} to ${type.prettyPrint()}"
+        is IRFloatConstant -> "${type.prettyPrint()} $value"
     }
 }
 
@@ -62,6 +62,12 @@ class IRCIntConstant(
         override val type: Type,
         override val location: SourceLocation,
         val value: Int
+) : IRValue()
+
+class IRFloatConstant(
+    override val type: Type,
+    override val location: SourceLocation,
+    val value: Double
 ) : IRValue()
 
 class IRNullPtr(

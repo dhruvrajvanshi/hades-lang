@@ -797,6 +797,7 @@ class Analyzer(
     private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
         is Type.Size,
         is Type.Integral -> true
+        is Type.FloatingPoint -> true
         else -> false
     }
 

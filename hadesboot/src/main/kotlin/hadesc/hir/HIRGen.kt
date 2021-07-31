@@ -921,12 +921,24 @@ class HIRGen(
     }
 
     private fun lowerIntLiteral(expression: Expression.IntLiteral): HIRExpression {
-        return HIRExpression.Constant(
+        if (expression.type.isIntegral()) {
+            return HIRExpression.Constant(
                 HIRConstant.IntValue(
-                        expression.location,
-                        typeOfExpression(expression),
-                        expression.value)
-        )
+                    expression.location,
+                    typeOfExpression(expression),
+                    expression.value)
+            )
+        } else {
+            val exprType = expression.type
+            check(exprType is Type.FloatingPoint)
+            return HIRExpression.Constant(
+                HIRConstant.FloatValue(
+                    expression.location,
+                    exprType,
+                    expression.value.toDouble()
+                )
+            )
+        }
     }
 
     private fun lowerBoolLiteral(expression: Expression.BoolLiteral): HIRExpression {

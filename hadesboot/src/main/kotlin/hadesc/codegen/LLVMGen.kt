@@ -380,6 +380,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRUnsafeCast -> lowerUnsafeCast(value)
             is IRTruncate -> lowerTruncate(value)
             is IRZExt -> lowerZExt(value)
+            is IRFloatConstant -> lowerFloatConstant(value)
         }
         log.debug("Done lowering expression at ${value.location}")
 
@@ -468,6 +469,10 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerCIntValue(value: IRCIntConstant): Value {
         return constantInt(value = value.value.toLong(), type = lowerType(value.type), signExtend = false)
+    }
+
+    private fun lowerFloatConstant(value: IRFloatConstant): Value {
+        return constantFloat(value = value.value, type = lowerType(value.type))
     }
 
     private fun lowerNullPtr(value: IRNullPtr): Value {
