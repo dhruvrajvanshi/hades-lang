@@ -534,6 +534,7 @@ class IRGen(
         is HIRConstant.ByteString -> builder.buildByteString(value.type, value.location, value.bytes)
         is HIRConstant.BoolValue -> builder.buildConstBool(value.type, value.location, value.value)
         is HIRConstant.IntValue -> IRCIntConstant(value.type, value.location, value.value)
+        is HIRConstant.FloatValue -> IRFloatConstant(value.type, value.location, value.value)
     }
 
     private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): IRValue {

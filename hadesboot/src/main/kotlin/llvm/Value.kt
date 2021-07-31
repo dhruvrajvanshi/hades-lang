@@ -18,6 +18,9 @@ fun constantStruct(type: Type, values: List<Value>): Value {
 fun constantInt(type: Type, value: Long, signExtend: Boolean = true): V =
     LLVM.LLVMConstInt(type, value, signExtend.toLLVMBool())
 
+fun constantFloat(type: Type, value: Double): V =
+    LLVM.LLVMConstReal(type, value)
+
 fun V.asMetadata(): LLVMMetadataRef =
     LLVM.LLVMValueAsMetadata(this)
 

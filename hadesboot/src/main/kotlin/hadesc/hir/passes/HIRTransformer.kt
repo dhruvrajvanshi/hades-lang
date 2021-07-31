@@ -392,6 +392,7 @@ interface HIRTransformer: TypeTransformer {
         is HIRConstant.ByteString -> expression
         is HIRConstant.BoolValue -> expression
         is HIRConstant.IntValue -> expression
+        is HIRConstant.FloatValue -> expression
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {
