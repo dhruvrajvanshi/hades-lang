@@ -1,0 +1,11 @@
+
+sealed type T {
+    A
+    B
+}
+
+def main(): Void {
+    val x = when (T.A) {
+        is A -> true
+    }
+}
