@@ -623,7 +623,18 @@ class Checker(val ctx: Context) {
             checkExpression(it.value)
         }
 
-        ctx.analyzer.getDiscriminants(expression.value.type)
+        val discriminants = ctx.analyzer.getDiscriminants(expression.value.type)
+
+        for (discriminant in discriminants) {
+            if (!expression.arms.any {
+                when (it) {
+                    is Expression.WhenArm.Else -> true
+                    is Expression.WhenArm.Is -> it.caseName.name == discriminant.name
+                }
+            }) {
+                error(expression.value, Diagnostic.Kind.NonExhaustivePatterns(discriminant.name))
+            }
+        }
 
     }
 
