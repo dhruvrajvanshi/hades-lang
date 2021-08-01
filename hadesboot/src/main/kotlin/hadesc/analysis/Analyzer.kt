@@ -6,6 +6,7 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
+import hadesc.hir.HIRPropertyBinding
 import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.ir.passes.TypeVisitor
@@ -274,7 +275,7 @@ class Analyzer(
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType),
-                traitRequirements = null
+                traitRequirements = functionDef.traitRequirements
             ), isMutable = false)
             if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
