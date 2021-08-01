@@ -23,7 +23,7 @@ data class BuildOptions(
     val libs: List<String>,
 ) : Options
 
-class HadesCompiler: CliktCommand() {
+class HadesCompiler: CliktCommand(name = "hades") {
     private val log = logger()
 
     private lateinit var options: Options
@@ -37,6 +37,10 @@ class HadesCompiler: CliktCommand() {
         "--c-source",
         help = "Add a C source file to the compilation. Can pass more than once"
     ).path().multiple()
+    private val cSourcesSplit by option(
+        "--c-sources",
+        help = "Add multiple space separated C source files",
+    ).path().split(" ").default(emptyList())
     private val dumpLLVMModule by option("--dump-llvm-module").flag(default = false)
     private val libs by option("-l").multiple()
 
@@ -53,7 +57,7 @@ class HadesCompiler: CliktCommand() {
             runtime = Path.of(hadesHome, "stdlib", "runtime.c"),
             cFlags = cFlags,
             debugSymbols = debugSymbols,
-            cSources = cSources + listOf(Path.of(hadesHome, "stdlib", "libc.c")),
+            cSources = cSources + cSourcesSplit + listOf(Path.of(hadesHome, "stdlib", "libc.c")),
             dumpLLVMModule = dumpLLVMModule,
             libs = libs
         )
