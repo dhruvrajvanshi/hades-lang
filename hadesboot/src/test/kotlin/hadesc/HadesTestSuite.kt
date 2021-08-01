@@ -50,23 +50,21 @@ class HadesTestSuite {
                     else
                         file.nameWithoutExtension
                 )
-                val cSources = if (cSourceFile.exists()) {
-                    cSourceFile.toString()
-                } else {
-                    ""
+                val compiler = HadesCompiler()
+                val flags = mutableListOf(
+                    "--output", outputPath.toString(),
+                    "--module-path", directory.toString(),
+                    "--main", file.toString(),
+                ).apply {
+                    add("--c-source")
+                    add(utilsCLib.toString())
+                    if (cSourceFile.exists()) {
+                        add("--c-source")
+                        add(cSourceFile.toString())
+                    }
                 }
-                val compiler = Compiler(
-                    arrayOf(
-                        "--output", outputPath.toString(),
-                        "--directories", directory.toString(),
-                        "--main", file.toString(),
-                        "--c-sources", cSources,
-                        "--cflags", utilsCLib.toString(), "-D", "DEBUG"
-                    )
-                        .filter { it.isNotBlank() }
-                        .toTypedArray()
-                )
-                val diagnostics = compiler.run()
+                compiler.main(flags)
+                val diagnostics = compiler.execute()
                 if (expectedStdoutFile.exists()) {
                     assert(File(outputPath.toUri()).exists()) {
                         "Expected $outputPath to be present after compilation"
