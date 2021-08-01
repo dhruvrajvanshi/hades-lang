@@ -17,8 +17,8 @@ C_SOURCES=$(shell find . -name '*.c')
 TEST_SOURCES=$(shell find . -name '*_test.hds')
 
 HADESC_FLAGS=-g \
-		--directories . \
-		--c-sources $(C_SOURCES)
+		--module-path . \
+		--c-sources "$(C_SOURCES)"
 
 web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 	CC=$(CC) HADES_HOME=$(HADES_HOME) $(HDC) \
