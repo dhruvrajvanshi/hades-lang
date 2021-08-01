@@ -34,9 +34,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         LLVM.LLVMDIBuilderFinalize(diBuilder)
         verifyModule()
         writeModuleToFile()
-        if (!ctx.options.lib) {
-            linkWithRuntime()
-        }
+        linkWithRuntime()
     }
 
     private fun lower() = profile("LLVM::lower") {
@@ -353,7 +351,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerExpression(value: IRValue): Value {
-        log.debug("lowerExpression(${value.prettyPrint()}) // ${value.location}")
         if (ctx.options.debugSymbols) {
             val location = LLVM.LLVMDIBuilderCreateDebugLocation(
                 llvmCtx,
@@ -382,7 +379,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRZExt -> lowerZExt(value)
             is IRFloatConstant -> lowerFloatConstant(value)
         }
-        log.debug("Done lowering expression at ${value.location}")
 
         return result
     }
@@ -496,7 +492,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerVariable(expression: IRVariable): Value {
-        log.debug("lowerVariable(${expression.prettyPrint()}) // ${expression.location}")
         return when (expression.name) {
             is IRLocalName -> checkNotNull(localVariables[expression.name]) {
                 "${expression.location}: Unbound variable: ${expression.name.prettyPrint()}"
@@ -526,7 +521,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     }
 
     private fun lowerCallExpression(expression: IRCall): Value {
-        log.debug("lowerCallExpression(${expression.location})")
         val callee = lowerExpression(expression.callee)
         check(expression.typeArgs == null) { "Unspecialized generic function found in LLVMGen" }
         val args = expression.args.map { lowerExpression(it) }
