@@ -37,6 +37,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
+        Path.of(objectFilePath).deleteExisting()
     }
 
     private fun lower() = profile("LLVM::lower") {
@@ -781,8 +782,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
 
         LLVM.LLVMDisposeTargetMachine(targetMachine)
-
-        Path.of(objectFilePath).deleteExisting()
     }
 
     override fun close() {
