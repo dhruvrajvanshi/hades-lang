@@ -27,8 +27,7 @@ web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
 		--output $(OUTPUT_NAME) \
 		-g \
 		$(LIBS) \
-		--directories . $(STDLIB_DIR) \
-		--c-sources $(C_SOURCES) $(STDLIB_C_SOURCES)
+		--module-path .
 
 clean:
 	- rm $(BUILD_ARTIFACTS)
