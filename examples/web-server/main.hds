@@ -58,13 +58,24 @@ def handle_connection(fd: FileDescriptor): Void {
     log.info(b"Got request: ");
     log.info(pointer_cast[Byte](request_text));
     
-    val response_body = b"hello\n";
+    val response_body = b"
+<html>
+    <head>
+        <title>Sample web server built with sys/socket.h</title>
+    </head>
+    <body>
+        <h1>Hello socket.h</h1>
+    </body>
+</html>
+    ";
     val body_length_str = size_to_string(c.strlen(response_body));
     defer mem.free(body_length_str);
 
     http_write_line(fd, b"HTTP/1.1 200 OK");
     http_write(fd, b"Content-length: ");
     http_write_line(fd, body_length_str);
+
+    http_write_line(fd, b"Content-type: text/html");
 
     http_write_line(fd, b"");
 
