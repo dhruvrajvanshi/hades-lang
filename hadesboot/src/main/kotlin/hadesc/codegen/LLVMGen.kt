@@ -15,6 +15,8 @@ import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
+import java.nio.file.Path
+import kotlin.io.path.deleteExisting
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
@@ -779,6 +781,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         )
 
         LLVM.LLVMDisposeTargetMachine(targetMachine)
+
+        Path.of(objectFilePath).deleteExisting()
     }
 
     override fun close() {
