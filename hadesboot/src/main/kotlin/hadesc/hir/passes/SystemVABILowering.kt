@@ -10,7 +10,7 @@ import hadesc.context.Context
  * This ensures that the compiled code is interoperable with
  * separately compiled C libraries.
  */
-class SystemVABILowering(val ctx: Context): HIRTransformer
+class SystemVABILowering(val ctx: Context): AbstractHIRTransformer()
 
 @Suppress("unused")
 enum class TypeClass {

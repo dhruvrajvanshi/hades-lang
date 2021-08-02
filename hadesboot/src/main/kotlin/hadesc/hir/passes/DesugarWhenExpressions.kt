@@ -8,27 +8,11 @@ import hadesc.hir.HIRStatement
 import hadesc.ir.BinaryOperator
 import hadesc.types.Type
 
-class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
-    var statements: MutableList<HIRStatement>? = null
-
-    override fun transformBlock(body: HIRBlock): HIRBlock {
-        val oldStatements = statements
-        val currentStatements = mutableListOf<HIRStatement>()
-        statements = currentStatements
-        body.statements.forEach {
-            currentStatements.addAll(transformStatement(it))
-        }
-        statements = oldStatements
-        return HIRBlock(
-            location = body.location,
-            statements = currentStatements
-        )
-    }
-
+class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer() {
     override fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
         val blockStatements = requireNotNull(statements)
         val discriminantName = ctx.makeUniqueName()
-        val resultName = if (expression.type !is Type.Void) ctx.makeUniqueName() else null
+        val resultName = ctx.makeUniqueName()
         blockStatements.addAll(
             listOfNotNull(
                 HIRStatement.ValDeclaration(
@@ -37,12 +21,12 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
                     isMutable = false,
                     expression.discriminant.type
                 ),
-                if (resultName != null) HIRStatement.ValDeclaration(
+                HIRStatement.ValDeclaration(
                     expression.location,
                     resultName,
                     isMutable = true,
                     expression.type
-                ) else null,
+                ),
                 HIRStatement.Assignment(
                     expression.discriminant.location,
                     discriminantName,
@@ -91,11 +75,11 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
                                 discriminantPtr
                             ))
                     ),
-                    if (resultName != null) HIRStatement.Assignment(
+                    HIRStatement.Assignment(
                         case.expression.location,
                         resultName,
                         transformExpression(case.expression)
-                    ) else null
+                    )
                 )
             )
             blockStatements.add(
@@ -120,15 +104,10 @@ class DesugarWhenExpressions(val ctx: Context) : HIRTransformer {
                 )
             )
         }
-        return if (resultName != null) HIRExpression.ValRef(
+        return HIRExpression.ValRef(
             expression.location,
             expression.type,
             resultName
-        ) else {
-            HIRExpression.NullPtr(
-                expression.location,
-                Type.Ptr(expression.type, isMutable = false)
-            )
-        }
+        )
     }
 }

@@ -831,7 +831,22 @@ class Analyzer(
                 inferExpression(expression.lhs)
                 annotationToType(expression.rhs)
             }
+            is Expression.BlockExpression -> inferBlockExpression(expression)
         })
+    }
+
+    private fun inferBlockExpression(expression: Expression.BlockExpression): Type {
+        val lastExpression = expression.block.members.lastOrNull() ?: return Type.Error(expression.location)
+
+        expression.block.members.dropLast(1).forEach {
+            checkBlockMember(it)
+        }
+
+        if (lastExpression is Block.Member.Expression) {
+            return inferExpression(lastExpression.expression)
+        }
+
+        return Type.Void
     }
 
     private fun inferArrayIndex(expression: Expression.ArrayIndex): Type {

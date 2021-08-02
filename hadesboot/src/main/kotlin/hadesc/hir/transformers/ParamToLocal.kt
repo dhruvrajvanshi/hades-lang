@@ -6,7 +6,7 @@ import hadesc.context.Context
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRParam
 import hadesc.hir.HIRStatement
-import hadesc.hir.passes.HIRTransformer
+import hadesc.hir.passes.AbstractHIRTransformer
 import hadesc.location.TaggedLocation
 import hadesc.location.taggedLocation
 import llvm.makeList
@@ -30,7 +30,7 @@ import llvm.makeList
  * this is trivial.
  *
  */
-class ParamToLocal(private val ctx: Context): HIRTransformer {
+class ParamToLocal(private val ctx: Context): AbstractHIRTransformer() {
     private val paramCopies = mutableMapOf<TaggedLocation<Binder>, Name>()
 
     fun declareParamCopies(params: List<HIRParam>): List<HIRStatement> =
