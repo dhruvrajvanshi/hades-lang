@@ -842,8 +842,13 @@ class Analyzer(
             checkBlockMember(it)
         }
 
-        if (lastExpression is Block.Member.Expression) {
-            return inferExpression(lastExpression.expression)
+        when (lastExpression) {
+            is Block.Member.Expression -> {
+                return inferExpression(lastExpression.expression)
+            }
+            is Block.Member.Statement -> {
+                checkStatement(lastExpression.statement)
+            }
         }
 
         return Type.Void
