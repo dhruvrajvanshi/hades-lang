@@ -1,40 +1,41 @@
 // TODO: do something better here. This isn't portable.
 type CInt = i32;
 type int = i32;
+type uint = u32
+type ulong = u64
 type long = i64
 
 extern def puts(*Byte): Void = puts;
 extern def exit(CInt): Void = exit;
 extern def malloc(Size): *mut Void = malloc;
 extern def free(*mut Void): Void = free;
-extern def strlen(*Byte): Size = strlen;
+extern def strlen(*Byte): usize = strlen;
 extern def strcat(*Byte, *Byte): *mut Byte = strcat;
 extern def strcmp(*Byte, *Byte): CInt = strcmp;
 extern def strcpy(*mut Byte, *Byte): *mut Byte = strcpy;
-extern def memcpy(*Void, *Void, Size): Void = memcpy;
-extern def memcmp(*Void, *Void, Size): CInt = memcmp;
+extern def memcpy(*Void, *Void, usize): Void = memcpy;
+extern def memcmp(*Void, *Void, usize): CInt = memcmp;
 extern def floor(Double): Double = floor;
-/// we don't have variadics right now
-/// there isn't a better way to type this
-extern def fprintf(*File, *Byte, *Byte): Size = fprintf;
-extern def printf(*Byte, *Byte): Size = printf;
-extern def sleep(Size): Size = sleep;
+
+extern def fprintf(*File, *Byte, *Byte): int = fprintf;
+extern def printf(*Byte, *Byte): int = printf;
+extern def sleep(uint): uint = sleep;
 extern def fflush(*File): Void = fflush;
 
 extern def fputs(*Byte, *File): Void = fputs;
 
 struct File {}
 
-extern def getline(*mut *mut Byte, *mut Size, *File): Size = getline;
+extern def getline(*mut *mut Byte, *mut usize, *File): isize = getline;
 extern def fgetc(*File): Byte = fgetc;
-extern def strtoul(*Byte, **Byte, CInt): Size = strtoul;
+extern def strtoul(*Byte, **Byte, u32): ulong = strtoul;
 
 
 extern def fread(*Void, Size, Size, *File): Size = fread;
 
-type FileDescriptor = CInt;
-extern def read(FileDescriptor, *mut Void, Size): Size = read;
-extern def write(FileDescriptor, *Void, Size): Size = write;
+type FileDescriptor = int;
+extern def read(FileDescriptor, *mut Void, usize): isize = read;
+extern def write(FileDescriptor, *Void, usize): isize = write;
 
 extern def errno(): int = hdc_errno;
 extern def strerror(CInt): *Byte = strerror;

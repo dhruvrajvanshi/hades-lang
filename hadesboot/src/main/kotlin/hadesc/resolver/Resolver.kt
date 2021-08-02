@@ -57,8 +57,10 @@ class Resolver(private val ctx: Context) {
             "Int" -> Type.Integral(32, true)
             "Bool" -> Type.Bool
             "Byte" -> Type.Integral(8, false)
-            "Size" -> Type.Size
-            "Double" -> Type.Double
+            "usize" -> Type.Size(isSigned = false)
+            "isize" -> Type.Size(isSigned = true)
+            "Size" -> Type.Size(isSigned = false)
+            "Double" -> Type.FloatingPoint(64)
             "Void" -> Type.Void
             "u8" -> Type.Integral(8, false)
             "i8" -> Type.Integral(8, true)

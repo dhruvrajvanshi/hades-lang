@@ -18,8 +18,7 @@ sealed class Type {
             }
         }
     }
-    object Double : Type()
-    object Size : Type()
+    data class Size(val isSigned: Boolean) : Type()
     data class Ptr(val to: Type, val isMutable: Boolean) : Type()
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
@@ -60,7 +59,6 @@ sealed class Type {
         is Error -> "Error<$location>"
         Void -> "Void"
         Bool -> "Bool"
-        Double -> "Double"
         is Ptr -> {
             if (isMutable)
                 "*mut ${to.prettyPrint()}"
@@ -73,7 +71,7 @@ sealed class Type {
         is GenericInstance -> name.identifier.name.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
-        Size -> "Size"
+        is Size -> if (isSigned) "isize" else "usize"
         is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
         is Integral -> "${if(isSigned) "i" else "u" }${size}"
@@ -97,8 +95,7 @@ sealed class Type {
             is GenericInstance,
             is Error,
             Void,
-            Size,
-            Double,
+            is Size,
             is Integral,
             is FloatingPoint,
             Bool -> this
