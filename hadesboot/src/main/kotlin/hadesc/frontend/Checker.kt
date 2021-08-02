@@ -571,7 +571,12 @@ class Checker(val ctx: Context) {
             is Expression.As -> checkAsExpression(expression)
             is Expression.ArrayIndex -> checkArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> checkArrayLiteralExpression(expression)
+            is Expression.BlockExpression -> checkBlockExpression(expression)
         })
+    }
+
+    private fun checkBlockExpression(expression: Expression.BlockExpression) {
+        checkBlock(expression.block)
     }
 
     private fun checkArrayLiteralExpression(expression: Expression.ArrayLiteral) {

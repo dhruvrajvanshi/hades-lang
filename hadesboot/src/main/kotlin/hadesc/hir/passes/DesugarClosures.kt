@@ -16,7 +16,7 @@ import hadesc.types.Type
 import libhades.collections.Stack
 import java.nio.file.Path
 
-class DesugarClosures(val ctx: Context): HIRTransformer {
+class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
     private val definitions = mutableListOf<HIRDefinition>()
 
     private val closureCtxFieldName = ctx.makeName("ctx")

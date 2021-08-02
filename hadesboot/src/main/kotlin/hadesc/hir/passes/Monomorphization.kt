@@ -17,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue
 
 class Monomorphization(
         private val ctx: Context
-): HIRTransformer {
+): AbstractHIRTransformer() {
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Map<SourceLocation, Type>? = null
