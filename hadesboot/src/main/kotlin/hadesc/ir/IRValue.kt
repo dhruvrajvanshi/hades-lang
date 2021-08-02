@@ -29,6 +29,10 @@ sealed class IRValue : HasLocation {
         is IRTruncate -> "truncate ${value.prettyPrint()} to ${type.prettyPrint()}"
         is IRZExt -> "zext ${value.prettyPrint()} to ${type.prettyPrint()}"
         is IRFloatConstant -> "${type.prettyPrint()} $value"
+        is IRArrayLiteral -> "[" +
+                items.joinToString(", ") { it.prettyPrint() } +
+                "]"
+        is IRArrayIndex -> "${array.prettyPrint()}[${index.prettyPrint()}]"
     }
 }
 
@@ -124,5 +128,18 @@ class IRTruncate(
     override val type: Type,
     override val location: SourceLocation,
     val value: IRValue,
+) : IRValue()
+
+class IRArrayLiteral(
+    override val type: Type,
+    override val location: SourceLocation,
+    val items: List<IRValue>
+) : IRValue()
+
+class IRArrayIndex(
+    override val type: Type,
+    override val location: SourceLocation,
+    val array: IRValue,
+    val index: IRValue
 ) : IRValue()
 

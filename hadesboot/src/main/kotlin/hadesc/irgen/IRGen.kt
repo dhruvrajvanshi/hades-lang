@@ -284,7 +284,17 @@ class IRGen(
         is HIRExpression.Closure -> requireUnreachable()
         is HIRExpression.InvokeClosure -> requireUnreachable()
         is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
+        is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
     })
+
+    private fun lowerArrayIndex(expression: HIRExpression.ArrayIndex): IRValue {
+        return IRArrayIndex(
+            expression.type,
+            expression.location,
+            lowerExpression(expression.array),
+            lowerExpression(expression.index),
+        )
+    }
 
     private fun checkMonomorphicType(expression: IRValue): IRValue {
         object : TypeVisitor {
@@ -535,6 +545,7 @@ class IRGen(
         is HIRConstant.BoolValue -> builder.buildConstBool(value.type, value.location, value.value)
         is HIRConstant.IntValue -> IRCIntConstant(value.type, value.location, value.value)
         is HIRConstant.FloatValue -> IRFloatConstant(value.type, value.location, value.value)
+        is HIRConstant.ArrayLiteral -> IRArrayLiteral(value.type, value.location, value.items.map { lowerConstant(it) })
     }
 
     private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): IRValue {

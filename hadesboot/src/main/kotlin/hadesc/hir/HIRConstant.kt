@@ -31,6 +31,12 @@ sealed class HIRConstant: HasLocation {
         val value: Double
     ) : HIRConstant()
 
+    data class ArrayLiteral(
+        override val location: SourceLocation,
+        override val type: Type.Array,
+        val items: List<HIRConstant>,
+    ) : HIRConstant()
+
     fun prettyPrint(): String = when(this) {
         is ByteString -> "b\"" + String(bytes)
                 .replace("\"", "\"\"")
@@ -38,5 +44,8 @@ sealed class HIRConstant: HasLocation {
         is BoolValue -> value.toString()
         is IntValue -> value.toString()
         is FloatValue -> value.toString()
+        is ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
+                    items.joinToString(", ") { it.prettyPrint() } +
+                "]"
     }
 }

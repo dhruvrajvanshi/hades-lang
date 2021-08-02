@@ -53,7 +53,7 @@ sealed class Type {
     data class AssociatedTypeRef(val binder: Binder) : Type()
 
     data class Select(val traitName: QualifiedName, val traitArgs: List<Type>, val associatedTypeName: Name) : Type()
-
+    data class Array(val ofType: Type, val length: Int): Type()
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
@@ -79,6 +79,7 @@ sealed class Type {
         is Uninferrable -> name.name.text
         is AssociatedTypeRef -> binder.identifier.name.text
         is Select -> "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}].${associatedTypeName.text}"
+        is Array -> "[${ofType.prettyPrint()}; $length]"
     }
 
     fun isIntegral() = when(this) {
@@ -128,6 +129,7 @@ sealed class Type {
             is Select -> copy(
                 traitArgs = traitArgs.map { it.recurse() }
             )
+            is Array -> copy(ofType = ofType.recurse())
         }
     }
 
@@ -138,6 +140,11 @@ sealed class Type {
     fun typeArgs(): List<Type> = when(this) {
         is Application -> args
         else -> emptyList()
+    }
+
+    companion object {
+        val usize = Size(isSigned = false)
+        val isize = Size(isSigned = true)
     }
 }
 

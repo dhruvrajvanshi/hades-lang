@@ -101,6 +101,7 @@ data class Diagnostic(
         object UseAfterMove : Diagnostic.Kind(Severity.ERROR)
         object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
         data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
+        data class NotAnArrayType(val type: Type): Diagnostic.Kind(Severity.ERROR)
 
 //        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
         data class MissingAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
@@ -178,6 +179,7 @@ data class Diagnostic(
             NotAnIntegralValue -> "Not an integral value"
             is NoSuchAssociatedType -> "No such associated type ${name.text}"
             is MissingAssociatedType -> "Missing associated type: ${name.text}"
+            is NotAnArrayType -> "${type.prettyPrint()} is not an array type"
         }
 
     }
