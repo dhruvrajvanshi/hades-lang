@@ -25,6 +25,9 @@ fun T.getConstantNullPointer(): Value =
 fun intType(size: Int, context: Context = LLVM.LLVMGetGlobalContext()): LLVMTypeRef =
     LLVM.LLVMIntTypeInContext(context, size)
 
+fun arrayType(elementType: Type, count: Int): Type =
+    LLVM.LLVMArrayType(elementType, count)
+
 fun floatType(size: Int, context: Context): T = when(size) {
     16 -> LLVM.LLVMHalfTypeInContext(context)
     32 -> LLVM.LLVMFloatTypeInContext(context)

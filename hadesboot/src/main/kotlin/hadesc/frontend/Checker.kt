@@ -569,7 +569,28 @@ class Checker(val ctx: Context) {
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.When -> checkWhenExpression(expression)
             is Expression.As -> checkAsExpression(expression)
+            is Expression.ArrayIndex -> checkArrayIndexExpression(expression)
+            is Expression.ArrayLiteral -> checkArrayLiteralExpression(expression)
         })
+    }
+
+    private fun checkArrayLiteralExpression(expression: Expression.ArrayLiteral) {
+        checkTypeAnnotation(expression.ofType)
+        val itemType = ctx.analyzer.annotationToType(expression.ofType)
+        for (item in expression.items) {
+            checkExpressionHasType(item, itemType)
+        }
+    }
+
+    private fun checkArrayIndexExpression(expression: Expression.ArrayIndex) {
+        checkExpression(expression.lhs)
+        checkExpression(expression.index)
+
+        val lhsType = expression.lhs.type
+        if (lhsType !is Type.Array) {
+            error(Diagnostic.Kind.NotAnArrayType(lhsType))
+        }
+        checkExpressionHasType(expression.index, Type.Size(isSigned = false))
     }
 
     private fun checkAsExpression(expression: Expression.As) {

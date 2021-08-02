@@ -34,6 +34,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
         lower()
         LLVM.LLVMDIBuilderFinalize(diBuilder)
+        log.debug(LLVM.LLVMPrintModuleToString(llvmModule).string)
         verifyModule()
         writeModuleToFile()
         linkWithRuntime()
@@ -75,7 +76,12 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         if (loweredGlobals[definition.name] == null) {
             val global = llvmModule.addGlobal(name, lowerType(definition.type))
             global.setInitializer(lowerExpression(definition.initializer))
-            loweredGlobals[definition.name] = checkNotNull(global.getInitializer())
+
+            loweredGlobals[definition.name] = if (definition.type is Type.Array) {
+                global
+            } else {
+                checkNotNull(global.getInitializer())
+            }
         }
     }
 
@@ -143,6 +149,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Uninferrable -> requireUnreachable()
         is Type.AssociatedTypeRef -> requireUnreachable()
         is Type.Select -> requireUnreachable()
+        is Type.Array -> TODO()
     }
 
     private fun lowerFunctionDef(definition: IRFunctionDef) {
@@ -380,9 +387,36 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             is IRTruncate -> lowerTruncate(value)
             is IRZExt -> lowerZExt(value)
             is IRFloatConstant -> lowerFloatConstant(value)
+            is IRArrayLiteral -> lowerArrayLiteral(value)
+            is IRArrayIndex -> lowerArrayIndex(value)
         }
 
         return result
+    }
+
+    private fun lowerArrayIndex(value: IRArrayIndex): Value {
+        val startPointer = lowerExpression(value.array)
+        val offsetPointer = LLVM.LLVMBuildGEP(
+            builder,
+            startPointer,
+            listOf(
+                constantInt(sizeTy, 0),
+                lowerExpression(value.index),
+            ).asPointerPointer(),
+            2,
+            ctx.makeUniqueName().text
+        )
+        return builder.buildLoad(offsetPointer, ctx.makeUniqueName().text)
+    }
+
+    private fun lowerArrayLiteral(value: IRArrayLiteral): Value {
+        check(value.type is Type.Array)
+        check(value.items.size == value.type.length)
+        return constantArray(
+            lowerType(value.type.ofType),
+            value.items.map { lowerExpression(it) },
+            value.items.size
+        )
     }
 
     private fun lowerZExt(value: IRZExt): Value {
@@ -513,7 +547,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun lowerByteString(expression: IRByteString): Value {
         val text = expression.value.decodeToString()
-        val constStringRef = constantArray(text, nullTerminate = false, context = llvmCtx)
+        val constStringRef = constantString(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
             constStringRef.getType()
@@ -643,6 +677,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         is Type.Uninferrable -> requireUnreachable()
         is Type.AssociatedTypeRef -> requireUnreachable()
         is Type.Select -> requireUnreachable()
+        is Type.Array -> arrayType(lowerType(type.ofType), type.length)
     }
 
     private var nextLiteralIndex = 0

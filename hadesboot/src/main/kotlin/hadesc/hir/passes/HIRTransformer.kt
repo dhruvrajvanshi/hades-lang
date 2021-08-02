@@ -199,6 +199,16 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
+        is HIRExpression.ArrayIndex -> transformArrayIndex(expression)
+    }
+
+    fun transformArrayIndex(expression: HIRExpression.ArrayIndex): HIRExpression {
+        return HIRExpression.ArrayIndex(
+            expression.location,
+            lowerType(expression.type),
+            transformExpression(expression.array),
+            transformExpression(expression.index),
+        )
     }
 
     fun transformIntegerConvert(expression: HIRExpression.IntegerConvert): HIRExpression {
@@ -388,11 +398,12 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformConstant(expression: HIRExpression.Constant): HIRExpression = when(expression.constant) {
+    fun transformConstant(expression: HIRExpression.Constant): HIRExpression.Constant = when(expression.constant) {
         is HIRConstant.ByteString -> expression
         is HIRConstant.BoolValue -> expression
         is HIRConstant.IntValue -> expression
         is HIRConstant.FloatValue -> expression
+        is HIRConstant.ArrayLiteral -> expression
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {

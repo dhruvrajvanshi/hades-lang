@@ -837,6 +837,7 @@ class Parser(
             }
             tt.VBAR -> parseClosureExpression()
             tt.WHEN -> parseWhenExpression()
+            tt.LSQB -> parseArrayLiteralExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -844,6 +845,23 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseArrayLiteralExpression(): Expression {
+        val start = expect(tt.LSQB)
+        val ofType = parseTypeAnnotation()
+        expect(tt.RSQB)
+        expect(tt.LSQB)
+        val items = parseSeperatedList(tt.COMMA, terminator = tt.RSQB) {
+            parseExpression()
+        }
+        val stop = expect(tt.RSQB)
+
+        return Expression.ArrayLiteral(
+            makeLocation(start, stop),
+            ofType,
+            items
+        )
     }
 
     private fun parseWhenExpression(): Expression {
@@ -1005,14 +1023,27 @@ class Parser(
             }
             tt.DOT -> {
                 advance()
-                val ident = parseIdentifier()
-                parseExpressionTail(
-                        Expression.Property(
-                                makeLocation(head, ident),
-                                head,
-                                ident
+                if (currentToken.kind == tt.LSQB) {
+                    advance()
+                    val index = parseExpression()
+                    val stop = expect(tt.RSQB)
+                    parseExpressionTail(
+                        Expression.ArrayIndex(
+                            makeLocation(head, stop),
+                            head,
+                            index,
                         )
-                )
+                    )
+                } else {
+                    val ident = parseIdentifier()
+                    parseExpressionTail(
+                        Expression.Property(
+                            makeLocation(head, ident),
+                            head,
+                            ident
+                        )
+                    )
+                }
             }
             tt.AS -> {
                 advance()

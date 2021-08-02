@@ -24,7 +24,10 @@ fun constantFloat(type: Type, value: Double): V =
 fun V.asMetadata(): LLVMMetadataRef =
     LLVM.LLVMValueAsMetadata(this)
 
-fun constantArray(text: String, nullTerminate: Boolean = false, context: LLVMContextRef = LLVM.LLVMGetGlobalContext()): LLVMValueRef =
+fun constantArray(itemType: Type, items: List<V>, length: Int): V =
+    LLVM.LLVMConstArray(itemType, items.asPointerPointer(), length)
+
+fun constantString(text: String, nullTerminate: Boolean = false, context: LLVMContextRef = LLVM.LLVMGetGlobalContext()): LLVMValueRef =
     LLVM.LLVMConstStringInContext(context, text, text.length, nullTerminate.toLLVMBool())
 
 

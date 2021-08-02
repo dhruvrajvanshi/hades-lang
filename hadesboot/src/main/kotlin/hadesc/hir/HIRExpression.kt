@@ -178,6 +178,13 @@ sealed class HIRExpression: HIRNode {
         val value: HIRExpression,
     ) : HIRExpression()
 
+    data class ArrayIndex(
+        override val location: SourceLocation,
+        override val type: Type,
+        val array: HIRExpression,
+        val index: HIRExpression
+    ) : HIRExpression()
+
     override fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -208,5 +215,6 @@ sealed class HIRExpression: HIRNode {
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
         is IntegerConvert -> "(${value.prettyPrint()} as ${type.prettyPrint()})"
+        is ArrayIndex -> "${array.prettyPrint()}.[${index.prettyPrint()}]"
     }
 }
