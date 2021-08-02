@@ -81,7 +81,13 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.UnsafeCast -> visitUnsafeCast(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
             is HIRExpression.When -> visitWhen(expression)
+            is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
         }
+    }
+
+    fun visitArrayIndex(expression: HIRExpression.ArrayIndex) {
+        visitExpression(expression.array)
+        visitExpression(expression.index)
     }
 
     fun visitBinOp(expression: HIRExpression.BinOp) {

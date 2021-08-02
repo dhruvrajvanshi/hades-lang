@@ -74,6 +74,18 @@ interface SyntaxVisitor {
         is Expression.Var -> visitVarExpr(expression)
         is Expression.When -> visitWhenExpr(expression)
         is Expression.As -> visitAsExpression(expression)
+        is Expression.ArrayIndex -> visitArrayIndexExpression(expression)
+        is Expression.ArrayLiteral -> visitArrayLiteralExpression(expression)
+    }
+
+    fun visitArrayLiteralExpression(expression: Expression.ArrayLiteral) {
+        visitType(expression.ofType)
+        expression.items.forEach { visitExpression(it) }
+    }
+
+    fun visitArrayIndexExpression(expression: Expression.ArrayIndex) {
+        visitExpression(expression.lhs)
+        visitExpression(expression.index)
     }
 
     fun visitAsExpression(expression: Expression.As) {
