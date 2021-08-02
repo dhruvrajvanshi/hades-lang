@@ -285,6 +285,7 @@ class IRGen(
         is HIRExpression.InvokeClosure -> requireUnreachable()
         is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
         is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
+        is HIRExpression.BlockExpression -> requireUnreachable()
     })
 
     private fun lowerArrayIndex(expression: HIRExpression.ArrayIndex): IRValue {

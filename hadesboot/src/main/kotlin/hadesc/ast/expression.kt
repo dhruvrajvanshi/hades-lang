@@ -148,6 +148,11 @@ sealed class Expression : HasLocation {
         val lhs: Expression,
         val index: Expression
     ) : Expression()
+
+    data class BlockExpression(val block: Block) : Expression() {
+        override val location: SourceLocation
+            get() = block.location
+    }
 }
 
 sealed class ClosureBody : HasLocation {

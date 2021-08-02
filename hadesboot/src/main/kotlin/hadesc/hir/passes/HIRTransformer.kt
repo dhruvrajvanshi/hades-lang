@@ -8,6 +8,10 @@ import hadesc.ir.passes.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
+open class AbstractHIRTransformer: HIRTransformer {
+    override var statements: MutableList<HIRStatement>? = null
+}
+
 interface HIRTransformer: TypeTransformer {
     fun transformModule(oldModule: HIRModule): HIRModule {
         val definitions = mutableListOf<HIRDefinition>()
@@ -90,10 +94,18 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
+    var statements: MutableList<HIRStatement>?
     fun transformBlock(body: HIRBlock): HIRBlock {
+        val oldStatements = statements
+        val currentStatements = mutableListOf<HIRStatement>()
+        statements = currentStatements
+        body.statements.forEach {
+            currentStatements.addAll(transformStatement(it))
+        }
+        statements = oldStatements
         return HIRBlock(
-                location = body.location,
-                statements = body.statements.flatMap { transformStatement(it) }
+            location = body.location,
+            statements = currentStatements
         )
     }
 
@@ -200,6 +212,11 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
         is HIRExpression.ArrayIndex -> transformArrayIndex(expression)
+        is HIRExpression.BlockExpression -> transformBlockExpression(expression)
+    }
+
+    fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
+        return HIRExpression.BlockExpression(lowerType(expression.type), transformBlock(expression.block))
     }
 
     fun transformArrayIndex(expression: HIRExpression.ArrayIndex): HIRExpression {
