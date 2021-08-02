@@ -886,7 +886,7 @@ class Analyzer(
 
     private fun inferSizeOfExpression(expression: Expression.SizeOf): Type {
         annotationToType(expression.type)
-        return Type.Size
+        return Type.Size(isSigned = false)
     }
 
     private fun inferBinaryOperation(expression: Expression.BinaryOperation): Type {
@@ -901,7 +901,11 @@ class Analyzer(
             ) {
                 checkExpression(expression.rhs, if (lhsType is Type.Ptr) lhsType.copy(isMutable = false) else lhsType)
                 Type.Bool
+            } else if (lhsType.isIntegral() && (expression.operator == BinaryOperator.MINUS || expression.operator == BinaryOperator.PLUS)) {
+                checkExpression(expression.rhs, lhsType)
+                lhsType
             } else {
+
                 inferExpression(expression.rhs)
                 Type.Error(expression.location)
             }
@@ -1835,23 +1839,12 @@ typealias op = BinaryOperator
 
 val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
 
-        (op.PLUS to Type.Size) to (Type.Size to Type.Size),
-        (op.MINUS to Type.Size) to (Type.Size to Type.Size),
-        (op.TIMES to Type.Size) to (Type.Size to Type.Size),
-
-        (op.GREATER_THAN_EQUAL to Type.Size) to (Type.Size to Type.Bool),
-        (op.LESS_THAN_EQUAL to Type.Size) to (Type.Size to Type.Bool),
-        (op.GREATER_THAN to Type.Size) to (Type.Size to Type.Bool),
-        (op.LESS_THAN to Type.Size) to (Type.Size to Type.Bool),
-
         (op.AND to Type.Bool) to (Type.Bool to Type.Bool),
         (op.OR to Type.Bool) to (Type.Bool to Type.Bool),
 
 
         (op.EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
         (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
-        (op.EQUALS to Type.Size) to (Type.Size to Type.Bool),
-        (op.NOT_EQUALS to Type.Size) to (Type.Size to Type.Bool),
 )
 
 data class Discriminant(

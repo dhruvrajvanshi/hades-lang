@@ -1,5 +1,5 @@
 import libc as c;
-def main(): Size {
+def main(): u32 {
    val mut count = 0;
    while true {
        if count > 2 {

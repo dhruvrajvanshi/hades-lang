@@ -123,8 +123,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             sizeInBits
         )
         is Type.FloatingPoint -> diBuilder.createBasicType("f$sizeInBits", sizeInBits)
-        Type.Double -> diBuilder.createBasicType("Double", sizeInBits)
-        Type.Size -> diBuilder.createBasicType("Size", sizeInBits)
+        is Type.Size -> if (isSigned) diBuilder.createBasicType("isize", sizeInBits) else diBuilder.createBasicType("usize", sizeInBits)
         is Type.Ptr -> LLVM.LLVMDIBuilderCreatePointerType(
             diBuilder,
             to.debugInfo,
@@ -605,7 +604,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         }
         Type.Void -> voidTy
         is Type.Bool -> boolTy
-        Type.Double -> doubleTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Function -> {
             functionType(
@@ -632,7 +630,7 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
             TODO("Can't lower unspecialized type param")
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> requireUnreachable()
-        Type.Size -> sizeTy
+        is Type.Size -> sizeTy
         is Type.UntaggedUnion -> {
             val maxSizedType = type.members
                     .map { lowerType(it) }
@@ -658,7 +656,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
     private val voidTy = voidType(llvmCtx)
     private val boolTy = intType(1, llvmCtx)
     private val i32Ty = intType(32, llvmCtx)
-    private val doubleTy = LLVM.LLVMDoubleTypeInContext(llvmCtx)
     private val trueValue = constantInt(boolTy, 1, false)
     private val falseValue = constantInt(boolTy, 0, false)
     private val sizeTy = intType(64, llvmCtx) // FIXME: This isn't portable

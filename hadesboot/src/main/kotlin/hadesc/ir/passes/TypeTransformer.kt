@@ -10,8 +10,7 @@ interface TypeTransformer {
         is Type.Error -> type
         Type.Void -> lowerVoidType(type)
         Type.Bool -> lowerBoolType(type)
-        Type.Size -> lowerSizeType(type)
-        Type.Double -> lowerDoubleType(type)
+        is Type.Size -> lowerSizeType(type)
         is Type.Ptr -> lowerRawPtrType(type)
         is Type.Function -> lowerFunctionType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
@@ -104,7 +103,6 @@ interface TypeVisitor {
         is Type.Void -> visitVoidType(type)
         is Type.Bool -> visitBoolType(type)
         is Type.Size -> visitSizeType(type)
-        is Type.Double -> visitDoubleType(type)
         is Type.Ptr -> visitRawPtrType(type)
         is Type.Function -> visitFunctionType(type)
         is Type.Constructor -> visitTypeConstructor(type)
@@ -137,8 +135,6 @@ interface TypeVisitor {
     fun visitTypeFunction(type: Type.TypeFunction) {
         visitType(type.body)
     }
-
-    fun visitDoubleType(type: Type.Double) = Unit
 
     fun visitUntaggedUnionType(type: Type.UntaggedUnion) {
         type.members.forEach { visitType(it) }
