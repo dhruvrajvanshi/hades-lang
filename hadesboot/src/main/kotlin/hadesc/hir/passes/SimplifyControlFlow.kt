@@ -4,7 +4,6 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
-import hadesc.logging.logger
 
 class SimplifyControlFlow(private val ctx: Context) {
     private val outputModule = HIRModule(mutableListOf())

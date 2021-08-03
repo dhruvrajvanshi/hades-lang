@@ -386,7 +386,7 @@ class IRGen(
 
     private fun lowerBinOpExpression(expression: HIRExpression.BinOp): IRValue {
         return if (isShortCircuitingOperator(expression.operator)) {
-            lowerShortCircuitingOperator(expression)
+            requireUnreachable()
         } else {
             val ty = expression.type
             val lhs = lowerExpression(expression.lhs)
@@ -398,82 +398,6 @@ class IRGen(
     }
     private fun isShortCircuitingOperator(operator: BinaryOperator): Boolean {
         return operator == BinaryOperator.AND || operator == BinaryOperator.OR
-    }
-
-    /**
-     * %condition = alloca Bool
-     * store %condition lhs
-     * %lhs = load %condition
-
-     * .done:
-     * load %condition
-     */
-    private fun lowerShortCircuitingOperator(expression: HIRExpression.BinOp): IRValue {
-        val conditionName = makeLocalName()
-        val conditionPtr = IRVariable(Type.Ptr(Type.Bool, isMutable = true), expression.lhs.location, conditionName)
-        val lhsName = makeLocalName()
-        val lhs = IRVariable(Type.Bool, expression.location, lhsName)
-        val done = forkControlFlow(expression.location)
-        // %condition = alloca Bool
-        // store %condition lhs
-        // %lhs = load %condition
-        alloca(Type.Bool, conditionName)
-        builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.lhs))
-        builder.buildLoad(name = lhsName, ptr = conditionPtr, type = Type.Bool)
-
-        val (branch1, branch2) = when (expression.operator) {
-            BinaryOperator.AND -> {
-                // br %lhs if_true:.and_rhs if_false:.and_short_circuit
-                // .and_rhs:
-                //   store %condition rhs
-                //   jmp .done
-                // .and_short_circuit:
-                //   jmp .done
-                val andRHS = buildBlock(expression.rhs.location)
-                val andShortCircuit = buildBlock(expression.lhs.location)
-                builder.buildBranch(expression.location, lhs, ifTrue = andRHS.name, ifFalse = andShortCircuit.name)
-                builder.withinBlock(andRHS) {
-                    builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
-                }
-                andRHS to andShortCircuit
-
-            }
-            BinaryOperator.OR -> {
-                // br %lhs if_true:.or_short_circuit if_false:.or_rhs
-                // .or_short_circuit:
-                //   jmp .done
-                // .or_rhs:
-                //   store %condition rhs
-                //   jmp .done
-                val orShortCircuit = buildBlock(expression.location)
-                val orRHS = buildBlock(expression.rhs.location)
-
-                builder.buildBranch(expression.location, lhs, ifTrue = orShortCircuit.name, ifFalse = orRHS.name)
-
-                builder.withinBlock(orRHS) {
-                    builder.buildStore(ptr = conditionPtr, value = lowerExpression(expression.rhs))
-                }
-                orRHS to orShortCircuit
-            }
-            else -> {
-                requireUnreachable()
-            }
-        }
-
-        val resultName = makeLocalName()
-        builder.withinBlock(done) {
-            builder.buildLoad(resultName, Type.Bool, ptr = conditionPtr)
-        }
-        terminateBlock(branch1) {
-            builder.buildJump(expression.lhs.location, done.name)
-        }
-        terminateBlock(branch2) {
-            builder.buildJump(expression.rhs.location, done.name)
-        }
-        builder.positionAtEnd(done)
-
-        return IRVariable(Type.Bool, expression.location, resultName)
-
     }
 
     private fun alloca(type: Type, name: IRLocalName) {
