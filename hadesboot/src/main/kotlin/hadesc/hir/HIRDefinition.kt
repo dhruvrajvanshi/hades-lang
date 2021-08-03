@@ -11,9 +11,10 @@ import hadesc.types.Type
 
 sealed class HIRDefinition: HasLocation {
     data class Function(
-            override val location: SourceLocation,
-            val signature: HIRFunctionSignature,
-            val body: HIRBlock
+        override val location: SourceLocation,
+        val signature: HIRFunctionSignature,
+        val body: HIRBlock,
+        val basicBlocks: MutableList<HIRBlock> = mutableListOf(),
     ): HIRDefinition() {
         val params get() = signature.params
         val returnType get() = signature.returnType
@@ -117,7 +118,13 @@ sealed class HIRDefinition: HasLocation {
 
     fun prettyPrint(): String = when(this) {
         is Function -> {
-            "${signature.prettyPrint()} ${body.prettyPrint()}"
+            "${signature.prettyPrint()} entry:${body.prettyPrint()}" +
+                    "{\n" +
+                    basicBlocks.joinToString("\n") {
+                        it.name?.text + ":\n  " +
+                                it.statements.joinToString("\n  ") { it.prettyPrint() }
+                    } +
+                    "\n}"
         }
         is ExternFunction -> {
             "extern def ${name.mangle()}(${params.joinToString(", ") {it.prettyPrint()}})" +
