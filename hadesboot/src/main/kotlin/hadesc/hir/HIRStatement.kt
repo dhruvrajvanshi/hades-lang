@@ -4,50 +4,50 @@ import hadesc.Name
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed class HIRStatement: HIRNode {
+sealed interface HIRStatement: HIRNode{
     data class Expression(
             val expression: HIRExpression
-    ) : HIRStatement() {
+    ) : HIRStatement {
         override val location: SourceLocation get() = expression.location
     }
 
     data class Return(
             override val location: SourceLocation,
             val expression: HIRExpression
-    ): HIRStatement()
+    ): HIRStatement
 
-    data class ReturnVoid(override val location: SourceLocation) : HIRStatement()
+    data class ReturnVoid(override val location: SourceLocation) : HIRStatement
     data class ValDeclaration(
             override val location: SourceLocation,
             val name: Name,
             val isMutable: Boolean,
             val type: Type
-    ) : HIRStatement()
+    ) : HIRStatement
 
     data class Assignment(
             override val location: SourceLocation,
             val name: Name,
             val value: HIRExpression
-    ) : HIRStatement()
+    ) : HIRStatement
 
     data class Store(
             override val location: SourceLocation,
             val ptr: HIRExpression,
             val value: HIRExpression
-    ) : HIRStatement()
+    ) : HIRStatement
 
     data class If(
             override val location: SourceLocation,
             val condition: HIRExpression,
             val trueBranch: HIRBlock,
             val falseBranch: HIRBlock
-    ) : HIRStatement()
+    ) : HIRStatement
 
     data class While(
             override val location: SourceLocation,
             val condition: HIRExpression,
             val body: HIRBlock
-    ) : HIRStatement()
+    ) : HIRStatement
 
     override fun prettyPrint(): String {
         return "${prettyPrintInternal()} // $location"
