@@ -14,7 +14,7 @@ import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
-class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
+class IRToLLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
     private val log = logger()
     private val llvmCtx = LLVM.LLVMContextCreate()
