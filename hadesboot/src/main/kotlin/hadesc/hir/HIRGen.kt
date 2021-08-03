@@ -31,6 +31,7 @@ class HIRGen(
                 declarations.addAll(lowerDeclaration(it))
             }
         }
+        declarations.addAll(externDefs.values)
         val result = HIRModule(declarations)
         logger().debug("HIRGen output")
         logger().debug(result.prettyPrint())
@@ -42,7 +43,7 @@ class HIRGen(
         is Declaration.ImportAs -> emptyList()
         is Declaration.FunctionDef -> listOf(lowerFunctionDef(declaration))
         is Declaration.ConstDefinition -> lowerConstDef(declaration)
-        is Declaration.ExternFunctionDef -> lowerExternFunctionDef(declaration)
+        is Declaration.ExternFunctionDef -> emptyList()
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
@@ -255,7 +256,7 @@ class HIRGen(
                 addressOfCaseInstance
             )
         )
-        val statements = listOf(
+        val statements = mutableListOf(
             HIRStatement.ValDeclaration(
                 loc,
                 caseValName,
@@ -319,19 +320,6 @@ class HIRGen(
                 functionType
             )
         } else functionType
-    }
-
-
-    private fun lowerExternFunctionDef(declaration: Declaration.ExternFunctionDef): List<HIRDefinition> {
-        return listOf(
-                HIRDefinition.ExternFunction(
-                        declaration.location,
-                        lowerGlobalName(declaration.binder),
-                        params = declaration.paramTypes.map { lowerTypeAnnotation(it) },
-                        externName = declaration.externName.name,
-                        returnType = lowerTypeAnnotation(declaration.returnType)
-                )
-        )
     }
 
     private var currentFunctionDef: Declaration.FunctionDef? = null
@@ -545,7 +533,7 @@ class HIRGen(
                         trueBranch = lowerBlock(statement.ifTrue),
                         falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: HIRBlock(
                                 location = statement.location,
-                                statements = emptyList()
+                                statements = mutableListOf()
                         )
                 )
         )
@@ -1095,11 +1083,14 @@ class HIRGen(
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.name)
         )
-        is Binding.ExternFunction -> HIRExpression.GlobalRef(
+        is Binding.ExternFunction -> {
+            declareExternDef(binding.declaration)
+            HIRExpression.GlobalRef(
                 expression.location,
                 typeOfExpression(expression),
                 lowerGlobalName(binding.declaration.binder)
-        )
+            )
+        }
         is Binding.FunctionParam -> HIRExpression.ParamRef(
                 expression.location,
                 typeOfExpression(expression),
@@ -1133,6 +1124,17 @@ class HIRGen(
             expression.location,
             typeOfExpression(expression),
             lowerGlobalName(binding.declaration.name)
+        )
+    }
+
+    private val externDefs = mutableMapOf<QualifiedName, HIRDefinition.ExternFunction>()
+    private fun declareExternDef(declaration: Declaration.ExternFunctionDef) = externDefs.computeIfAbsent(lowerGlobalName(declaration.binder)) {
+        HIRDefinition.ExternFunction(
+            declaration.location,
+            name = lowerGlobalName(declaration.binder),
+            params = declaration.paramTypes.map { lowerTypeAnnotation(it) },
+            externName = declaration.externName.name,
+            returnType = lowerTypeAnnotation(declaration.returnType)
         )
     }
 
