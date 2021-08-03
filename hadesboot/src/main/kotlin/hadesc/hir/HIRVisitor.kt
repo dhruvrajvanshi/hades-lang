@@ -82,7 +82,12 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.ValRef -> visitValRef(expression)
             is HIRExpression.When -> visitWhen(expression)
             is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
+            is HIRExpression.BlockExpression -> visitBlockExpression(expression)
         }
+    }
+
+    fun visitBlockExpression(expression: HIRExpression.BlockExpression) {
+        visitBlock(expression.block)
     }
 
     fun visitArrayIndex(expression: HIRExpression.ArrayIndex) {

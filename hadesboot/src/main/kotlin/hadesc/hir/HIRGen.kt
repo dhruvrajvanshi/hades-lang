@@ -600,6 +600,7 @@ class HIRGen(
             is Expression.As -> lowerAsExpression(expression)
             is Expression.ArrayIndex -> lowerArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> lowerArrayLiteral(expression)
+            is Expression.BlockExpression -> lowerBlockExpression(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -633,6 +634,11 @@ class HIRGen(
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerBlockExpression(expression: Expression.BlockExpression): HIRExpression {
+        val block = lowerBlock(expression.block)
+        return HIRExpression.BlockExpression(expression.type, block)
     }
 
     private fun lowerArrayIndexExpression(expression: Expression.ArrayIndex): HIRExpression {

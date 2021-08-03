@@ -100,6 +100,8 @@ data class Diagnostic(
         object ReturnTypeMustNotContainClosuresOrRefs : Diagnostic.Kind(Severity.ERROR)
         object UseAfterMove : Diagnostic.Kind(Severity.ERROR)
         object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
+        object BlockExpressionMustEndWithExpression : Diagnostic.Kind(Severity.ERROR)
+
         data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
         data class NotAnArrayType(val type: Type): Diagnostic.Kind(Severity.ERROR)
 
@@ -180,6 +182,7 @@ data class Diagnostic(
             is NoSuchAssociatedType -> "No such associated type ${name.text}"
             is MissingAssociatedType -> "Missing associated type: ${name.text}"
             is NotAnArrayType -> "${type.prettyPrint()} is not an array type"
+            BlockExpressionMustEndWithExpression -> "Block expressions must end with an expression, not a statement"
         }
 
     }

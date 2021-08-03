@@ -838,6 +838,7 @@ class Parser(
             tt.VBAR -> parseClosureExpression()
             tt.WHEN -> parseWhenExpression()
             tt.LSQB -> parseArrayLiteralExpression()
+            tt.LBRACE -> parseBlockExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -845,6 +846,11 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseBlockExpression(): Expression {
+        val block = parseBlock()
+        return Expression.BlockExpression(block)
     }
 
     private fun parseArrayLiteralExpression(): Expression {
@@ -870,12 +876,17 @@ class Parser(
         expect(tt.LBRACE)
         val arms = makeList {
             var first = true
+            var isPreviousArmBlock = false
             while (!at(tt.RBRACE) && !at(tt.EOF)) {
-                if (!first) {
+                if (!first && !isPreviousArmBlock) {
                     expect(tt.COMMA)
                 }
                 first = false
-                add(parseWhenArm())
+                val arm = parseWhenArm()
+                if (arm.value is Expression.BlockExpression) {
+                    isPreviousArmBlock = true
+                }
+                add(arm)
             }
         }
         val stop = expect(tt.RBRACE)

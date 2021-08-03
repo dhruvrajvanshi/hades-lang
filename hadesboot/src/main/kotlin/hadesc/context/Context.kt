@@ -11,10 +11,7 @@ import hadesc.codegen.IRToLLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.HIRGen
-import hadesc.hir.passes.DesugarClosures
-import hadesc.hir.passes.DesugarWhenExpressions
-import hadesc.hir.passes.SystemVABILowering
-import hadesc.hir.passes.Monomorphization
+import hadesc.hir.passes.*
 import hadesc.irgen.IRGen
 import hadesc.location.SourcePath
 import hadesc.logging.logger
@@ -50,6 +47,11 @@ class Context(
             return
         }
         hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
+        logger().debug("DesugarWhenExpressions:\n${hirModule.prettyPrint()}")
+
+        hirModule = DesugarBlockExpressions(this).transformModule(hirModule)
+        logger().debug("DesugarBlockExpressions:\n${hirModule.prettyPrint()}")
+
         hirModule = DesugarClosures(this).transformModule(hirModule)
 //        val hirChecker = HIRChecker().checkModule(hirModule)
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
