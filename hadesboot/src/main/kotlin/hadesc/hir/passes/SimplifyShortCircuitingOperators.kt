@@ -41,14 +41,14 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                     If(
                         expression.location,
                         condition = transformExpression(expression.lhs),
-                        trueBranch = HIRBlock(expression.lhs.location, mutableListOf(
+                        trueBranch = HIRBlock(expression.lhs.location, ctx.makeUniqueName(), mutableListOf(
                             Assignment(
                                 expression.lhs.location,
                                 name,
                                 transformExpression(expression.rhs)
                             )
                         )),
-                        falseBranch = HIRBlock(expression.rhs.location, mutableListOf(
+                        falseBranch = HIRBlock(expression.rhs.location, ctx.makeUniqueName(), mutableListOf(
                             Assignment(
                                 expression.rhs.location,
                                 name,
@@ -92,7 +92,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                         expression.location,
                         condition = transformExpression(expression.lhs),
                         trueBranch = HIRBlock(
-                            expression.lhs.location, mutableListOf(
+                            expression.lhs.location, ctx.makeUniqueName(), mutableListOf(
                                 Assignment(
                                     expression.lhs.location,
                                     name,
@@ -101,7 +101,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                             )
                         ),
                         falseBranch = HIRBlock(
-                            expression.rhs.location, mutableListOf(
+                            expression.rhs.location, ctx.makeUniqueName(), mutableListOf(
                                 Assignment(
                                     expression.rhs.location,
                                     name,

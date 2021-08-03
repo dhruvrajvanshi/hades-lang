@@ -298,7 +298,10 @@ class HIRGen(
                 } ?: emptyList(),
                 returnType = instanceType
             ),
-            HIRBlock(case.name.location, statements)
+            mutableListOf(HIRBlock(
+                case.name.location,
+                name = ctx.makeName("entry"),
+                statements = statements))
         )
     }
 
@@ -337,12 +340,12 @@ class HIRGen(
             declaration.body,
             addReturnVoid,
             header,
-        )
+        ).copy(name = ctx.makeName("entry"))
         currentFunctionDef = null
         return HIRDefinition.Function(
                 location = declaration.location,
                 signature = signature,
-                body = body
+                mutableListOf(body)
         )
     }
 
@@ -420,13 +423,13 @@ class HIRGen(
         deferStack.pop()
     }
 
-    private fun buildBlock(location: SourceLocation, f: () -> Unit): HIRBlock {
+    private fun buildBlock(location: SourceLocation, name: Name = ctx.makeUniqueName(), f: () -> Unit): HIRBlock {
         val oldStatements = currentStatements
         val statements = mutableListOf<HIRStatement>()
         currentStatements = statements
         f()
         currentStatements = oldStatements
-        return HIRBlock(location, statements)
+        return HIRBlock(location, name, statements)
     }
 
     private fun addStatement(statement: HIRStatement) {
@@ -533,7 +536,8 @@ class HIRGen(
                         trueBranch = lowerBlock(statement.ifTrue),
                         falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: HIRBlock(
                                 location = statement.location,
-                                statements = mutableListOf()
+                                statements = mutableListOf(),
+                                name = ctx.makeUniqueName()
                         )
                 )
         )

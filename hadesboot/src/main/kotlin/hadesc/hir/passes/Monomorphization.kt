@@ -65,7 +65,7 @@ class Monomorphization(
             HIRDefinition.Function(
                 location = definition.location,
                 signature = signature,
-                body = transformBlock(definition.body)
+                basicBlocks = definition.basicBlocks.map { transformBlock(it) }.toMutableList()
             )
         )
 
@@ -89,7 +89,7 @@ class Monomorphization(
                             request.name,
                             request.typeArgs,
                             definition.signature),
-                        body = transformBlock(definition.body)
+                        basicBlocks = definition.basicBlocks.map { transformBlock(it) }.toMutableList()
                     )
                 )
 
