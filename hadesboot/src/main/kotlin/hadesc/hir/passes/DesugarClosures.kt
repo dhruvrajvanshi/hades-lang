@@ -91,7 +91,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
         val statements = currentBlockStatements
 
         currentBlockStatements = oldStatements
-        return HIRBlock(body.location, statements)
+        return HIRBlock(body.location, body.name, statements)
     }
 
     override fun transformInvokeClosure(expression: InvokeClosure): HIRExpression {
@@ -371,11 +371,11 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
                 )
         currentBlockStatements = oldBlockStatements
         captureStack.pop()
-        val body = HIRBlock(expression.body.location, statements)
+        val body = HIRBlock(expression.body.location, ctx.makeName("entry"), statements)
         val fn = HIRDefinition.Function(
             expression.location,
             signature,
-            body
+            mutableListOf(body)
         )
 
         definitions.add(fn)

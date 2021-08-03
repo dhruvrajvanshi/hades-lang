@@ -32,15 +32,15 @@ class SimplifyControlFlow(private val ctx: Context) {
         val fn = HIRDefinition.Function(
             definition.location,
             signature = definition.signature,
-            body = HIRBlock(definition.location),
             basicBlocks = mutableListOf()
         )
-
         currentFunction = fn
-        val entryBlock = HIRBlock(definition.body.location, mutableListOf(), ctx.makeName("entry"))
-        fn.basicBlocks.add(entryBlock)
-        withinBlock(entryBlock) {
-            lowerBlock(definition.body)
+
+        for (block in definition.basicBlocks) {
+            val newBlock = appendBasicBlock(HIRBlock(block.location, name = block.name))
+            withinBlock(newBlock) {
+                lowerBlock(block)
+            }
         }
         outputModule.addDefinition(fn)
         currentFunction = oldFn
@@ -68,8 +68,8 @@ class SimplifyControlFlow(private val ctx: Context) {
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {
         val startingBlock = checkNotNull(currentBlock)
-        val whileBody = appendBasicBlock(HIRBlock(statement.location))
-        val whileExit = appendBasicBlock(HIRBlock(statement.location))
+        val whileBody = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName()))
+        val whileExit = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName()))
 
         withinBlock(startingBlock)  {
             appendStatement(
@@ -98,16 +98,16 @@ class SimplifyControlFlow(private val ctx: Context) {
 
     private fun lowerIfStatement(statement: HIRStatement.If) {
         val startingBlock = checkNotNull(currentBlock)
-        val ifTrue = appendBasicBlock(HIRBlock(statement.trueBranch.location))
+        val ifTrue = appendBasicBlock(HIRBlock(statement.trueBranch.location, ctx.makeUniqueName()))
         withinBlock(ifTrue) {
             lowerBlock(statement.trueBranch)
         }
-        val ifFalse = appendBasicBlock(HIRBlock(statement.falseBranch.location))
+        val ifFalse = appendBasicBlock(HIRBlock(statement.falseBranch.location, ctx.makeUniqueName()))
         withinBlock(ifFalse) {
             lowerBlock(statement.falseBranch)
         }
 
-        val end = appendBasicBlock(HIRBlock(statement.location))
+        val end = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName()))
 
         val trueBranchName = checkNotNull(ifTrue.name)
         val falseBranchName = checkNotNull(ifFalse.name)
@@ -183,9 +183,8 @@ class SimplifyControlFlow(private val ctx: Context) {
     }
 
     private fun appendBasicBlock(block: HIRBlock): HIRBlock {
-        val result = if (block.name == null) block.copy(name = ctx.makeUniqueName()) else block
-        checkNotNull(currentFunction).basicBlocks.add(result)
-        return result
+        checkNotNull(currentFunction).basicBlocks.add(block)
+        return block
     }
 
     private fun appendStatement(statement: HIRStatement, intoBlock: HIRBlock = checkNotNull(currentBlock)) {
