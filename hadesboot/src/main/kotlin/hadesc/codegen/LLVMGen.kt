@@ -9,14 +9,10 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import llvm.*
-import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMMetadataRef
-import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
-import java.nio.file.Path
-import kotlin.io.path.deleteExisting
 
 class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCloseable {
     private var currentFunction: LLVMValueRef? = null
@@ -36,9 +32,8 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
         LLVM.LLVMDIBuilderFinalize(diBuilder)
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule).string)
         verifyModule()
-        writeModuleToFile()
-        linkWithRuntime()
-        Path.of(objectFilePath).deleteExisting()
+        val llvmToObject = LLVMToObject(ctx.options, llvmModule)
+        llvmToObject.execute()
     }
 
     private fun lower() = profile("LLVM::lower") {
@@ -697,123 +692,6 @@ class LLVMGen(private val ctx: Context, private val irModule: IRModule) : AutoCl
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
         return pointerType(to)
-    }
-
-    private val cc = when {
-        SystemUtils.IS_OS_WINDOWS -> System.getenv()["CC"] ?: "cl"
-        SystemUtils.IS_OS_MAC_OSX -> System.getenv()["CC"] ?: "clang"
-        else -> System.getenv()["CC"] ?: "gcc"
-    }
-
-    private val shouldUseMicrosoftCL = cc == "cl" || cc == "cl.exe"
-
-    private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
-
-        log.info("Linking using $cc")
-        val commandParts = mutableListOf(cc)
-        if (ctx.options.debugSymbols) {
-            if (!shouldUseMicrosoftCL) {
-                commandParts.add("-g")
-            } else {
-                commandParts.add("/DEBUG")
-            }
-        } else {
-            if (!SystemUtils.IS_OS_WINDOWS) {
-                // -flto doesn't work on windows GCC, that's why this condition isn't `shouldUseMicrosoftCL`
-                commandParts.add("-flto")
-            }
-            if (!shouldUseMicrosoftCL) {
-                commandParts.add("-O2")
-            } else {
-                commandParts.add("/O2")
-                commandParts.add("/GL")
-                commandParts.add("/GF")
-                commandParts.add("/Gw")
-
-            }
-        }
-
-        if (SystemUtils.IS_OS_WINDOWS && !shouldUseMicrosoftCL) {
-            commandParts.add("-D")
-            commandParts.add("__HDC_CHKSTK_UNAVAILABLE")
-        }
-
-        commandParts.add("-o")
-        commandParts.add(ctx.options.output.toString())
-
-        commandParts.addAll(ctx.options.cSources.map { it.toString() })
-        commandParts.add(ctx.options.runtime.toString())
-        commandParts.add(objectFilePath)
-        commandParts.addAll(ctx.options.cFlags)
-        commandParts.addAll(ctx.options.libs.map {"-l$it" })
-
-        val outputFile = ctx.options.output.toFile()
-        if (outputFile.exists()) {
-            outputFile.delete()
-        }
-        log.info(commandParts.joinToString(" "))
-        val builder = ProcessBuilder(commandParts)
-
-        val process = builder
-            .inheritIO()
-            .start()
-        val exitCode = process.waitFor()
-        check(exitCode == 0) {
-            "${commandParts.joinToString(" ")} exited with code $exitCode"
-        }
-    }
-
-    private val objectFilePath get() = ctx.options.output.toString() + if (shouldUseMicrosoftCL) ".obj" else ".o"
-
-    private fun writeModuleToFile() {
-        log.debug("Writing object file")
-        LLVM.LLVMInitializeAllTargetInfos()
-        LLVM.LLVMInitializeAllTargets()
-        LLVM.LLVMInitializeAllTargetMCs()
-        LLVM.LLVMInitializeAllAsmParsers()
-        LLVM.LLVMInitializeAllAsmPrinters()
-        val targetTriple = LLVM.LLVMGetDefaultTargetTriple()
-        val cpu = BytePointer("generic")
-        val features = BytePointer("")
-        val target = LLVM.LLVMGetFirstTarget()
-        val targetMachine: LLVMTargetMachineRef = LLVM.LLVMCreateTargetMachine(
-            target,
-            targetTriple,
-            cpu,
-            features,
-            LLVM.LLVMCodeGenLevelLess,
-            LLVM.LLVMRelocPIC,
-            LLVM.LLVMCodeModelDefault
-        )
-
-        if (!ctx.options.debugSymbols) {
-
-            val pass = LLVM.LLVMCreatePassManager()
-            LLVM.LLVMAddConstantPropagationPass(pass)
-            LLVM.LLVMAddFunctionInliningPass(pass)
-            LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
-            LLVM.LLVMAddAggressiveDCEPass(pass)
-            LLVM.LLVMAddFunctionInliningPass(pass)
-            LLVM.LLVMAddGlobalDCEPass(pass)
-            LLVM.LLVMAddGlobalOptimizerPass(pass)
-            LLVM.LLVMRunPassManager(pass, llvmModule.ref)
-            LLVM.LLVMDisposePassManager(pass)
-        }
-
-        if (ctx.options.dumpLLVMModule) {
-            LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
-        }
-
-
-        LLVM.LLVMTargetMachineEmitToFile(
-            targetMachine,
-            llvmModule.ref,
-            BytePointer(objectFilePath),
-            LLVM.LLVMObjectFile,
-            BytePointer("Message")
-        )
-
-        LLVM.LLVMDisposeTargetMachine(targetMachine)
     }
 
     override fun close() {
