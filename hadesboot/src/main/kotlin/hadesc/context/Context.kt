@@ -53,8 +53,10 @@ class Context(
         logger().debug("DesugarBlockExpressions:\n${hirModule.prettyPrint()}")
 
         hirModule = DesugarClosures(this).transformModule(hirModule)
-//        val hirChecker = HIRChecker().checkModule(hirModule)
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
+
+        hirModule = SimplifyShortCircuitingOperators(this).transformModule(hirModule)
+        logger().debug("SimplifyShortCircuitingOperators:\n${hirModule.prettyPrint()}")
 
         hirModule = Monomorphization(this).transformModule(hirModule)
 
