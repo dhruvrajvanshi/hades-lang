@@ -156,7 +156,6 @@ class IRToLLVMGen(private val ctx: Context, private val irModule: IRModule) : Au
                 localVariables[param.name] = fn.getParameter(index)
             }
             attachDebugInfo(definition, fn)
-            lowerBlock(definition.entryBlock)
             for (block in definition.blocks) {
                 lowerBlock(block)
             }

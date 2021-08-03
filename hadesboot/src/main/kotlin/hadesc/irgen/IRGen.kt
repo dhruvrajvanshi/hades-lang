@@ -81,7 +81,6 @@ class IRGen(
     private fun lowerFunctionDef(definition: HIRDefinition.Function) {
 
         val functionName = lowerGlobalName(definition.name)
-        val entryBlock = IRBlock(definition.body.location)
         require(definition.typeParams == null)
 
         val fn = module.addGlobalFunctionDef(
@@ -90,19 +89,24 @@ class IRGen(
                 typeParams = null,
                 constraints = emptyList(),
                 params = definition.params.mapIndexed { index, it -> lowerParam(functionName, index, it) },
-                entryBlock = entryBlock,
+                entryBlock = IRBlock(definition.body.location),
                 type = definition.type as Type.Function
         )
 
         currentFunction = fn
-        lowerBlock(definition.body, entryBlock)
+        check(definition.basicBlocks.size > 0)
+        check(definition.body.statements.isEmpty())
+        for (block in definition.basicBlocks) {
+            lowerBlock(block, IRBlock(block.location, IRLocalName(checkNotNull(block.name))))
+        }
     }
 
     private fun lowerBlock(
             body: HIRBlock,
-            block: IRBlock= IRBlock(body.location),
+            block: IRBlock,
             cleanup: () -> Unit = {}
     ): IRBlock {
+        checkNotNull(currentFunction).blocks.add(block)
         builder.withinBlock(block) {
             for (statement in body.statements) {
                 lowerStatement(statement)
@@ -119,10 +123,30 @@ class IRGen(
         is HIRStatement.ReturnVoid -> lowerReturnVoidStatement()
         is HIRStatement.Return -> lowerReturnStatement(statement)
         is HIRStatement.ValDeclaration -> lowerValStatement(statement)
-        is HIRStatement.If -> lowerIfStatement(statement)
+        is HIRStatement.If -> requireUnreachable()
         is HIRStatement.Assignment -> lowerAssignmentStatement(statement)
-        is HIRStatement.While -> lowerWhileStatement(statement)
+        is HIRStatement.While -> requireUnreachable()
         is HIRStatement.Store -> lowerStoreStatement(statement)
+        is HIRStatement.Branch -> lowerBranchStatement(statement)
+        is HIRStatement.ConditionalBranch -> lowerConditionalBranchStatement(statement)
+    }
+
+    private fun lowerConditionalBranchStatement(statement: HIRStatement.ConditionalBranch) {
+        builder.buildBranch(
+            statement.location,
+            lowerExpression(statement.condition),
+            IRLocalName(statement.trueBranchName),
+            IRLocalName(statement.falseBranchName)
+        )
+    }
+
+    private fun lowerBranchStatement(statement: HIRStatement.Branch) {
+        builder.buildBranch(
+            statement.location,
+            builder.buildConstBool(Type.Bool, statement.location, true),
+            IRLocalName(statement.toBranchName),
+            IRLocalName(statement.toBranchName)
+        )
     }
 
     private fun lowerStoreStatement(statement: HIRStatement.Store) {
@@ -130,31 +154,6 @@ class IRGen(
                 ptr = lowerExpression(statement.ptr),
                 value = lowerExpression(statement.value)
         )
-    }
-
-    private fun lowerWhileStatement(statement: HIRStatement.While) {
-        val whileBody = buildBlock(statement.body.location)
-        val whileExit = forkControlFlow(statement.location)
-
-        builder.buildBranch(
-                statement.condition.location,
-                lowerExpression(statement.condition),
-                whileBody.name,
-                whileExit.name
-        )
-
-        lowerBlock(statement.body, whileBody) {
-            terminateBlock(whileBody) {
-                builder.buildBranch(
-                        statement.condition.location,
-                        lowerExpression(statement.condition),
-                        whileBody.name,
-                        whileExit.name
-                )
-            }
-        }
-
-        builder.positionAtEnd(whileExit)
     }
 
     private fun lowerAssignmentStatement(statement: HIRStatement.Assignment) {
@@ -167,32 +166,6 @@ class IRGen(
         builder.buildStore(ptr = ptr, value = lowerExpression(statement.value))
     }
 
-    private fun lowerIfStatement(statement: HIRStatement.If) {
-        val ifTrue = buildBlock(statement.trueBranch.location)
-        val ifFalse = buildBlock(statement.falseBranch.location)
-        val end = forkControlFlow(statement.location)
-
-        builder.buildBranch(
-                statement.condition.location,
-                lowerExpression(statement.condition),
-                ifTrue = ifTrue.name,
-                ifFalse = ifFalse.name
-        )
-
-        lowerBlock(statement.trueBranch, ifTrue) {
-            terminateBlock(ifTrue) {
-                builder.buildJump(statement.trueBranch.location, end.name)
-            }
-        }
-
-        lowerBlock(statement.falseBranch, ifFalse) {
-            terminateBlock(ifFalse) {
-                builder.buildJump(statement.location, end.name)
-            }
-        }
-
-        builder.positionAtEnd(end)
-    }
     private fun terminateBlock(entryBlock: IRBlock, f: () -> IRInstruction) {
         val isVisited = mutableSetOf<IRLocalName>()
         fun visitBlock(branch: IRBlock) {

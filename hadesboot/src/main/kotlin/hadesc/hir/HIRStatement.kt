@@ -4,7 +4,7 @@ import hadesc.Name
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed interface HIRStatement: HIRNode{
+sealed interface HIRStatement: HIRNode {
     data class Expression(
             val expression: HIRExpression
     ) : HIRStatement {
@@ -53,6 +53,20 @@ sealed interface HIRStatement: HIRNode{
         return "${prettyPrintInternal()} // $location"
     }
 
+
+    data class Branch(
+        override val location: SourceLocation,
+        val toBranchName: Name
+    ) : HIRStatement
+
+    data class ConditionalBranch(
+        override val location: SourceLocation,
+        val condition: HIRExpression,
+        val trueBranchName: Name,
+        val falseBranchName: Name
+    ) : HIRStatement
+
+
     private fun prettyPrintInternal(): String = when(this) {
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
@@ -62,5 +76,7 @@ sealed interface HIRStatement: HIRNode{
         is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint()}\nelse ${falseBranch.prettyPrint()}"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
+        is Branch -> "br ${toBranchName.text}"
+        is ConditionalBranch -> "br if ${condition.prettyPrint()} then ${trueBranchName.text} else ${falseBranchName.text}"
     }
 }

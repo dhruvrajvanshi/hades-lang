@@ -10,6 +10,33 @@ import hadesc.types.Type
 
 open class AbstractHIRTransformer: HIRTransformer {
     override var statements: MutableList<HIRStatement>? = null
+    protected var basicBlocks: MutableList<HIRBlock>? = null
+
+    protected fun appendStatement(statement: HIRStatement) {
+        checkNotNull(statements).add(statement)
+    }
+
+    override fun transformFunctionDef(
+        definition: HIRDefinition.Function,
+        newName: QualifiedName?
+    ): Collection<HIRDefinition> {
+        val oldBasicBlocks = basicBlocks
+        val newBasicBlocks = mutableListOf<HIRBlock>()
+        basicBlocks = newBasicBlocks
+
+        val result = HIRDefinition.Function(
+            location = definition.location,
+            signature = transformFunctionSignature(definition.signature, newName),
+            body = transformBlock(definition.body),
+            basicBlocks = newBasicBlocks
+        )
+        for (block in definition.basicBlocks) {
+            newBasicBlocks.add(transformBlock(block))
+        }
+        basicBlocks = oldBasicBlocks
+
+        return listOf(result)
+    }
 }
 
 interface HIRTransformer: TypeTransformer {
@@ -105,7 +132,8 @@ interface HIRTransformer: TypeTransformer {
         statements = oldStatements
         return HIRBlock(
             location = body.location,
-            statements = currentStatements
+            statements = currentStatements,
+            name = body.name
         )
     }
 
@@ -118,6 +146,23 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
         is HIRStatement.While -> transformWhileStatement(statement)
         is HIRStatement.Store -> transformStoreStatement(statement)
+        is HIRStatement.Branch -> transformBranchStatement(statement)
+        is HIRStatement.ConditionalBranch -> transformConditionalBranch(statement)
+    }
+
+    fun transformConditionalBranch(statement: HIRStatement.ConditionalBranch): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.ConditionalBranch(
+                statement.location,
+                transformExpression(statement.condition),
+                statement.trueBranchName,
+                statement.falseBranchName
+            )
+        )
+    }
+
+    fun transformBranchStatement(statement: HIRStatement.Branch): Collection<HIRStatement> {
+        return listOf(statement)
     }
 
     fun transformStoreStatement(statement: HIRStatement.Store): Collection<HIRStatement> {
