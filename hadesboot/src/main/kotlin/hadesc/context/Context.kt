@@ -7,7 +7,7 @@ import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
 import hadesc.ast.Expression
-import hadesc.codegen.LLVMGen
+import hadesc.codegen.IRToLLVMGen
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.HIRGen
@@ -60,7 +60,7 @@ class Context(
         hirModule = SystemVABILowering(this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)
 
-        LLVMGen(this, irModule).use {
+        IRToLLVMGen(this, irModule).use {
             it.generate()
         }
     }
