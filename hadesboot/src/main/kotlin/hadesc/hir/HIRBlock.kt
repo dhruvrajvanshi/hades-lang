@@ -6,8 +6,8 @@ import hadesc.location.SourceLocation
 
 data class HIRBlock(
         override val location: SourceLocation,
+        val name: Name,
         val statements: MutableList<HIRStatement> = mutableListOf(),
-        val name: Name? = null
 ): HasLocation {
     fun prettyPrint(): String = "{\n" + statements.joinToString("\n") {
         it.prettyPrint().prependIndent("  ")

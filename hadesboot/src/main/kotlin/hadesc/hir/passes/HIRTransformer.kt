@@ -27,7 +27,6 @@ open class AbstractHIRTransformer: HIRTransformer {
         val result = HIRDefinition.Function(
             location = definition.location,
             signature = transformFunctionSignature(definition.signature, newName),
-            body = transformBlock(definition.body),
             basicBlocks = newBasicBlocks
         )
         for (block in definition.basicBlocks) {
@@ -107,7 +106,7 @@ interface HIRTransformer: TypeTransformer {
         return listOf(HIRDefinition.Function(
                 location = definition.location,
                 signature = transformFunctionSignature(definition.signature, newName),
-                body = transformBlock(definition.body)
+                basicBlocks = definition.basicBlocks.map { transformBlock(it) }.toMutableList()
         ))
     }
 

@@ -89,13 +89,12 @@ class IRGen(
                 typeParams = null,
                 constraints = emptyList(),
                 params = definition.params.mapIndexed { index, it -> lowerParam(functionName, index, it) },
-                entryBlock = IRBlock(definition.body.location),
+                entryBlock = IRBlock(definition.location),
                 type = definition.type as Type.Function
         )
 
         currentFunction = fn
         check(definition.basicBlocks.size > 0)
-        check(definition.body.statements.isEmpty())
         for (block in definition.basicBlocks) {
             lowerBlock(block, IRBlock(block.location, IRLocalName(checkNotNull(block.name))))
         }

@@ -26,6 +26,7 @@ class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
                     ))
                     HIRBlock(
                         initialBlock.location,
+                        ctx.makeUniqueName(),
                         blockStatements
                     )
                 }
