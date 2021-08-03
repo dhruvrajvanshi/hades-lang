@@ -56,7 +56,7 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
         expression.cases.forEachIndexed { index, case ->
             val trueBranch = HIRBlock(
                 case.expression.location,
-                listOfNotNull(
+                mutableListOf(
                     HIRStatement.ValDeclaration(
                         case.expression.location,
                         case.valueBinder,
@@ -100,7 +100,7 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
 
                     ),
                     trueBranch,
-                    HIRBlock(location = case.expression.location, emptyList())
+                    HIRBlock(location = case.expression.location, mutableListOf())
                 )
             )
         }

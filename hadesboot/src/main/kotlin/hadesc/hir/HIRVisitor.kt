@@ -21,8 +21,16 @@ interface HIRVisitor : TypeVisitor {
             is HIRStatement.Store -> visitStore(statement)
             is HIRStatement.ValDeclaration -> visitValDeclaration(statement)
             is HIRStatement.While -> visitWhileStatement(statement)
+            is HIRStatement.Branch -> visitBranchStatement(statement)
+            is HIRStatement.ConditionalBranch -> visitConditionalBranchStatement(statement)
         }
     }
+
+    fun visitConditionalBranchStatement(statement: HIRStatement.ConditionalBranch) {
+        visitExpression(statement.condition)
+    }
+
+    fun visitBranchStatement(statement: HIRStatement.Branch) {}
 
     fun visitWhileStatement(statement: HIRStatement.While) {
         visitExpression(statement.condition)

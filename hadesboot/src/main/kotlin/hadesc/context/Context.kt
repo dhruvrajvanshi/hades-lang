@@ -57,6 +57,10 @@ class Context(
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
         hirModule = Monomorphization(this).transformModule(hirModule)
+
+        hirModule = SimplifyControlFlow(this).transformModule(hirModule)
+        logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
+
         hirModule = SystemVABILowering(this).transformModule(hirModule)
         val irModule = IRGen(this).generate(hirModule)
 
