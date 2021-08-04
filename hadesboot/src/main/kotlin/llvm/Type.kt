@@ -8,6 +8,9 @@ private typealias T = LLVMTypeRef
 
 val T.ref get() = this
 
+fun T.prettyPrint(): String =
+    LLVM.LLVMPrintTypeToString(this).string
+
 fun functionType(returns: Type, types: List<Type>, variadic: Boolean): Type {
     return LLVM.LLVMFunctionType(
         returns,
