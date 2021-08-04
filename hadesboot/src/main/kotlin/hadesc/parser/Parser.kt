@@ -658,7 +658,7 @@ class Parser(
 
     private fun parseReturnStatement(): Statement {
         val start = expect(tt.RETURN)
-        val value = if (at(tt.SEMICOLON))
+        val value = if (at(tt.SEMICOLON) || at(tt.RBRACE))
             null
         else parseExpression()
         expect(tt.SEMICOLON)

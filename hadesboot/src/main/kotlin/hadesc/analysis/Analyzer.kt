@@ -835,7 +835,7 @@ class Analyzer(
     }
 
     private fun inferBlockExpression(expression: Expression.BlockExpression): Type {
-        val lastExpression = expression.block.members.lastOrNull() ?: return Type.Error(expression.location)
+        val lastExpression = expression.block.members.lastOrNull() ?: return Type.Void
 
         expression.block.members.dropLast(1).forEach {
             checkBlockMember(it)

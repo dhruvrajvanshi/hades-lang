@@ -15,7 +15,7 @@ import org.bytedeco.llvm.LLVM.LLVMModuleRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
-class LLVMGen(
+class HIRToLLVM(
     private val ctx: Context,
     private val hir: HIRModule
 ) {
@@ -177,7 +177,9 @@ class LLVMGen(
     private fun lowerAssignment(statement: HIRStatement.Assignment) {
         log.debug("${statement.name.text} = ${statement.value.prettyPrint()}")
         val value = lowerExpression(statement.value)
-        val pointer = checkNotNull(localPointers[statement.name])
+        val pointer = checkNotNull(localPointers[statement.name]) {
+            TODO()
+        }
         builder.buildStore(
             value = value,
             toPointer = pointer,

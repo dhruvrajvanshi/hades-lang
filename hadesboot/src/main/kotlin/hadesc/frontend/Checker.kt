@@ -645,6 +645,12 @@ class Checker(val ctx: Context) {
 
     private fun checkWhenExpression(expression: Expression.When) {
         checkExpression(expression.value)
+        val expectedType = expression.arms.firstOrNull()?.value?.type
+        if (expectedType != null) {
+            expression.arms.drop(1).forEach {
+                checkExpressionHasType(it.value, expectedType)
+            }
+        }
         expression.arms.forEach {
             checkExpression(it.value)
         }

@@ -7,7 +7,7 @@ import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
 import hadesc.ast.Expression
-import hadesc.codegen.LLVMGen
+import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
@@ -50,9 +50,6 @@ class Context(
         hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
         logger().debug("DesugarWhenExpressions:\n${hirModule.prettyPrint()}")
 
-        hirModule = DesugarBlockExpressions(this).transformModule(hirModule)
-        logger().debug("DesugarBlockExpressions:\n${hirModule.prettyPrint()}")
-
         hirModule = DesugarClosures(this).transformModule(hirModule)
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
@@ -61,12 +58,17 @@ class Context(
 
         hirModule = Monomorphization(this).transformModule(hirModule)
 
+        hirModule = DesugarBlockExpressions(this).transformModule(hirModule)
+        logger().debug("DesugarBlockExpressions:\n${hirModule.prettyPrint()}")
+
+        hirModule = SimplifyVoidExpressions().transformModule(hirModule)
+
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
         logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
 
         hirModule = SystemVABILowering(this).transformModule(hirModule)
 
-        val llvmModule = LLVMGen(this, hirModule).lower()
+        val llvmModule = HIRToLLVM(this, hirModule).lower()
         LLVMToObject(options, llvmModule).execute()
         unit
     }

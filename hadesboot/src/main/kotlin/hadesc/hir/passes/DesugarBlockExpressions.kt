@@ -4,6 +4,7 @@ import hadesc.context.Context
 import hadesc.hir.HIRBlock
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
+import hadesc.types.Type
 
 class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
     override var statements: MutableList<HIRStatement>? = null
@@ -11,11 +12,9 @@ class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
     override fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
         val resultName = ctx.makeUniqueName()
 
-
-
         checkNotNull(statements).apply {
             val initialBlock = transformBlock(expression.block)
-            val block = when (val lastMember = initialBlock.statements.last()) {
+            val block = when (val lastMember = initialBlock.statements.lastOrNull()) {
                 is HIRStatement.Expression -> {
                     val blockStatements = mutableListOf<HIRStatement>()
                     blockStatements.addAll(initialBlock.statements.dropLast(1))
@@ -32,12 +31,14 @@ class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
                 }
                 else -> initialBlock
             }
-            add(HIRStatement.ValDeclaration(
-                expression.location,
-                resultName,
-                isMutable = false,
-                type = expression.type
-            ))
+            if (expression.type !is Type.Void) {
+                add(HIRStatement.ValDeclaration(
+                    expression.location,
+                    resultName,
+                    isMutable = false,
+                    type = expression.type
+                ))
+            }
             addAll(block.statements)
         }
 

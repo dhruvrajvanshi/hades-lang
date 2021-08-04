@@ -1,0 +1,17 @@
+
+sealed type T {
+    X
+    Y
+}
+def main(): Void {
+
+   when (T.X) {
+      is X -> {
+        puts(b"PASS")
+        return
+      }
+      is Y -> {}
+   }
+}
+
+extern def puts(*u8): Void = puts
