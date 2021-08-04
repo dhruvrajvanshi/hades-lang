@@ -1,4 +1,4 @@
-package hadesc.ir.passes
+package hadesc.hir
 
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
