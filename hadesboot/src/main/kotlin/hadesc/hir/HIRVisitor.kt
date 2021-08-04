@@ -1,6 +1,5 @@
 package hadesc.hir
 
-import hadesc.ir.passes.TypeVisitor
 import hadesc.unit
 
 @Suppress("unused")

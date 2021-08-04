@@ -4,7 +4,7 @@ import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.hir.*
-import hadesc.ir.passes.TypeTransformer
+import hadesc.hir.TypeTransformer
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 

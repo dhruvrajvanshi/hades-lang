@@ -9,7 +9,6 @@ import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.transformers.ParamToLocal
-import hadesc.ir.passes.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
