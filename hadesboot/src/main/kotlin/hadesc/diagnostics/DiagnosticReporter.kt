@@ -7,7 +7,7 @@ import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
 import hadesc.ast.QualifiedPath
 import hadesc.ast.Token
-import hadesc.ir.BinaryOperator
+import hadesc.hir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type

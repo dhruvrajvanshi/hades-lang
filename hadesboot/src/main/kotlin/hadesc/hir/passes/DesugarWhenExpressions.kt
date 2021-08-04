@@ -5,7 +5,7 @@ import hadesc.hir.HIRBlock
 import hadesc.hir.HIRConstant
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
-import hadesc.ir.BinaryOperator
+import hadesc.hir.BinaryOperator
 import hadesc.types.Type
 
 class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer() {

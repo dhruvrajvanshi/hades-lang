@@ -3,7 +3,7 @@ package hadesc.parser
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
-import hadesc.ir.BinaryOperator
+import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.Position
 import hadesc.location.SourceLocation
