@@ -52,7 +52,7 @@ def handle_connection(fd: FileDescriptor): Void {
     
     val request_text: *Byte = pointer_cast[Byte](request_text_buffer)
 
-    val request_str = StringView.t(request_text, read_bytes);
+    val request_str = StringView.t(request_text, read_bytes as usize);
     val request = HTTPRequest.from_string_view(request_str);
 
     log.info(b"Got request: ");

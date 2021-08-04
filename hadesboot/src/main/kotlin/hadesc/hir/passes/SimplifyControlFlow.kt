@@ -5,6 +5,16 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
 
+/**
+ * Converts all structured control flow (if/else, while, etc)
+ * into simple branch and conditional branches.
+ *
+ * All blocks are converted into basic blocks (straight line
+ * statement sequences that don't branch in the middle).
+ *
+ * This flattens out nested blocks, making it easier to generate
+ * instructions (LLVM or otherwise)
+ */
 class SimplifyControlFlow(private val ctx: Context) {
     private val outputModule = HIRModule(mutableListOf())
     private var currentFunction: HIRDefinition.Function? = null
