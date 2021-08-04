@@ -5,7 +5,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.hir.passes.SimplifyControlFlow
-import hadesc.ir.BinaryOperator
+import hadesc.hir.BinaryOperator
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type

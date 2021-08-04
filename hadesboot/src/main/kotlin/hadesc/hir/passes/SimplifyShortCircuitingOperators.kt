@@ -2,14 +2,12 @@ package hadesc.hir.passes
 
 import hadesc.context.Context
 import hadesc.hir.HIRBlock
-import hadesc.hir.HIRConstant
 import hadesc.hir.HIRConstant.BoolValue
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRExpression.Constant
 import hadesc.hir.HIRExpression.ValRef
-import hadesc.hir.HIRStatement
 import hadesc.hir.HIRStatement.*
-import hadesc.ir.BinaryOperator
+import hadesc.hir.BinaryOperator
 import hadesc.types.Type
 
 class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer() {

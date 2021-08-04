@@ -3,7 +3,6 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.analysis.ClosureCaptures
 import hadesc.ast.Binder
-import hadesc.ir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -87,11 +86,11 @@ sealed class HIRExpression: HIRNode {
     }
 
     data class BinOp(
-            override val location: SourceLocation,
-            override val type: Type,
-            val lhs: HIRExpression,
-            val operator: BinaryOperator,
-            val rhs: HIRExpression
+        override val location: SourceLocation,
+        override val type: Type,
+        val lhs: HIRExpression,
+        val operator: BinaryOperator,
+        val rhs: HIRExpression
     ) : HIRExpression()
 
     data class NullPtr(
