@@ -1,6 +1,6 @@
 package hadesc.ast
 
-import hadesc.ir.BinaryOperator
+import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
