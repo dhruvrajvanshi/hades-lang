@@ -23,10 +23,8 @@ fun B.buildLoad(ptr: LLVMValueRef, name: String): LLVMValueRef {
     return LLVM.LLVMBuildLoad(this, ptr, name)
 }
 
-fun B.buildStore(toPointer: LLVMValueRef, value: LLVMValueRef, alignment: Int): LLVMValueRef {
-    val ref = LLVM.LLVMBuildStore(this, value, toPointer)
-    LLVM.LLVMSetAlignment(ref, alignment)
-    return ref
+fun B.buildStore(toPointer: LLVMValueRef, value: LLVMValueRef): LLVMValueRef {
+    return LLVM.LLVMBuildStore(this, value, toPointer)
 }
 
 fun B.buildStructGEP(pointer: LLVMValueRef, index: Int, name: String): LLVMValueRef =
@@ -47,6 +45,9 @@ fun B.buildBinOp(operator: Opcode, lhs: LLVMValueRef, rhs: LLVMValueRef, name: S
 fun B.buildCondBr(condition: LLVMValueRef, ifTrue: LLVMBasicBlockRef, ifFalse: LLVMBasicBlockRef): LLVMValueRef =
     LLVM.LLVMBuildCondBr(this, condition, ifTrue, ifFalse)
 
+fun B.buildBr(destination: LLVMBasicBlockRef) =
+    LLVM.LLVMBuildBr(this, destination)
+
 fun B.buildNot(condition: LLVMValueRef, name: String): LLVMValueRef =
     LLVM.LLVMBuildNot(this, condition, name)
 
@@ -58,6 +59,9 @@ fun B.buildExtractValue(value: Value, index: Int, name: String): Value =
         name
     )
 
+fun B.buildExtractElement(value: Value, index: Value, name: String): Value =
+    LLVM.LLVMBuildExtractElement(this, value, index, name)
+
 fun B.buildCall(callee: Value, args: List<Value>, name: String?): LLVMValueRef =
     LLVM.LLVMBuildCall(this, callee, args.asPointerPointer(), args.size, name ?: "")
 
@@ -66,3 +70,9 @@ fun B.buildZExt(value: Value, toType: Type, name: String): LLVMValueRef =
 
 fun B.buildTrunc(value: Value, toType: Type, name: String): LLVMValueRef =
     LLVM.LLVMBuildTrunc(this, value, toType, name)
+
+fun B.buildBitCast(value: Value, toType: Type, name: String): LLVMValueRef =
+    LLVM.LLVMBuildBitCast(this, value, toType, name)
+
+fun B.buildPointerCast(value: Value, toType: Type, name: String): LLVMValueRef =
+    LLVM.LLVMBuildPointerCast(this, value, toType, name)

@@ -1,5 +1,0 @@
-import submodule.test_utils as t;
-def main(): Void {
-    t.print_size(unsafe_cast[Size](true));
-    t.print_size(unsafe_cast[Size](false));
-}

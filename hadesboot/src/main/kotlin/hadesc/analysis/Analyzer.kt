@@ -6,7 +6,6 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
-import hadesc.hir.HIRPropertyBinding
 import hadesc.ir.BinaryOperator
 import hadesc.ir.passes.TypeTransformer
 import hadesc.ir.passes.TypeVisitor

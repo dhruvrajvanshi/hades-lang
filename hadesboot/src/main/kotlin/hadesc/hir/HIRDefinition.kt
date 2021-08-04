@@ -40,7 +40,9 @@ sealed class HIRDefinition: HasLocation {
             override val location: SourceLocation,
             val name: QualifiedName,
             val initializer: HIRExpression
-    ) : HIRDefinition()
+    ) : HIRDefinition() {
+        val type get() = initializer.type
+    }
 
     data class ExternFunction(
             override val location: SourceLocation,
@@ -113,11 +115,16 @@ sealed class HIRDefinition: HasLocation {
             constructorType,
             name
         )
+
+        fun instanceType(): Type {
+            check(typeParams == null)
+            return Type.Constructor(null, name)
+        }
     }
 
     fun prettyPrint(): String = when(this) {
         is Function -> {
-            "{\n" +
+            "${signature.prettyPrint()} {\n" +
             basicBlocks.joinToString("\n") {
                 it.name.text + ":\n  " +
                         it.statements.joinToString("\n  ") { it.prettyPrint() }

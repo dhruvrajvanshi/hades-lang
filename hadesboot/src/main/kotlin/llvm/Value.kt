@@ -40,7 +40,7 @@ fun V.getName(): String? = LLVM.LLVMGetValueName(this)?.string
 fun V.createBlock(name: String): LLVMBasicBlockRef =
     LLVM.LLVMAppendBasicBlock(this, name)
 
-fun V.dumpToString(): String = LLVM.LLVMPrintValueToString(this).string
+fun V.prettyPrint(): String = LLVM.LLVMPrintValueToString(this).string
 
 fun V.asFunctionValue() = this
 
