@@ -7,7 +7,7 @@ import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
 import hadesc.ast.Expression
-import hadesc.codegen.LLVMGen
+import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
@@ -66,7 +66,7 @@ class Context(
 
         hirModule = SystemVABILowering(this).transformModule(hirModule)
 
-        val llvmModule = LLVMGen(this, hirModule).lower()
+        val llvmModule = HIRToLLVM(this, hirModule).lower()
         LLVMToObject(options, llvmModule).execute()
         unit
     }

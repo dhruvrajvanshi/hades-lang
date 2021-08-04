@@ -15,7 +15,7 @@ import org.bytedeco.llvm.LLVM.LLVMModuleRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
 
-class LLVMGen(
+class HIRToLLVM(
     private val ctx: Context,
     private val hir: HIRModule
 ) {
