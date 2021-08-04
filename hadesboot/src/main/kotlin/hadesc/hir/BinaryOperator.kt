@@ -1,4 +1,4 @@
-package hadesc.ir
+package hadesc.hir
 
 enum class BinaryOperator {
     PLUS,
