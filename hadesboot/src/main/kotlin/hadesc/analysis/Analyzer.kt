@@ -7,8 +7,8 @@ import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
-import hadesc.ir.passes.TypeTransformer
-import hadesc.ir.passes.TypeVisitor
+import hadesc.hir.TypeTransformer
+import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
