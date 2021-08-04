@@ -29,3 +29,5 @@ fun M.getNamedGlobal(name: String): Value? {
 
 fun M.addFunction(name: String, type: Type): LLVMValueRef = LLVM.LLVMAddFunction(this, name, type)
 
+fun M.prettyPrint(): String =
+    LLVM.LLVMPrintModuleToString(this).string

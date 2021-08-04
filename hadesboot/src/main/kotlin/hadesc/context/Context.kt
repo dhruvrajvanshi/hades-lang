@@ -7,12 +7,12 @@ import hadesc.ast.QualifiedPath
 import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
 import hadesc.ast.Expression
-import hadesc.codegen.IRToLLVMGen
+import hadesc.codegen.LLVMGen
+import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.HIRGen
 import hadesc.hir.passes.*
-import hadesc.irgen.IRGen
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -20,6 +20,7 @@ import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
+import hadesc.unit
 import java.nio.file.Path
 interface HasContext {
     val ctx: Context
@@ -64,11 +65,10 @@ class Context(
         logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
 
         hirModule = SystemVABILowering(this).transformModule(hirModule)
-        val irModule = IRGen(this).generate(hirModule)
 
-        IRToLLVMGen(this, irModule).use {
-            it.generate()
-        }
+        val llvmModule = LLVMGen(this, hirModule).lower()
+        LLVMToObject(options, llvmModule).execute()
+        unit
     }
 
     fun mainPath() = makeSourcePath(options.main)
