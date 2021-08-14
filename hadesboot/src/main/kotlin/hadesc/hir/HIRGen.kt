@@ -592,6 +592,7 @@ class HIRGen(
             is Expression.ArrayIndex -> lowerArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> lowerArrayLiteral(expression)
             is Expression.BlockExpression -> lowerBlockExpression(expression)
+            is Expression.Intrinsic -> requireUnreachable()
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -1179,6 +1180,9 @@ class HIRGen(
     }
 
     private fun lowerCallExpression(expression: Expression.Call): HIRExpression {
+        if (isIntrinsicCall(expression)) {
+            return lowerIntrinsicCall(expression)
+        }
         val callee = lowerExpression(expression.callee)
         if (callee.type is Type.Function) {
             return HIRExpression.InvokeClosure(
@@ -1204,6 +1208,36 @@ class HIRGen(
             callee = callee,
             args = args
         )
+    }
+
+    private fun isIntrinsicCall(expression: Expression.Call): Boolean {
+        return expression.callee is Expression.Intrinsic
+                || (expression.callee is Expression.TypeApplication && expression.callee.lhs is Expression.Intrinsic)
+    }
+
+    private fun lowerIntrinsicCall(expression: Expression.Call): HIRExpression {
+        check(isIntrinsicCall(expression))
+        val intrinsic = if (expression.callee is Expression.TypeApplication) {
+            val intrinsic = expression.callee.lhs
+            check(intrinsic is Expression.Intrinsic)
+            intrinsic
+        } else {
+            check(expression.callee is Expression.Intrinsic)
+            expression.callee
+        }
+        return when (intrinsic.intrinsicType) {
+            IntrinsicType.ADD -> {
+                check(expression.args.size == 2)
+                return HIRExpression.BinOp(
+                    expression.location,
+                    expression.type,
+                    lowerExpression(expression.args[0].expression),
+                    BinaryOperator.PLUS,
+                    lowerExpression(expression.args[1].expression),
+                )
+            }
+            IntrinsicType.ERROR -> requireUnreachable()
+        }
     }
 
     private fun applyType(type: Type.TypeFunction, args: List<Type>): Type {

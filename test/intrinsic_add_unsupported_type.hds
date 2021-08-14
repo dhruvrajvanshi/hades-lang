@@ -1,0 +1,4 @@
+
+def main(): Void {
+    @intrinsic.add[Bool](true, false)
+}

@@ -572,7 +572,30 @@ class Checker(val ctx: Context) {
             is Expression.ArrayIndex -> checkArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> checkArrayLiteralExpression(expression)
             is Expression.BlockExpression -> checkBlockExpression(expression)
+            is Expression.Intrinsic -> checkIntrinsicExpression(expression)
         })
+    }
+
+    private fun checkIntrinsicExpression(expression: Expression.Intrinsic) {
+        return when (expression.intrinsicType) {
+            IntrinsicType.ADD -> {
+                val typeArgs = ctx.analyzer.getTypeArgs(expression) ?: return
+
+                if (typeArgs.size != 1) {
+                    return
+                }
+
+                when (val typeArg = typeArgs.first()) {
+                    is Type.Integral,
+                    is Type.Size -> unit
+                    else -> error(expression, Diagnostic.Kind.TypeDoesNotSupportArithmetic(typeArg))
+                }
+
+
+                unit
+            }
+            IntrinsicType.ERROR -> unit
+        }
     }
 
     private fun checkBlockExpression(expression: Expression.BlockExpression) {

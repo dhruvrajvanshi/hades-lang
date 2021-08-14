@@ -1,0 +1,47 @@
+
+def main(): Void {
+    if @intrinsic.add[u8](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[i8](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[u16](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[i16](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[u32](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[i32](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+
+    if @intrinsic.add[u64](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[i64](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[usize](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    if @intrinsic.add[isize](1, 2) != 3 {
+        puts(b"FAIL")
+    }
+
+    puts(b"PASS")
+}
+
+extern def puts(*u8): Void = puts

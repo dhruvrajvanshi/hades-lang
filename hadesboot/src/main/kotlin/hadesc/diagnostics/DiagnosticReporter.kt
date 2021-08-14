@@ -101,6 +101,8 @@ data class Diagnostic(
         object UseAfterMove : Diagnostic.Kind(Severity.ERROR)
         object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
         object BlockExpressionMustEndWithExpression : Diagnostic.Kind(Severity.ERROR)
+        object InvalidIntrinsic : Diagnostic.Kind(Severity.ERROR)
+        data class TypeDoesNotSupportArithmetic(val type: Type): Diagnostic.Kind(Severity.ERROR)
 
         data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
         data class NotAnArrayType(val type: Type): Diagnostic.Kind(Severity.ERROR)
@@ -183,6 +185,8 @@ data class Diagnostic(
             is MissingAssociatedType -> "Missing associated type: ${name.text}"
             is NotAnArrayType -> "${type.prettyPrint()} is not an array type"
             BlockExpressionMustEndWithExpression -> "Block expressions must end with an expression, not a statement"
+            InvalidIntrinsic -> "Invalid intrinsic"
+            is TypeDoesNotSupportArithmetic -> "Type '${type.prettyPrint()}' does not support arithmetic."
         }
 
     }
