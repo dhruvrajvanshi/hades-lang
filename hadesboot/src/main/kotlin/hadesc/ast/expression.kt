@@ -162,6 +162,8 @@ sealed class Expression : HasLocation {
 
 enum class IntrinsicType {
     ADD,
+    SUB,
+    MUL,
     ERROR,
 }
 

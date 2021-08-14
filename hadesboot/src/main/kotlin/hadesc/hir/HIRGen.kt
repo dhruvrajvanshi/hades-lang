@@ -18,7 +18,11 @@ import hadesc.types.Type
 import libhades.collections.Stack
 import llvm.makeList
 
-@Suppress("SimplifiableCallChain")
+private val INTRINSIC_TYPE_TO_BINOP = mapOf(
+    IntrinsicType.ADD to BinaryOperator.PLUS,
+    IntrinsicType.SUB to BinaryOperator.MINUS,
+    IntrinsicType.MUL to BinaryOperator.TIMES,
+)
 class HIRGen(
         override val ctx: Context
 ): HasContext {
@@ -1226,13 +1230,13 @@ class HIRGen(
             expression.callee
         }
         return when (intrinsic.intrinsicType) {
-            IntrinsicType.ADD -> {
+            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL -> {
                 check(expression.args.size == 2)
                 return HIRExpression.BinOp(
                     expression.location,
                     expression.type,
                     lowerExpression(expression.args[0].expression),
-                    BinaryOperator.PLUS,
+                    checkNotNull(INTRINSIC_TYPE_TO_BINOP[intrinsic.intrinsicType]),
                     lowerExpression(expression.args[1].expression),
                 )
             }

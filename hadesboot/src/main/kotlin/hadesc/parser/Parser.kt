@@ -67,7 +67,9 @@ private val BINARY_OPERATORS = mapOf(
 }
 
 private val INTRINSIC_TYPE = mapOf(
-    "add" to IntrinsicType.ADD
+    "add" to IntrinsicType.ADD,
+    "sub" to IntrinsicType.SUB,
+    "mul" to IntrinsicType.MUL,
 )
 
 object SyntaxError : Error()
