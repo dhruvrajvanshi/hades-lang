@@ -1,4 +1,1 @@
 type t = Int;
-
-extern def to_double(t): Double = hds_int_to_double;
-extern def to_size(t): Size = hds_int_to_size;
