@@ -153,6 +153,16 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation
             get() = block.location
     }
+
+    data class Intrinsic(
+        override val location: SourceLocation,
+        val intrinsicType: IntrinsicType
+    ) : Expression()
+}
+
+enum class IntrinsicType {
+    ADD,
+    ERROR,
 }
 
 sealed class ClosureBody : HasLocation {

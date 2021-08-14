@@ -831,8 +831,31 @@ class Analyzer(
                 annotationToType(expression.rhs)
             }
             is Expression.BlockExpression -> inferBlockExpression(expression)
+            is Expression.Intrinsic -> inferIntrinsicExpression(expression)
         })
     }
+
+    private fun inferIntrinsicExpression(expression: Expression.Intrinsic): Type =
+        when (expression.intrinsicType) {
+            IntrinsicType.ADD -> {
+                val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
+                Type.TypeFunction(
+                    listOf(Type.Param(typeParam)),
+                    Type.Ptr(
+                        isMutable = false,
+                        to = Type.Function(
+                            from = listOf(
+                                Type.ParamRef(typeParam),
+                                Type.ParamRef(typeParam)
+                            ),
+                            to = Type.ParamRef(typeParam),
+                            traitRequirements = null
+                        )
+                    )
+                )
+            }
+            IntrinsicType.ERROR -> Type.Error(expression.location)
+        }
 
     private fun inferBlockExpression(expression: Expression.BlockExpression): Type {
         val lastExpression = expression.block.members.lastOrNull() ?: return Type.Void

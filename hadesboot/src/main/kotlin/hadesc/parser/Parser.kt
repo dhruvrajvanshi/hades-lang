@@ -9,7 +9,10 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Type
+import jdk.jshell.Diag
 import llvm.makeList
+import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
@@ -62,6 +65,10 @@ private val BINARY_OPERATORS = mapOf(
         }
     }
 }
+
+private val INTRINSIC_TYPE = mapOf(
+    "add" to IntrinsicType.ADD
+)
 
 object SyntaxError : Error()
 
@@ -839,6 +846,7 @@ class Parser(
             tt.WHEN -> parseWhenExpression()
             tt.LSQB -> parseArrayLiteralExpression()
             tt.LBRACE -> parseBlockExpression()
+            tt.AT_INTRINSIC -> parseIntrinsicExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -846,6 +854,21 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseIntrinsicExpression(): Expression {
+        val start = expect(tt.AT_INTRINSIC)
+        expect(tt.DOT)
+        val ident = expect(tt.ID)
+        val intrinsicName = ident.text
+        val intrinsicType = INTRINSIC_TYPE[intrinsicName] ?: IntrinsicType.ERROR
+        if (intrinsicType == IntrinsicType.ERROR) {
+            ctx.diagnosticReporter.report(ident.location, Diagnostic.Kind.InvalidIntrinsic)
+        }
+        return Expression.Intrinsic(
+            makeLocation(start, ident),
+            intrinsicType
+        )
     }
 
     private fun parseBlockExpression(): Expression {

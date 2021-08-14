@@ -43,6 +43,8 @@ val KEYWORDS = mapOf(
     "where" to tt.WHERE,
     "this" to tt.THIS,
     "extension" to tt.EXTENSION,
+    "@" to tt.AT_SYMBOL,
+    "@intrinsic" to tt.AT_INTRINSIC,
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
@@ -58,7 +60,6 @@ val SINGLE_CHAR_TOKENS = mapOf(
     '[' to tt.LSQB,
     ']' to tt.RSQB,
     '&' to tt.AMPERSAND,
-    '@' to tt.AT_SYMBOL,
 )
 
 class Lexer(private val file: SourcePath) {
@@ -213,7 +214,7 @@ class Lexer(private val file: SourcePath) {
     }
 
     private fun Char.isIdentifierStarter(): Boolean {
-        return isLetter() || '_' == this
+        return isLetter() || '_' == this || '@' == this
     }
 
     private fun Char.isIdentifierChar(): Boolean {

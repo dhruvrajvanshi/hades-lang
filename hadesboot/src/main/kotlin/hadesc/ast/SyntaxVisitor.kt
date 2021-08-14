@@ -1,5 +1,7 @@
 package hadesc.ast
 
+import hadesc.unit
+
 
 interface SyntaxVisitor {
     fun visitType(type: TypeAnnotation): Unit = when(type) {
@@ -77,7 +79,10 @@ interface SyntaxVisitor {
         is Expression.ArrayIndex -> visitArrayIndexExpression(expression)
         is Expression.ArrayLiteral -> visitArrayLiteralExpression(expression)
         is Expression.BlockExpression -> visitBlockExpression(expression)
+        is Expression.Intrinsic -> visitIntrinsicExpression(expression)
     }
+
+    fun visitIntrinsicExpression(expression: Expression.Intrinsic) = unit
 
     fun visitBlockExpression(expression: Expression.BlockExpression) {
         visitBlock(expression.block)
