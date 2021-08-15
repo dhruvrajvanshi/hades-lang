@@ -9,7 +9,7 @@ int main() {
 }
 
 void* __hds_pointer_add(void* pointer, size_t offset) {
-    return pointer + offset;
+    return (void*)((char*)pointer + offset);
 }
 
 #ifdef __HDC_CHKSTK_UNAVAILABLE
