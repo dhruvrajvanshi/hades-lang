@@ -597,6 +597,7 @@ class HIRGen(
             is Expression.ArrayLiteral -> lowerArrayLiteral(expression)
             is Expression.BlockExpression -> lowerBlockExpression(expression)
             is Expression.Intrinsic -> requireUnreachable()
+            is Expression.UnaryMinus -> lowerUnaryMinus(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -630,6 +631,30 @@ class HIRGen(
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerUnaryMinus(expression: Expression.UnaryMinus): HIRExpression {
+        val type = expression.expression.type
+        val inner = lowerExpression(expression.expression)
+        return when (type) {
+            is Type.Integral,
+            is Type.FloatingPoint,
+            is Type.Size,
+            -> {
+                HIRExpression.BinOp(
+                    expression.location,
+                    inner.type,
+                    HIRExpression.Constant(HIRConstant.IntValue(
+                        expression.location,
+                        type,
+                        0
+                    )),
+                    BinaryOperator.MINUS,
+                    inner
+                )
+            }
+            else -> requireUnreachable()
+        }
     }
 
     private fun lowerBlockExpression(expression: Expression.BlockExpression): HIRExpression {

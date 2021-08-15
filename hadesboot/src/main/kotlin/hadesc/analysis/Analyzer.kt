@@ -695,6 +695,7 @@ class Analyzer(
                 is Expression.NullPtr -> checkNullPtrExpression(expression, expectedType)
                 is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
                 is Expression.If -> checkIfExpression(expression, expectedType)
+                is Expression.UnaryMinus -> checkUnaryMinus(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(at = expression, source = inferredType, destination = expectedType)
@@ -704,6 +705,11 @@ class Analyzer(
         }
         typeOfExpressionCache[expression] = type
         return type
+    }
+
+    private fun checkUnaryMinus(expression: Expression.UnaryMinus, expectedType: Type): Type {
+        checkExpression(expression.expression, expectedType)
+        return expectedType
     }
 
     private fun checkIfExpression(expression: Expression.If, expectedType: Type): Type {
@@ -832,7 +838,12 @@ class Analyzer(
             }
             is Expression.BlockExpression -> inferBlockExpression(expression)
             is Expression.Intrinsic -> inferIntrinsicExpression(expression)
+            is Expression.UnaryMinus -> inferUnaryMinus(expression)
         })
+    }
+
+    private fun inferUnaryMinus(expression: Expression.UnaryMinus): Type {
+        return inferExpression(expression)
     }
 
     private fun inferIntrinsicExpression(expression: Expression.Intrinsic): Type =
