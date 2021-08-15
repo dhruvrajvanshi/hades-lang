@@ -7,7 +7,7 @@ import llvm.ref
 import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMModuleRef
-import org.bytedeco.llvm.LLVM.LLVMTargetMachineRef
+import org.bytedeco.llvm.LLVM.LLVMTargetRef
 import org.bytedeco.llvm.global.LLVM
 import java.nio.file.Path
 import kotlin.io.path.deleteExisting
@@ -96,21 +96,19 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
         val targetTriple = LLVM.LLVMGetDefaultTargetTriple()
         val cpu = BytePointer("generic")
         val features = BytePointer("")
-        val target = LLVM.LLVMGetFirstTarget()
-        val targetMachine: LLVMTargetMachineRef = LLVM.LLVMCreateTargetMachine(
-            target,
-            targetTriple,
-            cpu,
-            features,
-            LLVM.LLVMCodeGenLevelLess,
-            LLVM.LLVMRelocPIC,
-            LLVM.LLVMCodeModelDefault
-        )
+        val targetRef = LLVMTargetRef()
+
+        val targetRefErrorMessage = BytePointer()
+        val targetRefError = LLVM.LLVMGetTargetFromTriple(LLVM.LLVMGetDefaultTargetTriple(), targetRef, targetRefErrorMessage)
+        check(targetRefError == 0) {
+            targetRefErrorMessage.string
+        }
+
+        val targetMachine = LLVM.LLVMCreateTargetMachine(targetRef, targetTriple, cpu, features, LLVM.LLVMCodeGenLevelDefault, LLVM.LLVMRelocDefault, LLVM.LLVMCodeModelDefault)
 
         if (!options.debugSymbols) {
 
             val pass = LLVM.LLVMCreatePassManager()
-            LLVM.LLVMAddConstantPropagationPass(pass)
             LLVM.LLVMAddFunctionInliningPass(pass)
             LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
             LLVM.LLVMAddAggressiveDCEPass(pass)
@@ -125,14 +123,19 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
             LLVM.LLVMPrintModuleToFile(llvmModule, "$objectFilePath.ll", null as BytePointer?)
         }
 
-
-        LLVM.LLVMTargetMachineEmitToFile(
+        val error = BytePointer()
+        val failure = LLVM.LLVMTargetMachineEmitToFile(
             targetMachine,
             llvmModule.ref,
             BytePointer(objectFilePath),
             LLVM.LLVMObjectFile,
             BytePointer("Message")
         )
+        if (failure != 0) {
+            System.err.println(error.string)
+            LLVM.LLVMDisposeErrorMessage(error)
+        }
+        check(failure == 0)
 
         LLVM.LLVMDisposeTargetMachine(targetMachine)
     }
