@@ -3,25 +3,6 @@ package llvm
 import org.bytedeco.llvm.LLVM.*
 import org.bytedeco.llvm.global.LLVM
 
-fun LLVMDIBuilderRef.createCompileUnit(
-    fileRef: LLVMMetadataRef
-): LLVMMetadataRef =
-    LLVM.LLVMDIBuilderCreateCompileUnit(
-        this,
-        LLVM.LLVMDWARFSourceLanguageC,
-        fileRef,
-        "hadesboot",
-        "hadesboot".length.toLong(),
-        false.toLLVMBool(),
-        null, 0,
-        1,
-        null, 0,
-        LLVM.LLVMDWARFEmissionFull,
-        0,
-        false.toLLVMBool(),
-        false.toLLVMBool()
-    )
-
 @Suppress("unused")
 fun LLVMDIBuilderRef.createLexicalBlock(scope: LLVMMetadataRef, file: LLVMMetadataRef, line: Int, column: Int): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateLexicalBlock(this, scope, file, line, column)
