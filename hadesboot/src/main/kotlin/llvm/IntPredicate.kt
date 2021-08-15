@@ -7,6 +7,12 @@ enum class IntPredicate(val value: Int) {
     SGT(LLVM.LLVMIntSGT),
     SLT(LLVM.LLVMIntSLT),
     SLE(LLVM.LLVMIntSLE),
+
+    UGE(LLVM.LLVMIntUGE),
+    UGT(LLVM.LLVMIntUGT),
+    ULT(LLVM.LLVMIntULT),
+    ULE(LLVM.LLVMIntULE),
+
     EQ(LLVM.LLVMIntEQ),
     NE(LLVM.LLVMIntNE),
 }
