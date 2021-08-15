@@ -9,10 +9,7 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import hadesc.types.Type
-import jdk.jshell.Diag
 import llvm.makeList
-import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
@@ -849,6 +846,7 @@ class Parser(
             tt.LSQB -> parseArrayLiteralExpression()
             tt.LBRACE -> parseBlockExpression()
             tt.AT_INTRINSIC -> parseIntrinsicExpression()
+            tt.MINUS -> parseUnaryMinusExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -856,6 +854,15 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseUnaryMinusExpression(): Expression {
+        val start = expect(tt.MINUS)
+        val expression = parseExpression()
+        return Expression.UnaryMinus(
+            makeLocation(start, expression),
+            expression
+        )
     }
 
     private fun parseIntrinsicExpression(): Expression {

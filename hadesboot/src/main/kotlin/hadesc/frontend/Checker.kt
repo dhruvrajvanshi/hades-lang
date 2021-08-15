@@ -573,7 +573,23 @@ class Checker(val ctx: Context) {
             is Expression.ArrayLiteral -> checkArrayLiteralExpression(expression)
             is Expression.BlockExpression -> checkBlockExpression(expression)
             is Expression.Intrinsic -> checkIntrinsicExpression(expression)
+            is Expression.UnaryMinus -> checkUnaryMinusExpression(expression)
         })
+    }
+
+    private fun checkUnaryMinusExpression(expression: Expression.UnaryMinus) {
+        val type = expression.expression.type
+        if (type is Type.Integral && type.isSigned) {
+            return
+        }
+        if (type is Type.Size && type.isSigned) {
+            return
+        }
+        if (type is Type.FloatingPoint) {
+            return
+        }
+
+        error(expression, Diagnostic.Kind.TypeDoesNotSupportArithmetic(type))
     }
 
     private fun checkIntrinsicExpression(expression: Expression.Intrinsic) {

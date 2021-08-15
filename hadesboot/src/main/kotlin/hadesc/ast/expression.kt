@@ -158,6 +158,11 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val intrinsicType: IntrinsicType
     ) : Expression()
+
+    data class UnaryMinus(
+        override val location: SourceLocation,
+        val expression: Expression,
+    ) : Expression()
 }
 
 enum class IntrinsicType {

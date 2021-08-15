@@ -1,0 +1,10 @@
+
+def main(): Void {
+    val x = 1
+    if -1 != -x {
+        puts(b"FAIL")
+    }
+    puts(b"PASS")
+}
+
+extern def puts(*u8): Void = puts
