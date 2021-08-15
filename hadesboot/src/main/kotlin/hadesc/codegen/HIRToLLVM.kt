@@ -284,8 +284,15 @@ class HIRToLLVM(
     private fun lowerBinOp(expression: HIRExpression.BinOp): Value {
         val name = ctx.makeUniqueName().text
         return if (isPredicateOperator(expression.operator)) {
+            val isSigned =
+                when (expression.type) {
+                    is Type.Integral -> expression.type.isSigned
+                    is Type.Size -> expression.type.isSigned
+                    is Type.Bool -> false
+                    else -> requireUnreachable { expression.type.prettyPrint() }
+                }
             builder.buildICmp(
-                lowerPredicateOperator(expression.operator),
+                lowerPredicateOperator(isSigned, expression.operator),
                 lowerExpression(expression.lhs),
                 lowerExpression(expression.rhs),
                 name
@@ -323,14 +330,14 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerPredicateOperator(operator: BinaryOperator): IntPredicate {
+    private fun lowerPredicateOperator(isSigned: Boolean, operator: BinaryOperator): IntPredicate {
         return when(operator) {
             BinaryOperator.EQUALS -> IntPredicate.EQ
             BinaryOperator.NOT_EQUALS -> IntPredicate.NE
-            BinaryOperator.GREATER_THAN -> IntPredicate.SGT
-            BinaryOperator.GREATER_THAN_EQUAL -> IntPredicate.SGE
-            BinaryOperator.LESS_THAN -> IntPredicate.SLT
-            BinaryOperator.LESS_THAN_EQUAL -> IntPredicate.SLE
+            BinaryOperator.GREATER_THAN -> if (isSigned) IntPredicate.SGT else IntPredicate.UGT
+            BinaryOperator.GREATER_THAN_EQUAL -> if (isSigned) IntPredicate.SGE else IntPredicate.UGE
+            BinaryOperator.LESS_THAN -> if (isSigned) IntPredicate.SLT else IntPredicate.ULT
+            BinaryOperator.LESS_THAN_EQUAL -> if (isSigned) IntPredicate.SLE else IntPredicate.ULE
             else -> requireUnreachable()
         }
     }
