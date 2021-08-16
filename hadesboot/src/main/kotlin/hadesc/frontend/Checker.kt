@@ -610,6 +610,20 @@ class Checker(val ctx: Context) {
 
                 unit
             }
+            IntrinsicType.PTR_TO_INT -> unit
+            IntrinsicType.INT_TO_PTR -> {
+                val typeArgs = ctx.analyzer.getTypeArgs(expression) ?: return
+
+                if (typeArgs.size != 1) {
+                    return
+                }
+
+                when (val typeArg = typeArgs.first()) {
+                    is Type.Ptr, is Type.Error -> unit
+                    else -> error(expression, Diagnostic.Kind.NotAPointerType(typeArg))
+                }
+                unit
+            }
             IntrinsicType.ERROR -> unit
         }
     }
