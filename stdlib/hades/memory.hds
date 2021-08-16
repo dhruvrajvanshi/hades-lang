@@ -8,7 +8,11 @@ def unsafe_allocate_unitialized[T](): *T {
     return pointer_cast[T](libc.malloc(size_of[T]));
 }
 
-extern def __hds_pointer_add(*Void, usize): *mut Void = __hds_pointer_add;
+def __hds_pointer_add(ptr: *Void, size: usize): *mut Void {
+    return @intrinsic.int_to_ptr[*mut Void](
+        @intrinsic.ptr_to_int(ptr) + size
+    )
+}
 
 def mut_pointer_add[T](ptr: *mut T, size: usize): *mut T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](ptr), size));
