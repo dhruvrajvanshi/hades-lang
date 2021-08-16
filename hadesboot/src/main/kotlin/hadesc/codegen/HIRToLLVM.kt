@@ -375,9 +375,9 @@ class HIRToLLVM(
 
     private fun lowerIntegerConvert(expression: HIRExpression.IntegerConvert): Value {
         val fromType = expression.value.type
-        require(fromType is Type.Integral || fromType is Type.Size)
+        require(fromType is Type.Integral || fromType is Type.Size || fromType is Type.Ptr)
         val toType = expression.type
-        require(toType is Type.Integral || toType is Type.Size)
+        require(toType is Type.Integral || toType is Type.Size || toType is Type.Ptr)
 
         val fromSize = fromType.sizeInBits
 

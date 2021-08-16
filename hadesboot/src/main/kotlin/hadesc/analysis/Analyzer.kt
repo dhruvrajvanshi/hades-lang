@@ -865,6 +865,38 @@ class Analyzer(
                     )
                 )
             }
+            IntrinsicType.PTR_TO_INT -> {
+                val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
+                Type.TypeFunction(
+                    listOf(Type.Param(typeParam)),
+                    Type.Ptr(
+                        isMutable = false,
+                        to = Type.Function(
+                            from = listOf(
+                                Type.Ptr(Type.ParamRef(typeParam), isMutable = false),
+                            ),
+                            to = Type.Size(isSigned = false),
+                            traitRequirements = null
+                        )
+                    )
+                )
+            }
+            IntrinsicType.INT_TO_PTR -> {
+                val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
+                Type.TypeFunction(
+                    listOf(Type.Param(typeParam)),
+                    Type.Ptr(
+                        isMutable = false,
+                        to = Type.Function(
+                            from = listOf(
+                                Type.Size(isSigned = false),
+                            ),
+                            to = Type.ParamRef(typeParam),
+                            traitRequirements = null
+                        )
+                    )
+                )
+            }
             IntrinsicType.ERROR -> Type.Error(expression.location)
         }
 

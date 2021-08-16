@@ -67,6 +67,9 @@ private val INTRINSIC_TYPE = mapOf(
     "add" to IntrinsicType.ADD,
     "sub" to IntrinsicType.SUB,
     "mul" to IntrinsicType.MUL,
+
+    "int_to_ptr" to IntrinsicType.INT_TO_PTR,
+    "ptr_to_int" to IntrinsicType.PTR_TO_INT,
 )
 
 object SyntaxError : Error()

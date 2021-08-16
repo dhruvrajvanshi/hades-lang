@@ -1,0 +1,14 @@
+
+def main(): Void {
+    val x: u32 = 10
+    val x_ptr = &x
+    val x_ptr_int = @intrinsic.ptr_to_int(x_ptr)
+    val x_ptr_new = @intrinsic.int_to_ptr[*u32](x_ptr_int)
+
+    if (*x_ptr_new) != 10 {
+        puts(b"FAIL")
+    }
+    puts(b"PASS")
+}
+
+extern def puts(*u8): Void = puts

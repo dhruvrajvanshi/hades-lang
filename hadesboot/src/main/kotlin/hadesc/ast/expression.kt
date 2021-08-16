@@ -169,6 +169,10 @@ enum class IntrinsicType {
     ADD,
     SUB,
     MUL,
+
+    PTR_TO_INT,
+    INT_TO_PTR,
+
     ERROR,
 }
 
