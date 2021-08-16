@@ -1,5 +1,4 @@
-
-extern def __hds_pointer_add(*Void, Size): *mut Void = __hds_pointer_add;
+import hades.memory.{ __hds_pointer_add }
 
 def mut_add[T](ptr: *mut T, size: Size): *mut T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](ptr), size));
