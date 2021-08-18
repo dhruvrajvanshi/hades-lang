@@ -65,6 +65,47 @@ applicationDistribution.from('../stdlib') {
     into 'stdlib'
 }
 
+distributions {
+    "windows-x86_64" {
+        distributionBaseName = "hades-windows-x86_64"
+        contents {
+            with distributions.main.contents
+            exclude("**/*linux*.jar")
+            exclude("**/*macos*.jar")
+            exclude("**/llvm-*-windows-armhf.jar")
+            exclude("**/llvm-*-windows-arm64.jar")
+            exclude("**/llvm-*-windows-ppc64le.jar")
+            exclude("**/llvm-*-windows-x86.jar")
+        }
+    }
+
+    "linux-x86_64" {
+        distributionBaseName = "hades-linux-x86_64"
+        contents {
+            with distributions.main.contents
+            exclude("**/*windows*.jar")
+            exclude("**/*macos*.jar")
+            exclude("**/llvm-*-linux-armhf.jar")
+            exclude("**/llvm-*-linux-arm64.jar")
+            exclude("**/llvm-*-linux-ppc64le.jar")
+            exclude("**/llvm-*-linux-x86.jar")
+        }
+    }
+
+    "macos-x86_64" {
+        distributionBaseName = "hades-macos-x86_64"
+        contents {
+            with distributions.main.contents
+            exclude("**/*windows*.jar")
+            exclude("**/*linux*.jar")
+            exclude("**/llvm-*-macos-armhf.jar")
+            exclude("**/llvm-*-macos-arm64.jar")
+            exclude("**/llvm-*-macos-ppc64le.jar")
+            exclude("**/llvm-*-macos-x86.jar")
+        }
+    }
+}
+
 jacocoTestReport {
     reports {
         html.enabled = true
