@@ -65,7 +65,7 @@ const SEEK_END: int = 2
 
 /// fseek(file, offset, whence)
 /// whence should be SEEK_SET or SEEK_CUR or SEEK_END
-extern def fseek(*File, long, int): Void = fseek
+extern def fseek(*File, long, int): i32 = fseek
 
 extern def ftell(*File): long = ftell
 
