@@ -696,6 +696,7 @@ class Analyzer(
                 is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
                 is Expression.If -> checkIfExpression(expression, expectedType)
                 is Expression.UnaryMinus -> checkUnaryMinus(expression, expectedType)
+                is Expression.When -> checkWhenExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(at = expression, source = inferredType, destination = expectedType)
@@ -913,6 +914,14 @@ class Analyzer(
             checkExpression(whenArm.value, type)
         }
         return type
+    }
+
+    private fun checkWhenExpression(expression: Expression.When, expectedType: Type): Type {
+        inferExpression(expression.value)
+        for (whenArm in expression.arms) {
+            checkExpression(whenArm.value, expectedType)
+        }
+        return expectedType
     }
 
     private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
