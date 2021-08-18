@@ -38,7 +38,6 @@ jobs:
           key: v1-dependencies-{{ checksum "build.gradle" }}
       # run tests!
       - run: ./gradlew test
-      - run: ./gradlew install
       - store_test_results:
           path: ./hadesboot/build/test-results
       - store_artifacts:
