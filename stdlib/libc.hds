@@ -73,5 +73,7 @@ extern def ftell(*File): long = ftell
 extern def fopen(*Byte, *Byte): *File = fopen
 extern def fclose(*File): int = fclose
 extern def rewind(*File): Void = rewind
+extern def feof(*File): int = feof
+extern def ferror(*File): int = ferror
 
 
