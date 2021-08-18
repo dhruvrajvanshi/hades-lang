@@ -4,4 +4,6 @@ extern def print_u32(u32): Void  = print_u32;
 extern def print_bool(Bool): Void = print_bool;
 extern def print_byte_string(*Byte): Void = print_byte_string;
 extern def print_size(Size): Void = print_size;
+extern def print_f32(f32): Void = print_f32;
+extern def print_f64(f64): Void = print_f64;
 

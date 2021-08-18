@@ -298,12 +298,29 @@ class HIRToLLVM(
                 name
             )
         } else {
-            builder.buildBinOp(
-                lowerOperator(expression.operator),
-                lowerExpression(expression.lhs),
-                lowerExpression(expression.rhs),
-                name)
+            if (expression.type is Type.FloatingPoint) {
+                builder.buildBinOp(
+                    lowerFloatingPointOperator(expression.operator),
+                    lowerExpression(expression.lhs),
+                    lowerExpression(expression.rhs),
+                    name,
+                )
+            } else {
+                builder.buildBinOp(
+                    lowerOperator(expression.operator),
+                    lowerExpression(expression.lhs),
+                    lowerExpression(expression.rhs),
+                    name
+                )
+            }
         }
+    }
+
+    private fun lowerFloatingPointOperator(operator: BinaryOperator): Opcode = when(operator) {
+        BinaryOperator.PLUS -> Opcode.FAdd
+        BinaryOperator.MINUS -> Opcode.FSub
+        BinaryOperator.TIMES -> Opcode.FMul
+        else -> requireUnreachable()
     }
 
     private fun lowerOperator(op: BinaryOperator): Opcode {
