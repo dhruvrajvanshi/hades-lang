@@ -10,9 +10,23 @@ import logging
 import threading
 import shutil
 import sys
+import platform
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 log = logging.getLogger()
+
+is_x86_64 = platform.machine() == 'AMD64' or platform.machine() == 'x86_64'
+is_windows = platform.system() == 'Windows'
+is_macos = platform.system() == 'Darwin'
+is_linux = platform.system() == 'Linux'
+
+platform_suffix = ''
+if is_x86_64 and is_linux:
+    platform_suffix = '-linux-x86_64'
+elif is_x86_64 and is_windows:
+    platform_suffix = '-windows-x86_64'
+elif is_x86_64 and is_macos:
+    platform_suffix = '-macos-x86_64'
 
 
 def main():
@@ -48,7 +62,7 @@ def main():
         log.info(f'Extracting to {this_version_directory_parent}')
         f.extractall(path=this_version_directory_parent)
 
-    this_version_directory = this_version_directory_parent.joinpath('hades')
+    this_version_directory = this_version_directory_parent.joinpath(f'hades{platform_suffix}')
 
     shutil.rmtree(tmp_directory)
 
@@ -183,7 +197,8 @@ def download_file(url, destination_path: pathlib.Path):
 
 def download_link(version: str):
     version_part = urllib.parse.quote(version, safe='')
-    return f'https://github.com/dhruvrajvanshi/hades-lang/releases/download/{version_part}/hades.tar'
+    tar_name = f'hades{platform_suffix}.tar'
+    return f'https://github.com/dhruvrajvanshi/hades-lang/releases/download/{version_part}/{tar_name}'
 
 
 def user_error(message: str):
