@@ -31,7 +31,7 @@ extern def fgetc(*File): Byte = fgetc;
 extern def strtoul(*Byte, **Byte, u32): ulong = strtoul;
 
 
-extern def fread(*Void, Size, Size, *File): Size = fread;
+extern def fread(*Void, usize, usize, *File): usize = fread;
 
 type FileDescriptor = int;
 extern def read(FileDescriptor, *mut Void, usize): isize = read;
