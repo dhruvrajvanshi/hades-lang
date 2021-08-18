@@ -1,0 +1,1 @@
+test/bug_typecheck_void_comparison_with_int.hds:5: OperatorNotApplicable

@@ -820,6 +820,9 @@ class Checker(val ctx: Context) {
     private fun checkBinaryOperation(expression: Expression.BinaryOperation) {
         checkExpression(expression.lhs)
         checkExpression(expression.rhs)
+        if (expression.type is Type.Error) {
+            error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+        }
     }
 
     private fun checkPropertyExpression(expression: Expression.Property) {
