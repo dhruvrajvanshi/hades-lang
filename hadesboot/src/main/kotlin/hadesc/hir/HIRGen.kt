@@ -644,11 +644,21 @@ class HIRGen(
                 HIRExpression.BinOp(
                     expression.location,
                     inner.type,
-                    HIRExpression.Constant(HIRConstant.IntValue(
-                        expression.location,
-                        type,
-                        0
-                    )),
+                    HIRExpression.Constant(
+                        if (type is Type.FloatingPoint) {
+                            HIRConstant.FloatValue(
+                                expression.location,
+                                type,
+                                0.0
+                            )
+                        } else {
+                            HIRConstant.IntValue(
+                                expression.location,
+                                type,
+                                0
+                            )
+                        }
+                    ),
                     BinaryOperator.MINUS,
                     inner
                 )

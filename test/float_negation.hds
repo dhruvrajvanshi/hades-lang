@@ -1,0 +1,17 @@
+import submodule.test_utils.{ print_f32, print_f64 }
+def main(): Void {
+    val x: f32 = 23
+    val y: f64 = 41
+
+    print_f32(-x)
+    print_f64(-y)
+
+    val ONE: f32 = 1
+    val TWO: f32 = 2
+    val THREE: f32 = 3
+    val SIX: f32 = 6
+    print_f32(ONE + TWO)
+    print_f32(TWO * THREE)
+    print_f32(SIX - THREE)
+
+}

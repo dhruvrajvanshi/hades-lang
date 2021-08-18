@@ -1,6 +1,15 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
+
+void print_f32(float value) {
+    printf("%.2f\n", value);
+}
+
+void print_f64(double value) {
+    printf("%.2f\n", value);
+}
 
 void print_int(int value) {
     printf("%d\n", value);
