@@ -3,8 +3,8 @@
 
 extern void hades_main();
 
-int main() {
-    hades_main();
+int main(int argc, char** argv) {
+    hades_main(argc, argv);
     return 0;
 }
 
