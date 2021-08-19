@@ -26,7 +26,8 @@ private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + 
 private val byteStringEscapes = mapOf(
         'n' to '\n',
         '0' to '\u0000',
-        'r' to '\r'
+        'r' to '\r',
+        '\\' to '\\'
 )
 
 private val OPERATORS = listOf(
@@ -850,6 +851,7 @@ class Parser(
             tt.LBRACE -> parseBlockExpression()
             tt.AT_INTRINSIC -> parseIntrinsicExpression()
             tt.MINUS -> parseUnaryMinusExpression()
+            tt.BYTE_CHAR_LITERAL -> parseByteCharLiteral()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -857,6 +859,32 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseByteCharLiteral(): Expression {
+        val token = expect(tt.BYTE_CHAR_LITERAL)
+        check(token.text[0] == 'b')
+        check(token.text[1] == '\'')
+        check(token.text[token.text.length - 1] == '\'')
+
+        val text = token.text.drop(2).dropLast(1)
+
+        val char = if (text[0] == '\\') {
+            val escape = byteStringEscapes[text[1]]
+            if (escape == null) {
+                ctx.diagnosticReporter.report(token.location, Diagnostic.Kind.InvalidEscape(text[1]))
+                '\u0000'
+            } else {
+                escape
+            }
+        } else {
+            text[0]
+        }
+
+        return Expression.ByteCharLiteral(
+            token.location,
+            char
+        )
     }
 
     private fun parseUnaryMinusExpression(): Expression {

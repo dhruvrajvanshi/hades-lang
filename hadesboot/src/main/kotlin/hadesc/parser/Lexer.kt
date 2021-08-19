@@ -206,6 +206,13 @@ class Lexer(private val file: SourcePath) {
                 }
             }
             return makeToken(tt.BYTE_STRING)
+        } else if (first == 'b' && currentChar == '\'') {
+            advance()
+            while (currentChar != '\'' && currentChar != EOF_CHAR) {
+                advance()
+            }
+            if (currentChar == '\'') advance()
+            return makeToken(tt.BYTE_CHAR_LITERAL)
         }
         while (currentChar.isIdentifierChar()) {
             advance()

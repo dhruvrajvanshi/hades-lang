@@ -109,6 +109,7 @@ data class Diagnostic(
 
 //        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
         data class MissingAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
+        data class InvalidEscape(val c: Char) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -187,6 +188,7 @@ data class Diagnostic(
             BlockExpressionMustEndWithExpression -> "Block expressions must end with an expression, not a statement"
             InvalidIntrinsic -> "Invalid intrinsic"
             is TypeDoesNotSupportArithmetic -> "Type '${type.prettyPrint()}' does not support arithmetic."
+            is InvalidEscape -> "Invalid escape character '${c}'"
         }
 
     }

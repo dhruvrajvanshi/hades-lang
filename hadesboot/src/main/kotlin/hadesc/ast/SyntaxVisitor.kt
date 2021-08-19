@@ -81,7 +81,10 @@ interface SyntaxVisitor {
         is Expression.BlockExpression -> visitBlockExpression(expression)
         is Expression.Intrinsic -> visitIntrinsicExpression(expression)
         is Expression.UnaryMinus -> visitUnaryMinusExpression(expression)
+        is Expression.ByteCharLiteral -> visitByteCharExpression(expression)
     }
+
+    fun visitByteCharExpression(expression: Expression.ByteCharLiteral) = unit
 
     fun visitUnaryMinusExpression(expression: Expression.UnaryMinus) {
         visitExpression(expression.expression)

@@ -44,6 +44,11 @@ sealed class Expression : HasLocation {
         val value: Int
     ) : Expression()
 
+    data class ByteCharLiteral(
+        override val location: SourceLocation,
+        val value: Char
+    ) : Expression()
+
     data class Not(
         override val location: SourceLocation,
         val expression: Expression

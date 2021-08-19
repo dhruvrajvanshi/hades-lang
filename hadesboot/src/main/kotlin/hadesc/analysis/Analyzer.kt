@@ -840,6 +840,7 @@ class Analyzer(
             is Expression.BlockExpression -> inferBlockExpression(expression)
             is Expression.Intrinsic -> inferIntrinsicExpression(expression)
             is Expression.UnaryMinus -> inferUnaryMinus(expression)
+            is Expression.ByteCharLiteral -> Type.Integral(8, isSigned = false)
         })
     }
 
