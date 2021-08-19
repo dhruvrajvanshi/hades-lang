@@ -1,0 +1,29 @@
+
+sealed type T {
+    A; B; C; D;
+}
+def main(): Void {
+
+    when T.A {
+        is A -> {}
+        else -> {
+            puts(b"FAIL")
+        }
+    }
+
+    when T.C {
+        is C -> {}
+        else -> {
+            puts(b"FAIL")
+        }
+    }
+
+    when T.D {
+        is D -> {
+            puts(b"PASS")
+        }
+        else -> {}
+    }
+}
+
+extern def puts(*u8): Void = puts
