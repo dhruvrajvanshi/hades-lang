@@ -574,6 +574,7 @@ class Checker(val ctx: Context) {
             is Expression.BlockExpression -> checkBlockExpression(expression)
             is Expression.Intrinsic -> checkIntrinsicExpression(expression)
             is Expression.UnaryMinus -> checkUnaryMinusExpression(expression)
+            is Expression.ByteCharLiteral -> unit
         })
     }
 
