@@ -182,7 +182,7 @@ class HIRGen(
     }
 
     private fun sealedTypeInstanceType(declaration: Declaration.SealedType): Type {
-        val typeConstructor = Type.Constructor(binder = null, name = ctx.resolver.qualifiedName(declaration.name))
+        val typeConstructor = Type.Constructor(name = ctx.resolver.qualifiedName(declaration.name))
         return if (declaration.typeParams != null) {
             Type.Application(
                 typeConstructor,
@@ -202,7 +202,7 @@ class HIRGen(
         val caseConstructorName = sealedTypeName.append(case.name.name).append(ctx.makeName("constructor"))
         val instanceType = sealedTypeInstanceType(declaration)
         val caseStructName = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
-        val caseTypeConstructor = Type.Constructor(binder = null, name = caseStructName)
+        val caseTypeConstructor = Type.Constructor(name = caseStructName)
         val caseInstanceType = if (declaration.typeParams != null) {
             Type.Application(
                 caseTypeConstructor,
@@ -773,7 +773,7 @@ class HIRGen(
                     it is Expression.WhenArm.Is && it.caseName.name == discriminant.name
                 }
                 val casePayloadTypeConstructor =
-                    Type.Constructor(null, ctx.resolver.qualifiedName(declaration.name).append(discriminant.name))
+                    Type.Constructor(ctx.resolver.qualifiedName(declaration.name).append(discriminant.name))
                 val casePayloadType = if (declaration.typeParams == null) {
                     casePayloadTypeConstructor
                 }  else {
@@ -1073,7 +1073,6 @@ class HIRGen(
 
     private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
         val constructorType = Type.Constructor(
-            binder = null,
             name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.caseName),
         )
         return if (binding.typeArgs.isEmpty()) {

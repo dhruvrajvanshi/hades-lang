@@ -68,7 +68,7 @@ class TraitResolverTest {
     }
 
     private fun tycon(name: String): Type.Constructor {
-        return Type.Constructor(binder = null, qn(name))
+        return Type.Constructor(qn(name))
     }
 
     private fun Type.Constructor.ap(vararg args: Type): Type.Application {

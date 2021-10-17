@@ -230,7 +230,7 @@ class Monomorphization(
         require(definition is HIRDefinition.Struct)
         val specializedName = getSpecializedName(typeName, type.args.map { lowerType(it) })
         specializedTypes[specializedName] = type.copy(args = type.args.map { lowerType(it) })
-        return Type.Constructor(binder = null, name = specializedName)
+        return Type.Constructor(specializedName)
     }
 
     override fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {

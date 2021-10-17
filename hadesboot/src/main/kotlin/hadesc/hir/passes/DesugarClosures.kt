@@ -190,7 +190,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
         require(type is Type.Function)
 
         val contextStruct = makeAndAddClosureContextStruct(expression.location, expression.captures)
-        val contextTypeConstructor = Type.Constructor(null, contextStruct.name)
+        val contextTypeConstructor = Type.Constructor(contextStruct.name)
         val capturedTypeArgs = expression.captures.types.map { Type.ParamRef(Binder(Identifier(it.location, it.name))) }
         val contextType =
             if (expression.captures.types.isEmpty())
@@ -413,10 +413,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
 
     private fun getClosureType(type: Type.Function): Type {
         val structDef = getClosureTypeStruct(type)
-        val typeConstructor = Type.Constructor(
-            null,
-            structDef.name,
-        )
+        val typeConstructor = Type.Constructor(structDef.name)
         return if (structDef.typeParams != null)
             Type.Application(
                 typeConstructor,
