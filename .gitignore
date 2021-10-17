@@ -16,3 +16,4 @@ hdc
 /node_modules
 *.obj
 /venv
+.DS_Store
