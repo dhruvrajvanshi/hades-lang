@@ -9,7 +9,6 @@ def logbackVersion = '1.2.5'
 def slf4jVersion = "1.7.30"
 group 'org.hades'
 
-sourceCompatibility = 11
 applicationName = 'hades'
 mainClassName = 'hadesc.MainKt'
 
@@ -33,6 +32,12 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(15)
+    }
+}
+
 test {
     workingDir = new File("..")
     environment['HADES_HOME'] = "."
@@ -50,7 +55,7 @@ test {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "15"
     kotlinOptions.useIR = true
     kotlinOptions {
         freeCompilerArgs = ["-Xinline-classes"]
@@ -58,7 +63,7 @@ compileKotlin {
     }
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "15"
 }
 
 applicationDistribution.from('../stdlib') {
