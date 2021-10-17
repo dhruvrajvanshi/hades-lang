@@ -10,7 +10,7 @@ import hadesc.types.Type
 
 open class AbstractHIRTransformer: HIRTransformer {
     override var statements: MutableList<HIRStatement>? = null
-    protected var basicBlocks: MutableList<HIRBlock>? = null
+    private var basicBlocks: MutableList<HIRBlock>? = null
 
     protected fun appendStatement(statement: HIRStatement) {
         checkNotNull(statements).add(statement)

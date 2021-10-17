@@ -73,7 +73,7 @@ class Context(
         unit
     }
 
-    fun mainPath() = makeSourcePath(options.main)
+    private fun mainPath() = makeSourcePath(options.main)
 
     private fun makeSourcePath(path: Path) = SourcePath(path)
 
@@ -89,7 +89,7 @@ class Context(
         return resolveSourceFile(qualifiedPathToName(modulePath))
     }
 
-    fun qualifiedPathToName(modulePath: QualifiedPath): QualifiedName {
+    private fun qualifiedPathToName(modulePath: QualifiedPath): QualifiedName {
         return QualifiedName(modulePath.identifiers.map { it.name })
     }
 

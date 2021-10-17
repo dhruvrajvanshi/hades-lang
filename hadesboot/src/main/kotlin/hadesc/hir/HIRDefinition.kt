@@ -125,9 +125,9 @@ sealed class HIRDefinition: HasLocation {
     fun prettyPrint(): String = when(this) {
         is Function -> {
             "${signature.prettyPrint()} {\n" +
-            basicBlocks.joinToString("\n") {
-                it.name.text + ":\n  " +
-                        it.statements.joinToString("\n  ") { it.prettyPrint() }
+            basicBlocks.joinToString("\n") { block ->
+                block.name.text + ":\n  " +
+                        block.statements.joinToString("\n  ") { it.prettyPrint() }
             } +
             "\n}"
         }

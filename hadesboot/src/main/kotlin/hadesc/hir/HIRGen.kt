@@ -917,8 +917,7 @@ class HIRGen(
     }
 
     private fun lowerAddressOfExpression(expression: Expression.AddressOf): HIRExpression {
-        val expr = expression.expression
-        return when (expr) {
+        return when (val expr = expression.expression) {
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(expr.name)
                 require(binding is Binding.ValBinding)
@@ -1310,9 +1309,9 @@ class HIRGen(
     private fun applyType(type: Type.TypeFunction, args: List<Type>): Type {
         require(type.params.size == args.size)
         return type.body.applySubstitution(
-            type.params.zip(args).map {
+            type.params.zip(args).associate {
                 it.first.binder.location to ctx.analyzer.reduceGenericInstances(it.second)
-            }.toMap()
+            }
         )
     }
 
