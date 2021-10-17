@@ -165,7 +165,7 @@ class Analyzer(
         declaration: Declaration.SealedType,
         case: Declaration.SealedType.Case
     ): Type {
-        val typeConstructor = Type.Constructor(declaration.name, ctx.resolver.qualifiedName(declaration.name))
+        val typeConstructor = Type.Constructor(ctx.resolver.qualifiedName(declaration.name))
         val instanceType = if (declaration.typeParams == null) {
             typeConstructor
         } else {
@@ -1133,10 +1133,7 @@ class Analyzer(
 
     private fun typeOfStructValueRef(binding: Binding.Struct): Type {
         val name = ctx.resolver.resolveGlobalName(binding.declaration.binder)
-        val constrType = Type.Constructor(
-            binding.declaration.binder,
-            name
-        )
+        val constrType = Type.Constructor(name)
         val instanceType = if (binding.declaration.typeParams == null) {
             constrType
         } else {
@@ -1556,7 +1553,7 @@ class Analyzer(
 
     private fun typeOfTraitTypeBinding(binding: TypeBinding.Trait): Type {
         val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
-        val typeConstructor = Type.Constructor(binder = binding.declaration.name, name = qualifiedName)
+        val typeConstructor = Type.Constructor(name = qualifiedName)
 
         return Type.TypeFunction(
             params = binding.declaration.params.map { Type.Param(it.binder) },
@@ -1568,7 +1565,7 @@ class Analyzer(
     }
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
         val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
-        val typeConstructor = Type.Constructor(binder = binding.declaration.binder, name = qualifiedName)
+        val typeConstructor = Type.Constructor(name = qualifiedName)
 
         return if (binding.declaration.typeParams == null) {
             typeConstructor
@@ -1584,7 +1581,7 @@ class Analyzer(
     }
     private fun typeOfSealedTypeBinding(binding: TypeBinding.SealedType): Type {
         val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
-        val typeConstructor = Type.Constructor(binder = binding.declaration.name, name = qualifiedName)
+        val typeConstructor = Type.Constructor(name = qualifiedName)
 
         return if (binding.declaration.typeParams == null) {
             typeConstructor
@@ -1706,7 +1703,6 @@ class Analyzer(
         val sealedTypeName = ctx.resolver.qualifiedName(declaration.name)
         return Type.UntaggedUnion(declaration.cases.map {  case ->
             val constructorType = Type.Constructor(
-                binder = null,
                 sealedTypeName.append(case.name.identifier.name)
             )
             if (declaration.typeParams != null) {

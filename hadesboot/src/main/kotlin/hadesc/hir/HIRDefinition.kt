@@ -87,7 +87,7 @@ sealed class HIRDefinition: HasLocation {
     ) : HIRDefinition() {
 
         val constructorType get(): Type {
-            val instanceConstructorType = Type.Constructor(null, name)
+            val instanceConstructorType = Type.Constructor(name)
             val instanceType =
                 if (typeParams == null)
                     instanceConstructorType
@@ -118,7 +118,7 @@ sealed class HIRDefinition: HasLocation {
 
         fun instanceType(): Type {
             check(typeParams == null)
-            return Type.Constructor(null, name)
+            return Type.Constructor(name)
         }
     }
 

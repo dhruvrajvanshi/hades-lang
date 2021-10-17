@@ -1,7 +1,6 @@
 package hadesc.hir
 
 import hadesc.analysis.TraitRequirement
-import hadesc.assertions.requireUnreachable
 import hadesc.types.Type
 import hadesc.unit
 
@@ -81,10 +80,7 @@ interface TypeTransformer {
 
     fun lowerBoolType(type: Type): Type = type
 
-    fun lowerTypeConstructor(type: Type.Constructor): Type = Type.Constructor(
-            type.binder,
-            name = type.name
-    )
+    fun lowerTypeConstructor(type: Type.Constructor): Type = type
 
     fun lowerParamRefType(type: Type.ParamRef): Type = type
 

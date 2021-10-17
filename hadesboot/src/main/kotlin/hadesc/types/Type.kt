@@ -34,7 +34,7 @@ sealed class Type {
             val to: Type
     ) : Type()
 
-    data class Constructor(val binder: Binder?, val name: QualifiedName) : Type()
+    data class Constructor(val name: QualifiedName) : Type()
 
     data class ParamRef(val name: Binder) : Type()
 
