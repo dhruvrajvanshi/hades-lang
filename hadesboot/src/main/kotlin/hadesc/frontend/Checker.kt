@@ -11,6 +11,8 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.types.emptySubstitution
+import hadesc.types.toSubstitution
 import hadesc.unit
 import libhades.collections.Stack
 
@@ -92,7 +94,7 @@ class Checker(val ctx: Context) {
         val associatedTypeSubstitution =
             implDef.body.filterIsInstance<Declaration.TypeAlias>().associate {
                 requireNotNull(expectedAssociatedTypes[it.name.name]).location to ctx.analyzer.annotationToType(it.rhs)
-            }
+            }.toSubstitution()
 
         for (declaration in implDef.body) {
             checkDeclaration(declaration)
@@ -134,8 +136,7 @@ class Checker(val ctx: Context) {
 
     private fun Declaration.TraitDef.expectedMethods(typeArguments: List<Type>): Map<Name, Type> {
         val map = mutableMapOf<Name, Type>()
-        val substitution = params.zip(typeArguments)
-            .associate { it.first.binder.location to it.second }
+        val substitution = params.zip(typeArguments).toSubstitution()
         for (method in signatures) {
             val paramTypes = method.params
                 .map { it.annotation to it.location }
@@ -330,10 +331,9 @@ class Checker(val ctx: Context) {
 
                     val substitution =
                         if (typeArguments != null && declaration.typeParams != null)
-                            declaration.typeParams.zip(typeArguments)
-                                .associate { it.first.binder.location to it.second }
+                            declaration.typeParams.zip(typeArguments).toSubstitution()
                         else
-                            emptyMap()
+                            emptySubstitution()
                     val fieldTypes = declaration.members.filterIsInstance<Declaration.Struct.Member.Field>()
                         .map { it.typeAnnotation.type }
                         .map { it.applySubstitution(substitution) }
@@ -343,10 +343,9 @@ class Checker(val ctx: Context) {
 
                     val substitution =
                         if (typeArguments != null && declaration.typeParams != null)
-                            declaration.typeParams.zip(typeArguments)
-                                .associate { it.first.binder.location to it.second }
+                            declaration.typeParams.zip(typeArguments).toSubstitution()
                         else
-                            emptyMap()
+                            emptySubstitution()
                     val memberTypes = declaration.cases
                         .asSequence()
                         .mapNotNull { it.params }
@@ -916,8 +915,7 @@ class Checker(val ctx: Context) {
         }
         val typeArgs = ctx.analyzer.getTypeArgs(genericCallee)
         if (fnTypeComponents.traitRequirements != null) {
-            val substitution = (fnTypeComponents.typeParams?: emptyList()).zip(typeArgs ?: emptyList())
-                .associate { (p, arg) -> p.binder.location to arg }
+            val substitution = (fnTypeComponents.typeParams?: emptyList()).zip(typeArgs ?: emptyList()).toSubstitution()
 
             checkTraitInstances(
                 callExpression,
@@ -932,8 +930,8 @@ class Checker(val ctx: Context) {
                 fnTypeComponents.from
             }
         val substitution = fnTypeComponents.typeParams?.zip(typeArgs ?: emptyList())
-            ?.associate { (param, type) -> param.binder.location to type }
-            ?: emptyMap()
+            ?.toSubstitution()
+            ?: emptySubstitution()
         fromTypes.zip(args).forEach { (expectedType, arg) ->
             checkExpressionHasType(arg, expectedType.applySubstitution(substitution))
         }

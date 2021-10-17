@@ -8,11 +8,11 @@ import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
-import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Substitution
 import hadesc.types.Type
+import hadesc.types.toSubstitution
 import java.util.concurrent.LinkedBlockingQueue
 
 class Monomorphization(
@@ -20,7 +20,7 @@ class Monomorphization(
 ): AbstractHIRTransformer() {
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
-    private var currentSpecialization: Map<SourceLocation, Type>? = null
+    private var currentSpecialization: Substitution? = null
     private val allImpls by lazy {
         oldModule.definitions.filterIsInstance<HIRDefinition.Implementation>()
     }
@@ -183,12 +183,12 @@ class Monomorphization(
         else -> requireUnreachable()
     }
 
-    private fun makeSubstitution(typeParams: List<HIRTypeParam>?, typeArgs: List<Type>): Map<SourceLocation, Type> {
+    private fun makeSubstitution(typeParams: List<HIRTypeParam>?, typeArgs: List<Type>): Substitution {
         require(typeParams != null)
         require(typeParams.size == typeArgs.size)
         return typeParams.zip(typeArgs).associate {
             it.first.location to lowerType(it.second)
-        }
+        }.toSubstitution()
     }
 
     private val queuedSpecializationSet = mutableSetOf<QualifiedName>()
@@ -287,9 +287,10 @@ class Monomorphization(
         for (candidate in allImpls) {
             val typeAnalyzer = TypeAnalyzer()
             if (candidate.traitName != traitName) continue
-            val substitution =
+            val substitutionMap =
                 candidate.typeParams?.associate { it.location to typeAnalyzer.makeGenericInstance(it.toBinder()) }
                 ?: emptyMap()
+            val substitution = substitutionMap.toSubstitution()
             if (!traitArgs.zip(candidate.traitArgs).all { (requiredType, actualType) ->
                     typeAnalyzer.isTypeAssignableTo(
                         destination = requiredType,
@@ -306,10 +307,10 @@ class Monomorphization(
                         requirement.traitRef,
                         requirement.arguments.map { it.applySubstitution(substitution) }) })
                 continue
-            val subst = (substitution.mapValues {
+            val subst = (substitutionMap.mapValues {
                 requireNotNull(typeAnalyzer.getInstantiatedType(it.value)) })
             eligibleCandidates.add(
-                    candidate to subst
+                    candidate to subst.toSubstitution()
             )
         }
         require(eligibleCandidates.isNotEmpty()) {
@@ -331,7 +332,7 @@ class Monomorphization(
         requireUnreachable()
     }
 
-    private fun generateImplAssociatedTypeMap(candidate: HIRDefinition.Implementation, subst: Map<SourceLocation, Type>): Map<Name, Type> {
+    private fun generateImplAssociatedTypeMap(candidate: HIRDefinition.Implementation, subst: Substitution): Map<Name, Type> {
         return candidate.typeAliases.mapValues { it.value.applySubstitution(subst) }
     }
 
