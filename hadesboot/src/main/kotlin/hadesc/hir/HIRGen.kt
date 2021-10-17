@@ -1215,7 +1215,7 @@ class HIRGen(
 
         when (val instance = genericInstanceFound) {
             null -> {}
-            else -> ctx.diagnosticReporter.report(node.location, Diagnostic.Kind.UninferrableTypeParam(instance.name))
+            else -> ctx.diagnosticReporter.report(node.location, Diagnostic.Kind.UninferrableTypeParam(instance.originalName, instance.location))
         }
     }
 

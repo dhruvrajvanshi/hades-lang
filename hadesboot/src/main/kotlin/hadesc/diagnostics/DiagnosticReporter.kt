@@ -45,7 +45,7 @@ data class Diagnostic(
         data class NoSuchProperty(val type: Type, val property: Name) : Diagnostic.Kind(Severity.ERROR)
         data class UnboundType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
-        data class UninferrableTypeParam(val binder: Binder) : Diagnostic.Kind(Severity.ERROR)
+        data class UninferrableTypeParam(val name: Name, val location: SourceLocation) : Diagnostic.Kind(Severity.ERROR)
         data class IncompleteType(val requiredArgs: Int) : Diagnostic.Kind(Severity.ERROR)
         data class TypeNotEqualityComparable(val type: Type) : Diagnostic.Kind(Severity.ERROR)
         data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
@@ -124,7 +124,7 @@ data class Diagnostic(
             is TypeNotAssignable -> "Type ${source.prettyPrint()} is not assignable to ${destination.prettyPrint()}"
             is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named ${property.text}"
             is UnboundType -> "Unbound type variable ${name.text}"
-            is UninferrableTypeParam -> "Uninferrable type parameter ${binder.identifier.name.text}; Explicit type annotation required. (Defined at ${binder.identifier.location})"
+            is UninferrableTypeParam -> "Uninferrable type parameter ${name.text}; Explicit type annotation required. (Defined at ${location})"
             is IncompleteType -> "Incomplete type; Required $requiredArgs arg(s)"
             UnboundThis -> "'this' is not bound. Try adding a receiver parameter to the enclosing function"
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
