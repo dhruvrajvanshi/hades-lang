@@ -8,7 +8,6 @@ class Stack<T> {
         items.add(value)
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     fun pop(): T {
         require(!isEmpty()) { "EmptyStack" }
         return items.removeLast()
@@ -17,7 +16,7 @@ class Stack<T> {
     fun peek(): T? = items.lastOrNull()
 
     val size = items.size
-    fun isEmpty() = items.isEmpty()
+    private fun isEmpty() = items.isEmpty()
 
     operator fun iterator() = items.asReversed().iterator()
 }
