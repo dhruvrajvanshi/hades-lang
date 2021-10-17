@@ -11,7 +11,7 @@ val slf4jVersion = "1.7.30"
 application {
     group = "org.hades"
     applicationName = "hades"
-    mainClassName = "hadesc.MainKt"
+    mainClass.set("hadesc.MainKt")
 }
 
 repositories {
@@ -47,10 +47,8 @@ tasks.test {
 
 tasks.compileKotlin {
     kotlinOptions.jvmTarget = "15"
-    kotlinOptions.useIR = true
     kotlinOptions {
         freeCompilerArgs = listOf("-Xinline-classes")
-        languageVersion = "1.5"
     }
 }
 tasks.compileTestKotlin {
