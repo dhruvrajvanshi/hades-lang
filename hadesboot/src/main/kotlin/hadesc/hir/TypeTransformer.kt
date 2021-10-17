@@ -21,7 +21,6 @@ interface TypeTransformer {
         is Type.TypeFunction -> lowerTypeFunction(type)
         is Type.Integral -> lowerIntegralType(type)
         is Type.FloatingPoint -> lowerFloatingPointType(type)
-        is Type.Uninferrable -> requireUnreachable()
         is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
         is Type.Select -> lowerSelectType(type)
         is Type.Array -> lowerArrayType(type)
@@ -118,7 +117,6 @@ interface TypeVisitor {
         is Type.TypeFunction -> visitTypeFunction(type)
         is Type.Integral -> visitIntegralType(type)
         is Type.FloatingPoint -> visitFloatingPointType(type)
-        is Type.Uninferrable -> visitUninferrableType(type)
         is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
         is Type.Select -> visitSelectType(type)
         is Type.Array -> visitArrayType(type)
@@ -133,8 +131,6 @@ interface TypeVisitor {
     }
 
     fun visitAssociatedTypeRef(type: Type.AssociatedTypeRef) = unit
-
-    fun visitUninferrableType(type: Type.Uninferrable) = Unit
 
     fun visitFloatingPointType(type: Type.FloatingPoint) = Unit
 
