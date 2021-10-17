@@ -45,8 +45,6 @@ sealed class Type {
         val id: Long
     ) : Type()
 
-    data class Uninferrable(val name: Binder) : Type()
-
     data class Application(val callee: Type, val args: List<Type>) : Type()
     data class UntaggedUnion(val members: List<Type>) : Type()
 
@@ -76,7 +74,6 @@ sealed class Type {
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
         is Integral -> "${if(isSigned) "i" else "u" }${size}"
         is FloatingPoint -> "f${size}"
-        is Uninferrable -> name.name.text
         is AssociatedTypeRef -> binder.identifier.name.text
         is Select -> "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}].${associatedTypeName.text}"
         is Array -> "[${ofType.prettyPrint()}; $length]"
@@ -122,7 +119,6 @@ sealed class Type {
                     params,
                     body.recurse()
             )
-            is Uninferrable -> this
             is AssociatedTypeRef -> {
                 substitution[this.binder.location] ?: this
             }

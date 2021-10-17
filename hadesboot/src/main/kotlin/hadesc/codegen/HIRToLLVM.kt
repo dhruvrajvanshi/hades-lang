@@ -553,7 +553,6 @@ class HIRToLLVM(
         is Type.Integral -> intType(type.size, llvmCtx)
         is Type.FloatingPoint -> floatType(type.size, llvmCtx)
         is Type.TypeFunction -> requireUnreachable()
-        is Type.Uninferrable -> requireUnreachable()
         is Type.AssociatedTypeRef -> requireUnreachable()
         is Type.Select -> requireUnreachable()
         is Type.Array -> arrayType(lowerType(type.ofType), type.length)
