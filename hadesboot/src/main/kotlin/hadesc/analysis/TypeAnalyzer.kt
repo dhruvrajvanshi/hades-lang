@@ -88,7 +88,8 @@ class TypeAnalyzer {
         val id = makeGenericInstanceId
         makeGenericInstanceId++
         return Type.GenericInstance(
-                binder,
+                binder.name,
+                binder.location,
                 id = id)
     }
 

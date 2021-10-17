@@ -41,7 +41,8 @@ sealed class Type {
     data class TypeFunction(val params: List<Param>, val body: Type): Type()
 
     data class GenericInstance(
-        val name: Binder,
+        val originalName: Name,
+        val location: SourceLocation,
         val id: Long
     ) : Type()
 
@@ -66,7 +67,7 @@ sealed class Type {
             "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
         is ParamRef -> this.name.identifier.name.text
-        is GenericInstance -> name.identifier.name.text
+        is GenericInstance -> originalName.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
         is Size -> if (isSigned) "isize" else "usize"
