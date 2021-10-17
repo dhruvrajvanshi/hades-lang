@@ -2,6 +2,8 @@ package hadesc.ast
 
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.types.Substitution
+import hadesc.types.Type
 
 data class Param(
     val binder: Binder,
@@ -32,3 +34,4 @@ data class TypeParam(
         return other is Binder && location == other.location
     }
 }
+fun Iterable<Pair<TypeParam, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.location to it.second })

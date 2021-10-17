@@ -3,6 +3,7 @@ package hadesc.analysis
 import hadesc.ast.Binder
 import hadesc.types.Substitution
 import hadesc.types.Type
+import hadesc.types.toSubstitution
 
 class TypeAnalyzer {
     private val genericInstances = mutableMapOf<Long, Type>()
@@ -92,7 +93,7 @@ class TypeAnalyzer {
     }
 
     fun makeParamSubstitution(params: List<Type.Param>): Substitution {
-        return params.associate { it.binder.location to makeGenericInstance(it.binder) }
+        return params.associate { it.binder.location to makeGenericInstance(it.binder) }.toSubstitution()
     }
 
 }

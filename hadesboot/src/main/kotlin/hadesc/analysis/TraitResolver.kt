@@ -3,6 +3,7 @@ package hadesc.analysis
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Substitution
 import hadesc.types.Type
+import hadesc.types.emptySubstitution
 
 class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: TypeAnalyzer) {
     data class Env<Def>(val clauses: List<TraitClause<Def>>) {
@@ -59,7 +60,7 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
                         return null
                     }
                 }
-                emptyMap()
+                emptySubstitution()
             }
         }
     }

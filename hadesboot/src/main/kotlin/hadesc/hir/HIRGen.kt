@@ -15,6 +15,7 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import llvm.makeList
 
@@ -1311,7 +1312,7 @@ class HIRGen(
         return type.body.applySubstitution(
             type.params.zip(args).associate {
                 it.first.binder.location to ctx.analyzer.reduceGenericInstances(it.second)
-            }
+            }.toSubstitution()
         )
     }
 

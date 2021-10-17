@@ -85,7 +85,7 @@ sealed class Type {
         else -> false
     }
 
-    fun applySubstitution(substitution: Map<SourceLocation, Type>, thisType: Type? = null): Type {
+    fun applySubstitution(substitution: Substitution, thisType: Type? = null): Type {
         fun Type.recurse(): Type {
             return applySubstitution(substitution, thisType)
         }
@@ -144,5 +144,14 @@ sealed class Type {
     }
 }
 
-typealias Substitution = Map<SourceLocation, Type>
+private val emptySubstitutionValue = Substitution(ofMap = emptyMap())
+fun emptySubstitution() = emptySubstitutionValue
+class Substitution(ofMap: Map<SourceLocation, Type>) {
+    private val map: Map<SourceLocation, Type> = ofMap
 
+    operator fun get(location: SourceLocation): Type? = map[location]
+
+    fun mapValues(transform: (Map.Entry<SourceLocation, Type>) -> Type) = Substitution(ofMap = map.mapValues(transform))
+}
+fun Map<SourceLocation, Type>.toSubstitution() = Substitution(ofMap = this)
+fun Iterable<Pair<Type.Param, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.binder.location to it.second })
