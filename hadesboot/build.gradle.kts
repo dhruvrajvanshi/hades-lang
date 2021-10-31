@@ -1,12 +1,12 @@
 plugins {
     java
     application
-    kotlin("jvm") version "1.5.31"
+    kotlin("jvm") version "1.6.0-RC"
     jacoco
 }
 
 val logbackVersion = "1.2.6"
-val slf4jVersion = "1.7.30"
+val slf4jVersion = "1.7.32"
 
 application {
     group = "org.hades"
@@ -22,15 +22,15 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("ch.qos.logback:logback-core:$logbackVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
-    implementation("org.apache.commons:commons-lang3:3.10")
-    implementation("com.diogonunes:JColor:5.0.0")
+    implementation("org.apache.commons:commons-lang3:3.12.0")
+    implementation("com.diogonunes:JColor:5.2.0")
     implementation("com.github.ajalt.clikt:clikt:3.3.0")
     implementation("org.bytedeco:llvm-platform:12.0.1-1.5.6")
 
     testImplementation(kotlin("test"))
 
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
 }
 
 java {
