@@ -452,13 +452,7 @@
 			},
 			"patterns": [
 				{
-					"begin": "(?<=([=]\\s*))",
-					"end": "(?=([\n;]))",
-					"patterns": [
-						{
-							"include": "#expressions"
-						}
-					]
+					"include": "#expressions"
 				}
 			]
 		},
