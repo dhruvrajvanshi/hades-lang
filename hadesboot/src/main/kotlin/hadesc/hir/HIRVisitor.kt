@@ -20,7 +20,6 @@ interface HIRVisitor : TypeVisitor {
             is HIRStatement.Store -> visitStore(statement)
             is HIRStatement.ValDeclaration -> visitValDeclaration(statement)
             is HIRStatement.While -> visitWhileStatement(statement)
-            is HIRStatement.Branch -> visitBranchStatement(statement)
             is HIRStatement.SwitchInt -> visitConditionalBranchStatement(statement)
         }
     }
@@ -28,8 +27,6 @@ interface HIRVisitor : TypeVisitor {
     fun visitConditionalBranchStatement(statement: HIRStatement.SwitchInt) {
         visitExpression(statement.condition)
     }
-
-    fun visitBranchStatement(statement: HIRStatement.Branch) {}
 
     fun visitWhileStatement(statement: HIRStatement.While) {
         visitExpression(statement.condition)

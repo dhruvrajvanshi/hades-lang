@@ -53,12 +53,6 @@ sealed interface HIRStatement: HIRNode {
         return "${prettyPrintInternal()} // $location"
     }
 
-
-    data class Branch(
-        override val location: SourceLocation,
-        val toBranchName: Name
-    ) : HIRStatement
-
     data class SwitchInt(
         override val location: SourceLocation,
         val condition: HIRExpression,
@@ -76,7 +70,6 @@ sealed interface HIRStatement: HIRNode {
         is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint()}\nelse ${falseBranch.prettyPrint()}"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
-        is Branch -> "br ${toBranchName.text}"
         is SwitchInt -> "switch ${condition.prettyPrint()} [\n    " +
                 cases.joinToString { "case ${it.value.prettyPrint()}: ${it.block.text}\n    " } +
                 "otherwise: ${otherwise.text}\n" +

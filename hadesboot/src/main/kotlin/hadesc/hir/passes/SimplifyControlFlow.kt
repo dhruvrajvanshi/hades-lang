@@ -122,6 +122,18 @@ class SimplifyControlFlow(private val ctx: Context) {
         )
     }
 
+    private fun goto(location: SourceLocation, branch: Name): HIRStatement.SwitchInt {
+        val trueValue = HIRConstant.IntValue(location, Type.Bool, 1)
+        return HIRStatement.SwitchInt(
+            location,
+            HIRExpression.Constant(trueValue),
+            listOf(
+                SwitchIntCase(trueValue, branch)
+            ),
+            branch
+        )
+    }
+
     private fun lowerIfStatement(statement: HIRStatement.If) {
         val startingBlock = checkNotNull(currentBlock)
         val ifTrue = appendBasicBlock(HIRBlock(statement.trueBranch.location, ctx.makeUniqueName()))
@@ -149,10 +161,10 @@ class SimplifyControlFlow(private val ctx: Context) {
         )
 
         terminateBlock(ifTrue) {
-            HIRStatement.Branch(statement.trueBranch.location, endBranchName)
+            goto(statement.trueBranch.location, endBranchName)
         }
         terminateBlock(ifFalse) {
-            HIRStatement.Branch(statement.falseBranch.location, endBranchName)
+            goto(statement.falseBranch.location, endBranchName)
         }
 
         currentBlock = end
@@ -174,10 +186,6 @@ class SimplifyControlFlow(private val ctx: Context) {
                 when (val statement = branch.statements.last()) {
                     is HIRStatement.Return -> Unit
                     is HIRStatement.ReturnVoid -> Unit
-                    is HIRStatement.Branch -> {
-                        val block1 = getBlock(statement.toBranchName)
-                        visitBlock(block1)
-                    }
                     is HIRStatement.SwitchInt -> {
                         for (case in statement.cases) {
                             visitBlock(getBlock(case.block))
@@ -203,7 +211,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Return,
             is HIRStatement.SwitchInt,
             is HIRStatement.ReturnVoid,
-            is HIRStatement.Branch -> true
+                -> true
 
             is HIRStatement.If -> requireUnreachable()
             is HIRStatement.While -> requireUnreachable()

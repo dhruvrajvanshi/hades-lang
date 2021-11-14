@@ -145,7 +145,6 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
         is HIRStatement.While -> transformWhileStatement(statement)
         is HIRStatement.Store -> transformStoreStatement(statement)
-        is HIRStatement.Branch -> transformBranchStatement(statement)
         is HIRStatement.SwitchInt -> transformSwitchInt(statement)
     }
 
@@ -158,10 +157,6 @@ interface HIRTransformer: TypeTransformer {
                 statement.otherwise,
             )
         )
-    }
-
-    fun transformBranchStatement(statement: HIRStatement.Branch): Collection<HIRStatement> {
-        return listOf(statement)
     }
 
     fun transformStoreStatement(statement: HIRStatement.Store): Collection<HIRStatement> {

@@ -159,7 +159,6 @@ class HIRToLLVM(
             is HIRStatement.ReturnVoid -> { builder.buildRetVoid(); unit }
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.ValDeclaration -> lowerValDeclaration(statement)
-            is HIRStatement.Branch -> lowerBranch(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
             is HIRStatement.If,
             is HIRStatement.While -> requireUnreachable {
@@ -193,10 +192,6 @@ class HIRToLLVM(
             LLVM.LLVMABIAlignmentOfType(dataLayout, lowerType(statement.type))
         )
         localPointers[statement.name] = value
-    }
-
-    private fun lowerBranch(statement: HIRStatement.Branch) {
-        builder.buildBr(getBlock(statement.toBranchName))
     }
 
     private fun lowerSwitchInt(statement: HIRStatement.SwitchInt) {
