@@ -601,7 +601,7 @@ class HIRGen(
             is Expression.Intrinsic -> requireUnreachable()
             is Expression.UnaryMinus -> lowerUnaryMinus(expression)
             is Expression.ByteCharLiteral -> lowerByteCharExpression(expression)
-            is Expression.Match -> TODO()
+            is Expression.Match -> lowerMatchExpression(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -635,6 +635,52 @@ class HIRGen(
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerMatchExpression(expression: Expression.Match): HIRExpression {
+        val resultType = typeOfExpression(expression)
+        val discriminantType = typeOfExpression(expression.value)
+        val result = declareVariable(expression.location, resultType)
+        check(expression.value.type.isIntegral())
+        val arms = expression.arms.takeWhile { it.pattern !is Pattern.Wildcard }
+        val elseArm = expression.arms.find { it.pattern is Pattern.Wildcard }
+        check(elseArm != null)
+        val elseBlockName = ctx.makeUniqueName()
+
+        addStatement(
+            HIRStatement.MatchInt(
+                expression.location,
+                lowerExpression(expression.value),
+                arms.map { arm ->
+                    check(arm.pattern is Pattern.IntLiteral)
+
+                    val blockName = ctx.makeUniqueName()
+                    MatchIntArm(
+                        HIRConstant.IntValue(arm.location, discriminantType, arm.pattern.value.toInt()),
+                        HIRBlock(arm.location, blockName, mutableListOf(
+                            HIRStatement.Assignment(
+                                arm.location,
+                                result.name,
+                                lowerExpression(arm.value)
+                            )
+                        ))
+                    )
+                },
+                HIRBlock(
+                    elseArm.location,
+                    elseBlockName,
+                    mutableListOf(
+                        HIRStatement.Assignment(
+                            elseArm.location,
+                            result.name,
+                            lowerExpression(elseArm.value)
+                        )
+                    )
+                )
+            )
+        )
+
+        return result
     }
 
     private fun lowerByteCharExpression(expression: Expression.ByteCharLiteral): HIRExpression {
