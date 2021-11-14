@@ -943,14 +943,24 @@ class HIRGen(
                 lowerTypeAnnotation(expression.type))
     }
 
-    private fun lowerIfExpression(expression: Expression.If): HIRExpression {
+    private fun declareVariable(location: SourceLocation, type: Type): HIRExpression.ValRef {
         val name = ctx.makeUniqueName()
         addStatement(HIRStatement.ValDeclaration(
-                expression.location,
-                name,
-                type = typeOfExpression(expression),
-                isMutable = false)
+            location,
+            name,
+            type = type,
+            isMutable = false)
         )
+
+        return HIRExpression.ValRef(
+            location,
+            type,
+            name,
+        )
+    }
+    private fun lowerIfExpression(expression: Expression.If): HIRExpression {
+        val result = declareVariable(expression.location, typeOfExpression(expression))
+        val name = result.name
         val trueBlock = buildBlock(expression.trueBranch.location) {
             addStatement(HIRStatement.Assignment(
                 expression.location,
@@ -971,11 +981,7 @@ class HIRGen(
                 trueBlock,
                 falseBlock
         ))
-        return HIRExpression.ValRef(
-            expression.location,
-            typeOfExpression(expression),
-            name,
-        )
+        return result
     }
 
     private fun lowerNullPtr(expression: Expression.NullPtr): HIRExpression {
