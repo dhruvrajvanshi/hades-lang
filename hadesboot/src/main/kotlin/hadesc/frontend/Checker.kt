@@ -574,8 +574,47 @@ class Checker(val ctx: Context) {
             is Expression.Intrinsic -> checkIntrinsicExpression(expression)
             is Expression.UnaryMinus -> checkUnaryMinusExpression(expression)
             is Expression.ByteCharLiteral -> unit
-            is Expression.Match -> TODO()
+            is Expression.Match -> checkMatchExpression(expression)
         })
+    }
+
+    private fun checkMatchExpression(expression: Expression.Match) {
+        checkExpression(expression.value)
+        val expectedType = expression.arms.firstOrNull()?.value?.type
+        if (expectedType != null) {
+            expression.arms.drop(1).forEach {
+                checkExpressionHasType(it.value, expectedType)
+            }
+        }
+        expression.arms.forEach {
+            checkPatternHasType(it.pattern, expression.value.type)
+        }
+
+        if (!expression.value.type.isIntegral()) {
+            error(expression, Diagnostic.Kind.NotAnIntegralValue)
+        }
+
+        checkPatternExhaustivity(expression.value, expression.value.type, expression.arms)
+
+    }
+
+    private fun checkPatternHasType(pattern: Pattern, type: Type) {
+        when (pattern) {
+            is Pattern.IntLiteral -> {
+                if (type !is Type.Integral) {
+                    error(pattern, Diagnostic.Kind.NotAnIntegralValue)
+                }
+            }
+            is Pattern.Wildcard -> {}
+        }
+    }
+
+    private fun checkPatternExhaustivity(location: HasLocation, valueType: Type, arms: List<Expression.Match.Arm>) {
+        if (valueType.isIntegral()) {
+            if (arms.none { it.pattern is Pattern.Wildcard }) {
+                error(location, Diagnostic.Kind.NonExhaustivePrimitivePatterns)
+            }
+        }
     }
 
     private fun checkUnaryMinusExpression(expression: Expression.UnaryMinus) {
