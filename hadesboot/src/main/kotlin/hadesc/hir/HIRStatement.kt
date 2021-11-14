@@ -36,11 +36,11 @@ sealed interface HIRStatement: HIRNode {
             val value: HIRExpression
     ) : HIRStatement
 
-    data class If(
-            override val location: SourceLocation,
-            val condition: HIRExpression,
-            val trueBranch: HIRBlock,
-            val falseBranch: HIRBlock
+    data class MatchInt(
+        override val location: SourceLocation,
+        val value: HIRExpression,
+        val arms: List<MatchIntArm>,
+        val otherwise: HIRBlock
     ) : HIRStatement
 
     data class While(
@@ -67,7 +67,10 @@ sealed interface HIRStatement: HIRNode {
         is ReturnVoid -> "return"
         is ValDeclaration -> "val ${name.text}: ${type.prettyPrint()}"
         is Assignment -> "${name.text} = ${value.prettyPrint()}"
-        is If -> "if ${condition.prettyPrint()} ${trueBranch.prettyPrint()}\nelse ${falseBranch.prettyPrint()}"
+        is MatchInt -> "match ${value.prettyPrint()} {\n    " +
+                arms.joinToString { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("  ")}" } +
+                "otherwise -> ${otherwise.prettyPrint()}" +
+                "  }"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
         is SwitchInt -> "switch ${condition.prettyPrint()} [\n    " +
@@ -75,9 +78,40 @@ sealed interface HIRStatement: HIRNode {
                 "otherwise: ${otherwise.text}\n" +
                 "  ]"
     }
+
+    companion object {
+        @JvmStatic
+        fun ifStatement(
+            location: SourceLocation,
+            condition: HIRExpression,
+            trueBranch: HIRBlock,
+            falseBranch: HIRBlock
+        ): HIRStatement {
+            return MatchInt(
+                location,
+                condition,
+                listOf(
+                    MatchIntArm(
+                        value = HIRConstant.IntValue(
+                            location,
+                            Type.Bool,
+                            1
+                        ),
+                        trueBranch
+                    )
+                ),
+                falseBranch
+            )
+        }
+    }
 }
 
 data class SwitchIntCase(
     val value: HIRConstant.IntValue,
     val block: Name
+)
+
+data class MatchIntArm(
+    val value: HIRConstant.IntValue,
+    val block: HIRBlock
 )

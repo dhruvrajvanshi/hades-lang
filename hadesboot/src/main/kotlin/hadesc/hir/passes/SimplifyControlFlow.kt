@@ -6,6 +6,7 @@ import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.location.SourceLocation
 import hadesc.types.Type
+import llvm.makeList
 
 /**
  * Converts all structured control flow (if/else, while, etc)
@@ -73,7 +74,7 @@ class SimplifyControlFlow(private val ctx: Context) {
 
     private fun lowerStatement(statement: HIRStatement) =
         when(statement) {
-            is HIRStatement.If -> lowerIfStatement(statement)
+            is HIRStatement.MatchInt -> lowerMatchInt(statement)
             is HIRStatement.While -> lowerWhileStatement(statement)
             else -> appendStatement(statement)
         }
@@ -134,37 +135,50 @@ class SimplifyControlFlow(private val ctx: Context) {
         )
     }
 
-    private fun lowerIfStatement(statement: HIRStatement.If) {
+    private fun lowerMatchInt(statement: HIRStatement.MatchInt) {
         val startingBlock = checkNotNull(currentBlock)
-        val ifTrue = appendBasicBlock(HIRBlock(statement.trueBranch.location, ctx.makeUniqueName()))
-        withinBlock(ifTrue) {
-            lowerBlock(statement.trueBranch)
+        val armBlocks = makeList {
+            for (arm in statement.arms) {
+                val branch = arm.block
+                val branchBlock = appendBasicBlock(HIRBlock(branch.location, ctx.makeUniqueName()))
+                withinBlock(branchBlock) {
+                    lowerBlock(branch)
+                }
+                add(arm to branchBlock)
+            }
         }
-        val ifFalse = appendBasicBlock(HIRBlock(statement.falseBranch.location, ctx.makeUniqueName()))
-        withinBlock(ifFalse) {
-            lowerBlock(statement.falseBranch)
+        val otherwise = appendBasicBlock(HIRBlock(statement.otherwise.location, ctx.makeUniqueName()))
+        withinBlock(otherwise) {
+            lowerBlock(statement.otherwise)
         }
 
         val end = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName()))
 
-        val trueBranchName = checkNotNull(ifTrue.name)
-        val falseBranchName = checkNotNull(ifFalse.name)
+        val otherwiseBranchName = checkNotNull(otherwise.name)
         val endBranchName = checkNotNull(end.name)
 
         startingBlock.statements.add(
-            condBr(
-                statement.condition.location,
-                statement.condition,
-                trueBranchName,
-                falseBranchName
+            HIRStatement.SwitchInt(
+                statement.value.location,
+                statement.value,
+                armBlocks.map { (arm, armBlock) ->
+                    val armBlockName = checkNotNull(armBlock.name)
+                    SwitchIntCase(
+                        arm.value,
+                        armBlockName
+                    )
+                },
+                otherwiseBranchName
             )
         )
 
-        terminateBlock(ifTrue) {
-            goto(statement.trueBranch.location, endBranchName)
+        for ((arm, armBlock) in armBlocks) {
+            terminateBlock(armBlock) {
+                goto(arm.block.location, endBranchName)
+            }
         }
-        terminateBlock(ifFalse) {
-            goto(statement.falseBranch.location, endBranchName)
+        terminateBlock(otherwise) {
+            goto(statement.otherwise.location, endBranchName)
         }
 
         currentBlock = end
@@ -213,7 +227,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.ReturnVoid,
                 -> true
 
-            is HIRStatement.If -> requireUnreachable()
+            is HIRStatement.MatchInt -> requireUnreachable()
             is HIRStatement.While -> requireUnreachable()
         }
     }

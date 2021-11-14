@@ -84,7 +84,7 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
                 )
             )
             blockStatements.add(
-                HIRStatement.If(
+                HIRStatement.ifStatement(
                     case.expression.location,
                     HIRExpression.BinOp(
                         case.expression.location,

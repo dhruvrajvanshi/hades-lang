@@ -14,7 +14,7 @@ interface HIRVisitor : TypeVisitor {
         return when (statement) {
             is HIRStatement.Assignment -> visitAssignmentStatement(statement)
             is HIRStatement.Expression -> visitExpressionStatement(statement)
-            is HIRStatement.If -> visitIfStatement(statement)
+            is HIRStatement.MatchInt -> visitMatchInt(statement)
             is HIRStatement.Return -> visitReturnStatement(statement)
             is HIRStatement.ReturnVoid -> unit
             is HIRStatement.Store -> visitStore(statement)
@@ -47,10 +47,12 @@ interface HIRVisitor : TypeVisitor {
         visitExpression(statement.expression)
     }
 
-    fun visitIfStatement(statement: HIRStatement.If) {
-        visitExpression(statement.condition)
-        visitBlock(statement.trueBranch)
-        visitBlock(statement.falseBranch)
+    fun visitMatchInt(statement: HIRStatement.MatchInt) {
+        visitExpression(statement.value)
+        for (arm in statement.arms) {
+            visitBlock(arm.block)
+        }
+        visitBlock(statement.otherwise)
     }
 
     fun visitExpressionStatement(statement: HIRStatement.Expression) {

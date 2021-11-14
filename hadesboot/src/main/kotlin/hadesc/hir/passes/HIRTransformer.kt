@@ -141,7 +141,7 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.ReturnVoid -> transformRetVoidStatement(statement)
         is HIRStatement.ValDeclaration -> transformValDeclaration(statement)
-        is HIRStatement.If -> transformIfStatement(statement)
+        is HIRStatement.MatchInt -> transformMatchInt(statement)
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
         is HIRStatement.While -> transformWhileStatement(statement)
         is HIRStatement.Store -> transformStoreStatement(statement)
@@ -189,14 +189,19 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformIfStatement(statement: HIRStatement.If): Collection<HIRStatement> {
+    fun transformMatchInt(statement: HIRStatement.MatchInt): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.If(
-                        statement.location,
-                        transformExpression(statement.condition),
-                        transformBlock(statement.trueBranch),
-                        transformBlock(statement.falseBranch)
-                )
+            HIRStatement.MatchInt(
+                statement.location,
+                transformExpression(statement.value),
+                statement.arms.map {
+                    MatchIntArm(
+                        it.value,
+                        transformBlock(it.block)
+                    )
+                },
+                transformBlock(statement.otherwise)
+            )
         )
     }
 

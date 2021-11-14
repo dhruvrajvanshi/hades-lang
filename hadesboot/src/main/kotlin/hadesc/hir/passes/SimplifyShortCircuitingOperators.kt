@@ -8,6 +8,7 @@ import hadesc.hir.HIRExpression.Constant
 import hadesc.hir.HIRExpression.ValRef
 import hadesc.hir.HIRStatement.*
 import hadesc.hir.BinaryOperator
+import hadesc.hir.HIRStatement
 import hadesc.types.Type
 
 class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer() {
@@ -36,7 +37,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                     )
                 )
                 appendStatement(
-                    If(
+                    Companion.ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
                         trueBranch = HIRBlock(expression.lhs.location, ctx.makeUniqueName(), mutableListOf(
@@ -86,7 +87,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                     )
                 )
                 appendStatement(
-                    If(
+                    HIRStatement.ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
                         trueBranch = HIRBlock(

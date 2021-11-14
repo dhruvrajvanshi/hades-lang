@@ -8,6 +8,7 @@ import hadesc.context.Context
 import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
+import hadesc.hir.HIRStatement.Companion.ifStatement
 import hadesc.hir.transformers.ParamToLocal
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
@@ -534,16 +535,16 @@ class HIRGen(
 
     private fun lowerIfStatement(statement: Statement.If): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.If(
+            ifStatement(
+                location = statement.location,
+                condition = lowerExpression(statement.condition),
+                trueBranch = lowerBlock(statement.ifTrue),
+                falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: HIRBlock(
                         location = statement.location,
-                        condition = lowerExpression(statement.condition),
-                        trueBranch = lowerBlock(statement.ifTrue),
-                        falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: HIRBlock(
-                                location = statement.location,
-                                statements = mutableListOf(),
-                                name = ctx.makeUniqueName()
-                        )
+                        statements = mutableListOf(),
+                        name = ctx.makeUniqueName()
                 )
+            )
         )
     }
 
@@ -964,7 +965,7 @@ class HIRGen(
                 lowerExpression(expression.falseBranch)
             ))
         }
-        addStatement(HIRStatement.If(
+        addStatement(ifStatement(
                 expression.location,
                 lowerExpression(expression.condition),
                 trueBlock,
