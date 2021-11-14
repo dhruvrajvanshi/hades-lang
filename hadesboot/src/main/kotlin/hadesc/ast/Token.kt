@@ -39,6 +39,7 @@ data class Token(
         WHERE,
         THIS,
         EXTENSION,
+        MATCH,
 
         NOT,
         AND,

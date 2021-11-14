@@ -22,7 +22,7 @@ private val statementPredictors = setOf(
     tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
     tt.DEFER
 )
-private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE) + statementPredictors
+private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE, tt.MATCH) + statementPredictors
 private val byteStringEscapes = mapOf(
         'n' to '\n',
         '0' to '\u0000',
@@ -852,6 +852,7 @@ class Parser(
             tt.AT_INTRINSIC -> parseIntrinsicExpression()
             tt.MINUS -> parseUnaryMinusExpression()
             tt.BYTE_CHAR_LITERAL -> parseByteCharLiteral()
+            tt.MATCH -> parseMatchExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -859,6 +860,58 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseMatchExpression(): Expression {
+        val start = expect(tt.MATCH)
+        val value = parseExpression()
+        expect(tt.LBRACE)
+
+        val arms = mutableListOf<Expression.Match.Arm>()
+
+        while (!at(tt.RBRACE) && !at(tt.EOF)) {
+            val pattern = parsePattern()
+            expect(tt.ARROW)
+            val armValue = parseExpression()
+            if (!at(tt.RBRACE) && armValue.location.stop.line == currentToken.location.start.line) {
+                expect(tt.COMMA)
+            } else if (at(tt.COMMA)) {
+                advance()
+            }
+
+            arms.add(Expression.Match.Arm(pattern, armValue))
+
+        }
+
+        val end = expect(tt.RBRACE)
+        val location = SourceLocation.between(start, end)
+        return Expression.Match(
+            location,
+            value,
+            arms
+        )
+    }
+
+    private fun parsePattern(): Pattern = when(currentToken.kind) {
+        tt.INT_LITERAL -> {
+            val tok = advance()
+            Pattern.IntLiteral(
+                tok.location,
+                tok.text.toLong()
+            )
+        }
+        tt.ID -> {
+            if (currentToken.text == "_") {
+                val tok = advance()
+                Pattern.Wildcard(tok.location)
+            } else {
+                syntaxError(advance().location, Diagnostic.Kind.PatternExpected)
+            }
+        }
+        else -> {
+            val location = advance().location
+            syntaxError(location, Diagnostic.Kind.PatternExpected)
+        }
     }
 
     private fun parseByteCharLiteral(): Expression {

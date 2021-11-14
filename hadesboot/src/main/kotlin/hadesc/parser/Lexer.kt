@@ -43,6 +43,7 @@ val KEYWORDS = mapOf(
     "where" to tt.WHERE,
     "this" to tt.THIS,
     "extension" to tt.EXTENSION,
+    "match" to tt.MATCH,
     "@" to tt.AT_SYMBOL,
     "@intrinsic" to tt.AT_INTRINSIC,
 )
