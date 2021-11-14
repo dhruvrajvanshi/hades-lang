@@ -836,7 +836,12 @@ class Analyzer(
             is Expression.Intrinsic -> inferIntrinsicExpression(expression)
             is Expression.UnaryMinus -> inferUnaryMinus(expression)
             is Expression.ByteCharLiteral -> Type.Integral(8, isSigned = false)
+            is Expression.Match -> inferMatchExpression(expression)
         })
+    }
+
+    private fun inferMatchExpression(expression: Expression.Match): Type {
+        TODO()
     }
 
     private fun inferUnaryMinus(expression: Expression.UnaryMinus): Type {

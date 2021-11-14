@@ -168,6 +168,20 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val expression: Expression,
     ) : Expression()
+
+    data class Match(
+        override val location: SourceLocation,
+        val value: Expression,
+        val arms: List<Arm>
+    ) : Expression() {
+        data class Arm(
+            val pattern: Pattern,
+            val value: Expression
+        ): HasLocation {
+            override val location: SourceLocation
+                get() = SourceLocation.between(pattern, value)
+        }
+    }
 }
 
 enum class IntrinsicType {

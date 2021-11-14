@@ -23,4 +23,13 @@ def main(): Void {
 
         }
     }
+
+    val ival: usize = match 4 {
+        4 -> 1
+        _ -> 0
+    }
+
+    if ival == 0 {
+        puts(b"FAIL")
+    }
 }

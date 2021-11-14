@@ -82,6 +82,15 @@ interface SyntaxVisitor {
         is Expression.Intrinsic -> visitIntrinsicExpression(expression)
         is Expression.UnaryMinus -> visitUnaryMinusExpression(expression)
         is Expression.ByteCharLiteral -> visitByteCharExpression(expression)
+        is Expression.Match -> visitMatchExpression(expression)
+    }
+
+    fun visitMatchExpression(expression: Expression.Match) {
+        visitExpression(expression)
+        for (arm in expression.arms) {
+            visitPattern(arm.pattern)
+            visitExpression(arm.value)
+        }
     }
 
     fun visitByteCharExpression(expression: Expression.ByteCharLiteral) = unit
@@ -289,4 +298,13 @@ interface SyntaxVisitor {
     fun visitAddressOfExpr(expression: Expression.AddressOf) {
         visitExpression(expression.expression)
     }
+
+    fun visitPattern(pattern: Pattern): Unit = when(pattern) {
+        is Pattern.IntLiteral -> visitIntPattern(pattern)
+        is Pattern.Wildcard -> visitWildcardPattern(pattern)
+    }
+
+    fun visitWildcardPattern(pattern: Pattern.Wildcard) = unit
+
+    fun visitIntPattern(pattern: Pattern.IntLiteral) = unit
 }

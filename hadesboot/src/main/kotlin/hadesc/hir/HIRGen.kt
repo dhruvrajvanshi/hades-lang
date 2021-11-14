@@ -601,6 +601,7 @@ class HIRGen(
             is Expression.Intrinsic -> requireUnreachable()
             is Expression.UnaryMinus -> lowerUnaryMinus(expression)
             is Expression.ByteCharLiteral -> lowerByteCharExpression(expression)
+            is Expression.Match -> TODO()
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
