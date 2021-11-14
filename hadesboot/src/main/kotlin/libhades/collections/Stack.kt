@@ -16,7 +16,7 @@ class Stack<T> {
     fun peek(): T? = items.lastOrNull()
 
     val size = items.size
-    private fun isEmpty() = items.isEmpty()
+    fun isEmpty() = items.isEmpty()
 
     operator fun iterator() = items.asReversed().iterator()
 }

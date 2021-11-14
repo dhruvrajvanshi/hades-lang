@@ -2,11 +2,8 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.Name
-import hadesc.ast.Declaration
-import hadesc.ast.QualifiedPath
-import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
-import hadesc.ast.Expression
+import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
@@ -25,7 +22,8 @@ import java.nio.file.Path
 interface HasContext {
     val ctx: Context
 
-    val Expression.type get() = ctx.analyzer.typeOfExpression(this)
+    val Expression.type get(): Type = ctx.analyzer.typeOfExpression(this)
+    fun TypeAnnotation.toType(): Type = ctx.analyzer.annotationToType(this)
 }
 class Context(
     val options: BuildOptions

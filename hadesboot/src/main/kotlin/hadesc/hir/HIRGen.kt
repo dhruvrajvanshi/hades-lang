@@ -517,7 +517,7 @@ class HIRGen(
                 statement.location,
                 name,
                 statement.isMutable,
-                ctx.analyzer.reduceGenericInstances(statement.rhs.type)
+                statement.rhs.type,
             ),
             HIRStatement.Assignment(
                 statement.location,
@@ -593,7 +593,7 @@ class HIRGen(
             is Expression.This -> lowerThisExpression(expression)
             is Expression.Closure -> lowerClosure(expression)
             is Expression.UnsafeCast -> lowerUnsafeCast(expression)
-            is Expression.When -> lowerWhenExpression(expression)
+            is Expression.When -> TODO()
             is Expression.As -> lowerAsExpression(expression)
             is Expression.ArrayIndex -> lowerArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> lowerArrayLiteral(expression)
@@ -613,7 +613,7 @@ class HIRGen(
                 expression.location,
                 applyType(exprType, typeArgs),
                 lowered,
-                typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
+                typeArgs
             )
         } else {
             check(exprType !is Type.TypeFunction) {
@@ -623,8 +623,8 @@ class HIRGen(
         }
 
         val sealedTypeConstructorBinding = ctx.analyzer.getSealedTypeConstructorBinding(expression)
-        return if (sealedTypeConstructorBinding != null && expression !is Expression.TypeApplication) {
-            if (sealedTypeConstructorBinding.case.params == null) {
+        return if (expression !is Expression.TypeApplication) {
+            if (sealedTypeConstructorBinding != null && sealedTypeConstructorBinding.case.params == null) {
                 HIRExpression.Call(
                     expression.location,
                     withAppliedTypes.type,
@@ -803,64 +803,12 @@ class HIRGen(
             )
         return HIRExpression.Closure(
             expression.location,
-            ctx.analyzer.reduceGenericInstances(expression.type),
+            expression.type,
             captures,
             params,
-            ctx.analyzer.getReturnType(expression),
+            TODO(),
             body
         )
-    }
-
-    private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
-        val value = lowerExpression(expression.value)
-        val discriminantType = value.type
-        val discriminants = ctx.analyzer.getDiscriminants(discriminantType)
-        val declaration = ctx.analyzer.getSealedTypeDeclaration(discriminantType)
-        val cases = makeList {
-            for (discriminant in discriminants) {
-                val arm = expression.arms.find {
-                    it is Expression.WhenArm.Is && it.caseName.name == discriminant.name
-                }
-                val casePayloadTypeConstructor =
-                    Type.Constructor(ctx.resolver.qualifiedName(declaration.name).append(discriminant.name))
-                val casePayloadType = if (declaration.typeParams == null) {
-                    casePayloadTypeConstructor
-                }  else {
-                    Type.Application(
-                        casePayloadTypeConstructor,
-                        discriminantType.typeArgs()
-                    )
-                }
-                if (arm == null) {
-                    val elseArm = requireNotNull(expression.arms.find {
-                        it is Expression.WhenArm.Else
-                    })
-                    require(elseArm is Expression.WhenArm.Else)
-                    add(HIRExpression.When.Case(
-                        casePayloadType,
-                        discriminant.name,
-                        ctx.makeUniqueName(),
-                        lowerExpression(elseArm.value)
-                    ))
-                } else {
-                    require(arm is Expression.WhenArm.Is)
-                    add(HIRExpression.When.Case(
-                        casePayloadType,
-                        discriminant.name,
-                        arm.name?.identifier?.name ?: ctx.makeUniqueName(),
-                        lowerExpression(arm.value)
-
-                    ))
-                }
-            }
-        }
-        return HIRExpression.When(
-            expression.location,
-            typeOfExpression(expression),
-            discriminant = lowerExpression(expression.value),
-            cases = cases
-        )
-
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
@@ -906,7 +854,7 @@ class HIRGen(
     }
 
     private fun lowerDerefExpression(expression: Expression.Deref): HIRExpression {
-        return when (val pointerType = ctx.analyzer.typeOfExpression(expression.expression)) {
+        return when (val pointerType = expression.expression.type){
             is Type.Ptr -> {
                 HIRExpression.Load(
                     expression.location,
@@ -1087,7 +1035,7 @@ class HIRGen(
         is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.SealedTypeCaseConstructor -> lowerSealedTypeCaseConstructor(expression, binding)
-        is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
+        is PropertyBinding.WhenCaseFieldRef -> TODO()
         is PropertyBinding.TraitFunctionRef -> lowerTraitFunctionRef(expression, binding)
         else -> TODO()
     }
@@ -1107,21 +1055,6 @@ class HIRGen(
             expression.location,
             binding.type,
             extensionMethodName(binding.extensionDef, binding.functionDef)
-        )
-    }
-
-
-    private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIRExpression {
-        return HIRExpression.GetStructField(
-            expression.location,
-            typeOfExpression(expression),
-            HIRExpression.ValRef(
-                expression.lhs.location,
-                caseType(binding),
-                binding.name.name,
-            ),
-            binding.propertyName.name,
-            binding.propertyIndex + 1, // 0th field is tag
         )
     }
 
@@ -1255,7 +1188,7 @@ class HIRGen(
 
     private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()
     private fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
-        return ctx.analyzer.reduceGenericInstances(ctx.analyzer.typeOfExpression(expression))
+        return expression.type
     }
 
     private fun checkUninferredGenerics(node: HasLocation, type: Type) {
@@ -1365,13 +1298,13 @@ class HIRGen(
         require(type.params.size == args.size)
         return type.body.applySubstitution(
             type.params.zip(args).associate {
-                it.first.binder.location to ctx.analyzer.reduceGenericInstances(it.second)
+                it.first.binder.location to it.second
             }.toSubstitution()
         )
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return ctx.analyzer.reduceGenericInstances(ctx.analyzer.annotationToType(annotation))
+        return ctx.analyzer.annotationToType(annotation)
     }
 
     private fun lowerParam(param: Param): HIRParam {
