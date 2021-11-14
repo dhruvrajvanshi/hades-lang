@@ -65,6 +65,7 @@ data class Diagnostic(
         object UnreachablePattern : Diagnostic.Kind(Severity.WARNING)
         object UnboundPattern : Diagnostic.Kind(Severity.ERROR)
         data class NonExhaustivePatterns(val name: Name) : Diagnostic.Kind(Severity.ERROR)
+        object NonExhaustivePrimitivePatterns : Diagnostic.Kind(Severity.ERROR)
         object PatternParamMismatch : Diagnostic.Kind(Severity.ERROR)
         object DuplicateVariantName : Diagnostic.Kind(Severity.ERROR)
         object InvalidNewExpression : Diagnostic.Kind(Severity.ERROR)
@@ -144,6 +145,7 @@ data class Diagnostic(
             UnreachablePattern -> "Unreachable pattern"
             UnboundPattern -> "Unbound pattern"
             is NonExhaustivePatterns -> "Non exhaustive patterns; Missing case: ${name.text}"
+            is NonExhaustivePrimitivePatterns -> "Non exhaustive patterns"
             PatternParamMismatch -> "Pattern param length mismatch"
             DuplicateVariantName -> "Duplicate variant name"
             InvalidNewExpression -> "Invalid new target; Expected a struct declaration"

@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
@@ -20,6 +21,7 @@ import hadesc.types.toSubstitution
 import hadesc.unit
 import java.util.*
 import java.util.Collections.singletonList
+import kotlin.math.exp
 import kotlin.math.min
 
 class Analyzer(
@@ -692,6 +694,7 @@ class Analyzer(
                 is Expression.If -> checkIfExpression(expression, expectedType)
                 is Expression.UnaryMinus -> checkUnaryMinus(expression, expectedType)
                 is Expression.When -> checkWhenExpression(expression, expectedType)
+                is Expression.Match -> checkMatchExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
                     checkAssignability(at = expression, source = inferredType, destination = expectedType)
@@ -841,7 +844,22 @@ class Analyzer(
     }
 
     private fun inferMatchExpression(expression: Expression.Match): Type {
-        TODO()
+        inferExpression(expression.value)
+        val firstArm = expression.arms.firstOrNull()?.value
+        val expectedType = if (firstArm == null) {
+            Type.Error(expression.location)
+        } else {
+            inferExpression(firstArm)
+        }
+
+        for (arm in expression.arms) {
+            if (expectedType !is Type.Error) {
+                checkExpression(arm.value, expectedType)
+            } else {
+                inferExpression(arm.value)
+            }
+        }
+        return expectedType
     }
 
     private fun inferUnaryMinus(expression: Expression.UnaryMinus): Type {
@@ -953,6 +971,14 @@ class Analyzer(
         inferExpression(expression.value)
         for (whenArm in expression.arms) {
             checkExpression(whenArm.value, expectedType)
+        }
+        return expectedType
+    }
+
+    private fun checkMatchExpression(expression: Expression.Match, expectedType: Type): Type {
+        inferExpression(expression.value)
+        for (arm in expression.arms) {
+            checkExpression(arm.value, expectedType)
         }
         return expectedType
     }

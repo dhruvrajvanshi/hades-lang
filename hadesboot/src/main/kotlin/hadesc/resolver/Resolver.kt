@@ -159,6 +159,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.Closure -> null
         is ScopeTree.WhenArm -> null
         is ScopeTree.WhenExpression -> null
+        is ScopeTree.MatchExpression -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -212,6 +213,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.SealedTypeDef -> null
         is ScopeTree.WhenArm -> findInWhenArm(ident, scope)
         is ScopeTree.WhenExpression -> null
+        is ScopeTree.MatchExpression -> null
     }
 
     private fun findInWhenArm(ident: Identifier, scope: ScopeTree.WhenArm): Binding? {
@@ -601,6 +603,10 @@ class Resolver(private val ctx: Context) {
 
     fun getEnclosingImpl(node: HasLocation): Declaration.ImplementationDef? {
         return getEnclosingScopeTree<ScopeTree.ImplementationDef>(node)?.declaration
+    }
+
+    fun getEnclosingMatchExpression(node: HasLocation): Expression.Match? {
+        return getEnclosingScopeTree<ScopeTree.MatchExpression>(node)?.expression
     }
 
     private inline fun <reified Scope: ScopeTree> getEnclosingScopeTree(at: HasLocation): Scope? {
