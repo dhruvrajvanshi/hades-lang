@@ -408,15 +408,6 @@
 				},
 				{
 					"include": "#statements"
-				},
-				{
-					"include": "#if-statement"
-				},
-				{
-					"include": "#else-statement"
-				},
-				{
-					"include": "#expressions"
 				}
 			]
 		},
@@ -433,6 +424,15 @@
 				},
 				{
 					"include": "#while-statement"
+				},
+				{
+					"include": "#if-statement"
+				},
+				{
+					"include": "#else-statement"
+				},
+				{
+					"include": "#expressions"
 				}
 			]
 		},
@@ -452,7 +452,13 @@
 			},
 			"patterns": [
 				{
-					"include": "#expressions"
+					"begin": "(?<=([=]\\s*))",
+					"end": "(?=([\n;]))",
+					"patterns": [
+						{
+							"include": "#expressions"
+						}
+					]
 				}
 			]
 		},
@@ -542,6 +548,9 @@
 					}
 				},
 				{
+					"include": "#match-expression"
+				},
+				{
 					"include": "#ref-expression"
 				},
 				{
@@ -561,6 +570,68 @@
 				},
 				{
 					"include": "#numeric-literals"
+				}
+			]
+		},
+		"match-expression": {
+			"begin": "\\b(match)\\b",
+			"end": "(?<=[}])",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control"
+				}
+			},
+			"patterns": [
+				{
+					"begin": "(?<=(match\\s+))",
+					"end": "(?=[{])",
+					"patterns": [
+						{
+							"include": "#expressions"
+						}
+					]
+				},
+				{
+					"begin": "{",
+					"end": "}",
+					"patterns": [
+						{
+							"include": "#patterns"
+						},
+						{
+							"begin": "-\\>\\s+(?={)",
+							"end": "(?<=})",
+							"patterns": [
+								{
+									"include": "#block"
+								}
+							]
+						},
+						{
+							"begin": "-\\>\\s+",
+							"end": "(?=[},\n])",
+							"patterns": [
+								{ "include": "#expressions" }
+							]
+						}
+					]
+
+				}
+			]
+		},
+		"patterns": {
+			"patterns": [
+				{
+					"match": "\\b(\\d+)\\b",
+					"captures": {
+						"1": { "name": "constant.numeric" }
+					}
+				},
+				{
+					"match": "\\b(_)\\b",
+					"captures": {
+						"1": {"name": "keyword.operator" }
+					}
 				}
 			]
 		},
