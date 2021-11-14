@@ -1,0 +1,26 @@
+extern def puts(*Byte): Void = puts
+def main(): Void {
+    val message = match 3 {
+        1 -> b"FAIL"
+        3 -> b"PASS"
+        _ -> b"FAIL"
+    }
+
+    match 4 {
+        4 -> {
+            puts(message)
+        }
+        _ -> {
+            puts(b"FAIL")
+        }
+    }
+
+    match 5 {
+        4 -> {
+            puts(b"FAIL")
+        }
+        _ -> {
+
+        }
+    }
+}
