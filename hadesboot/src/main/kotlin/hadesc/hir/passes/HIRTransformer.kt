@@ -146,16 +146,16 @@ interface HIRTransformer: TypeTransformer {
         is HIRStatement.While -> transformWhileStatement(statement)
         is HIRStatement.Store -> transformStoreStatement(statement)
         is HIRStatement.Branch -> transformBranchStatement(statement)
-        is HIRStatement.ConditionalBranch -> transformConditionalBranch(statement)
+        is HIRStatement.SwitchInt -> transformSwitchInt(statement)
     }
 
-    fun transformConditionalBranch(statement: HIRStatement.ConditionalBranch): Collection<HIRStatement> {
+    fun transformSwitchInt(statement: HIRStatement.SwitchInt): Collection<HIRStatement> {
         return listOf(
-            HIRStatement.ConditionalBranch(
+            HIRStatement.SwitchInt(
                 statement.location,
                 transformExpression(statement.condition),
-                statement.trueBranchName,
-                statement.falseBranchName
+                statement.cases,
+                statement.otherwise,
             )
         )
     }

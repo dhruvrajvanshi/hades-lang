@@ -21,11 +21,11 @@ interface HIRVisitor : TypeVisitor {
             is HIRStatement.ValDeclaration -> visitValDeclaration(statement)
             is HIRStatement.While -> visitWhileStatement(statement)
             is HIRStatement.Branch -> visitBranchStatement(statement)
-            is HIRStatement.ConditionalBranch -> visitConditionalBranchStatement(statement)
+            is HIRStatement.SwitchInt -> visitConditionalBranchStatement(statement)
         }
     }
 
-    fun visitConditionalBranchStatement(statement: HIRStatement.ConditionalBranch) {
+    fun visitConditionalBranchStatement(statement: HIRStatement.SwitchInt) {
         visitExpression(statement.condition)
     }
 

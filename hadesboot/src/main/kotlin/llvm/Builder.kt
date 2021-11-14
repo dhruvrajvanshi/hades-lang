@@ -45,6 +45,14 @@ fun B.buildBinOp(operator: Opcode, lhs: LLVMValueRef, rhs: LLVMValueRef, name: S
 fun B.buildCondBr(condition: LLVMValueRef, ifTrue: LLVMBasicBlockRef, ifFalse: LLVMBasicBlockRef): LLVMValueRef =
     LLVM.LLVMBuildCondBr(this, condition, ifTrue, ifFalse)
 
+fun B.buildSwitch(condition: LLVMValueRef, cases: List<Pair<LLVMValueRef, LLVMBasicBlockRef>>, elseBlock: LLVMBasicBlockRef): LLVMValueRef {
+    val sw = LLVM.LLVMBuildSwitch(this, condition, elseBlock, cases.size)
+    for (case in cases) {
+        LLVM.LLVMAddCase(sw, case.first, case.second)
+    }
+    return sw
+}
+
 fun B.buildBr(destination: LLVMBasicBlockRef) =
     LLVM.LLVMBuildBr(this, destination)
 

@@ -59,11 +59,11 @@ sealed interface HIRStatement: HIRNode {
         val toBranchName: Name
     ) : HIRStatement
 
-    data class ConditionalBranch(
+    data class SwitchInt(
         override val location: SourceLocation,
         val condition: HIRExpression,
-        val trueBranchName: Name,
-        val falseBranchName: Name
+        val cases: List<SwitchIntCase>,
+        val otherwise: Name
     ) : HIRStatement
 
 
@@ -77,6 +77,14 @@ sealed interface HIRStatement: HIRNode {
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
         is Branch -> "br ${toBranchName.text}"
-        is ConditionalBranch -> "br if ${condition.prettyPrint()} then ${trueBranchName.text} else ${falseBranchName.text}"
+        is SwitchInt -> "switch ${condition.prettyPrint()} [\n    " +
+                cases.joinToString { "case ${it.value.prettyPrint()}: ${it.block.text}\n    " } +
+                "otherwise: ${otherwise.text}\n" +
+                "  ]"
     }
 }
+
+data class SwitchIntCase(
+    val value: HIRConstant.IntValue,
+    val block: Name
+)

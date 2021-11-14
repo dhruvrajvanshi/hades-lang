@@ -160,7 +160,7 @@ class HIRToLLVM(
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.ValDeclaration -> lowerValDeclaration(statement)
             is HIRStatement.Branch -> lowerBranch(statement)
-            is HIRStatement.ConditionalBranch -> lowerConditionalBranch(statement)
+            is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
             is HIRStatement.If,
             is HIRStatement.While -> requireUnreachable {
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
@@ -199,11 +199,13 @@ class HIRToLLVM(
         builder.buildBr(getBlock(statement.toBranchName))
     }
 
-    private fun lowerConditionalBranch(statement: HIRStatement.ConditionalBranch) {
-        builder.buildCondBr(
+    private fun lowerSwitchInt(statement: HIRStatement.SwitchInt) {
+        builder.buildSwitch(
             lowerExpression(statement.condition),
-            getBlock(statement.trueBranchName),
-            getBlock(statement.falseBranchName)
+            statement.cases.map {
+                lowerConstant(it.value) to getBlock(it.block)
+            },
+            getBlock(statement.otherwise)
         )
     }
     private val blocks = mutableMapOf<Pair<String, Name>, BasicBlock>()

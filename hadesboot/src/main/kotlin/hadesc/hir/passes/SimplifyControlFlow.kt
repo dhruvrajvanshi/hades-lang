@@ -4,6 +4,8 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
+import hadesc.location.SourceLocation
+import hadesc.types.Type
 
 /**
  * Converts all structured control flow (if/else, while, etc)
@@ -83,7 +85,7 @@ class SimplifyControlFlow(private val ctx: Context) {
 
         withinBlock(startingBlock)  {
             appendStatement(
-                HIRStatement.ConditionalBranch(
+                condBr(
                     statement.condition.location,
                     statement.condition,
                     checkNotNull(whileBody.name),
@@ -95,7 +97,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         withinBlock(whileBody) {
             lowerBlock(statement.body)
             terminateBlock(whileBody) {
-                HIRStatement.ConditionalBranch(
+                condBr(
                     statement.condition.location,
                     statement.condition,
                     checkNotNull(whileBody.name),
@@ -104,6 +106,20 @@ class SimplifyControlFlow(private val ctx: Context) {
             }
         }
         currentBlock = whileExit
+    }
+
+    private fun condBr(location: SourceLocation, condition: HIRExpression, trueBranch: Name, falseBranch: Name): HIRStatement.SwitchInt {
+        return HIRStatement.SwitchInt(
+            location,
+            condition,
+            listOf(
+                SwitchIntCase(
+                    HIRConstant.IntValue(location, Type.Bool, 1),
+                    trueBranch
+                )
+            ),
+            falseBranch
+        )
     }
 
     private fun lowerIfStatement(statement: HIRStatement.If) {
@@ -124,7 +140,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         val endBranchName = checkNotNull(end.name)
 
         startingBlock.statements.add(
-            HIRStatement.ConditionalBranch(
+            condBr(
                 statement.condition.location,
                 statement.condition,
                 trueBranchName,
@@ -162,9 +178,11 @@ class SimplifyControlFlow(private val ctx: Context) {
                         val block1 = getBlock(statement.toBranchName)
                         visitBlock(block1)
                     }
-                    is HIRStatement.ConditionalBranch -> {
-                        visitBlock(getBlock(statement.trueBranchName))
-                        visitBlock(getBlock(statement.falseBranchName))
+                    is HIRStatement.SwitchInt -> {
+                        for (case in statement.cases) {
+                            visitBlock(getBlock(case.block))
+                        }
+                        visitBlock(getBlock(statement.otherwise))
                     }
                     else -> Unit
                 }
@@ -183,7 +201,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,
-            is HIRStatement.ConditionalBranch,
+            is HIRStatement.SwitchInt,
             is HIRStatement.ReturnVoid,
             is HIRStatement.Branch -> true
 
