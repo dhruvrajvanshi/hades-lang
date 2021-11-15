@@ -179,7 +179,7 @@ private class Infer(
         is Expression.Not -> inferNotExpression(expression)
         is Expression.NullPtr -> TODO()
         is Expression.PointerCast -> TODO()
-        is Expression.Property -> TODO()
+        is Expression.Property -> inferPropertyExpression(expression)
         is Expression.SizeOf -> TODO()
         is Expression.This -> TODO()
         is Expression.TypeApplication -> TODO()
@@ -187,6 +187,33 @@ private class Infer(
         is Expression.UnsafeCast -> TODO()
         is Expression.Var -> inferVarExpression(expression)
         is Expression.When -> TODO()
+    }
+
+    private fun inferPropertyExpression(expression: Expression.Property): Type {
+        return inferModuleProperty(expression)
+            ?: TODO()
+    }
+
+    private fun inferModuleProperty(expression: Expression.Property): Type? {
+        return when (expression.lhs) {
+            is Expression.Property -> TODO()
+            is Expression.Var -> {
+                val sourceFile = ctx.resolver.resolveModuleAlias(expression.lhs.name)
+                if (sourceFile == null) {
+                    null
+                } else {
+                    val binding = ctx.resolver.findInSourceFile(expression.property.name, sourceFile)
+                    if (binding == null) {
+                        errorType(expression.property, Diagnostic.Kind.NoSuchMember)
+                    } else {
+                        checkNotNull(typeOfBinding(binding)) {
+                            "ModuleProperty binding type should not be null"
+                        }
+                    }
+                }
+            }
+            else -> null
+        }
     }
 
     private fun inferNotExpression(expression: Expression.Not): Type {
@@ -203,30 +230,55 @@ private class Infer(
 
     private fun inferVarExpression(expression: Expression.Var): Type {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
-            is Binding.ClosureParam -> TODO()
-            is Binding.ExternConst -> TODO()
-            is Binding.ExternFunction -> {
-                Type.Ptr(
-                    Type.Function(
-                        from = binding.declaration.paramTypes.map { it.toType() },
-                        to = binding.declaration.returnType.toType(),
-                        traitRequirements = null
-                    ),
-                    isMutable = false
-                )
-            }
-            is Binding.FunctionParam -> TODO()
-            is Binding.GlobalConst -> TODO()
-            is Binding.GlobalFunction -> TODO()
-            is Binding.SealedType -> TODO()
-            is Binding.Struct -> TODO()
-            is Binding.ValBinding -> typeOfValBinding(binding)
-                ?: errorType(expression, Diagnostic.Kind.UseBeforeDefinition)
-            is Binding.WhenArm -> TODO()
             null -> {
                 errorType(expression, Diagnostic.Kind.UnboundVariable(expression.name.name))
             }
+            else -> typeOfBinding(binding)
+                ?: errorType(expression.location, Diagnostic.Kind.UseBeforeDefinition)
         }
+    }
+
+    private fun typeOfBinding(binding: Binding): Type? = when(binding) {
+        is Binding.ClosureParam -> TODO()
+        is Binding.ExternConst -> TODO()
+        is Binding.ExternFunction -> {
+            Type.Ptr(
+                Type.Function(
+                    from = binding.declaration.paramTypes.map { it.toType() },
+                    to = binding.declaration.returnType.toType(),
+                    traitRequirements = null
+                ),
+                isMutable = false
+            )
+        }
+        is Binding.FunctionParam -> {
+            binding.param.annotation?.toType()
+                ?: typeAnalyzer.makeGenericInstance(binding.param.binder)
+        }
+        is Binding.GlobalConst -> TODO()
+        is Binding.GlobalFunction -> typeOfGlobalFunction(binding.declaration)
+        is Binding.SealedType -> TODO()
+        is Binding.Struct -> TODO()
+        is Binding.ValBinding -> typeOfValBinding(binding)
+        is Binding.WhenArm -> TODO()
+    }
+
+    private fun typeOfGlobalFunction(declaration: Declaration.FunctionDef): Type {
+        val traitRequirements: List<TraitRequirement>? = if (declaration.signature.whereClause == null) {
+            null
+        } else {
+            TODO()
+        }
+        val fnType = Type.Function(
+            from = declaration.params.map { it.annotation?.toType() ?: Type.Error(it.location) },
+            to = declaration.signature.returnType.toType(),
+            traitRequirements = traitRequirements
+        )
+        if (declaration.typeParams != null) {
+            TODO()
+        }
+
+        return Type.Ptr(fnType, isMutable = false)
     }
 
     private fun typeOfValBinding(binding: Binding.ValBinding): Type? {
