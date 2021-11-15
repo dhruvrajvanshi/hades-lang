@@ -18,7 +18,15 @@ class Analyzer(
         is TypeAnnotation.Function -> TODO()
         is TypeAnnotation.MutPtr -> Type.Ptr(annotationToType(annotation.to), isMutable = true)
         is TypeAnnotation.Ptr -> Type.Ptr(annotationToType(annotation.to), isMutable = false)
-        is TypeAnnotation.Qualified -> TODO()
+        is TypeAnnotation.Qualified -> {
+            val modulePath = annotation.qualifiedPath.dropLast(1)
+            val typeName = annotation.qualifiedPath.identifiers.last()
+            if (modulePath.size == 1) {
+                resolveTypeMemberOfModuleAlias(annotation, modulePath[0], typeName)
+            } else {
+                resolveTypeMemberOfQualifiedModule(annotation, modulePath, typeName)
+            }
+        }
         is TypeAnnotation.Select -> TODO()
         is TypeAnnotation.Union -> TODO()
         is TypeAnnotation.Var -> {
@@ -36,6 +44,50 @@ class Analyzer(
                 }
             }
         }
+    }
+
+    private fun resolveTypeMemberOfModuleAlias(
+        annotation: TypeAnnotation.Qualified,
+        moduleName: Identifier,
+        typeName: Identifier
+    ): Type {
+        val sourceFile = ctx.resolver.resolveModuleAlias(moduleName)
+        if (sourceFile == null) {
+            ctx.report(moduleName, Diagnostic.Kind.NoSuchModule)
+            return Type.Error(moduleName.location)
+        }
+        return when (val typeBinding = ctx.resolver.findTypeInSourceFile(typeName, sourceFile)) {
+            null -> {
+                ctx.report(annotation, Diagnostic.Kind.NoSuchMember)
+                Type.Error(annotation.location)
+            }
+            else -> typeOfTypeBinding(typeBinding)
+        }
+    }
+
+    private fun resolveTypeMemberOfQualifiedModule(annotation: TypeAnnotation, modulePath: QualifiedPath, typeName: Identifier): Type {
+        val sourceFile = ctx.resolveSourceFile(modulePath)
+        if (sourceFile == null) {
+            ctx.report(modulePath, Diagnostic.Kind.NoSuchModule)
+            return Type.Error(annotation.location)
+        }
+        return when (val typeBinding = ctx.resolver.findTypeInSourceFile(typeName, sourceFile)) {
+            null -> {
+                ctx.report(annotation, Diagnostic.Kind.NoSuchMember)
+                Type.Error(annotation.location)
+            }
+            else -> typeOfTypeBinding(typeBinding)
+        }
+    }
+
+    private fun typeOfTypeBinding(typeBinding: TypeBinding): Type = when(typeBinding) {
+        is TypeBinding.AssociatedType -> TODO()
+        is TypeBinding.Builtin -> TODO()
+        is TypeBinding.SealedType -> TODO()
+        is TypeBinding.Struct -> Type.Constructor(ctx.resolver.qualifiedStructName(typeBinding.declaration))
+        is TypeBinding.Trait -> TODO()
+        is TypeBinding.TypeAlias -> TODO()
+        is TypeBinding.TypeParam -> TODO()
     }
 
     private val typeArgsCache = MutableNodeMap<Expression, List<Type>>()

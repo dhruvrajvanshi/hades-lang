@@ -16,4 +16,8 @@ data class QualifiedPath(
             val last = identifiers.last()
             return SourceLocation.between(start, last)
         }
+
+    fun dropLast(n: Int) = QualifiedPath(identifiers.dropLast(n))
+    val size get() = identifiers.size
+    operator fun get(index: Int) = identifiers[index]
 }
