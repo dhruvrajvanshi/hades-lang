@@ -36,7 +36,11 @@ class Checker(override val ctx: Context): HasContext {
         is Declaration.SealedType -> TODO()
         is Declaration.Struct -> TODO()
         is Declaration.TraitDef -> TODO()
-        is Declaration.TypeAlias -> TODO()
+        is Declaration.TypeAlias -> checkTypeAlias(declaration)
+    }
+
+    private fun checkTypeAlias(declaration: Declaration.TypeAlias) {
+        declaration.rhs.toType()
     }
 
     private fun checkExternConstDef(declaration: Declaration.ExternConst) {
@@ -70,6 +74,9 @@ class Checker(override val ctx: Context): HasContext {
         checkValueBinder(declaration.name)
         for (param in declaration.params) {
             param.annotation?.toType()
+            if (param.annotation == null) {
+                ctx.report(param, Diagnostic.Kind.MissingTypeAnnotation)
+            }
         }
         declaration.signature.whereClause?.let {
             checkWhereClause(it)
