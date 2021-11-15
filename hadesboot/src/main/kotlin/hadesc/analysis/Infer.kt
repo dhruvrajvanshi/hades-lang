@@ -3,15 +3,17 @@ package hadesc.analysis
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.hir.TypeTransformer
 import hadesc.location.HasLocation
-import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.types.toSubstitution
 import hadesc.unit
 
 data class InferResult(
     val expressionTypes: List<Pair<Expression, Type>>,
     val binderTypes: List<Pair<Binder, Type>>,
+    val typeArgs: List<Pair<Expression, List<Type>>>
 )
 
 fun infer(
@@ -21,7 +23,21 @@ fun infer(
 ): InferResult {
     val infer = Infer(returnType, ctx)
     infer.visitBlockMember(member)
-    return InferResult(infer.exprTypes.entries.toList(), infer.binderTypes.entries.toList())
+    return InferResult(
+        infer.exprTypes.entries
+            .map{
+                it.first to infer.reduceGenericInstances(it.second)
+            }.toList(),
+        infer.binderTypes.entries
+            .map {
+                it.first to infer.reduceGenericInstances(it.second)
+            }.toList(),
+        infer.typeArgsOfExpression.entries
+            .map { (expr, typeArgs) ->
+                expr to typeArgs.map { infer.reduceGenericInstances(it) }
+            }
+            .toList()
+    )
 }
 
 private class Infer(
@@ -30,6 +46,7 @@ private class Infer(
 ) {
     val exprTypes = MutableNodeMap<Expression, Type>()
     val binderTypes = MutableNodeMap<Binder, Type>()
+    val typeArgsOfExpression = MutableNodeMap<Expression, List<Type.GenericInstance>>()
     private val typeAnalyzer = TypeAnalyzer()
 
     fun visitBlockMember(member: Block.Member): Unit = when(member) {
@@ -108,7 +125,7 @@ private class Infer(
         TODO()
     }
 
-    fun inferCall(expression: Expression.Call): Type {
+    fun inferOrCheckCall(expression: Expression.Call, expectedType: Type? = null): Type {
         val calleeType = inferExpression(expression.callee)
         fun reportNotCallable(): Type {
             return errorType(expression.callee, Diagnostic.Kind.TypeNotCallable(calleeType))
@@ -126,10 +143,14 @@ private class Infer(
                 if (calleeType.body !is Type.Ptr || calleeType.body.to !is Type.Function) {
                     return reportNotCallable()
                 }
-                val substitution = typeAnalyzer.makeParamSubstitution(calleeType.params)
+                val typeParams = calleeType.params
+                val typeArgs = calleeType.params.map { typeAnalyzer.makeGenericInstance(it.binder) }
+                val substitution = typeParams.zip(typeArgs).associate { it.first.binder.location to it.second }.toSubstitution()
                 val appliedCalleeType = calleeType.body.to.applySubstitution(substitution)
                 check(appliedCalleeType is Type.Function)
                 checkFunctionArgs(appliedCalleeType, expression)
+                check(typeArgsOfExpression[expression.callee] === null)
+                typeArgsOfExpression[expression.callee] = typeArgs
                 appliedCalleeType.to
             }
             else -> {
@@ -164,18 +185,23 @@ private class Infer(
         }
         else -> {
             val actualType = inferExpression(expression)
-            if (
-                !typeAnalyzer.isTypeAssignableTo(source = actualType, destination = expected) &&
-                    expected !is Type.Error
-            ) {
-                reportError(expression, Diagnostic.Kind.TypeNotAssignable(source = actualType, destination = expected))
-            }
+            unify(at = expression, expected = expected, actual = actualType)
             unit
+        }
+    }
+
+    private fun unify(at: HasLocation, expected: Type, actual: Type) {
+        if (
+            !typeAnalyzer.isTypeAssignableTo(source = actual, destination = expected) &&
+            expected !is Type.Error
+        ) {
+            reportError(at, Diagnostic.Kind.TypeNotAssignable(source = actual, destination = expected))
         }
     }
 
     fun inferExpression(expression: Expression): Type =
         exprTypes.getOrPut(expression) {
+            check(exprTypes[expression] == null)
             inferExpressionWorker(expression)
         }
 
@@ -190,7 +216,7 @@ private class Infer(
         is Expression.BoolLiteral -> Type.Bool
         is Expression.ByteCharLiteral -> Type.u8
         is Expression.ByteString -> Type.constBytePtr
-        is Expression.Call -> inferCall(expression)
+        is Expression.Call -> inferOrCheckCall(expression, expectedType = null)
         is Expression.Closure -> TODO()
         is Expression.Deref -> TODO()
         is Expression.Error -> TODO()
@@ -321,6 +347,14 @@ private class Infer(
     private fun reportError(node: HasLocation, diagnostic: Diagnostic.Kind) {
         val location = node.location
         ctx.diagnosticReporter.report(location, diagnostic)
+    }
+
+    fun reduceGenericInstances(type: Type): Type {
+        return object: TypeTransformer {
+            override fun lowerGenericInstance(type: Type.GenericInstance): Type {
+                return typeAnalyzer.getInstantiatedType(type) ?: type
+            }
+        }.lowerType(type)
     }
 
 }

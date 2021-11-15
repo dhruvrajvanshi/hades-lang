@@ -99,6 +99,9 @@ class Checker(override val ctx: Context): HasContext {
             val inferResult = infer(member, checkNotNull(returnTypeStack.peek()), ctx)
             ctx.analyzer.assignExpressionTypes(inferResult.expressionTypes)
             ctx.analyzer.assignBinderTypes(inferResult.binderTypes)
+            for ((expr, typeArgs) in inferResult.typeArgs) {
+                ctx.analyzer.setTypeArgs(expr, typeArgs)
+            }
         }
     }
 

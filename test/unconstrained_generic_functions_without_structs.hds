@@ -1,0 +1,15 @@
+
+def id[T](value: T): T {
+    return value
+}
+
+def main(): Void {
+    val tr = id(true)
+    if tr {
+        val f = id(false)
+        if not f {
+            id(b"PASS")
+        }
+    }
+}
+extern def puts(*u8): Void = puts

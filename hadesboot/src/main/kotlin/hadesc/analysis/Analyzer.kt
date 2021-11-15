@@ -99,6 +99,11 @@ class Analyzer(
         return typeArgsCache[expression]
     }
 
+    fun setTypeArgs(expression: Expression, args: List<Type>) {
+        check(typeArgsCache[expression] == null)
+        typeArgsCache[expression] = args
+    }
+
     fun getSealedTypeConstructorBinding(expression: Expression): PropertyBinding.SealedTypeCaseConstructor? = null
     fun getClosureCaptures(expression: Expression.Closure): ClosureCaptures {
         TODO()
