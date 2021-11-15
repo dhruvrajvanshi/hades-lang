@@ -101,7 +101,7 @@ private class Infer(
     }
     private fun checkExpressionWorker(expression: Expression, expected: Type): Unit = when(expression) {
         is Expression.IntLiteral -> {
-            if (!expected.isIntegral()) {
+            if (!expected.isIntegral() && expected !is Type.FloatingPoint) {
                 reportError(expression, Diagnostic.Kind.NotAnIntegralValue)
             }
             unit

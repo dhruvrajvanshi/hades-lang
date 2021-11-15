@@ -1,28 +1,13 @@
 package hadesc.analysis
 
 import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
-import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
-import hadesc.hir.TypeTransformer
-import hadesc.hir.TypeVisitor
-import hadesc.location.HasLocation
-import hadesc.location.SourceLocation
-import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
-import hadesc.types.Substitution
 import hadesc.types.Type
-import hadesc.types.emptySubstitution
-import hadesc.types.toSubstitution
-import hadesc.unit
-import java.util.*
-import java.util.Collections.singletonList
-import kotlin.math.exp
-import kotlin.math.min
 
 class Analyzer(
         private val ctx: Context
