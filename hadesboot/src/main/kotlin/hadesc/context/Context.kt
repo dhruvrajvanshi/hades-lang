@@ -6,10 +6,12 @@ import hadesc.analysis.Analyzer
 import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
+import hadesc.diagnostics.Diagnostic
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.HIRGen
 import hadesc.hir.passes.*
+import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -146,4 +148,8 @@ class Context(
     }
 
     fun sealedTypeDiscriminantType(): Type = Type.Integral(64, false)
+
+    fun report(at: HasLocation, kind: Diagnostic.Kind) {
+        diagnosticReporter.report(at.location, kind)
+    }
 }

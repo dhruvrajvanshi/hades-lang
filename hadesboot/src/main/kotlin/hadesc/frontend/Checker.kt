@@ -4,6 +4,7 @@ import hadesc.analysis.infer
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.context.HasContext
+import hadesc.diagnostics.Diagnostic
 import hadesc.types.Type
 import libhades.collections.Stack
 
@@ -30,12 +31,35 @@ class Checker(override val ctx: Context): HasContext {
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
         is Declaration.ImplementationDef -> TODO()
-        is Declaration.ImportAs -> TODO()
-        is Declaration.ImportMembers -> TODO()
+        is Declaration.ImportAs -> checkImportAs(declaration)
+        is Declaration.ImportMembers -> checkImportMembers(declaration)
         is Declaration.SealedType -> TODO()
         is Declaration.Struct -> TODO()
         is Declaration.TraitDef -> TODO()
         is Declaration.TypeAlias -> TODO()
+    }
+
+    private fun checkImportMembers(declaration: Declaration.ImportMembers) {
+        val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+        if (sourceFile == null) {
+            ctx.report(declaration.modulePath, Diagnostic.Kind.NoSuchModule)
+            return
+        }
+        for (name in declaration.names) {
+            val value = ctx.resolver.findInSourceFile(name.name, sourceFile)
+            val type  = ctx.resolver.findTypeInSourceFile(name.identifier, sourceFile)
+            val trait = ctx.resolver.findTraitInSourceFile(name.identifier, sourceFile)
+            if (value == null && type == null && trait == null) {
+                ctx.report(name, Diagnostic.Kind.UnboundVariable(name.name))
+            }
+        }
+    }
+
+    private fun checkImportAs(declaration: Declaration.ImportAs) {
+        val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
+        if (sourceFile == null) {
+            ctx.diagnosticReporter.report(declaration.modulePath.location, Diagnostic.Kind.NoSuchModule)
+        }
     }
 
     private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
