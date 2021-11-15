@@ -76,7 +76,10 @@ class Checker(override val ctx: Context): HasContext {
             param.annotation?.toType()
             if (param.annotation == null) {
                 ctx.report(param, Diagnostic.Kind.MissingTypeAnnotation)
+                continue
             }
+            val type = param.annotation.toType()
+            ctx.analyzer.assignBinderTypes(listOf(param.binder to type))
         }
         declaration.signature.whereClause?.let {
             checkWhereClause(it)
