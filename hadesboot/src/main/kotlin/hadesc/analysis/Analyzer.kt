@@ -15,7 +15,11 @@ class Analyzer(
     fun annotationToType(annotation: TypeAnnotation): Type = when (annotation) {
         is TypeAnnotation.Application -> TODO()
         is TypeAnnotation.Error -> TODO()
-        is TypeAnnotation.Function -> TODO()
+        is TypeAnnotation.Function -> Type.Function(
+            annotation.from.map { annotationToType(it) },
+            traitRequirements = null,
+            annotationToType(annotation.to),
+        )
         is TypeAnnotation.MutPtr -> Type.Ptr(annotationToType(annotation.to), isMutable = true)
         is TypeAnnotation.Ptr -> Type.Ptr(annotationToType(annotation.to), isMutable = false)
         is TypeAnnotation.Qualified -> {
@@ -37,7 +41,7 @@ class Analyzer(
                 is TypeBinding.Struct -> TODO()
                 is TypeBinding.Trait -> TODO()
                 is TypeBinding.TypeAlias -> TODO()
-                is TypeBinding.TypeParam -> TODO()
+                is TypeBinding.TypeParam -> Type.ParamRef(binding.binder)
                 null -> {
                     ctx.diagnosticReporter.report(annotation.location, Diagnostic.Kind.UnboundType(annotation.name.name))
                     Type.Error(annotation.location)
