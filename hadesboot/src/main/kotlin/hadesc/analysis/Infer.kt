@@ -128,7 +128,7 @@ private class Infer(
         is Expression.AddressOfMut -> TODO()
         is Expression.ArrayIndex -> TODO()
         is Expression.ArrayLiteral -> TODO()
-        is Expression.As -> TODO()
+        is Expression.As -> inferAsExpression(expression)
         is Expression.BinaryOperation -> inferBinOp(expression)
         is Expression.BlockExpression -> TODO()
         is Expression.BoolLiteral -> TODO()
@@ -153,6 +153,12 @@ private class Infer(
         is Expression.UnsafeCast -> TODO()
         is Expression.Var -> inferVarExpression(expression)
         is Expression.When -> TODO()
+    }
+
+    private fun inferAsExpression(expression: Expression.As): Type {
+        val expected = expression.rhs.toType()
+        checkExpression(expression.lhs, expected)
+        return expected
     }
 
 
