@@ -142,8 +142,8 @@ sealed class Type {
     companion object {
         val usize = Size(isSigned = false)
         val isize = Size(isSigned = true)
-
-        val constBytePtr = Ptr(to = Integral(8, false), isMutable = false)
+        val u8 = Integral(8, isSigned = false)
+        val constBytePtr = Ptr(to=u8, isMutable = false)
     }
 }
 

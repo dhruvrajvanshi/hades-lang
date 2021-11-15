@@ -1311,7 +1311,7 @@ class HIRGen(
         return HIRParam(
                 param.location,
                 binder = param.binder,
-                type = ctx.analyzer.typeOfBinder(param.binder)
+                type = checkNotNull(ctx.analyzer.typeOfBinder(param.binder))
         )
     }
 

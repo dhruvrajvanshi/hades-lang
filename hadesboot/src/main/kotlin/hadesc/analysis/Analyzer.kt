@@ -64,8 +64,9 @@ class Analyzer(
         TODO()
     }
 
-    fun typeOfBinder(binder: Binder): Type {
-        TODO()
+    private val typeOfBinderCache = MutableNodeMap<Binder, Type>()
+    fun typeOfBinder(binder: Binder): Type? {
+        return typeOfBinderCache[binder]
     }
 
     fun getCallReceiver(expression: Expression.Call): Expression? {
@@ -83,6 +84,13 @@ class Analyzer(
         for ((expression, type) in expressionTypes) {
             check(typeOfExpressionCache[expression] == null)
             typeOfExpressionCache[expression] = type
+        }
+    }
+
+    fun assignBinderTypes(binderTypes: List<Pair<Binder, Type>>) {
+        for ((expression, type) in binderTypes) {
+            check(typeOfBinderCache[expression] == null)
+            typeOfBinderCache[expression] = type
         }
     }
 }

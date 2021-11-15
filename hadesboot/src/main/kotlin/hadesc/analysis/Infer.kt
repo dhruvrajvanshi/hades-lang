@@ -9,7 +9,8 @@ import hadesc.types.Type
 import hadesc.unit
 
 data class InferResult(
-    val expressionTypes: List<Pair<Expression, Type>>
+    val expressionTypes: List<Pair<Expression, Type>>,
+    val binderTypes: List<Pair<Binder, Type>>,
 )
 
 fun infer(
@@ -18,44 +19,60 @@ fun infer(
     ctx: Context
 ): InferResult {
     val infer = Infer(returnType, ctx)
-    infer.go(member)
-    return InferResult(infer.exprTypes.entries.toList())
+    infer.visitBlockMember(member)
+    return InferResult(infer.exprTypes.entries.toList(), infer.binderTypes.entries.toList())
 }
 
 private class Infer(
     private val returnType: Type,
     private val ctx: Context
 ) {
-    internal val exprTypes = MutableNodeMap<Expression, Type>()
+    val exprTypes = MutableNodeMap<Expression, Type>()
+    val binderTypes = MutableNodeMap<Binder, Type>()
     private val typeAnalyzer = TypeAnalyzer()
 
-    fun go(member: Block.Member): Unit = when(member) {
+    fun visitBlockMember(member: Block.Member): Unit = when(member) {
         is Block.Member.Expression -> {
             inferExpression(member.expression)
             unit
         }
-        is Block.Member.Statement -> inferStatement(member.statement)
+        is Block.Member.Statement -> visitStatement(member.statement)
     }
 
-    private fun inferStatement(statement: Statement): Unit = when (statement) {
+    private fun visitStatement(statement: Statement): Unit = when (statement) {
         is Statement.Defer -> TODO()
         is Statement.Error -> TODO()
-        is Statement.If -> TODO()
+        is Statement.If -> visitIfStatement(statement)
         is Statement.LocalAssignment -> TODO()
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
         is Statement.Return -> TODO()
-        is Statement.Val -> inferValStatement(statement)
+        is Statement.Val -> visitValStatement(statement)
         is Statement.While -> TODO()
     }
 
-    private fun inferValStatement(statement: Statement.Val) {
+    private fun visitIfStatement(statement: Statement.If) {
+        checkExpression(statement.condition, Type.Bool)
+        visitBlock(statement.ifTrue)
+        statement.ifFalse?.let { visitBlock(it) }
+    }
+
+    private fun visitBlock(block: Block) {
+        for (member in block.members) {
+            visitBlockMember(member)
+        }
+    }
+
+    private fun visitValStatement(statement: Statement.Val) {
         val annotated = statement.typeAnnotation?.toType()
-        if (annotated != null) {
+        val valType = if (annotated != null) {
             checkExpression(statement.rhs, annotated)
+            annotated
         } else {
             inferExpression(statement.rhs)
         }
+        check(binderTypes[statement.binder] == null)
+        binderTypes[statement.binder] = valType
     }
 
     private fun TypeAnnotation.toType(): Type {
@@ -131,8 +148,8 @@ private class Infer(
         is Expression.As -> inferAsExpression(expression)
         is Expression.BinaryOperation -> inferBinOp(expression)
         is Expression.BlockExpression -> TODO()
-        is Expression.BoolLiteral -> TODO()
-        is Expression.ByteCharLiteral -> TODO()
+        is Expression.BoolLiteral -> Type.Bool
+        is Expression.ByteCharLiteral -> Type.u8
         is Expression.ByteString -> Type.constBytePtr
         is Expression.Call -> inferCall(expression)
         is Expression.Closure -> TODO()
@@ -142,7 +159,7 @@ private class Infer(
         is Expression.IntLiteral -> Type.isize
         is Expression.Intrinsic -> TODO()
         is Expression.Match -> TODO()
-        is Expression.Not -> TODO()
+        is Expression.Not -> inferNotExpression(expression)
         is Expression.NullPtr -> TODO()
         is Expression.PointerCast -> TODO()
         is Expression.Property -> TODO()
@@ -153,6 +170,11 @@ private class Infer(
         is Expression.UnsafeCast -> TODO()
         is Expression.Var -> inferVarExpression(expression)
         is Expression.When -> TODO()
+    }
+
+    private fun inferNotExpression(expression: Expression.Not): Type {
+        checkExpression(expression.expression, Type.Bool)
+        return Type.Bool
     }
 
     private fun inferAsExpression(expression: Expression.As): Type {
@@ -181,7 +203,11 @@ private class Infer(
             is Binding.GlobalFunction -> TODO()
             is Binding.SealedType -> TODO()
             is Binding.Struct -> TODO()
-            is Binding.ValBinding -> TODO()
+            is Binding.ValBinding -> {
+                binderTypes[binding.binder]
+                    ?: ctx.analyzer.typeOfBinder(binding.binder)
+                    ?: errorType(expression, Diagnostic.Kind.UseBeforeDefinition)
+            }
             is Binding.WhenArm -> TODO()
             null -> {
                 errorType(expression, Diagnostic.Kind.UnboundVariable(expression.name.name))

@@ -27,7 +27,7 @@ class Checker(override val ctx: Context): HasContext {
         is Declaration.Error -> {}
         is Declaration.ConstDefinition -> TODO()
         is Declaration.ExtensionDef -> TODO()
-        is Declaration.ExternConst -> TODO()
+        is Declaration.ExternConst -> checkExternConstDef(declaration)
         is Declaration.ExternFunctionDef -> checkExternFunctionDef(declaration)
         is Declaration.FunctionDef -> checkFunctionDef(declaration)
         is Declaration.ImplementationDef -> TODO()
@@ -37,6 +37,10 @@ class Checker(override val ctx: Context): HasContext {
         is Declaration.Struct -> TODO()
         is Declaration.TraitDef -> TODO()
         is Declaration.TypeAlias -> TODO()
+    }
+
+    private fun checkExternConstDef(declaration: Declaration.ExternConst) {
+        declaration.type.toType()
     }
 
     private fun checkImportMembers(declaration: Declaration.ImportMembers) {
@@ -84,6 +88,7 @@ class Checker(override val ctx: Context): HasContext {
         for (member in block.members) {
             val inferResult = infer(member, checkNotNull(returnTypeStack.peek()), ctx)
             ctx.analyzer.assignExpressionTypes(inferResult.expressionTypes)
+            ctx.analyzer.assignBinderTypes(inferResult.binderTypes)
         }
     }
 
