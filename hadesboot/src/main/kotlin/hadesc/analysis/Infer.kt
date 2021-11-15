@@ -117,23 +117,37 @@ private class Infer(
             is Type.Ptr -> when (calleeType.to) {
                 is Type.Function -> {
                     val fnType = calleeType.to
-                    if (fnType.from.size != expression.args.size) {
-                        if (fnType.from.size > expression.args.size) {
-                            reportError(expression.callee, Diagnostic.Kind.TooManyArgs(required = fnType.from.size))
-                        } else {
-                            reportError(expression.callee, Diagnostic.Kind.MissingArgs(required = fnType.from.size))
-                        }
-                    }
-                    fnType.from.zip(expression.args).forEach { (expected, arg) ->
-                        checkExpression(arg.expression, expected)
-                    }
+                    checkFunctionArgs(fnType, expression)
                     fnType.to
                 }
                 else -> reportNotCallable()
             }
+            is Type.TypeFunction -> {
+                if (calleeType.body !is Type.Ptr || calleeType.body.to !is Type.Function) {
+                    return reportNotCallable()
+                }
+                val substitution = typeAnalyzer.makeParamSubstitution(calleeType.params)
+                val appliedCalleeType = calleeType.body.to.applySubstitution(substitution)
+                check(appliedCalleeType is Type.Function)
+                checkFunctionArgs(appliedCalleeType, expression)
+                appliedCalleeType.to
+            }
             else -> {
                 reportNotCallable()
             }
+        }
+    }
+
+    private fun checkFunctionArgs(fnType: Type.Function, expression: Expression.Call) {
+        if (fnType.from.size != expression.args.size) {
+            if (fnType.from.size > expression.args.size) {
+                reportError(expression.callee, Diagnostic.Kind.TooManyArgs(required = fnType.from.size))
+            } else {
+                reportError(expression.callee, Diagnostic.Kind.MissingArgs(required = fnType.from.size))
+            }
+        }
+        fnType.from.zip(expression.args).forEach { (expected, arg) ->
+            checkExpression(arg.expression, expected)
         }
     }
 
@@ -282,11 +296,16 @@ private class Infer(
             to = declaration.signature.returnType.toType(),
             traitRequirements = traitRequirements
         )
-        if (declaration.typeParams != null) {
-            TODO()
+        val fnPtrType = Type.Ptr(fnType, isMutable = false)
+        return if (declaration.signature.typeParams != null) {
+            return Type.TypeFunction(
+                params = declaration.signature.typeParams.map { Type.Param(it.binder) },
+                fnPtrType
+            )
+        } else {
+            fnPtrType
         }
 
-        return Type.Ptr(fnType, isMutable = false)
     }
 
     private fun typeOfValBinding(binding: Binding.ValBinding): Type? {
