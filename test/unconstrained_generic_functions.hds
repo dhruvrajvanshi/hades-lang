@@ -1,10 +1,9 @@
-import libc as c;
-
+extern def puts(*u8): Void = puts
 def main(): Void {
-    c.puts(id(b"id"));
-    c.puts(first(b"first", true));
-    c.puts(second(false, b"second"));
-    c.puts(second(true, StringPair(b"third", b"fourth")).first);
+    puts(id(b"id"));
+    puts(first(b"first", true));
+    puts(second(false, b"second"));
+    puts(second(true, StringPair(b"third", b"fourth")).first);
     fourth(true);
 }
 
@@ -22,9 +21,9 @@ def second[A, B](first: A, second: B): B {
 }
 
 def fourth[T](value: T): T {
-    c.puts(id(b"fourth"));
+    puts(id(b"fourth"));
     val copy = id(value);
-    c.puts(id(StringPair(b"fifth", b"sixth")).first);
+    puts(id(StringPair(b"fifth", b"sixth")).first);
     return value;
 }
 
