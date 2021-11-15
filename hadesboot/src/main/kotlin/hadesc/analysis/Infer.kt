@@ -4,6 +4,7 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.location.HasLocation
+import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.unit
@@ -43,12 +44,28 @@ private class Infer(
         is Statement.Defer -> TODO()
         is Statement.Error -> TODO()
         is Statement.If -> visitIfStatement(statement)
-        is Statement.LocalAssignment -> TODO()
+        is Statement.LocalAssignment -> visitLocalAssignment(statement)
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
         is Statement.Return -> TODO()
         is Statement.Val -> visitValStatement(statement)
         is Statement.While -> TODO()
+    }
+
+    private fun visitLocalAssignment(statement: Statement.LocalAssignment) {
+        when (val binding = ctx.resolver.resolve(statement.name)) {
+            is Binding.ValBinding -> {
+                if (!binding.statement.isMutable) {
+                    reportError(statement.name, Diagnostic.Kind.ValNotMutable)
+                }
+                val expectedType = typeOfValBinding(binding)
+                    ?: errorType(statement.name, Diagnostic.Kind.UseBeforeDefinition)
+                checkExpression(statement.value, expectedType)
+            }
+            else -> {
+                reportError(statement.name, Diagnostic.Kind.ValNotMutable)
+            }
+        }
     }
 
     private fun visitIfStatement(statement: Statement.If) {
@@ -203,16 +220,18 @@ private class Infer(
             is Binding.GlobalFunction -> TODO()
             is Binding.SealedType -> TODO()
             is Binding.Struct -> TODO()
-            is Binding.ValBinding -> {
-                binderTypes[binding.binder]
-                    ?: ctx.analyzer.typeOfBinder(binding.binder)
-                    ?: errorType(expression, Diagnostic.Kind.UseBeforeDefinition)
-            }
+            is Binding.ValBinding -> typeOfValBinding(binding)
+                ?: errorType(expression, Diagnostic.Kind.UseBeforeDefinition)
             is Binding.WhenArm -> TODO()
             null -> {
                 errorType(expression, Diagnostic.Kind.UnboundVariable(expression.name.name))
             }
         }
+    }
+
+    private fun typeOfValBinding(binding: Binding.ValBinding): Type? {
+        return binderTypes[binding.binder]
+            ?: ctx.analyzer.typeOfBinder(binding.binder)
     }
 
     private fun errorType(node: HasLocation, diagnostic: Diagnostic.Kind): Type {
