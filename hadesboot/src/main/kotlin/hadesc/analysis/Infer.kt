@@ -47,9 +47,17 @@ private class Infer(
         is Statement.LocalAssignment -> visitLocalAssignment(statement)
         is Statement.MemberAssignment -> TODO()
         is Statement.PointerAssignment -> TODO()
-        is Statement.Return -> TODO()
+        is Statement.Return -> visitReturnStatement(statement)
         is Statement.Val -> visitValStatement(statement)
         is Statement.While -> TODO()
+    }
+
+    private fun visitReturnStatement(statement: Statement.Return) {
+        if (statement.value != null) {
+            checkExpression(statement.value, returnType)
+        } else if (returnType != Type.Void) {
+            reportError(statement, Diagnostic.Kind.MissingReturnValue)
+        }
     }
 
     private fun visitLocalAssignment(statement: Statement.LocalAssignment) {
