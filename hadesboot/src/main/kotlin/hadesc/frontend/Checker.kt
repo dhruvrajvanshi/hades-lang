@@ -1,10 +1,12 @@
 package hadesc.frontend
 
+import hadesc.Name
 import hadesc.analysis.infer
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
+import hadesc.exhaustive
 import hadesc.types.Type
 import libhades.collections.Stack
 
@@ -34,9 +36,26 @@ class Checker(override val ctx: Context): HasContext {
         is Declaration.ImportAs -> checkImportAs(declaration)
         is Declaration.ImportMembers -> checkImportMembers(declaration)
         is Declaration.SealedType -> TODO()
-        is Declaration.Struct -> TODO()
+        is Declaration.Struct -> checkStructDeclaration(declaration)
         is Declaration.TraitDef -> TODO()
         is Declaration.TypeAlias -> checkTypeAlias(declaration)
+    }
+
+    private fun checkStructDeclaration(declaration: Declaration.Struct) {
+        val fieldNameSet = mutableMapOf<Name, Binder>()
+        for (member in declaration.members) {
+            exhaustive(when (member) {
+                is Declaration.Struct.Member.Field -> {
+                    val existingField = fieldNameSet[member.binder.name]
+                    if (existingField != null) {
+                        ctx.report(member.binder, Diagnostic.Kind.DuplicateValueBinding(existingField))
+                    } else {
+                        fieldNameSet[member.binder.name] = member.binder
+                    }
+                    member.typeAnnotation.toType()
+                }
+            })
+        }
     }
 
     private fun checkTypeAlias(declaration: Declaration.TypeAlias) {
@@ -99,6 +118,7 @@ class Checker(override val ctx: Context): HasContext {
             val inferResult = infer(member, checkNotNull(returnTypeStack.peek()), ctx)
             ctx.analyzer.assignExpressionTypes(inferResult.expressionTypes)
             ctx.analyzer.assignBinderTypes(inferResult.binderTypes)
+            ctx.analyzer.assignPropertyBindings(inferResult.propertyBindings)
             for ((expr, typeArgs) in inferResult.typeArgs) {
                 ctx.analyzer.setTypeArgs(expr, typeArgs)
             }

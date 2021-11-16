@@ -58,7 +58,17 @@ class Analyzer(
                 is TypeBinding.AssociatedType -> TODO()
                 is TypeBinding.Builtin -> binding.type
                 is TypeBinding.SealedType -> TODO()
-                is TypeBinding.Struct -> TODO()
+                is TypeBinding.Struct -> {
+                    val body = Type.Constructor(ctx.resolver.qualifiedStructName(binding.declaration))
+                    if (binding.declaration.typeParams == null) {
+                        body
+                    } else {
+                        Type.TypeFunction(
+                            binding.declaration.typeParams.map { Type.Param(it.binder) },
+                            body
+                        )
+                    }
+                }
                 is TypeBinding.Trait -> TODO()
                 is TypeBinding.TypeAlias -> {
                     val aliasDecl = binding.declaration
@@ -164,8 +174,9 @@ class Analyzer(
         TODO()
     }
 
+    private val resolvePropertyBindingCache = MutableNodeMap<Expression.Property, PropertyBinding>()
     fun resolvePropertyBinding(expr: Expression.Property): PropertyBinding {
-        TODO()
+        return checkNotNull(resolvePropertyBindingCache[expr])
     }
 
     private val typeOfBinderCache = MutableNodeMap<Binder, Type>()
@@ -195,6 +206,13 @@ class Analyzer(
         for ((expression, type) in binderTypes) {
             check(typeOfBinderCache[expression] == null)
             typeOfBinderCache[expression] = type
+        }
+    }
+
+    fun assignPropertyBindings(propertyBindings: List<Pair<Expression.Property, PropertyBinding>>) {
+        for ((expression, binding) in propertyBindings) {
+            check(resolvePropertyBindingCache[expression] == null)
+            resolvePropertyBindingCache[expression] = binding
         }
     }
 }

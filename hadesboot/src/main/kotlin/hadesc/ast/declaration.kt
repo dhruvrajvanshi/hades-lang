@@ -1,5 +1,6 @@
 package hadesc.ast
 
+import hadesc.Name
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
@@ -88,6 +89,22 @@ sealed class Declaration : HasLocation {
                 val isMutable: Boolean,
                 val typeAnnotation: TypeAnnotation
             ) : Member()
+        }
+
+        fun getField(name: Name): Member.Field? {
+            return members
+                .filterIsInstance<Member.Field>()
+                .find { it.binder.name == name }
+
+        }
+
+        fun getFieldIndex(name: Name): Int {
+            val index = members.indexOfFirst {
+                it is Member.Field
+                        && it.binder.name == name
+            }
+            require(index != -1)
+            return index
         }
     }
 

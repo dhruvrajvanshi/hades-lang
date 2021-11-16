@@ -3,6 +3,7 @@ package hadesc.analysis
 import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.frontend.PropertyBinding
 import hadesc.hir.TypeTransformer
 import hadesc.location.HasLocation
 import hadesc.resolver.Binding
@@ -13,7 +14,8 @@ import hadesc.unit
 data class InferResult(
     val expressionTypes: List<Pair<Expression, Type>>,
     val binderTypes: List<Pair<Binder, Type>>,
-    val typeArgs: List<Pair<Expression, List<Type>>>
+    val typeArgs: List<Pair<Expression, List<Type>>>,
+    val propertyBindings: List<Pair<Expression.Property, PropertyBinding>>
 )
 
 fun infer(
@@ -36,6 +38,11 @@ fun infer(
             .map { (expr, typeArgs) ->
                 expr to typeArgs.map { infer.reduceGenericInstances(it) }
             }
+            .toList(),
+        infer.propertyBindings.entries
+            .map { (expr, binding) ->
+                expr to infer.reduceGenericInstances(binding)
+            }
             .toList()
     )
 }
@@ -47,6 +54,7 @@ private class Infer(
     val exprTypes = MutableNodeMap<Expression, Type>()
     val binderTypes = MutableNodeMap<Binder, Type>()
     val typeArgsOfExpression = MutableNodeMap<Expression, List<Type.GenericInstance>>()
+    val propertyBindings = MutableNodeMap<Expression.Property, PropertyBinding>()
     private val typeAnalyzer = TypeAnalyzer()
 
     fun visitBlockMember(member: Block.Member): Unit = when(member) {
@@ -268,11 +276,42 @@ private class Infer(
     }
 
     private fun inferPropertyExpression(expression: Expression.Property): Type {
-        return inferModuleProperty(expression)
-            ?: TODO()
+        val propertyBinding: PropertyBinding? =
+            inferModuleProperty(expression)
+            ?: inferStructFieldProperty(expression)
+
+        return if (propertyBinding != null) {
+            check(propertyBindings[expression] == null)
+            propertyBindings[expression] = propertyBinding
+            typeOfPropertyBinding(propertyBinding)
+        } else {
+            val kind = if (propertyBinding is PropertyBinding.Global) {
+                Diagnostic.Kind.NoSuchMember
+            } else {
+                Diagnostic.Kind.NoSuchProperty(inferExpression(expression.lhs), expression.property.name)
+            }
+            errorType(expression.property, kind)
+        }
+
     }
 
-    private fun inferModuleProperty(expression: Expression.Property): Type? {
+    private fun inferStructFieldProperty(expression: Expression.Property): PropertyBinding.StructField? {
+        return when (val lhsType = inferExpression(expression.lhs)) {
+            is Type.Application -> TODO()
+            is Type.Constructor -> {
+                val structDecl = ctx.resolver.resolveDeclaration(lhsType.name) ?: return null
+                if (structDecl !is Declaration.Struct) {
+                    return null
+                }
+                val field = structDecl.getField(expression.property.name) ?: return null
+                val fieldIndex = structDecl.getFieldIndex(expression.property.name)
+                PropertyBinding.StructField(structDecl, fieldIndex, field.typeAnnotation.toType())
+            }
+            else -> null
+        }
+    }
+
+    private fun inferModuleProperty(expression: Expression.Property): PropertyBinding.Global? {
         return when (expression.lhs) {
             is Expression.Property -> TODO()
             is Expression.Var -> {
@@ -282,11 +321,10 @@ private class Infer(
                 } else {
                     val binding = ctx.resolver.findInSourceFile(expression.property.name, sourceFile)
                     if (binding == null) {
-                        errorType(expression.property, Diagnostic.Kind.NoSuchMember)
+                        reportError(expression.property, Diagnostic.Kind.NoSuchMember)
+                        null
                     } else {
-                        checkNotNull(typeOfBinding(binding)) {
-                            "ModuleProperty binding type should not be null"
-                        }
+                        PropertyBinding.Global(binding)
                     }
                 }
             }
@@ -336,9 +374,29 @@ private class Infer(
         is Binding.GlobalConst -> TODO()
         is Binding.GlobalFunction -> typeOfGlobalFunction(binding.declaration)
         is Binding.SealedType -> TODO()
-        is Binding.Struct -> TODO()
+        is Binding.Struct -> typeOfStructConstructor(binding.declaration)
         is Binding.ValBinding -> typeOfValBinding(binding)
         is Binding.WhenArm -> TODO()
+    }
+
+    private fun typeOfStructConstructor(declaration: Declaration.Struct): Type {
+        check(declaration.typeParams == null)
+        val from = declaration.members.map {
+            when (it) {
+                is Declaration.Struct.Member.Field -> {
+                    it.typeAnnotation.toType()
+                }
+            }
+        }
+
+        val to = Type.Constructor(ctx.resolver.qualifiedStructName(declaration))
+
+        val fnType = Type.Function(
+            from,
+            traitRequirements = null,
+            to
+        )
+        return Type.Ptr(fnType, isMutable = false)
     }
 
     private fun typeOfGlobalFunction(declaration: Declaration.FunctionDef): Type {
@@ -385,6 +443,28 @@ private class Infer(
                 return typeAnalyzer.getInstantiatedType(type) ?: type
             }
         }.lowerType(type)
+    }
+
+    fun reduceGenericInstances(binding: PropertyBinding): PropertyBinding = when(binding) {
+        is PropertyBinding.ExtensionDef -> binding.copy(type = reduceGenericInstances(binding.type))
+        is PropertyBinding.Global -> binding
+        is PropertyBinding.SealedTypeCaseConstructor -> binding.copy(type = reduceGenericInstances(binding.type))
+        is PropertyBinding.StructField -> binding.copy(type = reduceGenericInstances(binding.type))
+        is PropertyBinding.StructFieldPointer -> binding.copy(type = reduceGenericInstances(binding.type))
+        is PropertyBinding.TraitFunctionRef -> binding.copy(type = reduceGenericInstances(binding.type))
+        is PropertyBinding.WhenCaseFieldRef -> binding.copy(type = reduceGenericInstances(binding.type))
+        is PropertyBinding.WhereParamRef -> binding.copy(type = reduceGenericInstances(binding.type))
+    }
+
+    fun typeOfPropertyBinding(binding: PropertyBinding): Type = when(binding) {
+        is PropertyBinding.Global -> typeOfBinding(binding.binding) ?: Type.Error(binding.binding.binder.location)
+        is PropertyBinding.ExtensionDef -> binding.type
+        is PropertyBinding.SealedTypeCaseConstructor -> binding.type
+        is PropertyBinding.StructField -> binding.type
+        is PropertyBinding.StructFieldPointer -> binding.type
+        is PropertyBinding.TraitFunctionRef -> binding.type
+        is PropertyBinding.WhenCaseFieldRef -> binding.type
+        is PropertyBinding.WhereParamRef -> binding.type
     }
 
 }
