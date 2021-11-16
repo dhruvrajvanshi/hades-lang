@@ -8,15 +8,35 @@ import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
 import hadesc.resolver.TypeBinding
 import hadesc.types.Type
+import hadesc.types.toSubstitution
 
 class Analyzer(
         private val ctx: Context
 ) {
-    fun annotationToType(annotation: TypeAnnotation): Type = when (annotation) {
-        is TypeAnnotation.Application -> TODO()
+    private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
+    private fun TypeAnnotation.toType() = annotationToType(this)
+
+    fun annotationToType(annotation: TypeAnnotation) = annotationToTypeCache.getOrPut(annotation) {
+        annotationToTypeWorker(annotation)
+    }
+    private fun annotationToTypeWorker(annotation: TypeAnnotation): Type = when (annotation) {
+        is TypeAnnotation.Application -> {
+            val callee = annotation.callee.toType()
+            if (callee is Type.TypeFunction) {
+                if (annotation.args.size > callee.params.size) {
+                    ctx.report(annotation.callee, Diagnostic.Kind.TooManyTypeArgs)
+                }
+                val args = annotation.args.map { it.toType() }
+                val substitution = callee.params.zip(args).toSubstitution()
+                callee.body.applySubstitution(substitution)
+            } else {
+                ctx.report(annotation.callee, Diagnostic.Kind.TooManyTypeArgs)
+                Type.Error(annotation.location)
+            }
+        }
         is TypeAnnotation.Error -> TODO()
         is TypeAnnotation.Function -> Type.Function(
-            annotation.from.map { annotationToType(it) },
+            annotation.from.map { it.toType() },
             traitRequirements = null,
             annotationToType(annotation.to),
         )
@@ -40,7 +60,18 @@ class Analyzer(
                 is TypeBinding.SealedType -> TODO()
                 is TypeBinding.Struct -> TODO()
                 is TypeBinding.Trait -> TODO()
-                is TypeBinding.TypeAlias -> TODO()
+                is TypeBinding.TypeAlias -> {
+                    val aliasDecl = binding.declaration
+                    val bodyType = annotationToType(aliasDecl.rhs)
+                    if (aliasDecl.typeParams != null) {
+                        Type.TypeFunction(
+                            aliasDecl.typeParams.map { Type.Param(it.binder) },
+                            bodyType
+                        )
+                    } else {
+                        bodyType
+                    }
+                }
                 is TypeBinding.TypeParam -> Type.ParamRef(binding.binder)
                 null -> {
                     ctx.diagnosticReporter.report(annotation.location, Diagnostic.Kind.UnboundType(annotation.name.name))
@@ -90,7 +121,19 @@ class Analyzer(
         is TypeBinding.SealedType -> TODO()
         is TypeBinding.Struct -> Type.Constructor(ctx.resolver.qualifiedStructName(typeBinding.declaration))
         is TypeBinding.Trait -> TODO()
-        is TypeBinding.TypeAlias -> TODO()
+        is TypeBinding.TypeAlias -> {
+            val aliasDecl = typeBinding.declaration
+            val body = aliasDecl.rhs.toType()
+
+            if (aliasDecl.typeParams != null) {
+                Type.TypeFunction(
+                    aliasDecl.typeParams.map { Type.Param(it.binder) },
+                    body
+                )
+            } else {
+                body
+            }
+        }
         is TypeBinding.TypeParam -> TODO()
     }
 
