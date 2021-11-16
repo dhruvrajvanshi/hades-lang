@@ -207,7 +207,7 @@ private class Infer(
 
     fun inferExpressionWorker(expression: Expression): Type = when(expression) {
         is Expression.AddressOf -> TODO()
-        is Expression.AddressOfMut -> TODO()
+        is Expression.AddressOfMut -> inferAddressOfMut(expression)
         is Expression.ArrayIndex -> TODO()
         is Expression.ArrayLiteral -> TODO()
         is Expression.As -> inferAsExpression(expression)
@@ -235,6 +235,36 @@ private class Infer(
         is Expression.UnsafeCast -> TODO()
         is Expression.Var -> inferVarExpression(expression)
         is Expression.When -> TODO()
+    }
+
+    private fun inferAddressOfMut(expression: Expression.AddressOfMut): Type {
+        val valueType = inferExpression(expression.expression)
+
+        if (!isLValue(expression.expression)) {
+            reportError(expression.expression, Diagnostic.Kind.NotAnAddressableValue)
+            if (!isMutableLValue(expression.expression)) {
+                reportError(expression.expression, Diagnostic.Kind.ValNotMutable)
+            }
+        }
+
+
+        return Type.Ptr(valueType, isMutable = true)
+    }
+
+    private fun isLValue(expression: Expression): Boolean {
+        return getLValueInfo(expression) != null
+    }
+
+    private fun isMutableLValue(expression: Expression): Boolean {
+        return getLValueInfo(expression)?.isMutable == true
+    }
+
+    private fun getLValueInfo(expression: Expression): LValueInfo? = when(expression) {
+        is Expression.Var -> when (val binding = ctx.resolver.resolve(expression.name)) {
+            is Binding.ValBinding -> LValueInfo(isMutable = binding.statement.isMutable)
+            else -> null
+        }
+        else -> null
     }
 
     private fun inferPropertyExpression(expression: Expression.Property): Type {
@@ -358,3 +388,5 @@ private class Infer(
     }
 
 }
+
+data class LValueInfo(val isMutable: Boolean)
