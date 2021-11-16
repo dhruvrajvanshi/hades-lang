@@ -8,7 +8,7 @@ def main(): Void {
     if tr {
         val f = id(false)
         if not f {
-            id(b"PASS")
+            puts(id(b"PASS"))
         }
     }
 }
