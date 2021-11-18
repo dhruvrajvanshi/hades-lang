@@ -1233,6 +1233,7 @@ class HIRGen(
             typeOfExpression(expression),
             lowerGlobalName(binding.declaration.name)
         )
+        is Binding.Enum -> requireUnreachable()
     }
 
     private val externDefs = mutableMapOf<QualifiedName, HIRDefinition.ExternFunction>()

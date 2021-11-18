@@ -103,6 +103,8 @@ data class Diagnostic(
         object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
         object BlockExpressionMustEndWithExpression : Diagnostic.Kind(Severity.ERROR)
         object InvalidIntrinsic : Diagnostic.Kind(Severity.ERROR)
+        object NotAnEnumType : Diagnostic.Kind(Severity.ERROR)
+
         data class TypeDoesNotSupportArithmetic(val type: Type): Diagnostic.Kind(Severity.ERROR)
 
         data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
@@ -191,6 +193,7 @@ data class Diagnostic(
             InvalidIntrinsic -> "Invalid intrinsic"
             is TypeDoesNotSupportArithmetic -> "Type '${type.prettyPrint()}' does not support arithmetic."
             is InvalidEscape -> "Invalid escape character '${c}'"
+            NotAnEnumType -> "Not an enum type"
         }
 
     }

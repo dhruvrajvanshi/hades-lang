@@ -1,5 +1,6 @@
 package hadesc.ast
 
+import hadesc.Name
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
@@ -169,13 +170,15 @@ sealed class Declaration : HasLocation {
         data class Case(
             override val location: SourceLocation,
             val name: Binder,
-            val params: List<CaseParam>,
+            val params: List<CaseParam>?,
         ): HasLocation
 
         data class CaseParam(
             val name: Binder?,
             val type: TypeAnnotation
         )
+
+        fun getCase(name: Name): Case? = cases.find { it.name.name == name }
     }
 }
 

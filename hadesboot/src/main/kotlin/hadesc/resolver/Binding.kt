@@ -64,6 +64,11 @@ sealed class Binding {
         override val binder: Binder get() = declaration.name
     }
 
+    data class Enum(val declaration: Declaration.Enum): Binding() {
+        override val binder: Binder
+            get() = declaration.name
+    }
+
     data class WhenArm(override val binder: Binder, val case: Expression.WhenArm): Binding()
 
     fun isLocalTo(scope: HasLocation) = binder.location.isWithin(scope.location)
@@ -79,6 +84,7 @@ sealed class Binding {
         is ValBinding -> false
         is WhenArm -> false
         is ExternConst -> true
+        is Enum -> true
     }
 }
 

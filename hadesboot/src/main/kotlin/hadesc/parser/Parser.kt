@@ -159,7 +159,7 @@ class Parser(
         if (at(tt.LPAREN)) {
             TODO()
         }
-        return Declaration.Enum.Case(name.location, name, emptyList())
+        return Declaration.Enum.Case(name.location, name, null)
     }
 
     private fun parseExternConstDef(): Declaration {

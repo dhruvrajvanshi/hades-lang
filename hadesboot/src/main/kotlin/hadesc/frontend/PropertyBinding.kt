@@ -47,6 +47,12 @@ sealed class PropertyBinding {
         val type: Type
     ) : PropertyBinding()
 
+    data class EnumTypeCaseConstructor(
+        val declaration: Declaration.Enum,
+        val case: Declaration.Enum.Case,
+        val type: Type
+    ): PropertyBinding()
+
     data class WhenCaseFieldRef(
         val declaration: Declaration.SealedType,
         val caseName: Name,

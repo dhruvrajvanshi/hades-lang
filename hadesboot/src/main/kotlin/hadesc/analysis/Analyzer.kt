@@ -46,6 +46,11 @@ class Analyzer(
             return sealedTypeCaseConstructorBinding
         }
 
+        val enumTypeCaseConstructorBinding = resolveEnumTypeConstructorBinding(expression)
+        if (enumTypeCaseConstructorBinding != null) {
+            return enumTypeCaseConstructorBinding
+        }
+
         val matchArmBinding = resolveMatchArmPropertyBinding(expression)
         if (matchArmBinding != null) {
             return matchArmBinding
@@ -108,6 +113,21 @@ class Analyzer(
             ?: return null
         val type = typeOfSealedTypeCase(binding.declaration, case)
         return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
+    }
+
+
+    private fun resolveEnumTypeConstructorBinding(expression: Expression.Property): PropertyBinding.EnumTypeCaseConstructor? {
+        if (expression.lhs !is Expression.Var) {
+            return null
+        }
+        val binding = ctx.resolver.resolve(expression.lhs.name)
+        if (binding !is Binding.Enum) return null
+        val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
+            ?: return null
+        check(binding.declaration.typeParams == null)
+
+        val type = Type.Constructor(ctx.resolver.qualifiedName(binding.binder))
+        return PropertyBinding.EnumTypeCaseConstructor(binding.declaration, case, type)
     }
 
     private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
@@ -1112,6 +1132,7 @@ class Analyzer(
                 is PropertyBinding.WhenCaseFieldRef -> binding.type
                 null -> Type.Error(expression.location)
                 is PropertyBinding.TraitFunctionRef -> binding.type
+                is PropertyBinding.EnumTypeCaseConstructor -> binding.type
             }
 
     private fun typeOfGlobalPropertyBinding(
@@ -1139,6 +1160,7 @@ class Analyzer(
         is Binding.SealedType -> requireUnreachable()
         is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> typeOfExternConstBinding(binding)
+        is Binding.Enum -> requireUnreachable()
     }
 
     private fun typeOfExternConstBinding(binding: Binding.ExternConst): Type {
@@ -1935,6 +1957,23 @@ class Analyzer(
             null
         }
     }
+
+
+    fun isEnumType(type: Type): Boolean = getEnumTypeDeclaration(type) != null
+
+    fun getEnumTypeDeclaration(type: Type): Declaration.Enum? = when(type) {
+        is Type.Constructor -> {
+            val decl = ctx.resolver.resolveDeclaration(type.name)
+            if (decl is Declaration.Enum)
+                decl
+            else null
+        }
+        is Type.Application -> {
+            getEnumTypeDeclaration(type.callee)
+        }
+        else -> null
+    }
+
 
 }
 

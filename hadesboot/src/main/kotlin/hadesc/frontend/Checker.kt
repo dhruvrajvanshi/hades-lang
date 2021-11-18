@@ -49,7 +49,18 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkEnumDef(declaration: Declaration.Enum) {
-        TODO()
+        declaration.typeParams?.let { checkTypeParams(it) }
+        checkTopLevelTypeBinding(declaration.name)
+        val caseNames = mutableMapOf<Name, Declaration.Enum.Case>()
+        for (case in declaration.cases) {
+            val existing = caseNames[case.name.name]
+            if (existing != null) {
+                error(case.name, Diagnostic.Kind.DuplicateVariantName)
+            } else {
+                caseNames[case.name.name]
+            }
+            check(case.params == null)
+        }
     }
 
     private fun checkSealedTypeDef(declaration: Declaration.SealedType) {
@@ -595,8 +606,8 @@ class Checker(val ctx: Context) {
             checkPatternHasType(it.pattern, expression.value.type)
         }
 
-        if (!expression.value.type.isIntegral()) {
-            error(expression, Diagnostic.Kind.NotAnIntegralValue)
+        if (!expression.value.type.isIntegral() && !ctx.analyzer.isEnumType(expression.value.type)) {
+            error(expression.value, Diagnostic.Kind.NotAnIntegralValue)
         }
 
         checkPatternExhaustivity(expression.value, expression.value.type, expression.arms)
@@ -604,20 +615,48 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkPatternHasType(pattern: Pattern, type: Type) {
-        when (pattern) {
+        exhaustive(when (pattern) {
             is Pattern.IntLiteral -> {
                 if (type !is Type.Integral) {
                     error(pattern, Diagnostic.Kind.NotAnIntegralValue)
-                }
+                } else unit
             }
             is Pattern.Wildcard -> {}
-        }
+            is Pattern.EnumCase -> {
+                if (!ctx.analyzer.isEnumType(type)) {
+                    error(pattern, Diagnostic.Kind.NotAnEnumType)
+                } else {
+                    val declaration = checkNotNull(ctx.analyzer.getEnumTypeDeclaration(type))
+                    val case = declaration.getCase(pattern.name.name)
+                    if (case == null) {
+                        error(pattern, Diagnostic.Kind.NoSuchMember)
+                    } else unit
+                }
+            }
+        })
     }
 
     private fun checkPatternExhaustivity(location: HasLocation, valueType: Type, arms: List<Expression.Match.Arm>) {
         if (valueType.isIntegral()) {
             if (arms.none { it.pattern is Pattern.Wildcard }) {
                 error(location, Diagnostic.Kind.NonExhaustivePrimitivePatterns)
+            }
+        }
+
+        val enumDecl = ctx.analyzer.getEnumTypeDeclaration(valueType)
+        if (enumDecl != null) {
+            if (arms.none { it.pattern is Pattern.Wildcard }) {
+                val casesChecked = arms.mapNotNull {
+                    when (it.pattern) {
+                        is Pattern.EnumCase -> it.pattern.name.name
+                        else -> null
+                    }
+                }.toSet()
+                for (case in enumDecl.cases) {
+                    if (case.name.name !in casesChecked) {
+                        error(location, Diagnostic.Kind.NonExhaustivePatterns(case.name.name))
+                    }
+                }
             }
         }
     }
