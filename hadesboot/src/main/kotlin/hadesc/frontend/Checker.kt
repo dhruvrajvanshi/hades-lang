@@ -45,6 +45,11 @@ class Checker(val ctx: Context) {
         is Declaration.ImplementationDef -> checkImplementationDef(declaration)
         is Declaration.SealedType -> checkSealedTypeDef(declaration)
         is Declaration.ExternConst -> checkExternConstDef(declaration)
+        is Declaration.Enum -> checkEnumDef(declaration)
+    }
+
+    private fun checkEnumDef(declaration: Declaration.Enum) {
+        TODO()
     }
 
     private fun checkSealedTypeDef(declaration: Declaration.SealedType) {

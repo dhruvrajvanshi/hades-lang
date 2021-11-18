@@ -1,0 +1,21 @@
+
+enum T {
+    A
+    B
+    C
+}
+
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+    val message = match T.B {
+        A -> b"FAIL"
+        B -> b"SUCCESS"
+        C -> b"FAIL"
+    }
+
+    match T.C {
+        A -> puts(b"FAIL")
+        _ -> puts(message)
+    }
+}

@@ -57,6 +57,7 @@ class HIRGen(
         is Declaration.ImportMembers -> emptyList()
         is Declaration.SealedType -> lowerSealedType(declaration)
         is Declaration.ExternConst -> lowerExternConstDef(declaration)
+        is Declaration.Enum -> TODO()
     }
 
     private fun lowerExternConstDef(declaration: Declaration.ExternConst): List<HIRDefinition> {

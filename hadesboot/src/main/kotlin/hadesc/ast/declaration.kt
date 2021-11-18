@@ -159,6 +159,24 @@ sealed class Declaration : HasLocation {
             val params: List<Param>?,
         )
     }
+
+    data class Enum(
+        override val location: SourceLocation,
+        val name: Binder,
+        val typeParams: List<TypeParam>?,
+        val cases: List<Case>
+    ) : Declaration() {
+        data class Case(
+            override val location: SourceLocation,
+            val name: Binder,
+            val params: List<CaseParam>,
+        ): HasLocation
+
+        data class CaseParam(
+            val name: Binder?,
+            val type: TypeAnnotation
+        )
+    }
 }
 
 

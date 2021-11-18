@@ -10,13 +10,14 @@ import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 import llvm.makeList
+import kotlin.math.exp
 
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
         tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
         tt.TRAIT, tt.IMPLEMENTATION, tt.AT_SYMBOL,
-        tt.TYPE, tt.EXTENSION
+        tt.TYPE, tt.EXTENSION, tt.ENUM
 )
 private val statementPredictors = setOf(
     tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
@@ -119,12 +120,46 @@ class Parser(
             tt.TRAIT -> parseTraitDef()
             tt.IMPLEMENTATION -> parseImplementationDef()
             tt.SEALED -> parseSealedDef(decorators)
+            tt.ENUM -> parseEnumDeclaration()
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
         ctx.resolver.onParseDeclaration(decl)
         return decl
+    }
+
+    private fun parseEnumDeclaration(): Declaration {
+        val start = expect(tt.ENUM)
+        val name = parseBinder()
+        val typeParams = parseOptionalTypeParams()
+        expect(tt.LBRACE)
+        val cases = buildList {
+            while (!at(tt.RBRACE) && !at(tt.EOF)) {
+                val case = parseEnumDeclCase()
+                add(case)
+                if (!at(tt.RBRACE) && case.location.stop.line == currentToken.location.start.line) {
+                    expect(tt.COMMA)
+                } else if (at(tt.COMMA)) {
+                    advance()
+                }
+            }
+        }
+        val stop = expect(tt.RBRACE)
+        return Declaration.Enum(
+            makeLocation(start, stop),
+            name,
+            typeParams,
+            cases
+        )
+    }
+
+    private fun parseEnumDeclCase(): Declaration.Enum.Case {
+        val name = parseBinder()
+        if (at(tt.LPAREN)) {
+            TODO()
+        }
+        return Declaration.Enum.Case(name.location, name, emptyList())
     }
 
     private fun parseExternConstDef(): Declaration {
@@ -905,7 +940,8 @@ class Parser(
                 val tok = advance()
                 Pattern.Wildcard(tok.location)
             } else {
-                syntaxError(advance().location, Diagnostic.Kind.PatternExpected)
+                val name = parseIdentifier()
+                Pattern.EnumCase(name)
             }
         }
         else -> {

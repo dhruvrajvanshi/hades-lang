@@ -311,6 +311,7 @@ class Resolver(private val ctx: Context) {
                 } else {
                     null
                 }
+                is Declaration.Enum -> TODO()
             }
             if (binding != null) {
                 return binding
@@ -497,6 +498,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.ImportMembers -> false
                 is Declaration.SealedType -> decl.name.identifier.name == declName
                 is Declaration.ExternConst -> decl.name.identifier.name == declName
+                is Declaration.Enum -> TODO()
             })
             if (match) {
                 return decl
@@ -576,6 +578,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.SealedType -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else null
+                is Declaration.Enum -> TODO()
             }
             if (decl != null) {
                 return decl
