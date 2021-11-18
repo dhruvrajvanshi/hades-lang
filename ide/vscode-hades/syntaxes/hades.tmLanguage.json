@@ -52,6 +52,32 @@
 				},
 				{
 					"include": "#extension-def"
+				},
+				{
+					"include": "#enum-def"
+				}
+			]
+		},
+		"enum-def": {
+			"begin": "\\b(enum)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+			"end": "(?<=(}))",
+			"beginCaptures": {
+				"1": { "name": "keyword" },
+				"2": { "name": "entity.name.type" }
+			},
+			"patterns": [
+				{
+					"begin": "{",
+					"end": "}",
+					"patterns": [
+						{
+							"begin": "([a-zA-Z_][a-zA-Z0-9_]*)",
+							"end": "(?=([}\n,]))",
+							"beginCaptures": {
+								"0": { "name": "entity.name.method" }
+							}
+						}
+					]
 				}
 			]
 		},
