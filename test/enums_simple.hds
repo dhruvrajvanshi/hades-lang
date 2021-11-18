@@ -10,7 +10,7 @@ extern def puts(*u8): Void = puts
 def main(): Void {
     val message = match T.B {
         A -> b"FAIL"
-        B -> b"SUCCESS"
+        B -> b"PASS"
         C -> b"FAIL"
     }
 

@@ -438,7 +438,16 @@ class HIRToLLVM(
             is HIRConstant.ByteString -> lowerByteString(constant)
             is HIRConstant.FloatValue -> lowerFloatLiteral(constant)
             is HIRConstant.IntValue -> lowerIntLiteral(constant)
+            is HIRConstant.StructLiteral -> lowerStructLiteral(constant)
         }
+
+    private fun lowerStructLiteral(constant: HIRConstant.StructLiteral): Value {
+        return LLVM.LLVMConstStruct(
+            constant.items.map { lowerConstant(it) }.asPointerPointer(),
+            constant.items.size,
+            false.toLLVMBool()
+        )
+    }
 
     private fun lowerArrayLiteral(constant: HIRConstant.ArrayLiteral): Value {
         return constantArray(
