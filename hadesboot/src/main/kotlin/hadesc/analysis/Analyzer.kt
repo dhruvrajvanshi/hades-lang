@@ -4,7 +4,6 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
-import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
@@ -21,7 +20,6 @@ import hadesc.types.toSubstitution
 import hadesc.unit
 import java.util.*
 import java.util.Collections.singletonList
-import kotlin.math.exp
 import kotlin.math.min
 
 class Analyzer(
@@ -126,7 +124,15 @@ class Analyzer(
             ?: return null
         check(binding.declaration.typeParams == null)
 
-        val type = Type.Constructor(ctx.resolver.qualifiedName(binding.binder))
+        val instanceType = Type.Constructor(ctx.resolver.qualifiedName(binding.binder))
+        val type = if (case.params == null) {
+            instanceType
+        } else {
+            Type.Ptr(
+                Type.Function(traitRequirements = null, from = case.params.map { annotationToType(it.type) }, to = instanceType),
+                isMutable = false
+            )
+        }
         return PropertyBinding.EnumTypeCaseConstructor(binding.declaration, case, type)
     }
 
@@ -864,7 +870,7 @@ class Analyzer(
     }
 
     private fun inferMatchExpression(expression: Expression.Match): Type {
-        inferExpression(expression.value)
+        val discriminantType = inferExpression(expression.value)
         val firstArm = expression.arms.firstOrNull()?.value
         val expectedType = if (firstArm == null) {
             Type.Error(expression.location)
@@ -873,13 +879,43 @@ class Analyzer(
         }
 
         for (arm in expression.arms) {
+            checkPatternHasType(arm.pattern, discriminantType)
             if (expectedType !is Type.Error) {
                 checkExpression(arm.value, expectedType)
             } else {
                 inferExpression(arm.value)
             }
+
         }
         return expectedType
+    }
+
+    private fun checkPatternHasType(pattern: Pattern, discriminantType: Type) {
+        check(patternTypes[pattern] == null)
+        patternTypes[pattern] = discriminantType
+
+        object : SyntaxVisitor {
+            override fun visitEnumCasePattern(pattern: Pattern.EnumCase) {
+                if (pattern.params == null) {
+                    return
+                }
+                pattern.params.forEachIndexed { index, param ->
+                    val ty = getCaseParamTypes(discriminantType, pattern.name.name)
+
+                    check(patternTypes[param] == null)
+                    patternTypes[param] = ty[index]
+                }
+                super.visitEnumCasePattern(pattern)
+            }
+        }.visitPattern(pattern)
+    }
+
+    private fun getCaseParamTypes(ty: Type, name: Name): List<Type> {
+        val decl = getEnumTypeDeclaration(ty) ?: return emptyList()
+        val case = decl.getCase(name) ?: return emptyList()
+        val params = case.params ?: return emptyList()
+        check(decl.typeParams == null)
+        return params.map { annotationToType(it.type) }
     }
 
     private fun inferUnaryMinus(expression: Expression.UnaryMinus): Type {
@@ -996,8 +1032,9 @@ class Analyzer(
     }
 
     private fun checkMatchExpression(expression: Expression.Match, expectedType: Type): Type {
-        inferExpression(expression.value)
+        val discriminantType = inferExpression(expression.value)
         for (arm in expression.arms) {
+            checkPatternHasType(arm.pattern, discriminantType)
             checkExpression(arm.value, expectedType)
         }
         return expectedType
@@ -1160,7 +1197,13 @@ class Analyzer(
         is Binding.SealedType -> requireUnreachable()
         is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> typeOfExternConstBinding(binding)
-        is Binding.Enum -> requireUnreachable()
+        is Binding.Enum -> Type.Error(binding.declaration.location)
+        is Binding.ValPattern -> typeOfValPatternBinding(binding)
+    }
+
+    private val patternTypes = MutableNodeMap<Pattern, Type>()
+    private fun typeOfValPatternBinding(binding: Binding.ValPattern): Type {
+        return checkNotNull(patternTypes[binding.pattern])
     }
 
     private fun typeOfExternConstBinding(binding: Binding.ExternConst): Type {

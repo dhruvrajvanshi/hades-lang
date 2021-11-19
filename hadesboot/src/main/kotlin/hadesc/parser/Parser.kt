@@ -156,10 +156,29 @@ class Parser(
 
     private fun parseEnumDeclCase(): Declaration.Enum.Case {
         val name = parseBinder()
-        if (at(tt.LPAREN)) {
-            TODO()
+        val params = if (at(tt.LPAREN)) {
+            advance()
+            val value = parseSeperatedList(tt.COMMA, tt.RPAREN) {
+                parseEnumCaseParam()
+            }
+            expect(tt.RPAREN)
+            value
+        } else null
+        return Declaration.Enum.Case(name.location, name, params)
+    }
+
+    private fun parseEnumCaseParam(): Declaration.Enum.CaseParam {
+        return if (at(tt.ID) && tokenBuffer.peek(1).kind == tt.COLON) {
+            Declaration.Enum.CaseParam(
+                parseBinder(),
+                parseTypeAnnotation()
+            )
+        } else {
+            Declaration.Enum.CaseParam(
+                null,
+                parseTypeAnnotation()
+            )
         }
-        return Declaration.Enum.Case(name.location, name, null)
     }
 
     private fun parseExternConstDef(): Declaration {
@@ -913,9 +932,9 @@ class Parser(
             } else if (at(tt.COMMA)) {
                 advance()
             }
-
-            arms.add(Expression.Match.Arm(pattern, armValue))
-
+            val arm = Expression.Match.Arm(pattern, armValue)
+            arms.add(arm)
+            ctx.resolver.onParseMatchArm(arm)
         }
 
         val end = expect(tt.RBRACE)
@@ -935,13 +954,25 @@ class Parser(
                 tok.text.toLong()
             )
         }
+        tt.VAL -> {
+            advance()
+            Pattern.Val(parseBinder())
+        }
         tt.ID -> {
             if (currentToken.text == "_") {
                 val tok = advance()
                 Pattern.Wildcard(tok.location)
             } else {
                 val name = parseIdentifier()
-                Pattern.EnumCase(name)
+                val params = if (at(tt.LPAREN)) {
+                    advance()
+                    val params = parseSeperatedList(tt.COMMA, tt.RPAREN) {
+                        parsePattern()
+                    }
+                    expect(tt.RPAREN)
+                    params
+                } else null
+                Pattern.EnumCase(name, params)
             }
         }
         else -> {

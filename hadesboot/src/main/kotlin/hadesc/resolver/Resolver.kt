@@ -160,6 +160,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.WhenArm -> null
         is ScopeTree.WhenExpression -> null
         is ScopeTree.MatchExpression -> null
+        is ScopeTree.MatchArm -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: Declaration.FunctionDef): TypeBinding? {
@@ -214,6 +215,28 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.WhenArm -> findInWhenArm(ident, scope)
         is ScopeTree.WhenExpression -> null
         is ScopeTree.MatchExpression -> null
+        is ScopeTree.MatchArm -> findInMatchArm(ident, scope)
+    }
+
+    private fun findInMatchArm(ident: Identifier, scope: ScopeTree.MatchArm): Binding? {
+        return findInPattern(ident, scope.arm.pattern)
+    }
+
+    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when(pattern) {
+        is Pattern.EnumCase -> {
+            var result: Binding? = null
+            for (paramPattern in (pattern.params ?: emptyList())) {
+                val nested = findInPattern(ident, paramPattern)
+                if (nested != null) {
+                    result = nested
+                    break
+                }
+            }
+            result
+        }
+        is Pattern.IntLiteral -> null
+        is Pattern.Val -> if (ident.name == pattern.name.name) Binding.ValPattern(pattern) else null
+        is Pattern.Wildcard -> null
     }
 
     private fun findInWhenArm(ident: Identifier, scope: ScopeTree.WhenArm): Binding? {
@@ -420,6 +443,7 @@ class Resolver(private val ctx: Context) {
     fun onParseBlock(block: Block) {
         addScopeNode(block.location.file, ScopeTree.Block(block))
     }
+
 
     private fun addScopeNode(file: SourcePath, scopeNode: ScopeTree) {
         sourceFileScopes
@@ -701,6 +725,10 @@ class Resolver(private val ctx: Context) {
 
     fun onParseWhenArm(arm: Expression.WhenArm) {
         addScopeNode(arm.value.location.file, ScopeTree.WhenArm(arm))
+    }
+
+    fun onParseMatchArm(arm: Expression.Match.Arm) {
+        addScopeNode(arm.location.file, ScopeTree.MatchArm(arm))
     }
 
     fun onParseWhenExpression(expression: Expression.When) {

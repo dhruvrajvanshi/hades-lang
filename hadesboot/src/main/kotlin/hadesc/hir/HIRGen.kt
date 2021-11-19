@@ -67,9 +67,6 @@ class HIRGen(
                 enumStructTagName to Type.u8
             )
         check(declaration.cases.size < 128)
-        for (case in declaration.cases) {
-            check(case.params == null)
-        }
         val structName = ctx.resolver.qualifiedName(declaration.name)
         val instanceType = Type.Constructor(structName)
         return listOf(
@@ -80,19 +77,74 @@ class HIRGen(
                 fields = fields
             ),
             *declaration.cases.mapIndexed { index, case ->
-                HIRDefinition.Const(
-                    location = case.location,
-                    name = structName.append(case.name.name),
-                    initializer = HIRExpression.Constant(
-                        HIRConstant.StructLiteral(
-                            case.location,
-                            instanceType,
-                            listOf(HIRConstant.IntValue(case.location, Type.u8, index))
+                enumCaseDecl(index, case, declaration, structName, instanceType)
+            }.toTypedArray()
+        )
+    }
+
+    private fun enumCaseDecl(
+        index: Int,
+        case: Declaration.Enum.Case,
+        declaration: Declaration.Enum,
+        enumName: QualifiedName,
+        instanceType: Type
+    ): HIRDefinition {
+        check(declaration.typeParams == null)
+        val caseName = enumName.append(case.name.name)
+        if (case.params == null) {
+            return HIRDefinition.Const(
+                location = case.location,
+                name = caseName,
+                initializer = HIRExpression.StructLiteral(
+                    case.location,
+                    instanceType,
+                    listOf(HIRExpression.Constant(HIRConstant.IntValue(case.location, Type.u8, index)))
+                )
+            )
+        } else {
+            return HIRDefinition.Function(
+                case.location,
+                HIRFunctionSignature(
+                    case.name.location,
+                    caseName,
+                    typeParams = null,
+                    params = case.params.mapIndexed { paramIndex, param ->
+                        val paramName = ctx.makeName("\$$paramIndex")
+                        HIRParam(
+                            param.type.location,
+                            Binder(Identifier(param.type.location, paramName)),
+                            lowerTypeAnnotation(param.type)
+                        )
+                    },
+                    returnType = instanceType
+                ),
+                basicBlocks = mutableListOf(
+                    HIRBlock(
+                        case.location,
+                        ctx.makeName("entry"),
+                        mutableListOf(
+                            HIRStatement.Return(
+                                case.location,
+                                HIRExpression.StructLiteral(
+                                    case.location, instanceType,
+                                    listOf(HIRExpression.Constant(
+                                        HIRConstant.IntValue(case.location, Type.u8, index))
+                                    ) + case.params.mapIndexed { paramIndex, param ->
+                                        val paramName = ctx.makeName("\$$paramIndex")
+                                        HIRExpression.ParamRef(
+                                            param.type.location,
+                                            lowerTypeAnnotation(param.type),
+                                            paramName,
+                                            Binder(Identifier(param.type.location, paramName)),
+                                        )
+                                    }
+                                )
+                            )
                         )
                     )
                 )
-            }.toTypedArray()
-        )
+            )
+        }
     }
 
     private fun lowerExternConstDef(declaration: Declaration.ExternConst): List<HIRDefinition> {
@@ -1181,7 +1233,6 @@ class HIRGen(
     private fun lowerEnumCaseConstructorRef(expression: Expression.Property, binding: PropertyBinding.EnumTypeCaseConstructor): HIRExpression {
         val declaration = binding.declaration
         check(declaration.typeParams == null)
-        check(declaration.cases.all { it.params == null })
         val case = declaration.getCase(expression.property.name)
         check(case != null)
         val caseName = ctx.resolver.qualifiedName(binding.declaration.name).append(expression.property.name)
@@ -1331,6 +1382,11 @@ class HIRGen(
             lowerGlobalName(binding.declaration.name)
         )
         is Binding.Enum -> requireUnreachable()
+        is Binding.ValPattern -> HIRExpression.ValRef(
+            expression.location,
+            typeOfExpression(expression),
+            lowerLocalBinder(binding.binder)
+        )
     }
 
     private val externDefs = mutableMapOf<QualifiedName, HIRDefinition.ExternFunction>()

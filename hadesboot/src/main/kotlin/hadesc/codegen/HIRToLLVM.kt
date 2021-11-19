@@ -251,6 +251,7 @@ class HIRToLLVM(
             is HIRExpression.Closure -> requireUnreachable()
             is HIRExpression.When -> requireUnreachable()
             is HIRExpression.BlockExpression -> requireUnreachable()
+            is HIRExpression.StructLiteral -> lowerStructLiteral(expression)
         }
     }
 
@@ -438,12 +439,11 @@ class HIRToLLVM(
             is HIRConstant.ByteString -> lowerByteString(constant)
             is HIRConstant.FloatValue -> lowerFloatLiteral(constant)
             is HIRConstant.IntValue -> lowerIntLiteral(constant)
-            is HIRConstant.StructLiteral -> lowerStructLiteral(constant)
         }
 
-    private fun lowerStructLiteral(constant: HIRConstant.StructLiteral): Value {
+    private fun lowerStructLiteral(constant: HIRExpression.StructLiteral): Value {
         return LLVM.LLVMConstStruct(
-            constant.items.map { lowerConstant(it) }.asPointerPointer(),
+            constant.items.map { lowerExpression(it) }.asPointerPointer(),
             constant.items.size,
             false.toLLVMBool()
         )

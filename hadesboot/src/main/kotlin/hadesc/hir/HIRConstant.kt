@@ -37,12 +37,6 @@ sealed class HIRConstant: HasLocation {
         val items: List<HIRConstant>,
     ) : HIRConstant()
 
-    data class StructLiteral(
-        override val location: SourceLocation,
-        override val type: Type,
-        val items: List<HIRConstant>
-    ): HIRConstant()
-
     fun prettyPrint(): String = when(this) {
         is ByteString -> "b\"" + String(bytes)
                 .replace("\"", "\"\"")
@@ -53,8 +47,5 @@ sealed class HIRConstant: HasLocation {
         is ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
                     items.joinToString(", ") { it.prettyPrint() } +
                 "]"
-        is StructLiteral -> type.prettyPrint() + " { " +
-                items.joinToString { it.prettyPrint() } +
-                " }"
     }
 }

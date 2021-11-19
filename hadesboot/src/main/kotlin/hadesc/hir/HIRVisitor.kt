@@ -89,6 +89,14 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.When -> visitWhen(expression)
             is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
             is HIRExpression.BlockExpression -> visitBlockExpression(expression)
+            is HIRExpression.StructLiteral -> visitStructLiteral(expression)
+        }
+    }
+
+    fun visitStructLiteral(expression: HIRExpression.StructLiteral) {
+        visitType(expression.type)
+        for (item in expression.items) {
+            visitExpression(item)
         }
     }
 

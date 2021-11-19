@@ -302,8 +302,13 @@ interface SyntaxVisitor {
     fun visitPattern(pattern: Pattern): Unit = when(pattern) {
         is Pattern.IntLiteral -> visitIntPattern(pattern)
         is Pattern.Wildcard -> visitWildcardPattern(pattern)
-        is Pattern.EnumCase -> TODO()
+        is Pattern.EnumCase -> visitEnumCasePattern(pattern)
+        is Pattern.Val -> visitValPattern(pattern)
     }
+
+    fun visitEnumCasePattern(pattern: Pattern.EnumCase) = unit
+
+    fun visitValPattern(pattern: Pattern.Val) = unit
 
     fun visitWildcardPattern(pattern: Pattern.Wildcard) = unit
 

@@ -188,6 +188,13 @@ sealed class HIRExpression: HIRNode {
         override val location get() = block.location
     }
 
+    data class StructLiteral(
+        override val location: SourceLocation,
+        override val type: Type,
+        val items: List<HIRExpression>
+    ): HIRExpression()
+
+
     override fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -220,5 +227,8 @@ sealed class HIRExpression: HIRNode {
         is IntegerConvert -> "(${value.prettyPrint()} as ${type.prettyPrint()})"
         is ArrayIndex -> "${array.prettyPrint()}.[${index.prettyPrint()}]"
         is BlockExpression -> block.prettyPrint()
+        is StructLiteral -> type.prettyPrint() + " { " +
+                items.joinToString { it.prettyPrint() } +
+                " }"
     }
 }

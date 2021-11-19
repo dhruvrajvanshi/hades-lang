@@ -59,7 +59,12 @@ class Checker(val ctx: Context) {
             } else {
                 caseNames[case.name.name]
             }
-            check(case.params == null)
+            case.params?.let {
+                for (param in it) {
+                    check(param.name == null)
+                    checkTypeAnnotation(param.type)
+                }
+            }
         }
     }
 
@@ -598,7 +603,7 @@ class Checker(val ctx: Context) {
         checkExpression(expression.value)
         val expectedType = expression.arms.firstOrNull()?.value?.type
         if (expectedType != null) {
-            expression.arms.drop(1).forEach {
+            expression.arms.forEach {
                 checkExpressionHasType(it.value, expectedType)
             }
         }
@@ -630,9 +635,20 @@ class Checker(val ctx: Context) {
                     val case = declaration.getCase(pattern.name.name)
                     if (case == null) {
                         error(pattern, Diagnostic.Kind.NoSuchMember)
-                    } else unit
+                    } else {
+
+                        if (pattern.params != null && case.params != null) {
+                            case.params.zip(pattern.params).forEach { (case, pattern) ->
+                                checkPatternHasType(pattern, case.type.type)
+                                unit
+                            }
+                            unit
+                        } else unit
+                    }
+
                 }
             }
+            is Pattern.Val -> unit
         })
     }
 

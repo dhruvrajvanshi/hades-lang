@@ -1,0 +1,14 @@
+enum OptionalCStr {
+    Some(*u8)
+    None
+}
+
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+
+    puts(match OptionalCStr.Some(b"PASS") {
+        Some(val message) -> message,
+        None -> b"FAIL"
+    })
+}
