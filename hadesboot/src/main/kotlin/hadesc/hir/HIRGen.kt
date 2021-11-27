@@ -61,10 +61,13 @@ class HIRGen(
     }
 
     private val enumStructTagName = ctx.makeName("\$tag")
+    private val enumStructPayloadName = ctx.makeName("\$payload")
     private fun lowerEnumDeclaration(declaration: Declaration.Enum): List<HIRDefinition> {
+        val casePayloadTypes = casePayloadTypes(declaration, declaration.cases)
         val fields =
             listOf(
-                enumStructTagName to Type.u8
+                enumStructTagName to enumTagType,
+                enumStructPayloadName to Type.UntaggedUnion(casePayloadTypes)
             )
         check(declaration.cases.size < 128)
         val structName = ctx.resolver.qualifiedName(declaration.name)
@@ -76,74 +79,97 @@ class HIRGen(
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = fields
             ),
-            *declaration.cases.mapIndexed { index, case ->
+            *declaration.cases.flatMapIndexed { index, case ->
                 enumCaseDecl(index, case, declaration, structName, instanceType)
             }.toTypedArray()
         )
     }
 
+    private fun casePayloadTypes(declaration: Declaration.Enum, cases: List<Declaration.Enum.Case>): List<Type> = makeList {
+        for (case in cases) {
+            if (case.params != null) {
+                add(Type.Constructor(ctx.resolver.qualifiedName(declaration.name).append(case.name.name)))
+            }
+        }
+    }
+
+    private val enumTagType = Type.u8
     private fun enumCaseDecl(
         index: Int,
         case: Declaration.Enum.Case,
         declaration: Declaration.Enum,
         enumName: QualifiedName,
         instanceType: Type
-    ): HIRDefinition {
+    ): List<HIRDefinition> {
         check(declaration.typeParams == null)
         val caseName = enumName.append(case.name.name)
         if (case.params == null) {
-            return HIRDefinition.Const(
+            return listOf(HIRDefinition.Const(
                 location = case.location,
                 name = caseName,
                 initializer = HIRExpression.StructLiteral(
                     case.location,
                     instanceType,
-                    listOf(HIRExpression.Constant(HIRConstant.IntValue(case.location, Type.u8, index)))
+                    listOf(HIRExpression.Constant(HIRConstant.IntValue(case.location, enumTagType, index)))
                 )
-            )
+            ))
         } else {
-            return HIRDefinition.Function(
-                case.location,
-                HIRFunctionSignature(
-                    case.name.location,
-                    caseName,
+            return listOf(
+                HIRDefinition.Struct(
+                    case.location,
+                    name = caseName,
                     typeParams = null,
-                    params = case.params.mapIndexed { paramIndex, param ->
-                        val paramName = ctx.makeName("\$$paramIndex")
-                        HIRParam(
-                            param.type.location,
-                            Binder(Identifier(param.type.location, paramName)),
-                            lowerTypeAnnotation(param.type)
-                        )
-                    },
-                    returnType = instanceType
+                    fields = case.params.mapIndexed { paramIndex, param ->
+                        ctx.makeName("\$$paramIndex") to lowerTypeAnnotation(param.type)
+                    }
                 ),
-                basicBlocks = mutableListOf(
-                    HIRBlock(
-                        case.location,
-                        ctx.makeName("entry"),
-                        mutableListOf(
-                            HIRStatement.Return(
-                                case.location,
-                                HIRExpression.StructLiteral(
-                                    case.location, instanceType,
-                                    listOf(HIRExpression.Constant(
-                                        HIRConstant.IntValue(case.location, Type.u8, index))
-                                    ) + case.params.mapIndexed { paramIndex, param ->
-                                        val paramName = ctx.makeName("\$$paramIndex")
-                                        HIRExpression.ParamRef(
-                                            param.type.location,
-                                            lowerTypeAnnotation(param.type),
-                                            paramName,
-                                            Binder(Identifier(param.type.location, paramName)),
+                HIRDefinition.Function(
+                    case.location,
+                    HIRFunctionSignature(
+                        case.name.location,
+                        caseName,
+                        typeParams = null,
+                        params = case.params.mapIndexed { paramIndex, param ->
+                            val paramName = ctx.makeName("\$$paramIndex")
+                            HIRParam(
+                                param.type.location,
+                                Binder(Identifier(param.type.location, paramName)),
+                                lowerTypeAnnotation(param.type)
+                            )
+                        },
+                        returnType = instanceType
+                    ),
+                    basicBlocks = mutableListOf(
+                        HIRBlock(
+                            case.location,
+                            ctx.makeName("entry"),
+                            mutableListOf(
+                                HIRStatement.Return(
+                                    case.location,
+                                    HIRExpression.StructLiteral(
+                                        case.location, instanceType,
+                                        listOf(HIRExpression.Constant(
+                                            HIRConstant.IntValue(case.location, enumTagType, index)),
+                                            HIRExpression.StructLiteral(
+                                                case.location,
+                                                instanceType,
+                                                case.params.mapIndexed { paramIndex, param ->
+                                                    val paramName = ctx.makeName("\$$paramIndex")
+                                                    HIRExpression.ParamRef(
+                                                        param.type.location,
+                                                        lowerTypeAnnotation(param.type),
+                                                        paramName,
+                                                        Binder(Identifier(param.type.location, paramName)),
+                                                    )
+                                                }
+                                            )
                                         )
-                                    }
+                                    )
                                 )
                             )
                         )
                     )
-                )
-            )
+            ))
         }
     }
 
@@ -781,6 +807,11 @@ class HIRGen(
         val caseBranches = expression.arms.takeWhile { it.pattern !is Pattern.Wildcard }
         val elseBranch = expression.arms.firstOrNull { it.pattern is Pattern.Wildcard } ?: expression.arms.last()
 
+        val discriminantVal = declareVariable(expression.value.location, expression.value.type)
+        addStatement(
+            HIRStatement.Assignment(expression.value.location, discriminantVal.name, lowerExpression(expression.value))
+        )
+
         val elseBlock = HIRBlock(
             elseBranch.location,
             ctx.makeUniqueName(),
@@ -792,24 +823,67 @@ class HIRGen(
             check(case.pattern is Pattern.EnumCase)
             val index = declaration.cases.indexOfFirst { it.name.name == case.pattern.name.name }
             check(index >= 0)
+            val statements = mutableListOf<HIRStatement>()
+            val casePayloadTypeName = ctx.resolver.qualifiedName(declaration.name).append(case.pattern.name.name)
+            val casePayloadType = Type.Constructor(casePayloadTypeName)
+            val payload = HIRExpression.GetStructField(
+                location = expression.value.location,
+                casePayloadType,
+                discriminantVal,
+                enumStructPayloadName,
+                1
+            )
+
+            if (case.pattern.params != null) {
+                val payloadVal = declareVariable(case.location, casePayloadType)
+                addStatement(HIRStatement.Assignment(case.pattern.location, payloadVal.name, payload))
+                case.pattern.params.forEachIndexed { index, param ->
+                    if (param is Pattern.Wildcard) {
+                        return@forEachIndexed
+                    }
+
+                    check(param is Pattern.Val)
+
+                    statements.add(
+                        HIRStatement.ValDeclaration(
+                            param.location,
+                            param.name.name,
+                            isMutable = false,
+                            ctx.analyzer.typeOfPattern(param)
+                        )
+                    )
+                    statements.add(
+                        HIRStatement.Assignment(
+                            param.location,
+                            param.name.name,
+                            HIRExpression.GetStructField(
+                                param.location,
+                                ctx.analyzer.typeOfPattern(param),
+                                payload,
+                                ctx.makeName("\$$index"),
+                                index
+                            )
+                        )
+                    )
+                }
+            }
+            statements.add(HIRStatement.Assignment(
+                case.value.location,
+                result.name,
+                lowerExpression(case.value)
+            ))
             val block = HIRBlock(
                 case.value.location,
                 ctx.makeUniqueName(),
-                mutableListOf(
-                    HIRStatement.Assignment(
-                        case.value.location,
-                        result.name,
-                        lowerExpression(case.value)
-                    )
-                )
+                statements
             )
             MatchIntArm(
-                HIRConstant.IntValue(case.location, Type.u8, index),
+                HIRConstant.IntValue(case.location, enumTagType, index),
                 block
             )
         }
-        val discriminant = lowerExpression(expression.value)
-        val discriminantTag = HIRExpression.GetStructField(expression.value.location, Type.u8, discriminant, enumStructTagName, 0)
+        val discriminant = HIRExpression.ValRef(discriminantVal.location, discriminantVal.type, discriminantVal.name)
+        val discriminantTag = HIRExpression.GetStructField(expression.value.location, enumTagType, discriminant, enumStructTagName, 0)
         addStatement(
             HIRStatement.MatchInt(
                 expression.location,
@@ -1128,8 +1202,7 @@ class HIRGen(
                 lowerTypeAnnotation(expression.type))
     }
 
-    private fun declareVariable(location: SourceLocation, type: Type): HIRExpression.ValRef {
-        val name = ctx.makeUniqueName()
+    private fun declareVariable(location: SourceLocation, type: Type, name: Name = ctx.makeUniqueName()): HIRExpression.ValRef {
         addStatement(HIRStatement.ValDeclaration(
             location,
             name,

@@ -2017,6 +2017,10 @@ class Analyzer(
         else -> null
     }
 
+    fun typeOfPattern(param: Pattern): Type {
+        return checkNotNull(patternTypes[param])
+    }
+
 
 }
 
