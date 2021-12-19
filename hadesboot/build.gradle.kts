@@ -5,8 +5,9 @@ plugins {
     jacoco
 }
 
-val logbackVersion = "1.2.6"
+val logbackVersion = "1.2.8"
 val slf4jVersion = "1.7.32"
+val junitVersion = "5.8.2"
 
 application {
     group = "org.hades"
@@ -29,8 +30,8 @@ dependencies {
 
     testImplementation(kotlin("test"))
 
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
 }
 
 java {
