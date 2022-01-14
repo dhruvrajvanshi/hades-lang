@@ -39,7 +39,7 @@ private val OPERATORS = listOf(
                 tt.GREATER_THAN),
         listOf(tt.EQEQ, tt.BANG_EQ),
         listOf(tt.PLUS, tt.MINUS),
-        listOf(tt.STAR, tt.SLASH)
+        listOf(tt.STAR, tt.SLASH, tt.PERCENT)
 )
 
 typealias op = BinaryOperator
@@ -53,6 +53,7 @@ private val BINARY_OPERATORS = mapOf(
         tt.MINUS to op.MINUS,
         tt.STAR to op.TIMES,
         tt.SLASH to op.DIVIDE,
+        tt.PERCENT to op.REMAINDER,
         tt.AND to op.AND,
         tt.OR to op.OR,
         tt.EQEQ to op.EQUALS,
@@ -69,6 +70,8 @@ private val INTRINSIC_TYPE = mapOf(
     "add" to IntrinsicType.ADD,
     "sub" to IntrinsicType.SUB,
     "mul" to IntrinsicType.MUL,
+    "div" to IntrinsicType.DIV,
+    "rem" to IntrinsicType.REM,
 
     "int_to_ptr" to IntrinsicType.INT_TO_PTR,
     "ptr_to_int" to IntrinsicType.PTR_TO_INT,

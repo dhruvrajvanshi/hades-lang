@@ -635,7 +635,7 @@ class Checker(val ctx: Context) {
 
     private fun checkIntrinsicExpression(expression: Expression.Intrinsic) {
         return when (expression.intrinsicType) {
-            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL, IntrinsicType.DIV -> {
+            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL, IntrinsicType.DIV, IntrinsicType.REM -> {
                 val typeArgs = ctx.analyzer.getTypeArgs(expression) ?: return
 
                 if (typeArgs.size != 1) {

@@ -869,7 +869,7 @@ class Analyzer(
 
     private fun inferIntrinsicExpression(expression: Expression.Intrinsic): Type =
         when (expression.intrinsicType) {
-            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL, IntrinsicType.DIV -> {
+            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL, IntrinsicType.DIV, IntrinsicType.REM -> {
                 val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),

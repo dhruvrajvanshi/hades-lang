@@ -62,6 +62,7 @@ val SINGLE_CHAR_TOKENS = mapOf(
     ']' to tt.RSQB,
     '&' to tt.AMPERSAND,
     '/' to tt.SLASH,
+    '%' to tt.PERCENT,
 )
 
 class Lexer(private val file: SourcePath) {

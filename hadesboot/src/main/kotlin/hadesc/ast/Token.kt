@@ -83,6 +83,7 @@ data class Token(
         AT_INTRINSIC,
         VBAR,
         SLASH,
+        PERCENT,
 
         EQ,
         BANG_EQ,

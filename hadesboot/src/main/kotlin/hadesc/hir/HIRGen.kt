@@ -25,6 +25,7 @@ private val INTRINSIC_TYPE_TO_BINOP = mapOf(
     IntrinsicType.SUB to BinaryOperator.MINUS,
     IntrinsicType.MUL to BinaryOperator.TIMES,
     IntrinsicType.DIV to BinaryOperator.DIVIDE,
+    IntrinsicType.REM to BinaryOperator.REMAINDER
 )
 class HIRGen(
         override val ctx: Context
@@ -1343,7 +1344,7 @@ class HIRGen(
             expression.callee
         }
         return when (intrinsic.intrinsicType) {
-            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL, IntrinsicType.DIV -> {
+            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL, IntrinsicType.DIV, IntrinsicType.REM -> {
                 check(expression.args.size == 2)
                 return HIRExpression.BinOp(
                     expression.location,

@@ -194,6 +194,7 @@ enum class IntrinsicType {
     SUB,
     MUL,
     DIV,
+    REM,
 
     PTR_TO_INT,
     INT_TO_PTR,

@@ -315,6 +315,7 @@ class HIRToLLVM(
         BinaryOperator.MINUS -> Opcode.FSub
         BinaryOperator.TIMES -> Opcode.FMul
         BinaryOperator.DIVIDE -> Opcode.FDiv
+        BinaryOperator.REMAINDER -> Opcode.FRem
         else -> requireUnreachable()
     }
     private fun lowerUnsignedOperator(op: BinaryOperator): Opcode = when (op) {
@@ -322,6 +323,7 @@ class HIRToLLVM(
         BinaryOperator.MINUS -> Opcode.Sub
         BinaryOperator.TIMES -> Opcode.Mul
         BinaryOperator.DIVIDE -> Opcode.UDiv
+        BinaryOperator.REMAINDER -> Opcode.URem
         BinaryOperator.AND -> Opcode.And
         BinaryOperator.OR -> Opcode.Or
         else -> requireUnreachable()
@@ -332,6 +334,7 @@ class HIRToLLVM(
             BinaryOperator.MINUS -> Opcode.Sub
             BinaryOperator.TIMES -> Opcode.Mul
             BinaryOperator.DIVIDE -> Opcode.SDiv
+            BinaryOperator.REMAINDER -> Opcode.SRem
             BinaryOperator.AND -> Opcode.And
             BinaryOperator.OR -> Opcode.Or
             else -> requireUnreachable()
