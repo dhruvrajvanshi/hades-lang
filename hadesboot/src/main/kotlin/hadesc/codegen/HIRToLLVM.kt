@@ -295,21 +295,18 @@ class HIRToLLVM(
                 name
             )
         } else {
-            if (expression.type is Type.FloatingPoint) {
-                builder.buildBinOp(
-                    lowerFloatingPointOperator(expression.operator),
-                    lowerExpression(expression.lhs),
-                    lowerExpression(expression.rhs),
-                    name,
-                )
-            } else {
-                builder.buildBinOp(
-                    lowerOperator(expression.operator),
-                    lowerExpression(expression.lhs),
-                    lowerExpression(expression.rhs),
-                    name
-                )
-            }
+            builder.buildBinOp(
+                when (val type = expression.type) {
+                    is Type.FloatingPoint -> lowerFloatingPointOperator(expression.operator)
+                    is Type.Integral -> if (type.isSigned) lowerOperator(expression.operator)
+                                        else lowerUnsignedOperator(expression.operator)
+                    else -> lowerOperator(expression.operator)
+                },
+                lowerExpression(expression.lhs),
+                lowerExpression(expression.rhs),
+                name
+            )
+
         }
     }
 
@@ -317,14 +314,24 @@ class HIRToLLVM(
         BinaryOperator.PLUS -> Opcode.FAdd
         BinaryOperator.MINUS -> Opcode.FSub
         BinaryOperator.TIMES -> Opcode.FMul
+        BinaryOperator.DIVIDE -> Opcode.FDiv
         else -> requireUnreachable()
     }
-
+    private fun lowerUnsignedOperator(op: BinaryOperator): Opcode = when (op) {
+        BinaryOperator.PLUS -> Opcode.Add
+        BinaryOperator.MINUS -> Opcode.Sub
+        BinaryOperator.TIMES -> Opcode.Mul
+        BinaryOperator.DIVIDE -> Opcode.UDiv
+        BinaryOperator.AND -> Opcode.And
+        BinaryOperator.OR -> Opcode.Or
+        else -> requireUnreachable()
+    }
     private fun lowerOperator(op: BinaryOperator): Opcode {
         return when (op) {
             BinaryOperator.PLUS -> Opcode.Add
             BinaryOperator.MINUS -> Opcode.Sub
             BinaryOperator.TIMES -> Opcode.Mul
+            BinaryOperator.DIVIDE -> Opcode.SDiv
             BinaryOperator.AND -> Opcode.And
             BinaryOperator.OR -> Opcode.Or
             else -> requireUnreachable()

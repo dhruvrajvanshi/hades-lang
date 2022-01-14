@@ -193,6 +193,7 @@ enum class IntrinsicType {
     ADD,
     SUB,
     MUL,
+    DIV,
 
     PTR_TO_INT,
     INT_TO_PTR,

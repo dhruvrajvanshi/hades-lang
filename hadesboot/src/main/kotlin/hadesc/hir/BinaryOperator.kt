@@ -4,6 +4,7 @@ enum class BinaryOperator {
     PLUS,
     MINUS,
     TIMES,
+    DIVIDE,
 
     AND,
     OR,
@@ -21,6 +22,7 @@ enum class BinaryOperator {
         PLUS -> "add"
         MINUS -> "sub"
         TIMES -> "mul"
+        DIVIDE -> "div"
         AND -> "and"
         OR -> "or"
         EQUALS -> "eq"
