@@ -581,6 +581,7 @@ class HIRGen(
             is Expression.BoolLiteral -> lowerBoolLiteral(expression)
             is Expression.NullPtr -> lowerNullPtr(expression)
             is Expression.IntLiteral -> lowerIntLiteral(expression)
+            is Expression.FloatLiteral -> lowerFloatLiteral(expression)
             is Expression.Not -> lowerNotExpression(expression)
             is Expression.BinaryOperation -> lowerBinaryExpression(expression)
             is Expression.SizeOf -> lowerSizeOfExpression(expression)
@@ -1069,6 +1070,18 @@ class HIRGen(
                 )
             )
         }
+    }
+
+    private fun lowerFloatLiteral(expression: Expression.FloatLiteral): HIRExpression {
+        val exprType = expression.type
+        check(exprType is Type.FloatingPoint)
+        return HIRExpression.Constant(
+            HIRConstant.FloatValue(
+                expression.location,
+                exprType,
+                expression.value
+            )
+        )
     }
 
     private fun lowerBoolLiteral(expression: Expression.BoolLiteral): HIRExpression {

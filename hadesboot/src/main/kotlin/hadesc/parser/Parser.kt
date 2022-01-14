@@ -754,6 +754,10 @@ class Parser(
                 val token = advance()
                 Expression.IntLiteral(token.location, token.text.toInt())
             }
+            tt.FLOAT_LITERAL -> {
+                val token = advance()
+                Expression.FloatLiteral(token.location, token.text.toDouble())
+            }
             tt.HEX_INT_LITERAL -> {
                 val token = advance()
                 require(token.text.startsWith("0x"))

@@ -816,6 +816,7 @@ class Analyzer(
             is Expression.BoolLiteral -> Type.Bool
             is Expression.NullPtr -> inferNullPtrExpression(expression)
             is Expression.IntLiteral -> inferIntLiteral(expression)
+            is Expression.FloatLiteral -> inferFloatLiteral(expression)
             is Expression.Not -> inferNotExpression(expression)
             is Expression.BinaryOperation -> inferBinaryOperation(expression)
             is Expression.SizeOf -> inferSizeOfExpression(expression)
@@ -1088,6 +1089,12 @@ class Analyzer(
         expression: Expression.IntLiteral
     ): Type {
         return Type.Integral(32, true)
+    }
+    private fun inferFloatLiteral(
+        @Suppress("UNUSED_PARAMETER")
+        expression: Expression.FloatLiteral
+    ): Type {
+        return Type.FloatingPoint(64)
     }
 
     private fun inferIfExpression(expression: Expression.If): Type {

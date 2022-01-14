@@ -191,6 +191,12 @@ class Lexer(private val file: SourcePath) {
         while (currentChar.isDigit()) {
             advance()
         }
+        if (currentChar == '.' && lookup().isDigit()) {
+            do {
+                advance()
+            } while(currentChar.isDigit())
+            return makeToken(tt.FLOAT_LITERAL)
+        }
         return makeToken(tt.INT_LITERAL)
     }
 
@@ -285,4 +291,10 @@ class Lexer(private val file: SourcePath) {
         } else {
             EOF_CHAR
         }
+
+    private fun lookup(i: Int = 1) = if (state.currentOffset + i < text.length) {
+        text[state.currentOffset + i]
+    } else {
+        EOF_CHAR
+    }
 }
