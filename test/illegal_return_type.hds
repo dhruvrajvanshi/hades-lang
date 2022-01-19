@@ -5,7 +5,7 @@ struct Box[T] {
 
 type BoxAlias[T] = Box[T]
 
-sealed type ST[T] {
+enum ST[T] {
     C(value: T)
 }
 
