@@ -5,7 +5,7 @@ plugins {
     jacoco
 }
 
-val logbackVersion = "1.2.8"
+val logbackVersion = "1.2.10"
 val slf4jVersion = "1.7.32"
 val junitVersion = "5.8.2"
 
