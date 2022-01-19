@@ -147,5 +147,5 @@ class Context(
         return makeName("\$$_nameIndex")
     }
 
-    fun sealedTypeDiscriminantType(): Type = Type.Integral(64, false)
+    fun enumDiscriminantType(): Type = Type.Integral(64, false)
 }

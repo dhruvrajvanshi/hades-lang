@@ -60,7 +60,7 @@ sealed class Binding {
         override val binder get() = param.binder
     }
 
-    data class SealedType(val declaration: Declaration.SealedType) : Binding() {
+    data class Enum(val declaration: Declaration.Enum) : Binding() {
         override val binder: Binder get() = declaration.name
     }
 
@@ -74,7 +74,7 @@ sealed class Binding {
         is FunctionParam -> false
         is GlobalConst -> true
         is GlobalFunction -> true
-        is SealedType -> true
+        is Enum -> true
         is Struct -> true
         is ValBinding -> false
         is WhenArm -> false

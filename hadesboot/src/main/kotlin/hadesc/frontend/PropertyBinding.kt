@@ -41,14 +41,14 @@ sealed class PropertyBinding {
         val member = traitDef.signatures[memberIndex]
     }
 
-    data class SealedTypeCaseConstructor(
-        val declaration: Declaration.SealedType,
-        val case: Declaration.SealedType.Case,
+    data class EnumTypeCaseConstructor(
+        val declaration: Declaration.Enum,
+        val case: Declaration.Enum.Case,
         val type: Type
     ) : PropertyBinding()
 
     data class WhenCaseFieldRef(
-        val declaration: Declaration.SealedType,
+        val declaration: Declaration.Enum,
         val caseName: Name,
         val typeArgs: List<Type>,
         val name: Identifier,

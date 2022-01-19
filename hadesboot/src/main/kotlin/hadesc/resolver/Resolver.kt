@@ -105,7 +105,7 @@ class Resolver(private val ctx: Context) {
                 }
             }
         }
-        is ScopeTree.SealedTypeDef -> {
+        is ScopeTree.EnumDef -> {
             val param = scopeNode.declaration.typeParams?.findLast {
                 it.binder.identifier.name == ident.name
             }
@@ -180,8 +180,8 @@ class Resolver(private val ctx: Context) {
                 TypeBinding.TypeAlias(declaration)
             } else if (declaration is Declaration.TraitDef && declaration.name.identifier.name == ident.name) {
                 TypeBinding.Trait(declaration)
-            } else if (declaration is Declaration.SealedType && declaration.name.identifier.name == ident.name) {
-                TypeBinding.SealedType(declaration)
+            } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
+                TypeBinding.Enum(declaration)
             } else if (declaration is Declaration.ImportMembers) {
                 val binding = declaration.names.find { it.name == ident.name }
                 val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
@@ -210,7 +210,7 @@ class Resolver(private val ctx: Context) {
         is ScopeTree.TraitDef -> null
         is ScopeTree.ImplementationDef -> null
         is ScopeTree.Closure -> findInClosure(ident, scope)
-        is ScopeTree.SealedTypeDef -> null
+        is ScopeTree.EnumDef -> null
         is ScopeTree.WhenArm -> findInWhenArm(ident, scope)
         is ScopeTree.WhenExpression -> null
         is ScopeTree.MatchExpression -> null
@@ -306,8 +306,8 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.SealedType -> if (name == declaration.name.identifier.name) {
-                    Binding.SealedType(declaration)
+                is Declaration.Enum -> if (name == declaration.name.identifier.name) {
+                    Binding.Enum(declaration)
                 } else {
                     null
                 }
@@ -400,8 +400,8 @@ class Resolver(private val ctx: Context) {
             is Declaration.ImplementationDef -> {
                 addScopeNode(declaration.location.file, ScopeTree.ImplementationDef(declaration))
             }
-            is Declaration.SealedType -> {
-                addScopeNode(declaration.location.file, ScopeTree.SealedTypeDef(declaration))
+            is Declaration.Enum -> {
+                addScopeNode(declaration.location.file, ScopeTree.EnumDef(declaration))
             }
             else -> {}
         }
@@ -495,7 +495,7 @@ class Resolver(private val ctx: Context) {
                 is Declaration.TraitDef -> decl.name.identifier.name == declName
                 is Declaration.ImplementationDef -> false
                 is Declaration.ImportMembers -> false
-                is Declaration.SealedType -> decl.name.identifier.name == declName
+                is Declaration.Enum -> decl.name.identifier.name == declName
                 is Declaration.ExternConst -> decl.name.identifier.name == declName
             })
             if (match) {
@@ -573,7 +573,7 @@ class Resolver(private val ctx: Context) {
                         null
                     }
                 }
-                is Declaration.SealedType -> if (declaration.name.identifier.name == name.name) {
+                is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else null
             }
@@ -603,10 +603,6 @@ class Resolver(private val ctx: Context) {
 
     fun getEnclosingImpl(node: HasLocation): Declaration.ImplementationDef? {
         return getEnclosingScopeTree<ScopeTree.ImplementationDef>(node)?.declaration
-    }
-
-    fun getEnclosingMatchExpression(node: HasLocation): Expression.Match? {
-        return getEnclosingScopeTree<ScopeTree.MatchExpression>(node)?.expression
     }
 
     private inline fun <reified Scope: ScopeTree> getEnclosingScopeTree(at: HasLocation): Scope? {

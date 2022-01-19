@@ -147,7 +147,7 @@ sealed class Declaration : HasLocation {
             val body: List<Declaration>,
     ) : Declaration()
 
-    data class SealedType(
+    data class Enum(
         override val location: SourceLocation,
         val decorators: List<Decorator>,
         val name: Binder,

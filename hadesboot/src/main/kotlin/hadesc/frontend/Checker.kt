@@ -43,11 +43,11 @@ class Checker(val ctx: Context) {
         is Declaration.ExtensionDef -> checkExtensionDef(declaration)
         is Declaration.TraitDef -> checkTraitDef(declaration)
         is Declaration.ImplementationDef -> checkImplementationDef(declaration)
-        is Declaration.SealedType -> checkSealedTypeDef(declaration)
+        is Declaration.Enum -> checkEnumDef(declaration)
         is Declaration.ExternConst -> checkExternConstDef(declaration)
     }
 
-    private fun checkSealedTypeDef(declaration: Declaration.SealedType) {
+    private fun checkEnumDef(declaration: Declaration.Enum) {
         declaration.typeParams?.let { checkTypeParams(it) }
         checkTopLevelTypeBinding(declaration.name)
         val caseNames = mutableSetOf<Name>()
@@ -339,7 +339,7 @@ class Checker(val ctx: Context) {
                         .map { it.applySubstitution(substitution) }
                     fieldTypes.forEach { checkReturnTypeWorker(node, it) }
                 }
-                is Declaration.SealedType -> {
+                is Declaration.Enum -> {
 
                     val substitution =
                         if (typeArguments != null && declaration.typeParams != null)
