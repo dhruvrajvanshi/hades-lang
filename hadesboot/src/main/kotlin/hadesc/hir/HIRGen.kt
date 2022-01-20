@@ -29,18 +29,26 @@ class HIRGen(
         override val ctx: Context
 ): HasContext {
     private val paramToLocal = ParamToLocal(ctx)
+    private val enumTagFieldName = ctx.makeName("\$tag")
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
-        for (sourceFile in sourceFiles) {
-            for (it in sourceFile.declarations) {
-                declarations.addAll(lowerDeclaration(it))
+        try {
+            for (sourceFile in sourceFiles) {
+                for (it in sourceFile.declarations) {
+                    declarations.addAll(lowerDeclaration(it))
+                }
             }
+            declarations.addAll(externDefs.values)
+            val result = HIRModule(declarations)
+            logger().debug("HIRGen output")
+            logger().debug(result.prettyPrint())
+            return result
+        } catch (e: Error) {
+            logger().error("Error while compiling module", e)
+            logger().debug("Generated sources:\n${declarations.joinToString("\n\n") { it.prettyPrint() }}")
+            logger().debug("current statements:\n${currentStatements?.joinToString("\n") { it.prettyPrint() }}")
+            throw e
         }
-        declarations.addAll(externDefs.values)
-        val result = HIRModule(declarations)
-        logger().debug("HIRGen output")
-        logger().debug(result.prettyPrint())
-        return result
     }
 
     private fun lowerDeclaration(declaration: Declaration): List<HIRDefinition> = when (declaration) {
@@ -55,7 +63,7 @@ class HIRGen(
         is Declaration.TraitDef -> emptyList()
         is Declaration.ImplementationDef -> lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
-        is Declaration.SealedType -> lowerSealedType(declaration)
+        is Declaration.Enum -> lowerEnumDef(declaration)
         is Declaration.ExternConst -> lowerExternConstDef(declaration)
     }
 
@@ -145,29 +153,29 @@ class HIRGen(
         )
     }
 
-    private fun lowerSealedType(declaration: Declaration.SealedType): List<HIRDefinition> {
-        val sealedTypeName = lowerGlobalName(declaration.name)
+    private fun lowerEnumDef(declaration: Declaration.Enum): List<HIRDefinition> {
+        val enumName = lowerGlobalName(declaration.name)
         val caseStructs = declaration.cases.flatMapIndexed { index, case -> listOf(
             HIRDefinition.Struct(
                 case.name.location,
-                sealedTypeName.append(case.name.identifier.name),
+                enumName.append(case.name.identifier.name),
                 typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
-                fields = listOf(ctx.makeName("\$tag") to ctx.sealedTypeDiscriminantType()) + (case.params?.map {
+                fields = listOf(enumTagFieldName to ctx.enumDiscriminantType()) + (case.params?.map {
                     it.binder.identifier.name to ctx.analyzer.annotationToType(requireNotNull(it.annotation))
                 } ?: emptyList())
             ),
             HIRDefinition.Const(
                 case.name.location,
-                sealedTypeName.append(case.name.identifier.name).append(ctx.makeName("tag")),
+                enumName.append(case.name.identifier.name).append(ctx.makeName("tag")),
                 HIRExpression.Constant(
                     HIRConstant.IntValue(
                         case.name.location,
-                        ctx.sealedTypeDiscriminantType(),
+                        ctx.enumDiscriminantType(),
                         index
                     )
                 )
             ),
-            sealedCaseConstructorOrConst(declaration, sealedTypeName, case, index)
+            sealedCaseConstructorOrConst(declaration, enumName, case, index)
         )}.toTypedArray()
         return listOf(
             *caseStructs,
@@ -176,14 +184,14 @@ class HIRGen(
                 lowerGlobalName(declaration.name),
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = listOf(
-                    ctx.makeName("\$tag") to ctx.sealedTypeDiscriminantType(),
-                    ctx.makeName("payload") to ctx.analyzer.getSealedTypePayloadType(declaration)
+                    enumTagFieldName to ctx.enumDiscriminantType(),
+                    ctx.makeName("payload") to ctx.analyzer.getEnumPayloadType(declaration)
                 )
             )
         )
     }
 
-    private fun sealedTypeInstanceType(declaration: Declaration.SealedType): Type {
+    private fun enumInstanceType(declaration: Declaration.Enum): Type {
         val typeConstructor = Type.Constructor(name = ctx.resolver.qualifiedName(declaration.name))
         return if (declaration.typeParams != null) {
             Type.Application(
@@ -196,13 +204,13 @@ class HIRGen(
     }
 
     private fun sealedCaseConstructorOrConst(
-        declaration: Declaration.SealedType,
-        sealedTypeName: QualifiedName,
-        case: Declaration.SealedType.Case,
+        declaration: Declaration.Enum,
+        enumName: QualifiedName,
+        case: Declaration.Enum.Case,
         index: Int
     ): HIRDefinition {
-        val caseConstructorName = sealedTypeName.append(case.name.name).append(ctx.makeName("constructor"))
-        val instanceType = sealedTypeInstanceType(declaration)
+        val caseConstructorName = enumName.append(case.name.name).append(ctx.makeName("constructor"))
+        val instanceType = enumInstanceType(declaration)
         val caseStructName = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
         val caseTypeConstructor = Type.Constructor(name = caseStructName)
         val caseInstanceType = if (declaration.typeParams != null) {
@@ -215,13 +223,13 @@ class HIRGen(
         }
         val loc = case.name.location
         val tag = HIRExpression.Constant(
-            HIRConstant.IntValue(loc, ctx.sealedTypeDiscriminantType(), index)
+            HIRConstant.IntValue(loc, ctx.enumDiscriminantType(), index)
         )
         val caseValName = ctx.makeUniqueName()
         val resultName = ctx.makeUniqueName()
         val caseConstructorRef = HIRExpression.GlobalRef(
             loc,
-            type = sealedTypeCaseConstructorRefType(declaration, case),
+            type = enumCaseConstructorRefType(declaration, case),
             name = ctx.resolver.qualifiedName(declaration.name).append(case.name.name)
         )
         val caseConstructorTypeApplication = if (declaration.typeParams != null) {
@@ -310,11 +318,11 @@ class HIRGen(
         )
     }
 
-    private fun sealedTypeCaseConstructorRefType(
-        declaration: Declaration.SealedType,
-        case: Declaration.SealedType.Case
+    private fun enumCaseConstructorRefType(
+        declaration: Declaration.Enum,
+        case: Declaration.Enum.Case
     ): Type {
-        val instanceType = sealedTypeInstanceType(declaration)
+        val instanceType = enumInstanceType(declaration)
         val from = case.params?.map { lowerTypeAnnotation(checkNotNull(it.annotation)) } ?: emptyList()
         val functionType = Type.Function(
             from,
@@ -428,13 +436,13 @@ class HIRGen(
         deferStack.pop()
     }
 
-    private fun buildBlock(location: SourceLocation, name: Name = ctx.makeUniqueName(), f: () -> Unit): HIRBlock {
+    private fun buildBlock(location: SourceLocation, name: Name? = null, f: () -> Unit): HIRBlock {
         val oldStatements = currentStatements
         val statements = mutableListOf<HIRStatement>()
         currentStatements = statements
         f()
         currentStatements = oldStatements
-        return HIRBlock(location, name, statements)
+        return HIRBlock(location, name ?: ctx.makeUniqueName(), statements)
     }
 
     private fun addStatement(statement: HIRStatement) {
@@ -622,9 +630,9 @@ class HIRGen(
             postLowerExpression(lowered)
         }
 
-        val sealedTypeConstructorBinding = ctx.analyzer.getSealedTypeConstructorBinding(expression)
-        return if (sealedTypeConstructorBinding != null && expression !is Expression.TypeApplication) {
-            if (sealedTypeConstructorBinding.case.params == null) {
+        val enumConstructorBinding = ctx.analyzer.getEnumConstructorBinding(expression)
+        return if (enumConstructorBinding != null && expression !is Expression.TypeApplication) {
+            if (enumConstructorBinding.case.params == null) {
                 HIRExpression.Call(
                     expression.location,
                     withAppliedTypes.type,
@@ -638,10 +646,99 @@ class HIRGen(
     }
 
     private fun lowerMatchExpression(expression: Expression.Match): HIRExpression {
+        val discriminantType = typeOfExpression(expression.value)
+        if (discriminantType.isIntegral()) {
+            return lowerIntegralMatchExpression(expression)
+        }
+
+        return lowerEnumMatchExpression(expression)
+    }
+
+    private fun lowerEnumMatchExpression(expression: Expression.Match): HIRExpression {
+        val discriminantType = expression.value.type
+        val enumDef = ctx.analyzer.getEnumTypeDeclaration(discriminantType)
+        checkNotNull(enumDef)
+
+        // match value {
+        //   X -> e1,
+        //   Y -> e2,
+        //   X -> e3
+        // }
+        //  ------------------ =>
+        // val result: expression.type
+        // val discriminant: expression.value.type
+        // discriminant = expression.value
+        // val tag      = expression.value.$tag
+        // switch int [
+        //    0 -> .0
+        //    1 -> .1
+        //    2 -> .2
+        // ]
+
+        val resultVar = declareVariable(expression.location, expression.type, "result")
+        val discriminantVar = declareVariable(expression.value.location, expression.value.type, "discriminant")
+        addStatement(HIRStatement.Assignment(expression.value.location, discriminantVar.name, lowerExpression(expression.value)))
+        val tagVar = declareVariable(expression.value.location, ctx.enumDiscriminantType(), "tag")
+        addStatement(HIRStatement.Assignment(
+            expression.value.location,
+            tagVar.name,
+            HIRExpression.GetStructField(expression.value.location, tagVar.type, discriminantVar, enumTagFieldName, 0))
+        )
+
+
+        val arms = expression.arms.mapNotNull { arm ->
+            when (arm.pattern) {
+                is Pattern.EnumVariant -> {
+                    val blockName = ctx.makeUniqueName(arm.pattern.identifier.name.text)
+                    val (_, index) = checkNotNull(enumDef.getCase(arm.pattern.identifier.name))
+
+                    MatchIntArm(
+                        HIRConstant.IntValue(arm.pattern.location, ctx.enumDiscriminantType(), index),
+                        buildBlock(arm.value.location, blockName) {
+                            addStatement(
+                                HIRStatement.Assignment(
+                                    arm.value.location,
+                                    resultVar.name,
+                                    lowerExpression(arm.value)
+                                )
+                            )
+                        }
+                    )
+                }
+                is Pattern.Wildcard -> null // handled separately as an otherwise block
+                else -> requireUnreachable()
+            }
+        }
+
+        val elseArm = expression.arms.find {
+            it.pattern is Pattern.Wildcard
+        }
+
+        addStatement(HIRStatement.MatchInt(
+            expression.location,
+            tagVar,
+            arms,
+            otherwise = buildBlock(elseArm?.location ?: expression.location, ctx.makeUniqueName("else")) {
+                if (elseArm != null) {
+                    addStatement(
+                        HIRStatement.Assignment(
+                            elseArm.value.location,
+                            resultVar.name,
+                            lowerExpression(elseArm.value)
+                        )
+                    )
+                }
+            }
+        ))
+
+        return resultVar
+    }
+
+    private fun lowerIntegralMatchExpression(expression: Expression.Match): HIRExpression {
         val resultType = typeOfExpression(expression)
         val discriminantType = typeOfExpression(expression.value)
+        require(discriminantType.isIntegral())
         val result = declareVariable(expression.location, resultType)
-        check(expression.value.type.isIntegral())
         val arms = expression.arms.takeWhile { it.pattern !is Pattern.Wildcard }
         val elseArm = expression.arms.find { it.pattern is Pattern.Wildcard }
         check(elseArm != null)
@@ -814,8 +911,8 @@ class HIRGen(
     private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
         val value = lowerExpression(expression.value)
         val discriminantType = value.type
-        val discriminants = ctx.analyzer.getDiscriminants(discriminantType)
-        val declaration = ctx.analyzer.getSealedTypeDeclaration(discriminantType)
+        val discriminants = checkNotNull(ctx.analyzer.getDiscriminants(discriminantType))
+        val declaration = checkNotNull(ctx.analyzer.getEnumTypeDeclaration(discriminantType))
         val cases = makeList {
             for (discriminant in discriminants) {
                 val arm = expression.arms.find {
@@ -990,8 +1087,8 @@ class HIRGen(
                 lowerTypeAnnotation(expression.type))
     }
 
-    private fun declareVariable(location: SourceLocation, type: Type): HIRExpression.ValRef {
-        val name = ctx.makeUniqueName()
+    private fun declareVariable(location: SourceLocation, type: Type, namePrefix: String = ""): HIRExpression.ValRef {
+        val name = ctx.makeUniqueName(namePrefix)
         addStatement(HIRStatement.ValDeclaration(
             location,
             name,
@@ -1086,10 +1183,9 @@ class HIRGen(
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
         is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
         is PropertyBinding.WhereParamRef -> TODO()
-        is PropertyBinding.SealedTypeCaseConstructor -> lowerSealedTypeCaseConstructor(expression, binding)
+        is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
         is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
         is PropertyBinding.TraitFunctionRef -> lowerTraitFunctionRef(expression, binding)
-        else -> TODO()
     }
 
     private fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.TraitFunctionRef): HIRExpression {
@@ -1139,7 +1235,7 @@ class HIRGen(
         }
     }
 
-    private fun lowerSealedTypeCaseConstructor(expression: Expression.Property, binding: PropertyBinding.SealedTypeCaseConstructor): HIRExpression {
+    private fun lowerEnumCaseConstructor(expression: Expression.Property, binding: PropertyBinding.EnumTypeCaseConstructor): HIRExpression {
         require(expression.lhs is Expression.Var)
         val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name).append(ctx.makeName("constructor"))
 
@@ -1225,7 +1321,7 @@ class HIRGen(
             lowerLocalBinder(binding.param.binder),
             binding.binder,
         )
-        is Binding.SealedType -> TODO()
+        is Binding.Enum -> TODO()
         is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> HIRExpression.GlobalRef(
             expression.location,

@@ -43,11 +43,11 @@ class Checker(val ctx: Context) {
         is Declaration.ExtensionDef -> checkExtensionDef(declaration)
         is Declaration.TraitDef -> checkTraitDef(declaration)
         is Declaration.ImplementationDef -> checkImplementationDef(declaration)
-        is Declaration.SealedType -> checkSealedTypeDef(declaration)
+        is Declaration.Enum -> checkEnumDef(declaration)
         is Declaration.ExternConst -> checkExternConstDef(declaration)
     }
 
-    private fun checkSealedTypeDef(declaration: Declaration.SealedType) {
+    private fun checkEnumDef(declaration: Declaration.Enum) {
         declaration.typeParams?.let { checkTypeParams(it) }
         checkTopLevelTypeBinding(declaration.name)
         val caseNames = mutableSetOf<Name>()
@@ -339,7 +339,7 @@ class Checker(val ctx: Context) {
                         .map { it.applySubstitution(substitution) }
                     fieldTypes.forEach { checkReturnTypeWorker(node, it) }
                 }
-                is Declaration.SealedType -> {
+                is Declaration.Enum -> {
 
                     val substitution =
                         if (typeArguments != null && declaration.typeParams != null)
@@ -586,12 +586,13 @@ class Checker(val ctx: Context) {
                 checkExpressionHasType(it.value, expectedType)
             }
         }
+
+        val discriminantType = expression.value.type
+        if (!discriminantType.isIntegral() && !ctx.analyzer.isEnumType(discriminantType)) {
+            error(expression.value, Diagnostic.Kind.NotAMatchableType(discriminantType))
+        }
         expression.arms.forEach {
             checkPatternHasType(it.pattern, expression.value.type)
-        }
-
-        if (!expression.value.type.isIntegral()) {
-            error(expression, Diagnostic.Kind.NotAnIntegralValue)
         }
 
         checkPatternExhaustivity(expression.value, expression.value.type, expression.arms)
@@ -603,6 +604,17 @@ class Checker(val ctx: Context) {
             is Pattern.IntLiteral -> {
                 if (type !is Type.Integral) {
                     error(pattern, Diagnostic.Kind.NotAnIntegralValue)
+                }
+            }
+            is Pattern.EnumVariant -> {
+                val enumDeclaration = ctx.analyzer.getEnumTypeDeclaration(type)
+                if (enumDeclaration == null) {
+                    error(pattern, Diagnostic.Kind.NotAnEnumType(type))
+                    return
+                }
+                val variants = ctx.analyzer.getEnumDiscriminants(enumDeclaration, type.typeArgs())
+                if (variants.none { it.name == pattern.identifier.name }) {
+                    error(pattern, Diagnostic.Kind.NoSuchCase(enumDeclaration, pattern.identifier.name))
                 }
             }
             is Pattern.Wildcard -> {}
@@ -748,7 +760,7 @@ class Checker(val ctx: Context) {
             checkExpression(it.value)
         }
 
-        val discriminants = ctx.analyzer.getDiscriminants(expression.value.type)
+        val discriminants = checkNotNull(ctx.analyzer.getDiscriminants(expression.value.type))
 
         for (discriminant in discriminants) {
             if (!expression.arms.any {

@@ -1,5 +1,5 @@
 
-sealed type Foo {
+enum Foo {
     A
     B(value: u32)
     C(value1: u32, value2: u32)

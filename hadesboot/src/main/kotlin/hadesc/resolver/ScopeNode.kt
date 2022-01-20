@@ -20,7 +20,7 @@ sealed class ScopeTree {
     data class TraitDef(val declaration: Declaration.TraitDef) : ScopeTree()
     data class ImplementationDef(val declaration: Declaration.ImplementationDef) : ScopeTree()
     data class Closure(val closure: Expression.Closure) : ScopeTree()
-    data class SealedTypeDef(val declaration: Declaration.SealedType) : ScopeTree()
+    data class EnumDef(val declaration: Declaration.Enum) : ScopeTree()
     data class WhenArm(val whenArm: Expression.WhenArm) : ScopeTree()
     data class WhenExpression(val expression: Expression.When) : ScopeTree()
     data class MatchExpression(val expression: Expression.Match): ScopeTree()
@@ -36,7 +36,7 @@ sealed class ScopeTree {
             is TraitDef -> declaration.location
             is ImplementationDef -> declaration.location
             is Closure -> closure.location
-            is SealedTypeDef -> declaration.location
+            is EnumDef -> declaration.location
             is WhenArm -> whenArm.value.location
             is WhenExpression -> expression.location
             is MatchExpression -> expression.location

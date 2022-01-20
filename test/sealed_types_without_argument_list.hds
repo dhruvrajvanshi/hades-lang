@@ -1,13 +1,13 @@
 
-sealed type T {
+enum T {
     X
 }
 
 def main(): Void {
     val x = T.X
 
-    puts(when (x) {
-        is X -> b"PASS"
+    puts(match x {
+        X -> b"PASS"
     })
 }
 

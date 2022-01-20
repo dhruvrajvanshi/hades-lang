@@ -30,7 +30,6 @@ data class Token(
         IMPLEMENTATION,
         FOR,
         WHEN,
-        SEALED,
         IS,
         ENUM,
         UNION,

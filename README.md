@@ -274,12 +274,12 @@ def f[T](value: T): Void where Stringifiable[T] {
 
 Directly defining methods inside traits is being considered.
 
-## Sealed types
-Sealed types (also known as algebraic data types) allow you to represent types that can be one of a finite set
+## Enum types
+Enum types (also known as algebraic data types) allow you to represent types that can be one of a finite set
 of cases.
 ```kotlin
 
-sealed type Optional[T] {
+enum Optional[T] {
   Some(value: T);
   None;
 }

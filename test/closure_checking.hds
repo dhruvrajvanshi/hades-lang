@@ -3,7 +3,7 @@ struct S {
     val closure: || -> Void;
 }
 
-sealed type T {
+enum T {
     V(closure: || -> Void);
 }
 

@@ -35,7 +35,6 @@ val KEYWORDS = mapOf(
     "for" to tt.FOR,
     "when" to tt.WHEN,
     "is" to tt.IS,
-    "sealed" to tt.SEALED,
     "enum" to tt.ENUM,
     "union" to tt.UNION,
     "defer" to tt.DEFER,

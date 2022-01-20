@@ -1,5 +1,6 @@
 package hadesc.ast
 
+import hadesc.Name
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
@@ -147,13 +148,24 @@ sealed class Declaration : HasLocation {
             val body: List<Declaration>,
     ) : Declaration()
 
-    data class SealedType(
+    data class Enum(
         override val location: SourceLocation,
         val decorators: List<Decorator>,
         val name: Binder,
         val typeParams: List<TypeParam>?,
         val cases: List<Case>
     ): Declaration() {
+        fun getCase(name: Name): Pair<Case, Int>? {
+            var result: Pair<Case, Int>? = null
+            cases.forEachIndexed { index, case ->
+                if (case.name.name == name) {
+                    result = case to index
+                    return@forEachIndexed
+                }
+            }
+            return result
+        }
+
         data class Case(
             val name: Binder,
             val params: List<Param>?,
