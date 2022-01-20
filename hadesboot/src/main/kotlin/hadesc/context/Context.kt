@@ -142,8 +142,11 @@ class Context(
     }
 
     private var _nameIndex = 0
-    fun makeUniqueName(): Name {
+    fun makeUniqueName(prefix: String = ""): Name {
         _nameIndex++
+        if (prefix.isNotBlank()) {
+            return makeName("\$$prefix\$$_nameIndex")
+        }
         return makeName("\$$_nameIndex")
     }
 

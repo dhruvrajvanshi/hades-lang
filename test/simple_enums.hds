@@ -10,6 +10,11 @@ def main(): Void {
     puts(str(T.X))
     puts(str(T.Y))
     puts(str(T.Z))
+
+    puts(match T.X {
+        Y -> b"FAIL"
+        _ -> b"PASS"
+    })
 }
 
 def str(value: T): *u8 {
