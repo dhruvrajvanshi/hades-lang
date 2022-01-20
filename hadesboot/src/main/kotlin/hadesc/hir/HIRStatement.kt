@@ -68,7 +68,7 @@ sealed interface HIRStatement: HIRNode {
         is ValDeclaration -> "val ${name.text}: ${type.prettyPrint()}"
         is Assignment -> "${name.text} = ${value.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +
-                arms.joinToString { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("  ")}" } +
+                arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +
                 "otherwise -> ${otherwise.prettyPrint()}" +
                 "  }"
         is While -> "while ${condition.prettyPrint()} ${body.prettyPrint()}"
