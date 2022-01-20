@@ -1,42 +1,6 @@
 package hadesc.ast
 
-import hadesc.location.SourceLocation
+import hadesc.location.HasLocation
 
-sealed class ScopeTree {
-    data class FunctionDef(
-            val declaration: Declaration.FunctionDef
-    ) : ScopeTree()
-
-    data class SourceFile(
-            val sourceFile: hadesc.ast.SourceFile
-    ) : ScopeTree()
-
-    data class Block(val block: hadesc.ast.Block) : ScopeTree()
-    data class Struct(val declaration: Declaration.Struct) : ScopeTree()
-    data class TypeAlias(val declaration: Declaration.TypeAlias) : ScopeTree()
-    data class ExtensionDef(val declaration: Declaration.ExtensionDef) : ScopeTree()
-    data class TraitDef(val declaration: Declaration.TraitDef) : ScopeTree()
-    data class ImplementationDef(val declaration: Declaration.ImplementationDef) : ScopeTree()
-    data class Closure(val closure: Expression.Closure) : ScopeTree()
-    data class EnumDef(val declaration: Declaration.Enum) : ScopeTree()
-    data class WhenArm(val whenArm: Expression.WhenArm) : ScopeTree()
-    data class WhenExpression(val expression: Expression.When) : ScopeTree()
-    data class MatchExpression(val expression: Expression.Match): ScopeTree()
-
-    val location
-        get(): SourceLocation = when (this) {
-            is FunctionDef -> declaration.location
-            is SourceFile -> sourceFile.location
-            is Block -> block.location
-            is Struct -> declaration.location
-            is TypeAlias -> declaration.location
-            is ExtensionDef -> declaration.location
-            is TraitDef -> declaration.location
-            is ImplementationDef -> declaration.location
-            is Closure -> closure.location
-            is EnumDef -> declaration.location
-            is WhenArm -> whenArm.value.location
-            is WhenExpression -> expression.location
-            is MatchExpression -> expression.location
-        }
+sealed interface ScopeTree: HasLocation {
 }
