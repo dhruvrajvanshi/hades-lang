@@ -37,7 +37,7 @@ sealed class Declaration : HasLocation {
         val externName: Identifier?,
         val signature: FunctionSignature,
         val body: Block
-    ) : Declaration() {
+    ) : Declaration(), ScopeTree {
         val name get() = signature.name
         val typeParams get() = signature.typeParams
         val params get() = signature.params
@@ -79,7 +79,7 @@ sealed class Declaration : HasLocation {
         val binder: Binder,
         val typeParams: List<TypeParam>? = null,
         val members: List<Member>
-    ) : Declaration() {
+    ) : Declaration(), ScopeTree {
         override val startLoc: SourceLocation
             get() = binder.location
 
@@ -97,7 +97,7 @@ sealed class Declaration : HasLocation {
             val name: Binder,
             val typeParams: List<TypeParam>?,
             val rhs: TypeAnnotation
-    ) : Declaration()
+    ) : Declaration(), ScopeTree
 
     data class ExtensionDef(
         override val location: SourceLocation,
@@ -106,7 +106,7 @@ sealed class Declaration : HasLocation {
         val forType: TypeAnnotation,
         val whereClause: WhereClause?,
         val declarations: List<Declaration>,
-    ) : Declaration() {
+    ) : Declaration(), ScopeTree {
         val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
     }
 
@@ -115,7 +115,7 @@ sealed class Declaration : HasLocation {
             val name: Binder,
             val params: List<TypeParam>,
             val members: List<TraitMember>
-    ) : Declaration() {
+    ) : Declaration(), ScopeTree {
 
         val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
 
@@ -146,15 +146,15 @@ sealed class Declaration : HasLocation {
             val traitArguments: List<TypeAnnotation>,
             val whereClause: WhereClause?,
             val body: List<Declaration>,
-    ) : Declaration()
+    ) : Declaration(), ScopeTree
 
     data class Enum(
         override val location: SourceLocation,
         val decorators: List<Decorator>,
         val name: Binder,
         val typeParams: List<TypeParam>?,
-        val cases: List<Case>
-    ): Declaration() {
+        val cases: List<Case>,
+    ): Declaration(), ScopeTree {
         fun getCase(name: Name): Pair<Case, Int>? {
             var result: Pair<Case, Int>? = null
             cases.forEachIndexed { index, case ->

@@ -1,5 +1,6 @@
 package hadesc.resolver
 
+import hadesc.ast.ScopeTree
 import hadesc.ast.SourceFile
 
 
@@ -11,10 +12,10 @@ data class ScopeStack(val scopes: List<ScopeTree>) : Iterable<ScopeTree> {
 
     init {
         val sourceFileScopeNode = scopes.last()
-        if (sourceFileScopeNode !is ScopeTree.SourceFile) {
+        if (sourceFileScopeNode !is SourceFile) {
             throw AssertionError("Expected a sourcefile at the end of scope stack")
         }
-        sourceFile = sourceFileScopeNode.sourceFile
+        sourceFile = sourceFileScopeNode
     }
 
     override fun iterator(): Iterator<ScopeTree> {
