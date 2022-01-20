@@ -905,8 +905,21 @@ class Parser(
                 Pattern.Wildcard(tok.location)
             } else {
                 val id = parseIdentifier()
-                Pattern.EnumCase(id, null)
+                val args = if (at(tt.LPAREN)) {
+                    advance()
+                    val list = parseSeperatedList(seperator = tt.COMMA, terminator = tt.RPAREN) {
+                        parsePattern()
+                    }
+                    expect(tt.RPAREN)
+                    list
+                } else null
+                Pattern.EnumCase(id, args)
             }
+        }
+        tt.VAL -> {
+            advance()
+            val binder = parseBinder()
+            Pattern.Val(binder)
         }
         else -> {
             val location = advance().location
