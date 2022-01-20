@@ -1,0 +1,21 @@
+enum T {
+    X
+    Y
+    Z
+}
+
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+    puts(str(T.X))
+    puts(str(T.Y))
+    puts(str(T.Z))
+}
+
+def str(value: T): *u8 {
+    return match value {
+        X -> b"X"
+        Y -> b"Y"
+        Z -> b"Z"
+    }
+}
