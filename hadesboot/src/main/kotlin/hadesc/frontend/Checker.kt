@@ -606,7 +606,7 @@ class Checker(val ctx: Context) {
                     error(pattern, Diagnostic.Kind.NotAnIntegralValue)
                 }
             }
-            is Pattern.EnumVariant -> {
+            is Pattern.EnumCase -> {
                 val enumDeclaration = ctx.analyzer.getEnumTypeDeclaration(type)
                 if (enumDeclaration == null) {
                     error(pattern, Diagnostic.Kind.NotAnEnumType(type))
@@ -618,6 +618,7 @@ class Checker(val ctx: Context) {
                 }
             }
             is Pattern.Wildcard -> {}
+            is Pattern.Val -> {}
         }
     }
 

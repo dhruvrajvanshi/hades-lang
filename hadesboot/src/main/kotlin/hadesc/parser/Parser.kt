@@ -905,7 +905,7 @@ class Parser(
                 Pattern.Wildcard(tok.location)
             } else {
                 val id = parseIdentifier()
-                Pattern.EnumVariant(id)
+                Pattern.EnumCase(id, null)
             }
         }
         else -> {

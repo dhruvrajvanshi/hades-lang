@@ -688,7 +688,7 @@ class HIRGen(
 
         val arms = expression.arms.mapNotNull { arm ->
             when (arm.pattern) {
-                is Pattern.EnumVariant -> {
+                is Pattern.EnumCase -> {
                     val blockName = ctx.makeUniqueName(arm.pattern.identifier.name.text)
                     val (_, index) = checkNotNull(enumDef.getCase(arm.pattern.identifier.name))
 
