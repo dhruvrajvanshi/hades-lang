@@ -5,6 +5,7 @@ import com.diogonunes.jcolor.Attribute
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
+import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.Token
 import hadesc.hir.BinaryOperator
@@ -111,6 +112,9 @@ data class Diagnostic(
 //        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
         data class MissingAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
         data class InvalidEscape(val c: Char) : Diagnostic.Kind(Severity.ERROR)
+        data class NotAMatchableType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class NotAnEnumType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
+        data class NoSuchCase(val declaration: Declaration.Enum, val name: Name) : Diagnostic.Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -191,6 +195,9 @@ data class Diagnostic(
             InvalidIntrinsic -> "Invalid intrinsic"
             is TypeDoesNotSupportArithmetic -> "Type '${type.prettyPrint()}' does not support arithmetic."
             is InvalidEscape -> "Invalid escape character '${c}'"
+            is NotAMatchableType -> "Not a matchable type: ${type.prettyPrint()}"
+            is NotAnEnumType -> "Not an enum type: ${type.prettyPrint()}"
+            is NoSuchCase -> "No such case. Allowed cases: ${declaration.cases.map { it.name.name }}"
         }
 
     }

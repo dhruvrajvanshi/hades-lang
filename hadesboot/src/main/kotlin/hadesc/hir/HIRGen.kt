@@ -638,10 +638,23 @@ class HIRGen(
     }
 
     private fun lowerMatchExpression(expression: Expression.Match): HIRExpression {
+        val discriminantType = typeOfExpression(expression.value)
+        if (discriminantType.isIntegral()) {
+            return lowerIntegralMatchExpression(expression)
+        }
+
+        return lowerEnumMatchExpression(expression)
+    }
+
+    private fun lowerEnumMatchExpression(expression: Expression.Match): HIRExpression {
+        TODO()
+    }
+
+    private fun lowerIntegralMatchExpression(expression: Expression.Match): HIRExpression {
         val resultType = typeOfExpression(expression)
         val discriminantType = typeOfExpression(expression.value)
+        require(discriminantType.isIntegral())
         val result = declareVariable(expression.location, resultType)
-        check(expression.value.type.isIntegral())
         val arms = expression.arms.takeWhile { it.pattern !is Pattern.Wildcard }
         val elseArm = expression.arms.find { it.pattern is Pattern.Wildcard }
         check(elseArm != null)
@@ -814,8 +827,8 @@ class HIRGen(
     private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
         val value = lowerExpression(expression.value)
         val discriminantType = value.type
-        val discriminants = ctx.analyzer.getDiscriminants(discriminantType)
-        val declaration = ctx.analyzer.getEnumTypeDeclaration(discriminantType)
+        val discriminants = checkNotNull(ctx.analyzer.getDiscriminants(discriminantType))
+        val declaration = checkNotNull(ctx.analyzer.getEnumTypeDeclaration(discriminantType))
         val cases = makeList {
             for (discriminant in discriminants) {
                 val arm = expression.arms.find {

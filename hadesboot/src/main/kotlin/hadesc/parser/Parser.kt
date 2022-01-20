@@ -904,7 +904,8 @@ class Parser(
                 val tok = advance()
                 Pattern.Wildcard(tok.location)
             } else {
-                syntaxError(advance().location, Diagnostic.Kind.PatternExpected)
+                val id = parseIdentifier()
+                Pattern.EnumVariant(id)
             }
         }
         else -> {

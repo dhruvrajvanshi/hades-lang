@@ -1681,26 +1681,33 @@ class Analyzer(
         }.lowerType(type)
     }
 
-    fun getEnumTypeDeclaration(type: Type): Declaration.Enum {
+    fun getEnumTypeDeclaration(type: Type): Declaration.Enum? {
         val constructor = when (type) {
             is Type.Constructor -> type
             is Type.Application ->
                 if (type.callee is Type.Constructor) {
                     type.callee
                 } else {
-                    requireUnreachable()
+                    return null
                 }
-            else -> requireUnreachable()
+            else -> return null
         }
         val declaration = ctx.resolver.resolveDeclaration(constructor.name)
-        require(declaration is Declaration.Enum)
-        return declaration
+        if (declaration is Declaration.Enum) {
+            return declaration
+        }
+        return null
     }
-    fun getDiscriminants(type: Type): List<Discriminant> {
+
+    fun getDiscriminants(type: Type): List<Discriminant>? {
         val args = type.typeArgs()
 
-        val declaration = getEnumTypeDeclaration(type)
+        val declaration = getEnumTypeDeclaration(type) ?: return null
 
+        return getEnumDiscriminants(declaration, args)
+    }
+
+    fun getEnumDiscriminants(declaration: Declaration.Enum, args: List<Type>): List<Discriminant> {
         val substitution = (declaration.typeParams ?: emptyList()).zip(args).toSubstitution()
 
         return declaration.cases.mapIndexed { index, case ->
@@ -1712,7 +1719,7 @@ class Analyzer(
                             annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
                 } ?: singletonList(
                     ctx.makeName("dummy") to
-                    Type.Integral(8, false)
+                            Type.Integral(8, false)
                 )
             )
         }
@@ -1931,6 +1938,8 @@ class Analyzer(
             null
         }
     }
+
+    fun isEnumType(type: Type): Boolean = getEnumTypeDeclaration(type) != null
 
 }
 
