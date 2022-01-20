@@ -1,5 +1,6 @@
 package hadesc.resolver
 
+import hadesc.ast.ScopeTree
 import hadesc.ast.SourceFile
 
 

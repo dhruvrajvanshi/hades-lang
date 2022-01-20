@@ -1,7 +1,5 @@
-package hadesc.resolver
+package hadesc.ast
 
-import hadesc.ast.Declaration
-import hadesc.ast.Expression
 import hadesc.location.SourceLocation
 
 sealed class ScopeTree {
