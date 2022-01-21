@@ -1152,7 +1152,11 @@ class Analyzer(
             return declaredType
         }
 
-        TODO()
+
+        val subst: Substitution = enumDecl.typeParams.zip(discriminantType.typeArgs()).associate { (param, arg) ->
+            param.location to arg
+        }.toSubstitution()
+        return declaredType.applySubstitution(subst)
     }
 
     private fun typeOfExternConstBinding(binding: Binding.ExternConst): Type {

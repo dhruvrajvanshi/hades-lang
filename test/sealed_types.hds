@@ -18,16 +18,16 @@ def print[T](value: T): Void where p.Printable[T] {
 }
 
 def get_string_value(value: Optional[*Byte]): *Byte {
-    return when value {
-        is s: Some -> s.value,
-        is None -> b"None"
+    return match value {
+        Some(val value) -> value,
+        None -> b"None"
     };
 }
 
 def get_int_value(value: Optional[Int]): Int {
-    return when value {
-        is s: Some -> s.value,
-        is None -> 0
+    return match value {
+        Some(val value) -> value,
+        None -> 0
     };
 }
 

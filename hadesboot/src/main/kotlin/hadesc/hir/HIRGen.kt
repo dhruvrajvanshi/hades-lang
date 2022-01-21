@@ -16,6 +16,7 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import llvm.makeList
@@ -175,7 +176,7 @@ class HIRGen(
                     )
                 )
             ),
-            sealedCaseConstructorOrConst(declaration, enumName, case, index)
+            sealedCaseConstructorOrConst(declaration, enumName, case)
         )}.toTypedArray()
         return listOf(
             *caseStructs,
@@ -211,7 +212,6 @@ class HIRGen(
         declaration: Declaration.Enum,
         enumName: QualifiedName,
         case: Declaration.Enum.Case,
-        index: Int
     ): HIRDefinition {
         val caseStructName = enumName.append(case.name.name)
         val fnName = caseStructName.append(ctx.makeName("constructor"))
@@ -226,7 +226,19 @@ class HIRGen(
         val tag = HIRExpression.GlobalRef(loc, ctx.enumDiscriminantType(), caseTagName(enumName, case))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
             val payloadVal = declareVariable(loc, payloadTypeUnion, "payload")
-            check(declaration.typeParams == null)
+            val paramSubst = declaration.typeParams?.associate {
+                it.location to Type.ParamRef(it.binder)
+            }?.toSubstitution() ?: emptySubstitution()
+            val caseFn =
+                if (caseStructRefType !is Type.TypeFunction)
+                    caseStructRef
+                else
+                    HIRExpression.TypeApplication(
+                        loc,
+                        caseStructRefType.body.applySubstitution(paramSubst),
+                        caseStructRef,
+                        declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: emptyList()
+                    )
             if (case.params != null && case.params.isNotEmpty()) {
                 addStatement(
                     HIRStatement.Assignment(
@@ -235,7 +247,7 @@ class HIRGen(
                         HIRExpression.Call(
                             loc,
                             payloadVal.type,
-                            caseStructRef,
+                            caseFn,
                             case.params.map {
                                 HIRExpression.ParamRef(it.location, lowerTypeAnnotation(checkNotNull(it.annotation)), it.binder.name, it.binder)
                             }
@@ -243,19 +255,36 @@ class HIRGen(
                     )
                 )
             }
-
+            val baseStructRefApplied =
+                if (declaration.typeParams == null)
+                    enumStructRef
+                else {
+                    check(enumStructRefType is Type.TypeFunction)
+                    check(enumStructRefType.params.size == declaration.typeParams.size)
+                    HIRExpression.TypeApplication(
+                        loc,
+                        enumStructRefType.body.applySubstitution(
+                            declaration.typeParams.associate {
+                                it.location to Type.ParamRef(it.binder)
+                            }.toSubstitution()
+                        ),
+                        enumStructRef,
+                        declaration.typeParams.map { Type.ParamRef(it.binder) }
+                    )
+                }
+            val baseConstructorCall = HIRExpression.Call(
+                loc,
+                baseInstanceType,
+                baseStructRefApplied,
+                listOf(
+                    tag,
+                    payloadVal
+                )
+            )
             addStatement(
                 HIRStatement.Return(
                     case.name.location,
-                    HIRExpression.Call(
-                            loc,
-                        baseInstanceType,
-                        enumStructRef,
-                        listOf(
-                            tag,
-                            payloadVal
-                        )
-                    )
+                    baseConstructorCall
                 )
             )
         }
@@ -679,7 +708,7 @@ class HIRGen(
             when (arm.pattern) {
                 is Pattern.EnumCase -> {
                     val blockName = ctx.makeUniqueName(arm.pattern.identifier.name.text)
-                    val (caseArg, index) = checkNotNull(enumDef.getCase(arm.pattern.identifier.name))
+                    val (_, index) = checkNotNull(enumDef.getCase(arm.pattern.identifier.name))
 
                     MatchIntArm(
                         HIRConstant.IntValue(arm.pattern.location, ctx.enumDiscriminantType(), index),
@@ -692,9 +721,21 @@ class HIRGen(
                                             argIndex
                                         ))
                                         addStatement(HIRStatement.ValDeclaration(arg.location, arg.binder.name, isMutable = false, type))
-                                        check(enumDef.typeParams == null) { TODO() }
                                         val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
-                                        val payloadType = payloadUnionType.members[index]
+
+                                        val unappliedPayloadType = payloadUnionType.members[index]
+                                        val payloadType =
+                                            if (enumDef.typeParams != null) {
+                                                val typeArgs = discriminantType.typeArgs()
+                                                check(typeArgs.size == enumDef.typeParams.size)
+                                                unappliedPayloadType.applySubstitution(
+                                                    enumDef.typeParams.zip(typeArgs).associate { (it, arg) ->
+                                                        it.location to arg
+                                                    }.toSubstitution()
+                                                )
+                                            } else {
+                                                unappliedPayloadType
+                                            }
                                         addStatement(
                                             HIRStatement.Assignment(
                                                 arg.location,
