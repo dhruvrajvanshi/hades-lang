@@ -582,7 +582,7 @@ class Checker(val ctx: Context) {
         checkExpression(expression.value)
         val expectedType = expression.arms.firstOrNull()?.value?.type
         if (expectedType != null) {
-            expression.arms.drop(1).forEach {
+            expression.arms.forEach {
                 checkExpressionHasType(it.value, expectedType)
             }
         }
@@ -606,7 +606,7 @@ class Checker(val ctx: Context) {
                     error(pattern, Diagnostic.Kind.NotAnIntegralValue)
                 }
             }
-            is Pattern.EnumVariant -> {
+            is Pattern.EnumCase -> {
                 val enumDeclaration = ctx.analyzer.getEnumTypeDeclaration(type)
                 if (enumDeclaration == null) {
                     error(pattern, Diagnostic.Kind.NotAnEnumType(type))
@@ -618,6 +618,7 @@ class Checker(val ctx: Context) {
                 }
             }
             is Pattern.Wildcard -> {}
+            is Pattern.Val -> {}
         }
     }
 
@@ -887,7 +888,7 @@ class Checker(val ctx: Context) {
         checkExpression(expression.lhs)
         checkExpression(expression.rhs)
         if (expression.type is Type.Error) {
-            error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator))
+            error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type))
         }
     }
 

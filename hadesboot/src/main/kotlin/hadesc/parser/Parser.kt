@@ -877,18 +877,21 @@ class Parser(
             } else if (at(tt.COMMA)) {
                 advance()
             }
-
-            arms.add(Expression.Match.Arm(pattern, armValue))
+            val arm = Expression.Match.Arm(pattern, armValue)
+            arms.add(arm)
+            ctx.resolver.onParseMatchArm(arm)
 
         }
 
         val end = expect(tt.RBRACE)
         val location = SourceLocation.between(start, end)
-        return Expression.Match(
+        val match = Expression.Match(
             location,
             value,
             arms
         )
+        ctx.resolver.onParseMatchExpression(match)
+        return match
     }
 
     private fun parsePattern(): Pattern = when(currentToken.kind) {
@@ -905,8 +908,21 @@ class Parser(
                 Pattern.Wildcard(tok.location)
             } else {
                 val id = parseIdentifier()
-                Pattern.EnumVariant(id)
+                val args = if (at(tt.LPAREN)) {
+                    advance()
+                    val list = parseSeperatedList(seperator = tt.COMMA, terminator = tt.RPAREN) {
+                        parsePattern()
+                    }
+                    expect(tt.RPAREN)
+                    list
+                } else null
+                Pattern.EnumCase(id, args)
             }
+        }
+        tt.VAL -> {
+            advance()
+            val binder = parseBinder()
+            Pattern.Val(binder)
         }
         else -> {
             val location = advance().location

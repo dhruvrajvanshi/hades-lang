@@ -153,7 +153,7 @@ sealed class Declaration : HasLocation {
         val decorators: List<Decorator>,
         val name: Binder,
         val typeParams: List<TypeParam>?,
-        val cases: List<Case>
+        val cases: List<Case>,
     ): Declaration(), ScopeTree {
         fun getCase(name: Name): Pair<Case, Int>? {
             var result: Pair<Case, Int>? = null

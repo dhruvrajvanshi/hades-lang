@@ -10,30 +10,30 @@ def main(): Void {
     val b = Foo.B(10)
     val c = Foo.C(20, 30)
 
-    val a_pass = when a {
-        is A -> true,
-        is B -> false,
-        is C -> false
+    val a_pass = match a {
+        A -> true,
+        B -> false,
+        C -> false
     }
 
     if not a_pass {
         puts(b"a FAIL")
     }
 
-    val b_pass = when b {
-        is b: B -> b.value == 10,
-        is A -> false,
-        is C -> false
+    val b_pass = match b {
+        B(val value) -> value == 10,
+        A -> false,
+        C -> false
     }
 
     if not b_pass {
         puts(b"b FAIL")
     }
 
-    val c_pass = when c {
-        is c: C -> c.value1 == 20 and c.value2 == 30,
-        is B -> false,
-        is A -> false
+    val c_pass = match c {
+        C(val value1, val value2) -> value1 == 20 and value2 == 30,
+        B -> false,
+        A -> false
     }
 
     if not c_pass {

@@ -1,9 +1,6 @@
 package hadesc.resolver
 
-import hadesc.ast.Binder
-import hadesc.ast.Declaration
-import hadesc.ast.Expression
-import hadesc.ast.Statement
+import hadesc.ast.*
 import hadesc.location.HasLocation
 
 sealed class Binding {
@@ -66,6 +63,19 @@ sealed class Binding {
 
     data class WhenArm(override val binder: Binder, val case: Expression.WhenArm): Binding()
 
+    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding() {
+        init {
+            requireNotNull(topLevelPattern.args)
+            require(argIndex < topLevelPattern.args.size)
+            require(topLevelPattern.args[argIndex] is Pattern.Val)
+        }
+
+        override val binder: Binder
+            get() = arg.binder
+
+        val arg get(): Pattern.Val = checkNotNull(topLevelPattern.args)[argIndex] as Pattern.Val
+    }
+
     fun isLocalTo(scope: HasLocation) = binder.location.isWithin(scope.location)
 
     fun isGlobal() = when(this) {
@@ -79,6 +89,7 @@ sealed class Binding {
         is ValBinding -> false
         is WhenArm -> false
         is ExternConst -> true
+        is MatchArmEnumCaseArg -> false
     }
 }
 

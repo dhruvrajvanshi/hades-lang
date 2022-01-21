@@ -179,7 +179,7 @@ sealed class Expression : HasLocation {
         data class Arm(
             val pattern: Pattern,
             val value: Expression
-        ): HasLocation {
+        ): ScopeTree {
             override val location: SourceLocation
                 get() = SourceLocation.between(pattern, value)
         }
