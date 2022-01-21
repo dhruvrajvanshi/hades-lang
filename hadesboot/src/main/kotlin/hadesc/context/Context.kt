@@ -150,5 +150,5 @@ class Context(
         return makeName("\$$_nameIndex")
     }
 
-    fun enumDiscriminantType(): Type = Type.Integral(64, false)
+    fun enumDiscriminantType(): Type = Type.u8
 }

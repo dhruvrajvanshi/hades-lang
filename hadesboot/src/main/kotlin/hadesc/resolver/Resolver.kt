@@ -162,6 +162,7 @@ class Resolver(private val ctx: Context) {
         is WhenArm -> null
         is When -> null
         is Match -> null
+        is Match.Arm -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: FunctionDef): TypeBinding? {
@@ -216,6 +217,29 @@ class Resolver(private val ctx: Context) {
         is WhenArm -> findInWhenArm(ident, scope)
         is When -> null
         is Match -> null
+        is Match.Arm -> findInMatchArm(ident, scope)
+    }
+
+    private fun findInMatchArm(ident: Identifier, scope: Match.Arm): Binding? {
+        return findInPattern(ident, scope.pattern)
+    }
+
+    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when(pattern) {
+        is Pattern.EnumCase -> pattern.args
+            ?.asReversed() // last match wins
+            ?.mapIndexedNotNull { indexFromBack, arg ->
+                val index = pattern.args.size - 1 - indexFromBack
+                when (arg) {
+                    is Pattern.Val -> if (arg.binder.name == ident.name)
+                        Binding.MatchArmEnumCaseArg(pattern, index)
+                    else null
+                    else -> null
+                }
+            }
+            ?.firstOrNull()
+        is Pattern.IntLiteral -> null
+        is Pattern.Val -> TODO()
+        is Pattern.Wildcard -> null
     }
 
     private fun findInWhenArm(ident: Identifier, scope: WhenArm): Binding? {
@@ -567,6 +591,10 @@ class Resolver(private val ctx: Context) {
         return getEnclosingScopeTree(node)
     }
 
+    fun getEnclosingMatchExpression(node: HasLocation): Match? {
+        return getEnclosingScopeTree(node)
+    }
+
     fun getEnclosingTraitDef(node: HasLocation): TraitDef? {
         return getEnclosingScopeTree(node)
     }
@@ -668,6 +696,14 @@ class Resolver(private val ctx: Context) {
 
     fun onParseWhenArm(arm: WhenArm) {
         addScopeNode(arm.value.location.file, arm)
+    }
+
+    fun onParseMatchArm(arm: Match.Arm) {
+        addScopeNode(arm.value.location.file, arm)
+    }
+
+    fun onParseMatchExpression(expr: Match) {
+        addScopeNode(expr.value.location.file, expr)
     }
 
     fun onParseWhenExpression(expression: When) {

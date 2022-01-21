@@ -877,18 +877,21 @@ class Parser(
             } else if (at(tt.COMMA)) {
                 advance()
             }
-
-            arms.add(Expression.Match.Arm(pattern, armValue))
+            val arm = Expression.Match.Arm(pattern, armValue)
+            arms.add(arm)
+            ctx.resolver.onParseMatchArm(arm)
 
         }
 
         val end = expect(tt.RBRACE)
         val location = SourceLocation.between(start, end)
-        return Expression.Match(
+        val match = Expression.Match(
             location,
             value,
             arms
         )
+        ctx.resolver.onParseMatchExpression(match)
+        return match
     }
 
     private fun parsePattern(): Pattern = when(currentToken.kind) {

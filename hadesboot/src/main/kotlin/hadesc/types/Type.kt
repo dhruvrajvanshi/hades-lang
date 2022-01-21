@@ -142,6 +142,7 @@ sealed class Type {
     companion object {
         val usize = Size(isSigned = false)
         val isize = Size(isSigned = true)
+        val u8 = Integral(8, isSigned = false)
     }
 }
 

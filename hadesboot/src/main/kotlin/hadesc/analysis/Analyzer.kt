@@ -1137,6 +1137,22 @@ class Analyzer(
         is Binding.Enum -> requireUnreachable()
         is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> typeOfExternConstBinding(binding)
+        is Binding.MatchArmEnumCaseArg -> typeOfMatchArmEnumCaseArgBinding(binding)
+    }
+
+    fun typeOfMatchArmEnumCaseArgBinding(binding: Binding.MatchArmEnumCaseArg): Type {
+        val discriminantPattern = binding.topLevelPattern
+        val matchExpression = checkNotNull(ctx.resolver.getEnclosingMatchExpression(binding.arg))
+        val discriminantType = typeOfExpression(matchExpression.value)
+        val enumDecl = getEnumTypeDeclaration(discriminantType) ?: return Type.Error(binding.binder.location)
+        val (case, _) = enumDecl.getCase(discriminantPattern.identifier.name) ?: return Type.Error(binding.binder.location)
+        val declaredType = checkNotNull(case.params)[binding.argIndex].type
+
+        if (enumDecl.typeParams == null) {
+            return declaredType
+        }
+
+        TODO()
     }
 
     private fun typeOfExternConstBinding(binding: Binding.ExternConst): Type {

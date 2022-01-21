@@ -49,7 +49,7 @@ data class Diagnostic(
         data class UninferrableTypeParam(val name: Name, val location: SourceLocation) : Kind(Severity.ERROR)
         data class IncompleteType(val requiredArgs: Int) : Kind(Severity.ERROR)
         data class TypeNotEqualityComparable(val type: Type) : Kind(Severity.ERROR)
-        data class OperatorNotApplicable(val operator: BinaryOperator) : Kind(Severity.ERROR)
+        data class OperatorNotApplicable(val operator: BinaryOperator, val lhsType: Type, val rhsType: Type) : Kind(Severity.ERROR)
         data class NotAPointerType(val type: Type) : Kind(Severity.ERROR)
         data class UnboundTypePath(val path: QualifiedPath) : Kind(Severity.ERROR)
         data class DuplicateDeclaration(val existingBindingLocation: SourceLocation) : Kind(Severity.ERROR)
@@ -134,7 +134,7 @@ data class Diagnostic(
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
             NotAConst -> "Not a const. Only CInt and Bool values are allowed as global constants"
             is TypeNotEqualityComparable -> "Type ${type.prettyPrint()} is not equatable"
-            is OperatorNotApplicable -> "Operator not applicable to type"
+            is OperatorNotApplicable -> "Operator not applicable to types: ${lhsType.prettyPrint()} and ${rhsType.prettyPrint()}"
             NotAnAddressableValue -> "Not an addressable value"
             is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
             AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
