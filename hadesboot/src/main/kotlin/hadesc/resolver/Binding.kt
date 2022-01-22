@@ -1,9 +1,6 @@
 package hadesc.resolver
 
-import hadesc.ast.Binder
-import hadesc.ast.Declaration
-import hadesc.ast.Expression
-import hadesc.ast.Statement
+import hadesc.ast.*
 import hadesc.location.HasLocation
 
 sealed class Binding {
@@ -60,11 +57,24 @@ sealed class Binding {
         override val binder get() = param.binder
     }
 
-    data class SealedType(val declaration: Declaration.SealedType) : Binding() {
+    data class Enum(val declaration: Declaration.Enum) : Binding() {
         override val binder: Binder get() = declaration.name
     }
 
     data class WhenArm(override val binder: Binder, val case: Expression.WhenArm): Binding()
+
+    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding() {
+        init {
+            requireNotNull(topLevelPattern.args)
+            require(argIndex < topLevelPattern.args.size)
+            require(topLevelPattern.args[argIndex] is Pattern.Val)
+        }
+
+        override val binder: Binder
+            get() = arg.binder
+
+        val arg get(): Pattern.Val = checkNotNull(topLevelPattern.args)[argIndex] as Pattern.Val
+    }
 
     fun isLocalTo(scope: HasLocation) = binder.location.isWithin(scope.location)
 
@@ -74,11 +84,12 @@ sealed class Binding {
         is FunctionParam -> false
         is GlobalConst -> true
         is GlobalFunction -> true
-        is SealedType -> true
+        is Enum -> true
         is Struct -> true
         is ValBinding -> false
         is WhenArm -> false
         is ExternConst -> true
+        is MatchArmEnumCaseArg -> false
     }
 }
 

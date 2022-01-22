@@ -20,8 +20,9 @@ sealed class TypeBinding {
             val declaration: Declaration.TraitDef
     ) : TypeBinding()
 
-    data class SealedType(
-        val declaration: Declaration.SealedType) : TypeBinding()
+    data class Enum(
+        val declaration: Declaration.Enum
+    ) : TypeBinding()
 
     data class Builtin(val type: Type) : TypeBinding()
 

@@ -115,7 +115,7 @@ sealed class Expression : HasLocation {
         val params: List<Param>,
         val returnType: TypeAnnotation?,
         val body: ClosureBody
-    ) : Expression()
+    ) : Expression(), ScopeTree
 
     data class UnsafeCast(
         override val location: SourceLocation,
@@ -127,10 +127,12 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val value: Expression,
         val arms: List<WhenArm>
-    ) : Expression()
+    ) : Expression(), ScopeTree
 
-    sealed class WhenArm {
+    sealed class WhenArm: ScopeTree {
         abstract val value: Expression
+        override val location: SourceLocation
+            get() = value.location
         data class Is(
             val name: Binder?,
             val caseName: Identifier,
@@ -178,11 +180,11 @@ sealed class Expression : HasLocation {
         override val location: SourceLocation,
         val value: Expression,
         val arms: List<Arm>
-    ) : Expression() {
+    ) : Expression(), ScopeTree {
         data class Arm(
             val pattern: Pattern,
             val value: Expression
-        ): HasLocation {
+        ): ScopeTree {
             override val location: SourceLocation
                 get() = SourceLocation.between(pattern, value)
         }

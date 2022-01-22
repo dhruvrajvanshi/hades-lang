@@ -4,7 +4,6 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
-import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
@@ -21,7 +20,6 @@ import hadesc.types.toSubstitution
 import hadesc.unit
 import java.util.*
 import java.util.Collections.singletonList
-import kotlin.math.exp
 import kotlin.math.min
 
 class Analyzer(
@@ -41,9 +39,9 @@ class Analyzer(
         if (traitFunctionRefBinding != null) return traitFunctionRefBinding
 
 
-        val sealedTypeCaseConstructorBinding = resolveSealedTypeConstructorBinding(expression)
-        if (sealedTypeCaseConstructorBinding != null) {
-            return sealedTypeCaseConstructorBinding
+        val enumCaseConstructorBinding = resolveEnumConstructorBinding(expression)
+        if (enumCaseConstructorBinding != null) {
+            return enumCaseConstructorBinding
         }
 
         val matchArmBinding = resolveMatchArmPropertyBinding(expression)
@@ -98,16 +96,16 @@ class Analyzer(
         annotationToType(it)
     } ?: Type.Error(location)
 
-    private fun resolveSealedTypeConstructorBinding(expression: Expression.Property): PropertyBinding.SealedTypeCaseConstructor? {
+    private fun resolveEnumConstructorBinding(expression: Expression.Property): PropertyBinding.EnumTypeCaseConstructor? {
         if (expression.lhs !is Expression.Var) {
             return null
         }
         val binding = ctx.resolver.resolve(expression.lhs.name)
-        if (binding !is Binding.SealedType) return null
+        if (binding !is Binding.Enum) return null
         val case = binding.declaration.cases.find { it.name.identifier.name == expression.property.name }
             ?: return null
-        val type = typeOfSealedTypeCase(binding.declaration, case)
-        return PropertyBinding.SealedTypeCaseConstructor(binding.declaration, case, type)
+        val type = typeOfEnumCase(binding.declaration, case)
+        return PropertyBinding.EnumTypeCaseConstructor(binding.declaration, case, type)
     }
 
     private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
@@ -122,7 +120,7 @@ class Analyzer(
                 val whenExpression = requireNotNull(ctx.resolver.getEnclosingWhenExpression(case.caseName))
                 val discriminantType = inferExpression(whenExpression.value)
                 val typeDecl = typeDeclarationOf(discriminantType)
-                if (typeDecl !is Declaration.SealedType) {
+                if (typeDecl !is Declaration.Enum) {
                     return null
                 }
 
@@ -162,9 +160,9 @@ class Analyzer(
         else -> null
     }
 
-    private fun typeOfSealedTypeCase(
-        declaration: Declaration.SealedType,
-        case: Declaration.SealedType.Case
+    private fun typeOfEnumCase(
+        declaration: Declaration.Enum,
+        case: Declaration.Enum.Case
     ): Type {
         val typeConstructor = Type.Constructor(ctx.resolver.qualifiedName(declaration.name))
         val instanceType = if (declaration.typeParams == null) {
@@ -1115,7 +1113,7 @@ class Analyzer(
                 is PropertyBinding.StructFieldPointer -> binding.type
                 is PropertyBinding.ExtensionDef -> binding.type
                 is PropertyBinding.WhereParamRef -> binding.type
-                is PropertyBinding.SealedTypeCaseConstructor -> binding.type
+                is PropertyBinding.EnumTypeCaseConstructor -> binding.type
                 is PropertyBinding.WhenCaseFieldRef -> binding.type
                 null -> Type.Error(expression.location)
                 is PropertyBinding.TraitFunctionRef -> binding.type
@@ -1143,9 +1141,29 @@ class Analyzer(
         is Binding.Struct -> typeOfStructValueRef(binding)
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
-        is Binding.SealedType -> requireUnreachable()
+        is Binding.Enum -> requireUnreachable()
         is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> typeOfExternConstBinding(binding)
+        is Binding.MatchArmEnumCaseArg -> typeOfMatchArmEnumCaseArgBinding(binding)
+    }
+
+    fun typeOfMatchArmEnumCaseArgBinding(binding: Binding.MatchArmEnumCaseArg): Type {
+        val discriminantPattern = binding.topLevelPattern
+        val matchExpression = checkNotNull(ctx.resolver.getEnclosingMatchExpression(binding.arg))
+        val discriminantType = typeOfExpression(matchExpression.value)
+        val enumDecl = getEnumTypeDeclaration(discriminantType) ?: return Type.Error(binding.binder.location)
+        val (case, _) = enumDecl.getCase(discriminantPattern.identifier.name) ?: return Type.Error(binding.binder.location)
+        val declaredType = checkNotNull(case.params)[binding.argIndex].type
+
+        if (enumDecl.typeParams == null) {
+            return declaredType
+        }
+
+
+        val subst: Substitution = enumDecl.typeParams.zip(discriminantType.typeArgs()).associate { (param, arg) ->
+            param.location to arg
+        }.toSubstitution()
+        return declaredType.applySubstitution(subst)
     }
 
     private fun typeOfExternConstBinding(binding: Binding.ExternConst): Type {
@@ -1609,7 +1627,7 @@ class Analyzer(
             )
         }
     }
-    private fun typeOfSealedTypeBinding(binding: TypeBinding.SealedType): Type {
+    private fun typeOfEnumBinding(binding: TypeBinding.Enum): Type {
         val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
         val typeConstructor = Type.Constructor(name = qualifiedName)
 
@@ -1642,7 +1660,7 @@ class Analyzer(
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
             is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
-            is TypeBinding.SealedType -> typeOfSealedTypeBinding(binding)
+            is TypeBinding.Enum -> typeOfEnumBinding(binding)
             is TypeBinding.Builtin -> binding.type
             is TypeBinding.AssociatedType -> typeOfAssociatedTypeBinding(binding)
         }
@@ -1690,26 +1708,33 @@ class Analyzer(
         }.lowerType(type)
     }
 
-    fun getSealedTypeDeclaration(type: Type): Declaration.SealedType {
+    fun getEnumTypeDeclaration(type: Type): Declaration.Enum? {
         val constructor = when (type) {
             is Type.Constructor -> type
             is Type.Application ->
                 if (type.callee is Type.Constructor) {
                     type.callee
                 } else {
-                    requireUnreachable()
+                    return null
                 }
-            else -> requireUnreachable()
+            else -> return null
         }
         val declaration = ctx.resolver.resolveDeclaration(constructor.name)
-        require(declaration is Declaration.SealedType)
-        return declaration
+        if (declaration is Declaration.Enum) {
+            return declaration
+        }
+        return null
     }
-    fun getDiscriminants(type: Type): List<Discriminant> {
+
+    fun getDiscriminants(type: Type): List<Discriminant>? {
         val args = type.typeArgs()
 
-        val declaration = getSealedTypeDeclaration(type)
+        val declaration = getEnumTypeDeclaration(type) ?: return null
 
+        return getEnumDiscriminants(declaration, args)
+    }
+
+    fun getEnumDiscriminants(declaration: Declaration.Enum, args: List<Type>): List<Discriminant> {
         val substitution = (declaration.typeParams ?: emptyList()).zip(args).toSubstitution()
 
         return declaration.cases.mapIndexed { index, case ->
@@ -1721,17 +1746,17 @@ class Analyzer(
                             annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
                 } ?: singletonList(
                     ctx.makeName("dummy") to
-                    Type.Integral(8, false)
+                            Type.Integral(8, false)
                 )
             )
         }
     }
 
-    fun getSealedTypePayloadType(declaration: Declaration.SealedType): Type.UntaggedUnion {
-        val sealedTypeName = ctx.resolver.qualifiedName(declaration.name)
+    fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion {
+        val enumName = ctx.resolver.qualifiedName(declaration.name)
         return Type.UntaggedUnion(declaration.cases.map {  case ->
             val constructorType = Type.Constructor(
-                sealedTypeName.append(case.name.identifier.name)
+                enumName.append(case.name.identifier.name)
             )
             if (declaration.typeParams != null) {
                 Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
@@ -1765,19 +1790,17 @@ class Analyzer(
         }
     }
 
-    fun isSealedTypeConstructorCall(expression: Expression): Boolean = getSealedTypeConstructorBinding(expression) != null
-
-    fun getSealedTypeConstructorBinding(expression: Expression): PropertyBinding.SealedTypeCaseConstructor? =
+    fun getEnumConstructorBinding(expression: Expression): PropertyBinding.EnumTypeCaseConstructor? =
         when(expression) {
             is Expression.Property -> {
                 val binding = resolvePropertyBinding(expression)
-                if (binding is PropertyBinding.SealedTypeCaseConstructor) {
+                if (binding is PropertyBinding.EnumTypeCaseConstructor) {
                     binding
                 } else {
                     null
                 }
             }
-            is Expression.TypeApplication -> getSealedTypeConstructorBinding(expression.lhs)
+            is Expression.TypeApplication -> getEnumConstructorBinding(expression.lhs)
             else -> null
         }
 
@@ -1942,6 +1965,8 @@ class Analyzer(
             null
         }
     }
+
+    fun isEnumType(type: Type): Boolean = getEnumTypeDeclaration(type) != null
 
 }
 

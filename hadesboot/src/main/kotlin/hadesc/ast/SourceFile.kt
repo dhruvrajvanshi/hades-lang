@@ -4,7 +4,7 @@ import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
 data class SourceFile(
-    val location: SourceLocation,
+    override val location: SourceLocation,
     val moduleName: QualifiedName,
     val declarations: List<Declaration>
-)
+): ScopeTree

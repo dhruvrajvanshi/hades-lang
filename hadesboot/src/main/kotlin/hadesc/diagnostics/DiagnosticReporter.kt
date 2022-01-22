@@ -5,6 +5,7 @@ import com.diogonunes.jcolor.Attribute
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
+import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.Token
 import hadesc.hir.BinaryOperator
@@ -26,7 +27,7 @@ data class Diagnostic(
         data class UnexpectedToken(
             val expected: Token.Kind,
             val found: Token
-        ) : Diagnostic.Kind(Severity.ERROR)
+        ) : Kind(Severity.ERROR)
 
         object DeclarationExpected : Kind(Severity.ERROR)
         object FieldExpected : Kind(Severity.ERROR)
@@ -34,83 +35,85 @@ data class Diagnostic(
         object StatementExpected : Kind(Severity.ERROR)
         object ExpressionExpected : Kind(Severity.ERROR)
         data class UnboundVariable(val name: Name): Kind(Severity.ERROR)
-        object UnboundThis : Diagnostic.Kind(Severity.ERROR)
-        object AmbiguousExpression : Diagnostic.Kind(Severity.ERROR)
-        object NotAConst : Diagnostic.Kind(Severity.ERROR)
+        object UnboundThis : Kind(Severity.ERROR)
+        object AmbiguousExpression : Kind(Severity.ERROR)
+        object NotAConst : Kind(Severity.ERROR)
 
         data class TypeNotCallable(val type: Type) : Kind(Severity.ERROR)
-        data class MissingArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
-        data class TooManyArgs(val required: Int) : Diagnostic.Kind(Severity.ERROR)
-        data class TypeNotAssignable(val source: Type, val destination: Type) : Diagnostic.Kind(Severity.ERROR)
-        data class NoSuchProperty(val type: Type, val property: Name) : Diagnostic.Kind(Severity.ERROR)
-        data class UnboundType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
+        data class MissingArgs(val required: Int) : Kind(Severity.ERROR)
+        data class TooManyArgs(val required: Int) : Kind(Severity.ERROR)
+        data class TypeNotAssignable(val source: Type, val destination: Type) : Kind(Severity.ERROR)
+        data class NoSuchProperty(val type: Type, val property: Name) : Kind(Severity.ERROR)
+        data class UnboundType(val name: Name) : Kind(Severity.ERROR)
 
-        data class UninferrableTypeParam(val name: Name, val location: SourceLocation) : Diagnostic.Kind(Severity.ERROR)
-        data class IncompleteType(val requiredArgs: Int) : Diagnostic.Kind(Severity.ERROR)
-        data class TypeNotEqualityComparable(val type: Type) : Diagnostic.Kind(Severity.ERROR)
-        data class OperatorNotApplicable(val operator: BinaryOperator) : Diagnostic.Kind(Severity.ERROR)
-        data class NotAPointerType(val type: Type) : Diagnostic.Kind(Severity.ERROR)
-        data class UnboundTypePath(val path: QualifiedPath) : Diagnostic.Kind(Severity.ERROR)
-        data class DuplicateDeclaration(val existingBindingLocation: SourceLocation) : Diagnostic.Kind(Severity.ERROR)
+        data class UninferrableTypeParam(val name: Name, val location: SourceLocation) : Kind(Severity.ERROR)
+        data class IncompleteType(val requiredArgs: Int) : Kind(Severity.ERROR)
+        data class TypeNotEqualityComparable(val type: Type) : Kind(Severity.ERROR)
+        data class OperatorNotApplicable(val operator: BinaryOperator, val lhsType: Type, val rhsType: Type) : Kind(Severity.ERROR)
+        data class NotAPointerType(val type: Type) : Kind(Severity.ERROR)
+        data class UnboundTypePath(val path: QualifiedPath) : Kind(Severity.ERROR)
+        data class DuplicateDeclaration(val existingBindingLocation: SourceLocation) : Kind(Severity.ERROR)
 
-        object NotAnAddressableValue : Diagnostic.Kind(Severity.ERROR)
-        object AssignmentToImmutableVariable : Diagnostic.Kind(Severity.ERROR)
-        object TooManyTypeArgs : Diagnostic.Kind(Severity.ERROR)
-        object TooFewTypeArgs : Diagnostic.Kind(Severity.ERROR)
-        object NotATrait : Diagnostic.Kind(Severity.ERROR)
-        object UnboundThisType : Diagnostic.Kind(Severity.ERROR)
-        object PatternExpected : Diagnostic.Kind(Severity.ERROR)
-        object ExpectedEnumType : Diagnostic.Kind(Severity.ERROR)
-        object NestedPatternsNotAllowed : Diagnostic.Kind(Severity.ERROR)
-        object UnreachablePattern : Diagnostic.Kind(Severity.WARNING)
-        object UnboundPattern : Diagnostic.Kind(Severity.ERROR)
-        data class NonExhaustivePatterns(val name: Name) : Diagnostic.Kind(Severity.ERROR)
-        object NonExhaustivePrimitivePatterns : Diagnostic.Kind(Severity.ERROR)
-        object PatternParamMismatch : Diagnostic.Kind(Severity.ERROR)
-        object DuplicateVariantName : Diagnostic.Kind(Severity.ERROR)
-        object InvalidNewExpression : Diagnostic.Kind(Severity.ERROR)
-        object NotAStructField : Diagnostic.Kind(Severity.ERROR)
-        object StructFieldNotMutable : Diagnostic.Kind(Severity.ERROR)
-        object ValNotMutable : Diagnostic.Kind(Severity.ERROR)
-        object NoSuchModule : Diagnostic.Kind(Severity.ERROR)
-        object StatementNotAllowedInDefer : Diagnostic.Kind(Severity.ERROR)
-        object MissingReturnValue : Diagnostic.Kind(Severity.ERROR)
-        object InvalidTypeApplication : Diagnostic.Kind(Severity.ERROR)
-        object MissingTypeAnnotation : Diagnostic.Kind(Severity.ERROR)
-        object TypeParametersNotAllowedInTraitMethods : Diagnostic.Kind(Severity.ERROR)
-        object WhereClauseMustReferToATypeParam : Diagnostic.Kind(Severity.ERROR)
-        object NotAConstructor : Diagnostic.Kind(Severity.ERROR)
-        object UnknownAnnotation : Diagnostic.Kind(Severity.ERROR)
-        object InvalidPipelineExpression : Diagnostic.Kind(Severity.ERROR)
-        object OnlyFunctionDefsAllowedInsideExtensionDefs : Diagnostic.Kind(Severity.ERROR)
-        object MissingTraitThisParam : Diagnostic.Kind(Severity.ERROR)
-        object ReceiverParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
-        object TypeParamsNotAllowedInTraitFunctions : Diagnostic.Kind(Severity.ERROR)
-        object OnlyFunctionDefsAndTypeAliasesAllowedInImplementationDefs : Diagnostic.Kind(Severity.ERROR)
-        object ReturnTypeNotInferred : Diagnostic.Kind(Severity.ERROR)
-        object NoSuchMember : Diagnostic.Kind(Severity.ERROR)
-        object ReturningFromVoidFunction : Diagnostic.Kind(Severity.ERROR)
-        object MissingThisParam : Diagnostic.Kind(Severity.ERROR)
-        data class TraitRequirementNotSatisfied(val requirement: TraitRequirement) : Diagnostic.Kind(Severity.ERROR)
+        object NotAnAddressableValue : Kind(Severity.ERROR)
+        object AssignmentToImmutableVariable : Kind(Severity.ERROR)
+        object TooManyTypeArgs : Kind(Severity.ERROR)
+        object TooFewTypeArgs : Kind(Severity.ERROR)
+        object NotATrait : Kind(Severity.ERROR)
+        object UnboundThisType : Kind(Severity.ERROR)
+        object PatternExpected : Kind(Severity.ERROR)
+        object ExpectedEnumType : Kind(Severity.ERROR)
+        object NestedPatternsNotAllowed : Kind(Severity.ERROR)
+        object UnreachablePattern : Kind(Severity.WARNING)
+        object UnboundPattern : Kind(Severity.ERROR)
+        data class NonExhaustivePatterns(val name: Name) : Kind(Severity.ERROR)
+        object NonExhaustivePrimitivePatterns : Kind(Severity.ERROR)
+        object PatternParamMismatch : Kind(Severity.ERROR)
+        object DuplicateVariantName : Kind(Severity.ERROR)
+        object InvalidNewExpression : Kind(Severity.ERROR)
+        object NotAStructField : Kind(Severity.ERROR)
+        object StructFieldNotMutable : Kind(Severity.ERROR)
+        object ValNotMutable : Kind(Severity.ERROR)
+        object NoSuchModule : Kind(Severity.ERROR)
+        object StatementNotAllowedInDefer : Kind(Severity.ERROR)
+        object MissingReturnValue : Kind(Severity.ERROR)
+        object InvalidTypeApplication : Kind(Severity.ERROR)
+        object MissingTypeAnnotation : Kind(Severity.ERROR)
+        object TypeParametersNotAllowedInTraitMethods : Kind(Severity.ERROR)
+        object WhereClauseMustReferToATypeParam : Kind(Severity.ERROR)
+        object NotAConstructor : Kind(Severity.ERROR)
+        object UnknownAnnotation : Kind(Severity.ERROR)
+        object InvalidPipelineExpression : Kind(Severity.ERROR)
+        object OnlyFunctionDefsAllowedInsideExtensionDefs : Kind(Severity.ERROR)
+        object MissingTraitThisParam : Kind(Severity.ERROR)
+        object ReceiverParamsNotAllowedInTraitFunctions : Kind(Severity.ERROR)
+        object TypeParamsNotAllowedInTraitFunctions : Kind(Severity.ERROR)
+        object OnlyFunctionDefsAndTypeAliasesAllowedInImplementationDefs : Kind(Severity.ERROR)
+        object ReturnTypeNotInferred : Kind(Severity.ERROR)
+        object NoSuchMember : Kind(Severity.ERROR)
+        object ReturningFromVoidFunction : Kind(Severity.ERROR)
+        object MissingThisParam : Kind(Severity.ERROR)
+        data class TraitRequirementNotSatisfied(val requirement: TraitRequirement) : Kind(Severity.ERROR)
 
-        data class MissingImplMethod(val name: Name) : Diagnostic.Kind(Severity.ERROR)
-        data class TraitMethodTypeMismatch(val expected: Type, val found: Type) : Diagnostic.Kind(Severity.ERROR)
-        data class DuplicateTypeBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
-        data class DuplicateValueBinding(val existing: Binder) : Diagnostic.Kind(Severity.ERROR)
-        object TakingAddressOfClosureDisallowed: Diagnostic.Kind(Severity.ERROR)
-        object ReturnTypeMustNotContainClosuresOrRefs : Diagnostic.Kind(Severity.ERROR)
-        object UseAfterMove : Diagnostic.Kind(Severity.ERROR)
-        object NotAnIntegralValue : Diagnostic.Kind(Severity.ERROR)
-        object BlockExpressionMustEndWithExpression : Diagnostic.Kind(Severity.ERROR)
-        object InvalidIntrinsic : Diagnostic.Kind(Severity.ERROR)
-        data class TypeDoesNotSupportArithmetic(val type: Type): Diagnostic.Kind(Severity.ERROR)
+        data class MissingImplMethod(val name: Name) : Kind(Severity.ERROR)
+        data class TraitMethodTypeMismatch(val expected: Type, val found: Type) : Kind(Severity.ERROR)
+        data class DuplicateTypeBinding(val existing: Binder) : Kind(Severity.ERROR)
+        data class DuplicateValueBinding(val existing: Binder) : Kind(Severity.ERROR)
+        object TakingAddressOfClosureDisallowed: Kind(Severity.ERROR)
+        object ReturnTypeMustNotContainClosuresOrRefs : Kind(Severity.ERROR)
+        object UseAfterMove : Kind(Severity.ERROR)
+        object NotAnIntegralValue : Kind(Severity.ERROR)
+        object BlockExpressionMustEndWithExpression : Kind(Severity.ERROR)
+        object InvalidIntrinsic : Kind(Severity.ERROR)
+        data class TypeDoesNotSupportArithmetic(val type: Type): Kind(Severity.ERROR)
 
-        data class NoSuchAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
-        data class NotAnArrayType(val type: Type): Diagnostic.Kind(Severity.ERROR)
+        data class NoSuchAssociatedType(val name: Name) : Kind(Severity.ERROR)
+        data class NotAnArrayType(val type: Type): Kind(Severity.ERROR)
 
-//        data class TypeNotCopyable(val type: Type): Diagnostic.Kind(Severity.ERROR)
-        data class MissingAssociatedType(val name: Name) : Diagnostic.Kind(Severity.ERROR)
-        data class InvalidEscape(val c: Char) : Diagnostic.Kind(Severity.ERROR)
+        data class MissingAssociatedType(val name: Name) : Kind(Severity.ERROR)
+        data class InvalidEscape(val c: Char) : Kind(Severity.ERROR)
+        data class NotAMatchableType(val type: Type) : Kind(Severity.ERROR)
+        data class NotAnEnumType(val type: Type) : Kind(Severity.ERROR)
+        data class NoSuchCase(val declaration: Declaration.Enum, val name: Name) : Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -131,7 +134,7 @@ data class Diagnostic(
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
             NotAConst -> "Not a const. Only CInt and Bool values are allowed as global constants"
             is TypeNotEqualityComparable -> "Type ${type.prettyPrint()} is not equatable"
-            is OperatorNotApplicable -> "Operator not applicable to type"
+            is OperatorNotApplicable -> "Operator not applicable to types: ${lhsType.prettyPrint()} and ${rhsType.prettyPrint()}"
             NotAnAddressableValue -> "Not an addressable value"
             is NotAPointerType -> "${type.prettyPrint()} is not a pointer type"
             AssignmentToImmutableVariable -> "Variable is not mutable. Try declaring it using 'val mut' instead of 'val'"
@@ -191,6 +194,9 @@ data class Diagnostic(
             InvalidIntrinsic -> "Invalid intrinsic"
             is TypeDoesNotSupportArithmetic -> "Type '${type.prettyPrint()}' does not support arithmetic."
             is InvalidEscape -> "Invalid escape character '${c}'"
+            is NotAMatchableType -> "Not a matchable type: ${type.prettyPrint()}"
+            is NotAnEnumType -> "Not an enum type: ${type.prettyPrint()}"
+            is NoSuchCase -> "No such case. Allowed cases: ${declaration.cases.map { it.name.name }}"
         }
 
     }

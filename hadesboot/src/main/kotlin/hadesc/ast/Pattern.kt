@@ -9,5 +9,18 @@ sealed interface Pattern: HasLocation {
         val value: Long
     ): Pattern
 
+    data class EnumCase(
+        val identifier: Identifier,
+        val args: List<Pattern>?,
+    ): Pattern {
+        override val location: SourceLocation
+            get() = identifier.location
+    }
+
+    data class Val(val binder: Binder): Pattern {
+        override val location: SourceLocation
+            get() = binder.location
+    }
+
     data class Wildcard(override val location: SourceLocation): Pattern
 }

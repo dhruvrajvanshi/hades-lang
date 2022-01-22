@@ -274,32 +274,68 @@ def f[T](value: T): Void where Stringifiable[T] {
 
 Directly defining methods inside traits is being considered.
 
-## Sealed types
-Sealed types (also known as algebraic data types) allow you to represent types that can be one of a finite set
+## Enum types
+Enum types (also known as algebraic data types) allow you to represent types that can be one of a finite set
 of cases.
-```kotlin
+```scala
 
-sealed type Optional[T] {
+enum Optional[T] {
   Some(value: T);
   None;
 }
+/// This compiles down to the equivalent of this (the names are mangled so
+/// this isn't valid hades source code, but they are equivalent
+/// struct Optional[T] {
+///    val tag: u8
+///    val payload: Union[Optional.Some[T], Optional.None]
+/// }
+/// struct Optional.Some[T] {
+///   val 0: T
+/// }
+/// const Optional.Some.tag : u8 = 0
+/// struct Optional.None[T] {}
+/// const Optional.None.tag : u8 = 1
+
+/// Optional.Some[u32](1) ~ Optional[u32](Optional.Some.tag, Optional.Some(1))
+/// Optional.None[u32] ~ Optional[u32](Optional.None.tag)
+
 
 
 def main(): Void {
-   // Sealed types can be pattern matched on.
+   // Enum types can be pattern matched on.
    // The cases are checked at compile time. If you
    // decide to add a new case, that will have to
    // be handled in existing match statements.
-   val ten = when Optional.Some(10) {
-      is Some: x -> s.value,
-      is None -> 0
+   val ten = match Optional.Some(10) {
+      // notice the use of `val` keyword to disambiguate enum case names
+      // from parameter binding patterns. 
+      // this is different from rust, where patterns can be qualified,
+      // haskell, where data Cases have to start with uppercase (I think?)
+      // and swift where constructor cases are prefixed with a `.` to distinguish
+      // from bound patterns.
+      // An explicit `val` keyword has an added advantage of being easily searchable. 
+      Some(val value) -> value,
+      None -> 0
    };
-   val zero = when Optional.None[Int] {
-     is Some: x -> s.value,
-     is None -> 0
+   val zero = match Optional.None[Int] {
+     Some(val value) -> value,
+     None -> 0
    };
 }
 ```
+
+Enums don't have to carry extra data.
+
+```
+// The underlying representation of an enum tag is
+// u8 (8 bit unsigned integer)
+enum Token {
+    Identifier
+    Number
+    String
+}
+```
+This will be similar to a C style enum (except more type safe because you can't assign itegers to them)
 
 ## Closures
 Hades supports a limited form of closures that are allocated on the stack. This means that
