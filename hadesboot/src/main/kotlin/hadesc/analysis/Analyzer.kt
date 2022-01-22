@@ -44,11 +44,6 @@ class Analyzer(
             return enumCaseConstructorBinding
         }
 
-        val matchArmBinding = resolveMatchArmPropertyBinding(expression)
-        if (matchArmBinding != null) {
-            return matchArmBinding
-        }
-
         val fieldBinding = resolveStructFieldBinding(expression)
         if (fieldBinding != null) {
             return fieldBinding
@@ -106,52 +101,6 @@ class Analyzer(
             ?: return null
         val type = typeOfEnumCase(binding.declaration, case)
         return PropertyBinding.EnumTypeCaseConstructor(binding.declaration, case, type)
-    }
-
-    private fun resolveMatchArmPropertyBinding(expression: Expression.Property): PropertyBinding? {
-        if (expression.lhs !is Expression.Var) return null
-        val binding = ctx.resolver.resolve(expression.lhs.name)
-        if (binding !is Binding.WhenArm) {
-            return null
-        }
-        val lhs = expression.lhs
-        return when (val case = binding.case) {
-            is Expression.WhenArm.Is -> {
-                val whenExpression = requireNotNull(ctx.resolver.getEnclosingWhenExpression(case.caseName))
-                val discriminantType = inferExpression(whenExpression.value)
-                val typeDecl = typeDeclarationOf(discriminantType)
-                if (typeDecl !is Declaration.Enum) {
-                    return null
-                }
-
-                val sealedCase = typeDecl.cases.find {
-                    it.name.identifier.name == case.caseName.name
-                } ?: return null
-
-                val paramIndex = sealedCase.params?.indexOfFirst { it.binder.identifier.name == expression.property.name }
-                    ?: return null
-                val param = sealedCase.params[paramIndex]
-                val annotation = param.annotation ?: return null
-                val annotationType = annotationToType(annotation)
-                val typeArgs = discriminantType.typeArgs()
-                val type = if (typeDecl.typeParams == null) {
-                    annotationType
-                } else {
-                    val substitution = typeDecl.typeParams.zip(typeArgs).toSubstitution()
-                    annotationType.applySubstitution(substitution)
-                }
-                PropertyBinding.WhenCaseFieldRef(
-                    typeDecl,
-                    sealedCase.name.identifier.name,
-                    typeArgs,
-                    lhs.name,
-                    paramIndex,
-                    param.binder.identifier,
-                    type,
-                )
-            }
-            is Expression.WhenArm.Else -> requireUnreachable()
-        }
     }
 
     private fun typeDeclarationOf(type: Type): Declaration? = when (type) {
@@ -691,7 +640,6 @@ class Analyzer(
                 is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType)
                 is Expression.If -> checkIfExpression(expression, expectedType)
                 is Expression.UnaryMinus -> checkUnaryMinus(expression, expectedType)
-                is Expression.When -> checkWhenExpression(expression, expectedType)
                 is Expression.Match -> checkMatchExpression(expression, expectedType)
                 else -> {
                     val inferredType = inferExpression(expression)
@@ -826,7 +774,6 @@ class Analyzer(
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
-            is Expression.When -> inferWhenExpression(expression)
             is Expression.ArrayLiteral -> inferArrayLiteral(expression)
             is Expression.ArrayIndex -> inferArrayIndex(expression)
             is Expression.As -> {
@@ -953,24 +900,6 @@ class Analyzer(
             checkExpression(item, itemType)
         }
         return Type.Array(ofType = itemType, length = expression.items.size)
-    }
-
-    private fun inferWhenExpression(expression: Expression.When): Type {
-        inferExpression(expression.value)
-        val firstArmExpr = expression.arms.firstOrNull() ?: return Type.Error(expression.location)
-        val type = inferExpression(firstArmExpr.value)
-        for (whenArm in expression.arms.drop(1)) {
-            checkExpression(whenArm.value, type)
-        }
-        return type
-    }
-
-    private fun checkWhenExpression(expression: Expression.When, expectedType: Type): Type {
-        inferExpression(expression.value)
-        for (whenArm in expression.arms) {
-            checkExpression(whenArm.value, expectedType)
-        }
-        return expectedType
     }
 
     private fun checkMatchExpression(expression: Expression.Match, expectedType: Type): Type {
@@ -1135,7 +1064,6 @@ class Analyzer(
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
         is Binding.Enum -> requireUnreachable()
-        is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> typeOfExternConstBinding(binding)
         is Binding.MatchArmEnumCaseArg -> typeOfMatchArmEnumCaseArgBinding(binding)
     }

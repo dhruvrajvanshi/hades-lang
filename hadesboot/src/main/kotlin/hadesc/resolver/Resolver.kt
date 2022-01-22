@@ -159,8 +159,6 @@ class Resolver(private val ctx: Context) {
 
         }
         is Closure -> null
-        is WhenArm -> null
-        is When -> null
         is Match -> null
         is Match.Arm -> null
     }
@@ -214,8 +212,6 @@ class Resolver(private val ctx: Context) {
         is ImplementationDef -> null
         is Closure -> findInClosure(ident, scope)
         is Declaration.Enum -> null
-        is WhenArm -> findInWhenArm(ident, scope)
-        is When -> null
         is Match -> null
         is Match.Arm -> findInMatchArm(ident, scope)
     }
@@ -240,19 +236,6 @@ class Resolver(private val ctx: Context) {
         is Pattern.IntLiteral -> null
         is Pattern.Val -> TODO()
         is Pattern.Wildcard -> null
-    }
-
-    private fun findInWhenArm(ident: Identifier, scope: WhenArm): Binding? {
-        return when (scope) {
-            is WhenArm.Is -> {
-                if (scope.name?.identifier?.name == ident.name) {
-                    Binding.WhenArm(scope.name, scope)
-                } else {
-                    null
-                }
-            }
-            is WhenArm.Else -> null
-        }
     }
 
     private fun findInBlock(ident: Identifier, scope: Block): Binding? {
@@ -603,10 +586,6 @@ class Resolver(private val ctx: Context) {
         return getEnclosingScopeTree(node)
     }
 
-    fun getEnclosingWhenExpression(node: HasLocation): When? {
-        return getEnclosingScopeTree(node)
-    }
-
     fun getEnclosingImpl(node: HasLocation): ImplementationDef? {
         return getEnclosingScopeTree(node)
     }
@@ -694,20 +673,12 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-    fun onParseWhenArm(arm: WhenArm) {
-        addScopeNode(arm.value.location.file, arm)
-    }
-
     fun onParseMatchArm(arm: Match.Arm) {
         addScopeNode(arm.value.location.file, arm)
     }
 
     fun onParseMatchExpression(expr: Match) {
         addScopeNode(expr.value.location.file, expr)
-    }
-
-    fun onParseWhenExpression(expression: When) {
-        addScopeNode(expression.value.location.file, expression)
     }
 
     fun getSourceFile(file: SourcePath): SourceFile {

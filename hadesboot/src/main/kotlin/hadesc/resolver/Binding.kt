@@ -61,8 +61,6 @@ sealed class Binding {
         override val binder: Binder get() = declaration.name
     }
 
-    data class WhenArm(override val binder: Binder, val case: Expression.WhenArm): Binding()
-
     data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding() {
         init {
             requireNotNull(topLevelPattern.args)
@@ -87,7 +85,6 @@ sealed class Binding {
         is Enum -> true
         is Struct -> true
         is ValBinding -> false
-        is WhenArm -> false
         is ExternConst -> true
         is MatchArmEnumCaseArg -> false
     }

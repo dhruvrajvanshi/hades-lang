@@ -619,7 +619,6 @@ class HIRGen(
             is Expression.This -> lowerThisExpression(expression)
             is Expression.Closure -> lowerClosure(expression)
             is Expression.UnsafeCast -> lowerUnsafeCast(expression)
-            is Expression.When -> lowerWhenExpression(expression)
             is Expression.As -> lowerAsExpression(expression)
             is Expression.ArrayIndex -> lowerArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> lowerArrayLiteral(expression)
@@ -970,58 +969,6 @@ class HIRGen(
             ctx.analyzer.getReturnType(expression),
             body
         )
-    }
-
-    private fun lowerWhenExpression(expression: Expression.When): HIRExpression {
-        val value = lowerExpression(expression.value)
-        val discriminantType = value.type
-        val discriminants = checkNotNull(ctx.analyzer.getDiscriminants(discriminantType))
-        val declaration = checkNotNull(ctx.analyzer.getEnumTypeDeclaration(discriminantType))
-        val cases = makeList {
-            for (discriminant in discriminants) {
-                val arm = expression.arms.find {
-                    it is Expression.WhenArm.Is && it.caseName.name == discriminant.name
-                }
-                val casePayloadTypeConstructor =
-                    Type.Constructor(ctx.resolver.qualifiedName(declaration.name).append(discriminant.name))
-                val casePayloadType = if (declaration.typeParams == null) {
-                    casePayloadTypeConstructor
-                }  else {
-                    Type.Application(
-                        casePayloadTypeConstructor,
-                        discriminantType.typeArgs()
-                    )
-                }
-                if (arm == null) {
-                    val elseArm = requireNotNull(expression.arms.find {
-                        it is Expression.WhenArm.Else
-                    })
-                    require(elseArm is Expression.WhenArm.Else)
-                    add(HIRExpression.When.Case(
-                        casePayloadType,
-                        discriminant.name,
-                        ctx.makeUniqueName(),
-                        lowerExpression(elseArm.value)
-                    ))
-                } else {
-                    require(arm is Expression.WhenArm.Is)
-                    add(HIRExpression.When.Case(
-                        casePayloadType,
-                        discriminant.name,
-                        arm.name?.identifier?.name ?: ctx.makeUniqueName(),
-                        lowerExpression(arm.value)
-
-                    ))
-                }
-            }
-        }
-        return HIRExpression.When(
-            expression.location,
-            typeOfExpression(expression),
-            discriminant = lowerExpression(expression.value),
-            cases = cases
-        )
-
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
@@ -1386,7 +1333,6 @@ class HIRGen(
             binding.binder,
         )
         is Binding.Enum -> TODO()
-        is Binding.WhenArm -> requireUnreachable()
         is Binding.ExternConst -> HIRExpression.GlobalRef(
             expression.location,
             typeOfExpression(expression),

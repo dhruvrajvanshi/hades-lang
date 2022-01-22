@@ -566,7 +566,6 @@ class Checker(val ctx: Context) {
             is Expression.Closure -> checkClosureExpression(expression)
             is Expression.This -> checkThisExpression(expression)
             is Expression.UnsafeCast -> checkUnsafeCast(expression)
-            is Expression.When -> checkWhenExpression(expression)
             is Expression.As -> checkAsExpression(expression)
             is Expression.ArrayIndex -> checkArrayIndexExpression(expression)
             is Expression.ArrayLiteral -> checkArrayLiteralExpression(expression)
@@ -626,6 +625,27 @@ class Checker(val ctx: Context) {
         if (valueType.isIntegral()) {
             if (arms.none { it.pattern is Pattern.Wildcard }) {
                 error(location, Diagnostic.Kind.NonExhaustivePrimitivePatterns)
+            }
+            return
+        }
+
+        val enumDecl = ctx.analyzer.getEnumTypeDeclaration(valueType)
+        if (enumDecl != null) {
+            if (arms.any { it.pattern is Pattern.Wildcard }) {
+                return
+            }
+
+            val handledCases = mutableSetOf<Name>()
+            for (arm in arms) {
+                if (arm.pattern is Pattern.EnumCase) {
+                    handledCases.add(arm.pattern.identifier.name)
+                }
+            }
+
+            for (case in enumDecl.cases) {
+                if (case.name.name !in handledCases) {
+                    error(location, Diagnostic.Kind.NonExhaustivePatterns(case.name.name))
+                }
             }
         }
     }
@@ -747,33 +767,6 @@ class Checker(val ctx: Context) {
         if (extension == null) {
             error(expression, Diagnostic.Kind.UnboundThis)
         }
-    }
-
-    private fun checkWhenExpression(expression: Expression.When) {
-        checkExpression(expression.value)
-        val expectedType = expression.arms.firstOrNull()?.value?.type
-        if (expectedType != null) {
-            expression.arms.drop(1).forEach {
-                checkExpressionHasType(it.value, expectedType)
-            }
-        }
-        expression.arms.forEach {
-            checkExpression(it.value)
-        }
-
-        val discriminants = checkNotNull(ctx.analyzer.getDiscriminants(expression.value.type))
-
-        for (discriminant in discriminants) {
-            if (!expression.arms.any {
-                when (it) {
-                    is Expression.WhenArm.Else -> true
-                    is Expression.WhenArm.Is -> it.caseName.name == discriminant.name
-                }
-            }) {
-                error(expression.value, Diagnostic.Kind.NonExhaustivePatterns(discriminant.name))
-            }
-        }
-
     }
 
     private fun checkTypeApplicationExpression(expression: Expression.TypeApplication) {

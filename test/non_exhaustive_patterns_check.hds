@@ -5,7 +5,7 @@ enum T {
 }
 
 def main(): Void {
-    val x = when (T.A) {
-        is A -> true
+    val x = match (T.A) {
+        A -> true
     }
 }

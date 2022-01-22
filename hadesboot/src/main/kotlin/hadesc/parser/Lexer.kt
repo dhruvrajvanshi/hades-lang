@@ -33,7 +33,6 @@ val KEYWORDS = mapOf(
     "trait" to tt.TRAIT,
     "implementation" to tt.IMPLEMENTATION,
     "for" to tt.FOR,
-    "when" to tt.WHEN,
     "is" to tt.IS,
     "enum" to tt.ENUM,
     "union" to tt.UNION,
