@@ -29,7 +29,6 @@ data class Token(
         TRAIT,
         IMPLEMENTATION,
         FOR,
-        WHEN,
         IS,
         ENUM,
         UNION,

@@ -5,12 +5,12 @@ enum T {
 }
 
 def main(): Void {
-    val x = when (T.B) {
-        is A -> {
+    val x = match (T.B) {
+        A -> {
             puts(b"FAIL")
             false
         }
-        is B -> {
+        B -> {
             puts(b"PASS")
             false
         }

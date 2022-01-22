@@ -118,26 +118,6 @@ sealed class Expression : HasLocation {
         val value: Expression
     ) : Expression()
 
-    data class When(
-        override val location: SourceLocation,
-        val value: Expression,
-        val arms: List<WhenArm>
-    ) : Expression(), ScopeTree
-
-    sealed class WhenArm: ScopeTree {
-        abstract val value: Expression
-        override val location: SourceLocation
-            get() = value.location
-        data class Is(
-            val name: Binder?,
-            val caseName: Identifier,
-            override val value: Expression
-        ) : WhenArm()
-        data class Else(
-            override val value: Expression
-        ) : WhenArm()
-    }
-
     data class As(
         override val location: SourceLocation,
         val lhs: Expression,

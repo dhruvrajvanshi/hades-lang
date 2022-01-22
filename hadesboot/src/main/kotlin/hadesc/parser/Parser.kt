@@ -845,7 +845,6 @@ class Parser(
                 Expression.This(advance().location)
             }
             tt.VBAR -> parseClosureExpression()
-            tt.WHEN -> parseWhenExpression()
             tt.LSQB -> parseArrayLiteralExpression()
             tt.LBRACE -> parseBlockExpression()
             tt.AT_INTRINSIC -> parseIntrinsicExpression()
@@ -1000,63 +999,6 @@ class Parser(
             ofType,
             items
         )
-    }
-
-    private fun parseWhenExpression(): Expression {
-        val start = expect(tt.WHEN)
-        val value = parseExpression()
-        expect(tt.LBRACE)
-        val arms = makeList {
-            var first = true
-            var isPreviousArmBlock = false
-            while (!at(tt.RBRACE) && !at(tt.EOF)) {
-                if (!first && !isPreviousArmBlock) {
-                    expect(tt.COMMA)
-                }
-                first = false
-                val arm = parseWhenArm()
-                if (arm.value is Expression.BlockExpression) {
-                    isPreviousArmBlock = true
-                }
-                add(arm)
-            }
-        }
-        val stop = expect(tt.RBRACE)
-        val result = Expression.When(
-            makeLocation(start, stop),
-            value,
-            arms
-        )
-        ctx.resolver.onParseWhenExpression(result)
-        return result
-    }
-
-    private fun parseWhenArm(): Expression.WhenArm {
-        val result = if (currentToken.kind == tt.IS) {
-            advance()
-            val name = if (tokenBuffer.peek(1).kind == tt.COLON) {
-                val binder = parseBinder()
-                expect(tt.COLON)
-                binder
-            } else {
-                null
-            }
-            val caseName = parseIdentifier()
-            expect(tt.ARROW)
-            val value = parseExpression()
-            Expression.WhenArm.Is(
-                name,
-                caseName,
-                value
-            )
-        } else {
-            expect(tt.ELSE)
-            expect(tt.ARROW)
-            val value = parseExpression()
-            Expression.WhenArm.Else(value)
-        }
-        ctx.resolver.onParseWhenArm(result)
-        return result
     }
 
     private fun parseClosureExpression(): Expression {

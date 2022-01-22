@@ -74,7 +74,6 @@ interface SyntaxVisitor {
         is Expression.TypeApplication -> visitTypeApplicationExpr(expression)
         is Expression.UnsafeCast -> visitUnsafeCastExpr(expression)
         is Expression.Var -> visitVarExpr(expression)
-        is Expression.When -> visitWhenExpr(expression)
         is Expression.As -> visitAsExpression(expression)
         is Expression.ArrayIndex -> visitArrayIndexExpression(expression)
         is Expression.ArrayLiteral -> visitArrayLiteralExpression(expression)
@@ -270,17 +269,6 @@ interface SyntaxVisitor {
     }
 
     fun visitVarExpr(expression: Expression.Var) {
-    }
-
-    fun visitWhenExpr(expression: Expression.When) {
-        visitExpression(expression.value)
-        expression.arms.forEach {
-            visitWhenArm(it)
-        }
-    }
-
-    fun visitWhenArm(arm: Expression.WhenArm) {
-        visitExpression(arm.value)
     }
 
     fun visitBoolLiteralExpr(expression: Expression.BoolLiteral) {

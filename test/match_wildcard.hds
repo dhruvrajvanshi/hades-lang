@@ -4,25 +4,25 @@ enum T {
 }
 def main(): Void {
 
-    when T.A {
-        is A -> {}
-        else -> {
+    match T.A {
+        A -> {}
+        _ -> {
             puts(b"FAIL")
         }
     }
 
-    when T.C {
-        is C -> {}
-        else -> {
+    match T.C {
+        C -> {}
+        _ -> {
             puts(b"FAIL")
         }
     }
 
-    when T.D {
-        is D -> {
+    match T.D {
+        D -> {
             puts(b"PASS")
         }
-        else -> {}
+        _ -> {}
     }
 }
 
