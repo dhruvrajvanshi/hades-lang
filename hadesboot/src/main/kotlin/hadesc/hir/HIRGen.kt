@@ -1144,13 +1144,36 @@ class HIRGen(
     }
 
     private fun lowerBinaryExpression(expression: Expression.BinaryOperation): HIRExpression {
-        return HIRExpression.BinOp(
+        val trait = ctx.analyzer.binOpTraitsNames[expression.operator]
+        return if (trait != null) {
+            val methodName = checkNotNull(ctx.analyzer.binOpTraitMethodNames[expression.operator])
+            val traitArgs = listOf(expression.lhs.type, expression.rhs.type)
+            val methodRefType = checkNotNull(ctx.analyzer.traitMethodRefType(trait, traitArgs, methodName))
+            val methodRef = HIRExpression.TraitMethodRef(
+                expression.location,
+                methodRefType,
+                trait,
+                traitArgs = traitArgs,
+                methodName,
+            )
+            return HIRExpression.Call(
+                expression.location,
+                expression.type,
+                methodRef,
+                args = listOf(
+                    lowerExpression(expression.lhs),
+                    lowerExpression(expression.rhs),
+                )
+            )
+        } else {
+            return HIRExpression.BinOp(
                 expression.location,
                 typeOfExpression(expression),
                 lowerExpression(expression.lhs),
                 expression.operator,
                 lowerExpression(expression.rhs)
-        )
+            )
+        }
     }
 
     private fun lowerNotExpression(expression: Expression.Not): HIRExpression {

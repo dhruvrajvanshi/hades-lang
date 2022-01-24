@@ -886,10 +886,30 @@ class Checker(val ctx: Context) {
         expression: Expression.NullPtr) = unit
 
     private fun checkBinaryOperation(expression: Expression.BinaryOperation) {
-        checkExpression(expression.lhs)
-        checkExpression(expression.rhs)
-        if (expression.type is Type.Error) {
-            error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type))
+        val traitName = ctx.analyzer.binOpTraitsNames[expression.operator]
+        if (traitName != null) {
+            val lhsTy = expression.lhs.type
+            val rhsTy = expression.rhs.type
+            val traitRequirement = TraitRequirement(
+                traitName,
+                listOf(lhsTy, rhsTy),
+            )
+            if (!ctx.analyzer.isTraitRequirementSatisfied(
+                expression,
+                traitRequirement
+            )) {
+                error(expression, Diagnostic.Kind.TraitRequirementNotSatisfied(traitRequirement))
+            }
+        } else {
+            // TODO: Migrate remaining binops to traits
+            checkExpression(expression.lhs)
+            checkExpression(expression.rhs)
+            if (expression.type is Type.Error) {
+                error(
+                    expression,
+                    Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type)
+                )
+            }
         }
     }
 

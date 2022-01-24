@@ -1,0 +1,21 @@
+
+import hades.ops.add.{Add}
+
+extern def strcat(*u8, *u8): *u8 = strcat
+extern def puts(*u8): Void = puts
+
+implementation Add[*u8, *u8] {
+    type Result = *u8
+
+    def add(left: *u8, right: *u8): *u8 {
+        return strcat(left, right)
+    }
+}
+
+def main(): Void {
+    puts(add(b"PA", b"SS"))
+}
+
+def add[T](left: T, right: T): Add[T, T].Result where Add[T, T] {
+    return left + right
+}

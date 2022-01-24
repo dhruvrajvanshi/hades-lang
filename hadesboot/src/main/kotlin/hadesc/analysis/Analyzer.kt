@@ -11,6 +11,7 @@ import hadesc.hir.TypeTransformer
 import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
 import hadesc.types.Substitution
@@ -73,18 +74,30 @@ class Analyzer(
         val typeArgs = if (expression.lhs is Expression.TypeApplication)
             expression.lhs.args.map { annotationToType(it) }
         else emptyList()
-        val substitution = traitDef.params.zip(typeArgs).toSubstitution()
         check(signature.typeParams == null)
+        val methodType = traitMethodRefType(ctx.resolver.qualifiedName(traitDef.name), typeArgs, expression.property.name) ?: return null
         return PropertyBinding.TraitFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
-            Type.Ptr(Type.Function(
-                from = signature.params.map { it.type.applySubstitution(substitution) },
-                to = annotationToType(signature.returnType).applySubstitution(substitution),
-                traitRequirements = null
-            ), isMutable = false),
+            methodType,
             methodName = signature.name.name
         )
+    }
+
+    fun traitMethodRefType(traitName: QualifiedName, typeArgs: List<Type>, methodName: Name): Type? {
+        val traitDef = ctx.resolver.resolveDeclaration(traitName) ?: return null
+        if (traitDef !is Declaration.TraitDef) return null
+        val method = traitDef.members.find { it is Declaration.TraitMember.Function && it.signature.name.name == methodName }
+        if (method == null || method !is Declaration.TraitMember.Function) {
+            return null
+        }
+        val signature = method.signature
+        val substitution = traitDef.params.zip(typeArgs).toSubstitution()
+        return Type.Ptr(Type.Function(
+            from = signature.params.map { it.type.applySubstitution(substitution) },
+            to = annotationToType(signature.returnType).applySubstitution(substitution),
+            traitRequirements = null
+        ), isMutable = false)
     }
 
     private val Param.type get(): Type = annotation?.let {
@@ -619,8 +632,14 @@ class Analyzer(
                 checkExpression(expression.rhs, lhsType)
                 Type.Bool
             } else {
-                checkExpression(expression.lhs, expectedType)
-                checkExpression(expression.rhs, expectedType)
+                val trait = binOpTraitsNames[expression.operator]
+                if (trait != null) {
+                    inferExpression(expression)
+                } else {
+                    checkExpression(expression.lhs, expectedType)
+                    checkExpression(expression.rhs, expectedType)
+                }
+
             }
         } else {
             when (expression) {
@@ -752,7 +771,7 @@ class Analyzer(
         else -> false
     }
 
-    private fun inferExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression) {
+    fun inferExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression) {
         reduceGenericInstances(when (expression) {
             is Expression.Error -> Type.Error(expression.location)
             is Expression.Var -> inferVarExpresion(expression)
@@ -957,7 +976,24 @@ class Analyzer(
         return Type.Size(isSigned = false)
     }
 
+    val binOpTraitsNames = mapOf(
+        BinaryOperator.PLUS to ctx.qn("hades", "ops", "add", "Add"),
+        BinaryOperator.MINUS to ctx.qn("hades", "ops", "sub", "Sub"),
+        BinaryOperator.TIMES to ctx.qn("hades", "ops", "mul", "Mul")
+    )
+
+    val binOpTraitMethodNames = mapOf(
+        BinaryOperator.PLUS to ctx.makeName("add"),
+        BinaryOperator.MINUS to ctx.makeName("sub"),
+        BinaryOperator.TIMES to ctx.makeName("mul"),
+    )
+
     private fun inferBinaryOperation(expression: Expression.BinaryOperation): Type {
+
+        val traitName = binOpTraitsNames[expression.operator]
+        if (traitName != null) {
+            return inferBiopTraitExpression(expression, traitName)
+        }
         val lhsType = inferExpression(expression.lhs)
         val matchingRule = BIN_OP_RULES[expression.operator to lhsType]
         return if (matchingRule != null) {
@@ -978,6 +1014,12 @@ class Analyzer(
                 Type.Error(expression.location)
             }
         }
+    }
+
+    private fun inferBiopTraitExpression(expression: Expression.BinaryOperation, traitName: QualifiedName): Type {
+        val lhsType = inferExpression(expression.lhs)
+        val rhsType = inferExpression(expression.rhs)
+        return resolveTraitTypeSelect(expression, traitName, listOf(lhsType, rhsType), ctx.makeName("Result"))
     }
 
     private fun isTypeEquatable(lhsType: Type): Boolean = when(reduceGenericInstances(lhsType)) {
@@ -1443,23 +1485,33 @@ class Analyzer(
     }
 
     private fun selectAnnotationToType(annotation: TypeAnnotation.Select): Type {
-        val traitResolver = makeTraitResolver(annotation)
         val requirement = asTraitRequirement(annotation.lhs) ?: return Type.Error(annotation.location)
+        return resolveTraitTypeSelect(
+            annotation,
+            requirement.traitRef,
+            requirement.arguments,
+            annotation.rhs.name
+        )
+    }
+
+    private fun resolveTraitTypeSelect(node: HasLocation, traitName: QualifiedName, traitArgs: List<Type>, select: Name): Type {
+        val traitResolver = makeTraitResolver(node)
+        val requirement = TraitRequirement(traitName, traitArgs)
         val clauseAndSubstitution = traitResolver.getImplementationClauseAndSubstitution(requirement.traitRef, requirement.arguments)
-            ?: return Type.Error(annotation.location)
+            ?: return Type.Error(node.location)
         val (clause, substitution) = clauseAndSubstitution
         if (clause is TraitClause.Requirement) {
-            return Type.Select(clause.requirement.traitRef, clause.requirement.arguments, annotation.rhs.name)
+            return Type.Select(clause.requirement.traitRef, clause.requirement.arguments, select)
         }
         require(clause is TraitClause.Implementation)
-        val def = clause.def ?: return Type.Error(annotation.location)
+        val def = clause.def ?: return Type.Error(node.location)
         for (typeAlias in def.body.filterIsInstance<Declaration.TypeAlias>()) {
             require(typeAlias.typeParams == null)
-            if (typeAlias.name.name == annotation.rhs.name) {
+            if (typeAlias.name.name == select) {
                 return annotationToType(typeAlias.rhs).applySubstitution(substitution)
             }
         }
-        return Type.Error(annotation.location)
+        return Type.Error(node.location)
     }
 
     private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {

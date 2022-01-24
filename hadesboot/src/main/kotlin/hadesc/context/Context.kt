@@ -132,7 +132,9 @@ class Context(
                 }
             }
         }
-
+        visitSourceFile(resolveSourceFile(qn("hades", "ops", "add")))
+        visitSourceFile(resolveSourceFile(qn("hades", "ops", "sub")))
+        visitSourceFile(resolveSourceFile(qn("hades", "ops", "mul")))
         visitSourceFile(sourceFile(QualifiedName(), mainPath()))
 
         visitSourceFile(resolveSourceFile(QualifiedName(listOf(
@@ -151,4 +153,8 @@ class Context(
     }
 
     fun enumDiscriminantType(): Type = Type.u8
+
+    fun qn(vararg names: String): QualifiedName {
+        return QualifiedName(names.map { makeName(it) })
+    }
 }
