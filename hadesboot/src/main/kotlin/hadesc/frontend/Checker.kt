@@ -97,7 +97,6 @@ class Checker(val ctx: Context) {
             }.toSubstitution()
 
         for (declaration in implDef.body) {
-            checkDeclaration(declaration)
             if (declaration is Declaration.FunctionDef) {
                 checkFunctionDef(declaration, skipDuplicateDeclarationCheck = true)
                 foundMethods.add(declaration.name.identifier.name)
