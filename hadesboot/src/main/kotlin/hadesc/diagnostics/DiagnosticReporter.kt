@@ -178,7 +178,7 @@ data class Diagnostic(
             is MissingImplMethod -> "Missing implementation for method '${name.text}'."
             is TraitMethodTypeMismatch -> "Trait method type mismatch: expected: ${expected.prettyPrint()}, found ${found.prettyPrint()}"
             is DuplicateTypeBinding -> "Duplicate type binding."
-            is DuplicateValueBinding -> "Duplicate value binding."
+            is DuplicateValueBinding -> "Duplicate value binding. Previously defined at ${existing.location.file}:${existing.location.start.line}"
             ReturningFromVoidFunction -> "Void functions can't return a value."
             MissingThisParam -> "Missing this param."
             is TraitRequirementNotSatisfied -> "Trait requirement (${requirement.prettyPrint()}) not satisfied."

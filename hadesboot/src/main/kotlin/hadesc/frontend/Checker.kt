@@ -99,6 +99,7 @@ class Checker(val ctx: Context) {
         for (declaration in implDef.body) {
             checkDeclaration(declaration)
             if (declaration is Declaration.FunctionDef) {
+                checkFunctionDef(declaration, skipDuplicateDeclarationCheck = true)
                 foundMethods.add(declaration.name.identifier.name)
                 val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
                 require(typeOfMethod is Type.Ptr)
@@ -109,6 +110,7 @@ class Checker(val ctx: Context) {
                         expected = expectedType, found = actualType))
                 }
             } else if (declaration is Declaration.TypeAlias) {
+                checkTypeAlias(declaration, skipDuplicateDeclarationCheck = true)
                 foundAssociatedTypes.add(declaration.name.name)
                 checkTypeAnnotation(declaration.rhs)
                 require(declaration.typeParams == null)
@@ -254,8 +256,13 @@ class Checker(val ctx: Context) {
         checkTypeAnnotation(declaration.returnType)
     }
 
-    private fun checkTypeAlias(declaration: Declaration.TypeAlias) {
-        checkTopLevelTypeBinding(declaration.name)
+    private fun checkTypeAlias(declaration: Declaration.TypeAlias, skipDuplicateDeclarationCheck: Boolean = false) {
+        if (!skipDuplicateDeclarationCheck) {
+            // TODO: Check for duplicate declarations in non top level scopes
+            //       Right now, this would fail at codegen time.
+            //       Also need to do this for checkFunctionDef
+            checkTopLevelTypeBinding(declaration.name)
+        }
         declaration.typeParams?.let {
             checkTypeParams(it)
         }
@@ -399,8 +406,10 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun checkFunctionDef(declaration: Declaration.FunctionDef) {
-        checkFunctionSignature(declaration.signature)
+    private fun checkFunctionDef(declaration: Declaration.FunctionDef, skipDuplicateDeclarationCheck: Boolean = false) {
+        if (!skipDuplicateDeclarationCheck) {
+            checkFunctionSignature(declaration.signature)
+        }
         returnTypeStack.push(ctx.analyzer.annotationToType(declaration.signature.returnType))
         checkBlock(declaration.body)
         returnTypeStack.pop()
