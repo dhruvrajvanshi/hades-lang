@@ -3,7 +3,7 @@ def impl(trait, op_method, ty):
     with open(f'./stdlib/hades/ops/{trait}.hds', 'a') as f:
         f.write(f"""
 implementation {trait}[{ty}, {ty}] {{
-    type Result = ty
+    type Result = {ty}
     def {op_method}(lhs: {ty}, rhs: {ty}): {ty} {{
         return @intrinsic.{op_method}[{ty}](lhs, rhs)
     }}
@@ -36,10 +36,11 @@ def main():
         impl('Sub', 'sub', ty)
         impl('Mul', 'mul', ty)
 
-    for ty in ['f32', 'f64']:
-        impl('Add', 'add', ty)
-        impl('Sub', 'sub', ty)
-        impl('Mul', 'mul', ty)
+    # Temporarily commented out till we add intrinsics for float arithmetic.
+    # for ty in ['f32', 'f64']:
+    #     impl('Add', 'add', ty)
+    #     impl('Sub', 'sub', ty)
+    #     impl('Mul', 'mul', ty)
 
 
 if __name__ == '__main__':

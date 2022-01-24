@@ -8,85 +8,71 @@ trait Mul[Left, Right] {
 
 
 implementation Mul[u8, u8] {
-    type Result = ty
+    type Result = u8
     def mul(lhs: u8, rhs: u8): u8 {
         return @intrinsic.mul[u8](lhs, rhs)
     }
 }
 
 implementation Mul[i8, i8] {
-    type Result = ty
+    type Result = i8
     def mul(lhs: i8, rhs: i8): i8 {
         return @intrinsic.mul[i8](lhs, rhs)
     }
 }
 
 implementation Mul[u16, u16] {
-    type Result = ty
+    type Result = u16
     def mul(lhs: u16, rhs: u16): u16 {
         return @intrinsic.mul[u16](lhs, rhs)
     }
 }
 
 implementation Mul[i16, i16] {
-    type Result = ty
+    type Result = i16
     def mul(lhs: i16, rhs: i16): i16 {
         return @intrinsic.mul[i16](lhs, rhs)
     }
 }
 
 implementation Mul[u32, u32] {
-    type Result = ty
+    type Result = u32
     def mul(lhs: u32, rhs: u32): u32 {
         return @intrinsic.mul[u32](lhs, rhs)
     }
 }
 
 implementation Mul[i32, i32] {
-    type Result = ty
+    type Result = i32
     def mul(lhs: i32, rhs: i32): i32 {
         return @intrinsic.mul[i32](lhs, rhs)
     }
 }
 
 implementation Mul[u64, u64] {
-    type Result = ty
+    type Result = u64
     def mul(lhs: u64, rhs: u64): u64 {
         return @intrinsic.mul[u64](lhs, rhs)
     }
 }
 
 implementation Mul[i64, i64] {
-    type Result = ty
+    type Result = i64
     def mul(lhs: i64, rhs: i64): i64 {
         return @intrinsic.mul[i64](lhs, rhs)
     }
 }
 
 implementation Mul[usize, usize] {
-    type Result = ty
+    type Result = usize
     def mul(lhs: usize, rhs: usize): usize {
         return @intrinsic.mul[usize](lhs, rhs)
     }
 }
 
 implementation Mul[isize, isize] {
-    type Result = ty
+    type Result = isize
     def mul(lhs: isize, rhs: isize): isize {
         return @intrinsic.mul[isize](lhs, rhs)
-    }
-}
-
-implementation Mul[f32, f32] {
-    type Result = ty
-    def mul(lhs: f32, rhs: f32): f32 {
-        return @intrinsic.mul[f32](lhs, rhs)
-    }
-}
-
-implementation Mul[f64, f64] {
-    type Result = ty
-    def mul(lhs: f64, rhs: f64): f64 {
-        return @intrinsic.mul[f64](lhs, rhs)
     }
 }
