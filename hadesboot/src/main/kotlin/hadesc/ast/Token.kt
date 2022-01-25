@@ -58,6 +58,7 @@ data class Token(
 
         ID,
         INT_LITERAL,
+        FLOAT_LITERAL,
         BYTE_CHAR_LITERAL,
         HEX_INT_LITERAL,
         CONST,

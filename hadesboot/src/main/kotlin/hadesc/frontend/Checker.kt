@@ -562,6 +562,7 @@ class Checker(val ctx: Context) {
             is Expression.BoolLiteral -> Unit
             is Expression.NullPtr -> checkNullPtrExpression(expression)
             is Expression.IntLiteral -> Unit
+            is Expression.FloatLiteral -> unit
             is Expression.Not -> checkNotExpression(expression)
             is Expression.BinaryOperation -> checkBinaryOperation(expression)
             is Expression.SizeOf -> checkSizeOf(expression)

@@ -1,0 +1,9 @@
+
+extern def print_f32(f32): Void = print_f32
+extern def print_f64(f64): Void = print_f64
+
+def main(): Void {
+
+    print_f32(23.45)
+    print_f64(34.24)
+}
