@@ -4,6 +4,9 @@ enum class BinaryOperator {
     PLUS,
     MINUS,
     TIMES,
+    DIV,
+
+    REM,
 
     AND,
     OR,
@@ -29,5 +32,7 @@ enum class BinaryOperator {
         GREATER_THAN_EQUAL -> "gte"
         LESS_THAN -> "lt"
         LESS_THAN_EQUAL -> "lte"
+        DIV -> "div"
+        REM -> "mod"
     }
 }

@@ -16,4 +16,5 @@ enum class Opcode(val value: Int) {
         FSub(LLVM.LLVMFSub),
         FMul(LLVM.LLVMFMul),
         FDiv(LLVM.LLVMFDiv),
+        FRem(LLVM.LLVMFRem),
 }

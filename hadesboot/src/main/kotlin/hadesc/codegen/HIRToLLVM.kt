@@ -317,6 +317,8 @@ class HIRToLLVM(
         BinaryOperator.PLUS -> Opcode.FAdd
         BinaryOperator.MINUS -> Opcode.FSub
         BinaryOperator.TIMES -> Opcode.FMul
+        BinaryOperator.DIV   -> Opcode.FDiv
+        BinaryOperator.REM   -> Opcode.FRem
         else -> requireUnreachable()
     }
 

@@ -39,7 +39,7 @@ private val OPERATORS = listOf(
                 tt.GREATER_THAN),
         listOf(tt.EQEQ, tt.BANG_EQ),
         listOf(tt.PLUS, tt.MINUS),
-        listOf(tt.STAR)
+        listOf(tt.STAR, tt.SLASH, tt.PERCENT)
 )
 
 typealias op = BinaryOperator
@@ -52,10 +52,12 @@ private val BINARY_OPERATORS = mapOf(
         tt.PLUS to op.PLUS,
         tt.MINUS to op.MINUS,
         tt.STAR to op.TIMES,
+        tt.SLASH to op.DIV,
         tt.AND to op.AND,
         tt.OR to op.OR,
         tt.EQEQ to op.EQUALS,
-        tt.BANG_EQ to op.NOT_EQUALS
+        tt.BANG_EQ to op.NOT_EQUALS,
+        tt.PERCENT to op.REM,
 ).apply {
     for (tokenType in keys) {
         require(OPERATORS.any { it.contains(tokenType) }) {
