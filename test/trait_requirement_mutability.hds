@@ -1,0 +1,21 @@
+
+trait Foo[Self] {
+    def foo(self: Self): Void
+}
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+    val x: *mut usize = nullptr
+
+    foo(x)
+}
+
+def foo[T](value: T): Void where Foo[T] {
+    Foo[T].foo(value)
+}
+
+implementation Foo[*usize] {
+    def foo(self: *usize): Void {
+        puts(b"PASS")
+    }
+}

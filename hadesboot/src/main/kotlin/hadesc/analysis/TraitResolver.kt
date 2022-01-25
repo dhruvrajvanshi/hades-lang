@@ -35,9 +35,9 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
                     return null
                 }
                 val substitution = typeAnalyzer.makeParamSubstitution(clause.params)
-                for ((implType, requiredType) in clause.arguments.zip(arguments)) {
+                for ((implType, providedType) in clause.arguments.zip(arguments)) {
                     val implInstantiation = implType.applySubstitution(substitution)
-                    if (!(implInstantiation isAssignableTo requiredType)) {
+                    if (!(providedType isAssignableTo implInstantiation)) {
                         return null
                     }
                 }
