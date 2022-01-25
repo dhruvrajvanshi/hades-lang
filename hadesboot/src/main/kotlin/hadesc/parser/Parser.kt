@@ -39,7 +39,7 @@ private val OPERATORS = listOf(
                 tt.GREATER_THAN),
         listOf(tt.EQEQ, tt.BANG_EQ),
         listOf(tt.PLUS, tt.MINUS),
-        listOf(tt.STAR)
+        listOf(tt.STAR, tt.SLASH)
 )
 
 typealias op = BinaryOperator
@@ -52,6 +52,7 @@ private val BINARY_OPERATORS = mapOf(
         tt.PLUS to op.PLUS,
         tt.MINUS to op.MINUS,
         tt.STAR to op.TIMES,
+        tt.SLASH to op.DIV,
         tt.AND to op.AND,
         tt.OR to op.OR,
         tt.EQEQ to op.EQUALS,

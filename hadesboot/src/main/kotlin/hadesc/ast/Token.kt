@@ -52,6 +52,8 @@ data class Token(
         MINUS,
         PIPELINE,
 
+        SLASH,
+
         EQEQ,
 
         ARROW,
