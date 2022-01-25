@@ -860,7 +860,7 @@ class Analyzer(
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
                     Type.Ptr(
-                        isMutable = false,
+                        isMutable = true,
                         to = Type.Function(
                             from = listOf(
                                 Type.Size(isSigned = false),
