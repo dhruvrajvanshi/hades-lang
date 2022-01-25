@@ -164,6 +164,8 @@ sealed class Expression : HasLocation {
                 get() = SourceLocation.between(pattern, value)
         }
     }
+
+    data class FloatLiteral(override val location: SourceLocation, val value: Double) : Expression()
 }
 
 enum class IntrinsicType {

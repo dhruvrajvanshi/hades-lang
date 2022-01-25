@@ -143,6 +143,8 @@ sealed class Type {
         val usize = Size(isSigned = false)
         val isize = Size(isSigned = true)
         val u8 = Integral(8, isSigned = false)
+        val f32 = FloatingPoint(32)
+        val f64 = FloatingPoint(64)
     }
 }
 

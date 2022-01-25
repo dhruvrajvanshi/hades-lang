@@ -627,6 +627,7 @@ class HIRGen(
             is Expression.UnaryMinus -> lowerUnaryMinus(expression)
             is Expression.ByteCharLiteral -> lowerByteCharExpression(expression)
             is Expression.Match -> lowerMatchExpression(expression)
+            is Expression.FloatLiteral -> lowerFloatLiteral(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -660,6 +661,18 @@ class HIRGen(
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerFloatLiteral(expression: Expression.FloatLiteral): HIRExpression {
+        val ty = expression.type
+        check(ty is Type.FloatingPoint)
+        return HIRExpression.Constant(
+            HIRConstant.FloatValue(
+                expression.location,
+                ty,
+                expression.value
+            )
+        )
     }
 
     private fun lowerMatchExpression(expression: Expression.Match): HIRExpression {

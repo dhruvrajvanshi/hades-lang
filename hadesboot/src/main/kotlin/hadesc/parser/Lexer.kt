@@ -189,7 +189,15 @@ class Lexer(private val file: SourcePath) {
         while (currentChar.isDigit()) {
             advance()
         }
-        return makeToken(tt.INT_LITERAL)
+        if (currentChar == '.') {
+            advance()
+            while (currentChar.isDigit()) {
+                advance()
+            }
+            return makeToken(tt.FLOAT_LITERAL)
+        } else {
+            return makeToken(tt.INT_LITERAL)
+        }
     }
 
     private fun identifierOrKeyword(): Token {

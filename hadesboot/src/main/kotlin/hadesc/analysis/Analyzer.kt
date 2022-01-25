@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
@@ -633,6 +634,13 @@ class Analyzer(
                     checkAssignability(expression, source = type, destination = expectedType)
                     type
                 }
+                is Expression.FloatLiteral -> {
+                    if (expectedType is Type.FloatingPoint) {
+                        expectedType
+                    } else {
+                        Type.Error(expression.location)
+                    }
+                }
                 is Expression.Call -> {
                     checkCallExpression(expression, expectedType)
                 }
@@ -785,6 +793,7 @@ class Analyzer(
             is Expression.UnaryMinus -> inferUnaryMinus(expression)
             is Expression.ByteCharLiteral -> Type.Integral(8, isSigned = false)
             is Expression.Match -> inferMatchExpression(expression)
+            is Expression.FloatLiteral -> Type.f64
         })
     }
 
