@@ -5,6 +5,7 @@ def main(): Void {
     val y: f32 = 2
 
     print_f32(x / y)
+    print_f32(3.5 % y)
 
     if x < y {
         puts(b"FAIL")

@@ -53,6 +53,7 @@ data class Token(
         PIPELINE,
 
         SLASH,
+        PERCENT,
 
         EQEQ,
 
