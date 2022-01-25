@@ -168,9 +168,11 @@ sealed class Declaration : HasLocation {
 
         data class Case(
             val name: Binder,
-            val params: List<Param>?,
+            val params: List<EnumCaseParam>?,
         )
     }
 }
+
+data class EnumCaseParam(val binder: Binder?, val annotation: TypeAnnotation)
 
 

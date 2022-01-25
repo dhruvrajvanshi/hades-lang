@@ -178,7 +178,7 @@ class Parser(
                         expect(tt.COMMA)
                     }
                     first = false
-                    add(parseParam())
+                    add(parseEnumCaseParam())
                 }
             }
             expect(tt.RPAREN)
@@ -188,6 +188,20 @@ class Parser(
             name,
             params
         )
+    }
+
+    private fun parseEnumCaseParam(): EnumCaseParam {
+        return if (at(tt.ID) && tokenBuffer.peek(1).kind == tt.COLON) {
+            val binder = parseBinder()
+            advance()
+            val annotation = parseTypeAnnotation()
+            EnumCaseParam(
+                binder,
+                annotation
+            )
+        } else {
+            EnumCaseParam(null, parseTypeAnnotation())
+        }
     }
 
     private fun parseImplementationDef(): Declaration {

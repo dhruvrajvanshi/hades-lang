@@ -248,8 +248,8 @@ class HIRGen(
                             loc,
                             payloadVal.type,
                             caseFn,
-                            case.params.map {
-                                HIRExpression.ParamRef(it.location, lowerTypeAnnotation(checkNotNull(it.annotation)), it.binder.name, it.binder)
+                            case.params.mapIndexed { index, it ->
+                                HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
                             }
                         )
                     )
@@ -295,7 +295,11 @@ class HIRGen(
                 case.name.location,
                 fnName,
                 declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.name) },
-                params = case.params?.map { HIRParam(it.location, it.binder, lowerTypeAnnotation(checkNotNull(it.annotation))) } ?: emptyList(),
+                params = case.params?.mapIndexed { index, param ->
+                    HIRParam(
+                        param.annotation.location,
+                        Binder(Identifier(param.annotation.location, ctx.makeName("param_$index"))),
+                        lowerTypeAnnotation(checkNotNull(param.annotation))) } ?: emptyList(),
                 returnType = baseInstanceType
             ),
             mutableListOf(body)

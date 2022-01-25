@@ -128,7 +128,7 @@ class Analyzer(
             instanceType
         } else {
             Type.Ptr(Type.Function(
-                from = case.params.map { if (it.annotation != null) annotationToType(it.annotation) else Type.Error(it.location) },
+                from = case.params.map {annotationToType(it.annotation) },
                 to = instanceType,
                 traitRequirements = null
             ), false)
@@ -1083,7 +1083,7 @@ class Analyzer(
         val discriminantType = typeOfExpression(matchExpression.value)
         val enumDecl = getEnumTypeDeclaration(discriminantType) ?: return Type.Error(binding.binder.location)
         val (case, _) = enumDecl.getCase(discriminantPattern.identifier.name) ?: return Type.Error(binding.binder.location)
-        val declaredType = checkNotNull(case.params)[binding.argIndex].type
+        val declaredType = annotationToType(checkNotNull(case.params)[binding.argIndex].annotation)
 
         if (enumDecl.typeParams == null) {
             return declaredType
@@ -1672,7 +1672,7 @@ class Analyzer(
                 index,
                 case.name.identifier.name,
                 case.params?.map {
-                    it.binder.identifier.name to
+                    it.binder?.identifier?.name to
                             annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
                 } ?: singletonList(
                     ctx.makeName("dummy") to
@@ -1942,5 +1942,5 @@ val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
 data class Discriminant(
     val index: Int,
     val name: Name,
-    val params: List<Pair<Name, Type>>
+    val params: List<Pair<Name?, Type>>
 )
