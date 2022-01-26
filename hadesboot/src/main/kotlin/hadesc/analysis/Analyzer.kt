@@ -1797,23 +1797,8 @@ class Analyzer(
             override fun visitExpression(expression: Expression) {
                 val type = reduceGenericInstances(typeOfExpression(expression))
 
-                val typeArgs = when (expression) {
-                    is Expression.Call -> {
-                        visitExpression(expression.callee)
-                        expression.args.forEach {
-                            visitExpression(it.expression)
-                        }
-                        getTypeArgs(expression.callee)
-
-                    }
-                    is Expression.TypeApplication -> {
-                        expression.args.map { annotationToType(it) }
-                    }
-                    else -> {
-                        super.visitExpression(expression)
-                        getTypeArgs(expression)
-                    }
-                }
+                super.visitExpression(expression)
+                val typeArgs = getTypeArgs(expression)
                 if (type is Type.TypeFunction && typeArgs != null) {
                     val subst = type.params.zip(typeArgs).toSubstitution()
                     typeVisitor.visitType(type.body.applySubstitution(subst))
