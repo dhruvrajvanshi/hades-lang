@@ -1811,7 +1811,7 @@ class Analyzer(
                     }
                     else -> {
                         super.visitExpression(expression)
-                        null
+                        getTypeArgs(expression)
                     }
                 }
                 if (type is Type.TypeFunction && typeArgs != null) {
