@@ -29,7 +29,7 @@ interface HIRVisitor : TypeVisitor {
     }
 
     fun visitWhileStatement(statement: HIRStatement.While) {
-        visitExpression(statement.condition)
+        visitBlock(statement.conditionBlock)
         visitBlock(statement.body)
     }
 

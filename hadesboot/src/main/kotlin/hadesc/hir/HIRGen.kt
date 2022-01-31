@@ -531,11 +531,19 @@ class HIRGen(
     }
 
     private fun lowerWhileStatement(statement: Statement.While): Collection<HIRStatement> {
+        val conditionVar = declareVariable(statement.condition.location, Type.Bool, namePrefix = "while_condition")
         return listOf(
                 HIRStatement.While(
-                        statement.location,
-                        lowerExpression(statement.condition),
-                        lowerBlock(statement.body)
+                    statement.location,
+                    conditionName = conditionVar.name,
+                    buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
+                       addStatement(HIRStatement.Assignment(
+                           statement.condition.location,
+                           conditionVar.name,
+                           lowerExpression(statement.condition)
+                       ))
+                    },
+                    lowerBlock(statement.body)
                 )
         )
     }
