@@ -1,0 +1,16 @@
+
+def main(): Void {
+    val mut message = b"FAIL"
+
+    call || {
+        message = b"PASS"
+    }
+
+    puts(message)
+}
+
+extern def puts(*u8): Void = puts
+
+def call(f: || -> Void): Void {
+    f()
+}

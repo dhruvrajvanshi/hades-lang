@@ -1820,6 +1820,14 @@ class Analyzer(
                 }
             }
 
+            override fun visitLocalAssignment(statement: Statement.LocalAssignment) {
+                val binding = ctx.resolver.resolve(statement.name)
+                if (binding != null && !binding.isGlobal() && !binding.isLocalTo(closure)) {
+                    values[binding.binder] = typeOfBinder(binding.binder)
+                }
+                super.visitLocalAssignment(statement)
+            }
+
             override fun visitVarType(type: TypeAnnotation.Var) {
                 when (val binding = ctx.resolver.resolveTypeVariable(type.name)) {
                     is TypeBinding.TypeParam -> {
