@@ -98,7 +98,7 @@ class Checker(val ctx: Context) {
 
         for (declaration in implDef.body) {
             if (declaration is Declaration.FunctionDef) {
-                checkFunctionDef(declaration, skipDuplicateDeclarationCheck = true)
+                checkFunctionDef(declaration, skipDuplicateDeclarationCheck = false)
                 foundMethods.add(declaration.name.identifier.name)
                 val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
                 require(typeOfMethod is Type.Ptr)
