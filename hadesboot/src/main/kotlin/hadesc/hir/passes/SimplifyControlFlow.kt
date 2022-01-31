@@ -72,7 +72,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         }
     }
 
-    private fun lowerStatement(statement: HIRStatement) =
+    private fun lowerStatement(statement: HIRStatement): Unit =
         when(statement) {
             is HIRStatement.MatchInt -> lowerMatchInt(statement)
             is HIRStatement.While -> lowerWhileStatement(statement)
@@ -81,31 +81,36 @@ class SimplifyControlFlow(private val ctx: Context) {
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {
         val startingBlock = checkNotNull(currentBlock)
-        val whileBody = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName()))
-        val whileExit = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName()))
+        val whileEntry = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName("while_entry")))
+        val whileBody = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName("while_body")))
+        val whileExit = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName("while_exit")))
 
-        withinBlock(startingBlock)  {
+        appendStatement(goto(statement.conditionBlock.location, whileEntry.name))
+        withinBlock(whileEntry) {
+            for (s in statement.conditionBlock.statements) {
+                lowerStatement(s)
+            }
+            lowerBlock(statement.conditionBlock)
             appendStatement(
                 condBr(
-                    statement.condition.location,
-                    statement.condition,
-                    checkNotNull(whileBody.name),
-                    checkNotNull(whileExit.name),
+                    statement.conditionBlock.location,
+                    HIRExpression.ValRef(statement.conditionBlock.location, Type.Bool, statement.conditionName),
+                    whileBody.name,
+                    whileExit.name
                 )
             )
         }
 
         withinBlock(whileBody) {
-            lowerBlock(statement.body)
-            terminateBlock(whileBody) {
-                condBr(
-                    statement.condition.location,
-                    statement.condition,
-                    checkNotNull(whileBody.name),
-                    checkNotNull(whileExit.name),
-                )
+            for (s in statement.body.statements) {
+                lowerStatement(s)
             }
+            appendStatement(
+                goto(statement.body.location, whileEntry.name)
+            )
         }
+
+
         currentBlock = whileExit
     }
 

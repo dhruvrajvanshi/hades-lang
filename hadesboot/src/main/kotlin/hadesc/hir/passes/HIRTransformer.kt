@@ -173,7 +173,8 @@ interface HIRTransformer: TypeTransformer {
         return listOf(
                 HIRStatement.While(
                         statement.location,
-                        transformExpression(statement.condition),
+                        statement.conditionName,
+                        transformBlock(statement.conditionBlock),
                         transformBlock(statement.body)
                 )
         )
