@@ -1,0 +1,30 @@
+import libc as c
+
+extern def put_usize(usize, *c.File): Void = hscript_put_usize
+
+def stdout(): *c.File {
+    return c.stdout()
+}
+
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+    match Bytecode.B(1) {
+            A -> {
+                c.fputs(b"A", stdout())
+            }
+            B(val value) -> {
+                c.fputs(b"B(", stdout())
+                put_usize(value, stdout())
+                c.fputs(b")\n", stdout())
+            }
+    }
+}
+
+// The bug shows up when enum contains a variant with a size
+// that's not a multiple of 64 bits.
+// Like A(u8, u64) here
+enum Bytecode {
+    A(u8, u64)
+    B(usize)
+}
