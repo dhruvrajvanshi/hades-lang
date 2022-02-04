@@ -208,7 +208,7 @@ class Monomorphization(
     private fun specializeName(name: QualifiedName, typeArgs: List<Type>): QualifiedName {
         return QualifiedName(listOf(
                 *name.names.toTypedArray(),
-                ctx.makeName("\$[" +
+                ctx.makeName("[" +
                         typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
                 "]")
         ))
@@ -371,7 +371,7 @@ class Monomorphization(
     }
 
     private val HIRDefinition.Implementation.name get() =
-        ctx.makeName("impl\$${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
+        ctx.makeName("${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
 
 
 }
