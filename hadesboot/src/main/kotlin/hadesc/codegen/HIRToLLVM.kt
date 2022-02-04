@@ -6,11 +6,14 @@ import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.hir.passes.SimplifyControlFlow
 import hadesc.hir.BinaryOperator
+import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.unit
 import llvm.*
+import org.bytedeco.javacpp.BytePointer
+import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMModuleRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
 import org.bytedeco.llvm.global.LLVM
@@ -30,8 +33,15 @@ class HIRToLLVM(
     private val params = mutableMapOf<Name, Value>()
 
     private val log = logger()
+    private val i32Ty = intType(32, llvmCtx)
 
     fun lower(): LLVMModuleRef {
+        if (shouldEmitDebugSymbols) {
+            llvmModule.addModuleFlag("Debug Info Version", constantInt(i32Ty, 3).asMetadata())
+            llvmModule.addModuleFlag("Dwarf Version", constantInt(i32Ty, 4).asMetadata())
+        }
+
+
         for (definition in hir.definitions) {
             lowerDefinition(definition)
         }
@@ -95,12 +105,92 @@ class HIRToLLVM(
 
 
 
+    private val shouldEmitDebugSymbols get() = ctx.options.debugSymbols
+
+
+    private val fileScopeCache = mutableMapOf<SourcePath, LLVMMetadataRef>()
+    private fun getFileScope(file: SourcePath): LLVMMetadataRef = fileScopeCache.getOrPut(file) {
+        val f = diBuilder.createFile(file.path.fileName.toString(), file.path.toAbsolutePath().parent.toString())
+        diBuilder.createCompileUnit(f)
+        f
+    }
+
+    private var currentFunctionMetadata: LLVMMetadataRef? = null
+
+    private fun attachDebugInfo(definition: HIRFunctionSignature, fn: FunctionValue) {
+        if (!shouldEmitDebugSymbols) {
+            return
+        }
+
+        val fileScope = getFileScope(definition.location.file)
+        val defType = definition.type
+        check(defType is Type.Ptr && defType.to is Type.Function)
+        val fnType = defType.to
+        val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
+            diBuilder, fileScope,
+            fnType.from.map { it.debugInfo }.asPointerPointer(),
+            fnType.from.size,
+            LLVM.LLVMDIFlagZero
+        )
+
+        val name = definition.name.names.joinToString(".") { it.text }
+        val meta = diBuilder.createFunction(
+            scope = fileScope,
+            name = name,
+            linkageName = name,
+            file = fileScope,
+            lineno = definition.location.start.line,
+            ty = typeDI,
+            isLocalToUnit = false,
+            isDefinition = true,
+            scopeLine = definition.location.start.line,
+            flags = LLVM.LLVMDIFlagZero,
+
+            )
+        currentFunctionMetadata = meta
+        LLVM.LLVMGlobalSetMetadata(fn, LLVM.LLVMMDStringMetadataKind, meta)
+        LLVM.LLVMSetCurrentDebugLocation2(builder, null)
+    }
+
+    private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
+        is Type.Error -> requireUnreachable()
+        Type.Void -> diBuilder.createBasicType("Void", 0)
+        Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
+        is Type.Integral -> diBuilder.createBasicType(
+            (if (isSigned) "s" else "u") + sizeInBits,
+            sizeInBits
+        )
+        is Type.FloatingPoint -> diBuilder.createBasicType("f$sizeInBits", sizeInBits)
+        is Type.Size -> diBuilder.createBasicType(if (isSigned) "usize" else "isize", sizeInBits)
+        is Type.Ptr -> LLVM.LLVMDIBuilderCreatePointerType(
+            diBuilder,
+            to.debugInfo,
+            sizeInBits,
+            8,
+            0,
+            null as BytePointer?,
+            0
+        )
+        is Type.Function -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
+        is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
+        is Type.Array -> TODO()
+        is Type.UntaggedUnion -> TODO()
+        is Type.ParamRef,
+        is Type.TypeFunction,
+        is Type.GenericInstance,
+        is Type.Application,
+        is Type.AssociatedTypeRef,
+        is Type.Select -> requireUnreachable()
+    }
 
     private fun lowerFunction(definition: HIRDefinition.Function) {
         check(currentHIRFunction == null)
         check(currentFunction == null)
         currentHIRFunction = definition
         val fn = getFunctionRef(definition)
+        if (shouldEmitDebugSymbols) {
+            attachDebugInfo(definition.signature, fn)
+        }
         currentFunction = fn
         localPointers.clear()
         blocks.clear()
@@ -151,12 +241,26 @@ class HIRToLLVM(
     }
 
 
-    private fun lowerStatement(statement: HIRStatement): Unit =
+    private fun lowerStatement(statement: HIRStatement): Unit {
+        if (shouldEmitDebugSymbols) {
+            val location = LLVM.LLVMDIBuilderCreateDebugLocation(
+                llvmCtx,
+                statement.location.start.line,
+                statement.location.start.column,
+                currentFunctionMetadata,
+                null
+            )
+            LLVM.LLVMSetCurrentDebugLocation2(builder, location)
+        }
         when (statement) {
             is HIRStatement.Assignment -> lowerAssignment(statement)
-            is HIRStatement.Expression -> { lowerExpression(statement.expression); unit }
+            is HIRStatement.Expression -> {
+                lowerExpression(statement.expression); unit
+            }
             is HIRStatement.Return -> lowerReturnStatement(statement)
-            is HIRStatement.ReturnVoid -> { builder.buildRetVoid(); unit }
+            is HIRStatement.ReturnVoid -> {
+                builder.buildRetVoid(); unit
+            }
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.ValDeclaration -> lowerValDeclaration(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
@@ -165,6 +269,7 @@ class HIRToLLVM(
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
             }
         }
+    }
 
     private fun lowerStore(statement: HIRStatement.Store) {
         builder.buildStore(
@@ -227,6 +332,18 @@ class HIRToLLVM(
 
     private fun lowerExpression(expression: HIRExpression): Value {
         log.debug("${expression.location}: ${expression.prettyPrint()}")
+
+        if (shouldEmitDebugSymbols) {
+            val location = LLVM.LLVMDIBuilderCreateDebugLocation(
+                llvmCtx,
+                expression.location.start.line,
+                expression.location.start.column,
+                currentFunctionMetadata,
+                null
+            )
+            LLVM.LLVMSetCurrentDebugLocation2(builder, location)
+        }
+
         return when (expression) {
             is HIRExpression.AddressOf -> lowerAddressOf(expression)
             is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
