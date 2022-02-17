@@ -896,15 +896,29 @@ class Checker(val ctx: Context) {
 
     private fun checkPropertyExpression(expression: Expression.Property) {
         val moduleProperty = ctx.resolver.resolveModuleProperty(expression)
-        if (moduleProperty != null) {
-            return
+        if (moduleProperty == null) {
+            checkExpression(expression.lhs)
+            if (!ctx.analyzer.isValidPropertyAccess(expression)) {
+                val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
+                if (lhsType !is Type.Error) {
+                    error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+                }
+            }
         }
 
-        checkExpression(expression.lhs)
-        if (!ctx.analyzer.isValidPropertyAccess(expression)) {
-            val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
-            if (lhsType is Type.Error) return
-            error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
+        val lhsBinding = when (val lhs = expression.lhs) {
+            is Expression.Property -> {
+                ctx.resolver.resolveModuleProperty(lhs)
+            }
+            is Expression.Var -> {
+                ctx.resolver.resolve(lhs.name)
+            }
+            else -> null
+        }
+        if (lhsBinding != null && lhsBinding is Binding.Enum) {
+            if (lhsBinding.declaration.cases.none { it.name.name == expression.property.name }) {
+                error(expression.property, Diagnostic.Kind.NoSuchMember)
+            }
         }
     }
 

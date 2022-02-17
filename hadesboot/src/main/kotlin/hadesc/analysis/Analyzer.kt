@@ -1072,7 +1072,7 @@ class Analyzer(
         is Binding.Struct -> typeOfStructValueRef(binding)
         is Binding.GlobalConst -> typeOfGlobalConstBinding(binding)
         is Binding.ClosureParam -> typeOfClosureParam(binding)
-        is Binding.Enum -> requireUnreachable()
+        is Binding.Enum -> Type.Error(binding.declaration.location)
         is Binding.ExternConst -> typeOfExternConstBinding(binding)
         is Binding.MatchArmEnumCaseArg -> typeOfMatchArmEnumCaseArgBinding(binding)
     }

@@ -1,0 +1,10 @@
+import submodule.unbound_variant_constructor as m
+enum E {
+    A
+    B
+}
+
+def main(): Void {
+    val x = E.C
+    val y = m.E.Z
+}

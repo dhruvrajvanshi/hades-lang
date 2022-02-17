@@ -1,9 +1,0 @@
-
-enum E {
-    A
-    B
-}
-
-def main(): Void {
-    val x = E.C
-}
