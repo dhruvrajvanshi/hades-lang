@@ -150,5 +150,5 @@ class Context(
         return makeName("\$$_nameIndex")
     }
 
-    fun enumDiscriminantType(): Type = Type.u8
+    fun enumTagType(): Type = Type.u8
 }

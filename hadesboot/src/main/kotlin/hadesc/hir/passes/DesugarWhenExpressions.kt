@@ -42,7 +42,7 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
         )
         val discriminantTag = HIRExpression.GetStructField(
             expression.location,
-            ctx.enumDiscriminantType(),
+            ctx.enumTagType(),
             lhs = discriminant,
             name = ctx.makeName("\$tag"),
             index = 0
@@ -94,7 +94,7 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
                         rhs = HIRExpression.Constant(
                             HIRConstant.IntValue(
                                 case.expression.location,
-                                ctx.enumDiscriminantType(),
+                                ctx.enumTagType(),
                                 index
                             )
                         )

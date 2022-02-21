@@ -19,7 +19,6 @@ import hadesc.types.Type
 import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import libhades.collections.Stack
-import llvm.makeList
 
 private val INTRINSIC_TYPE_TO_BINOP = mapOf(
     IntrinsicType.ADD to BinaryOperator.PLUS,
@@ -171,7 +170,7 @@ class HIRGen(
                 HIRExpression.Constant(
                     HIRConstant.IntValue(
                         case.name.location,
-                        ctx.enumDiscriminantType(),
+                        ctx.enumTagType(),
                         index
                     )
                 )
@@ -185,7 +184,7 @@ class HIRGen(
                 lowerGlobalName(declaration.name),
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = listOf(
-                    enumTagFieldName to ctx.enumDiscriminantType(),
+                    enumTagFieldName to ctx.enumTagType(),
                     ctx.makeName("payload") to ctx.analyzer.getEnumPayloadType(declaration)
                 )
             )
@@ -223,7 +222,7 @@ class HIRGen(
         val baseInstanceType = typeOfEnumInstance(declaration, declaration.typeParams?.map { Type.ParamRef(it.binder) })
 
         val loc = case.name.location
-        val tag = HIRExpression.GlobalRef(loc, ctx.enumDiscriminantType(), caseTagName(enumName, case))
+        val tag = HIRExpression.GlobalRef(loc, ctx.enumTagType(), caseTagName(enumName, case))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
             val payloadVal = declareVariable(loc, payloadTypeUnion, "payload")
             val paramSubst = declaration.typeParams?.associate {
@@ -309,7 +308,7 @@ class HIRGen(
     private fun typeOfEnumConstructor(declaration: Declaration.Enum): Type {
         val instanceType = typeOfEnumInstance(declaration, declaration.typeParams?.map { Type.ParamRef(it.binder) })
         val paramTypes = listOf(
-            ctx.enumDiscriminantType(),
+            ctx.enumTagType(),
             ctx.analyzer.getEnumPayloadType(declaration)
         )
 
@@ -718,15 +717,18 @@ class HIRGen(
         // ]
 
         val resultVar = declareVariable(expression.location, expression.type, "result")
-        val discriminantVar = declareVariable(expression.value.location, expression.value.type, "discriminant")
-        addStatement(HIRStatement.Assignment(expression.value.location, discriminantVar.name, lowerExpression(expression.value)))
-        val tagVar = declareVariable(expression.value.location, ctx.enumDiscriminantType(), "tag")
-        addStatement(HIRStatement.Assignment(
-            expression.value.location,
-            tagVar.name,
-            HIRExpression.GetStructField(expression.value.location, tagVar.type, discriminantVar, enumTagFieldName, 0))
-        )
+        val discriminantVar =
+            declareAndAssign(expression.value.location, lowerExpression(expression.value), "discriminant")
 
+        val tagVar = declareAndAssign(
+            expression.value.location,
+            HIRExpression.GetStructField(
+                expression.value.location,
+                ctx.enumTagType(),
+                discriminantVar,
+                enumTagFieldName,
+                0),
+            "tag")
 
         val arms = expression.arms.mapNotNull { arm ->
             when (arm.pattern) {
@@ -735,7 +737,7 @@ class HIRGen(
                     val (_, index) = checkNotNull(enumDef.getCase(arm.pattern.identifier.name))
 
                     MatchIntArm(
-                        HIRConstant.IntValue(arm.pattern.location, ctx.enumDiscriminantType(), index),
+                        HIRConstant.IntValue(arm.pattern.location, ctx.enumTagType(), index),
                         buildBlock(arm.value.location, blockName) {
                             arm.pattern.args?.forEachIndexed { argIndex, arg ->
                                 when (arg) {
@@ -820,6 +822,17 @@ class HIRGen(
         ))
 
         return resultVar
+    }
+
+    private fun declareAndAssign(location: SourceLocation, rhs: HIRExpression, namePrefix: String): HIRExpression {
+        val variable = declareVariable(location, rhs.type, namePrefix)
+        addStatement(HIRStatement.Assignment(
+            location,
+            variable.name,
+            rhs
+        ))
+
+        return variable
     }
 
     private fun lowerIntegralMatchExpression(expression: Expression.Match): HIRExpression {
