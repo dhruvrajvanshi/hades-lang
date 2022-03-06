@@ -11,7 +11,7 @@ import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
-import hadesc.hir.HIRGen
+import hadesc.hirgen.HIRGen
 import hadesc.hir.passes.*
 import hadesc.location.SourcePath
 import hadesc.logging.logger

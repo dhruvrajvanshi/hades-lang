@@ -1,4 +1,4 @@
-package hadesc.hir
+package hadesc.hirgen
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
@@ -19,6 +19,7 @@ import hadesc.types.Type
 import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import libhades.collections.Stack
+import hadesc.hir.*
 
 private val INTRINSIC_TYPE_TO_BINOP = mapOf(
     IntrinsicType.ADD to BinaryOperator.PLUS,
