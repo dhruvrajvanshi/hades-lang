@@ -26,11 +26,23 @@ private val INTRINSIC_TYPE_TO_BINOP = mapOf(
     IntrinsicType.SUB to BinaryOperator.MINUS,
     IntrinsicType.MUL to BinaryOperator.TIMES,
 )
-class HIRGen(
-        override val ctx: Context
-): HasContext {
+
+internal interface HIRGenModuleContext {
+    fun lowerGlobalName(binder: Binder): QualifiedName
+    fun typeOfExpression(expression: Expression): Type
+    fun lowerLocalBinder(binder: Binder): Name
+
+    /**
+     * FIXME: It would be a better design to take binder name as the parameter so that
+     *        callers don't have to know about ExternFunctionDef.
+     */
+    fun getExternDef(declaration: Declaration.ExternFunctionDef): HIRDefinition.ExternFunction
+}
+
+class HIRGen(override val ctx: Context): HasContext, HIRGenModuleContext {
     private val paramToLocal = ParamToLocal(ctx)
     private val enumTagFieldName = ctx.makeName("\$tag")
+    private val exprGen = HIRGenExpression(ctx, this)
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         try {
@@ -566,7 +578,7 @@ class HIRGen(
         )
     }
 
-    private fun lowerLocalBinder(binder: Binder): Name {
+    override fun lowerLocalBinder(binder: Binder): Name {
         // TODO: Handle shadowing
         return binder.identifier.name
     }
@@ -612,7 +624,7 @@ class HIRGen(
     private fun lowerExpression(expression: Expression): HIRExpression {
         val lowered = when (expression) {
             is Expression.Error -> requireUnreachable()
-            is Expression.Var -> lowerVarExpression(expression)
+            is Expression.Var -> exprGen.lowerVarExpression(expression)
             is Expression.Call -> lowerCallExpression(expression)
             is Expression.Property -> lowerPropertyExpression(expression)
             is Expression.ByteString -> lowerByteString(expression)
@@ -1228,7 +1240,7 @@ class HIRGen(
 
     private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
-        is PropertyBinding.Global -> lowerBinding(expression, binding.binding)
+        is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
         is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
         is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
@@ -1327,65 +1339,9 @@ class HIRGen(
         )
     }
 
-    private fun lowerBinding(
-            expression: Expression,
-            binding: Binding
-    ): HIRExpression = when(binding) {
-        is Binding.GlobalFunction -> HIRExpression.GlobalRef(
-                expression.location,
-                typeOfExpression(expression),
-                lowerGlobalName(binding.declaration.name)
-        )
-        is Binding.ExternFunction -> {
-            declareExternDef(binding.declaration)
-            HIRExpression.GlobalRef(
-                expression.location,
-                typeOfExpression(expression),
-                lowerGlobalName(binding.declaration.binder)
-            )
-        }
-        is Binding.FunctionParam -> HIRExpression.ParamRef(
-                expression.location,
-                typeOfExpression(expression),
-                lowerLocalBinder(binding.param.binder),
-                binding.binder
-        )
-        is Binding.ValBinding -> HIRExpression.ValRef(
-                expression.location,
-                typeOfExpression(expression),
-                lowerLocalBinder(binding.statement.binder)
-        )
-        is Binding.Struct -> HIRExpression.GlobalRef(
-                expression.location,
-                typeOfExpression(expression),
-                lowerGlobalName(binding.declaration.binder)
-        )
-        is Binding.GlobalConst -> HIRExpression.GlobalRef(
-                expression.location,
-                typeOfExpression(expression),
-                lowerGlobalName(binding.declaration.name)
-        )
-        is Binding.ClosureParam -> HIRExpression.ParamRef(
-            expression.location,
-            typeOfExpression(expression),
-            lowerLocalBinder(binding.param.binder),
-            binding.binder,
-        )
-        is Binding.Enum -> TODO()
-        is Binding.ExternConst -> HIRExpression.GlobalRef(
-            expression.location,
-            typeOfExpression(expression),
-            lowerGlobalName(binding.declaration.name)
-        )
-        is Binding.MatchArmEnumCaseArg -> HIRExpression.ValRef(
-            expression.location,
-            typeOfExpression(expression),
-            lowerLocalBinder(binding.arg.binder)
-        )
-    }
 
     private val externDefs = mutableMapOf<QualifiedName, HIRDefinition.ExternFunction>()
-    private fun declareExternDef(declaration: Declaration.ExternFunctionDef) = externDefs.computeIfAbsent(lowerGlobalName(declaration.binder)) {
+    override fun getExternDef(declaration: Declaration.ExternFunctionDef) = externDefs.computeIfAbsent(lowerGlobalName(declaration.binder)) {
         HIRDefinition.ExternFunction(
             declaration.location,
             name = lowerGlobalName(declaration.binder),
@@ -1404,7 +1360,7 @@ class HIRGen(
     }
 
     private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()
-    private fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
+    override fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
         return ctx.analyzer.reduceGenericInstances(ctx.analyzer.typeOfExpression(expression))
     }
 
@@ -1420,15 +1376,6 @@ class HIRGen(
         when (val instance = genericInstanceFound) {
             null -> {}
             else -> ctx.diagnosticReporter.report(node.location, Diagnostic.Kind.UninferrableTypeParam(instance.originalName, instance.location))
-        }
-    }
-
-    private fun lowerVarExpression(expression: Expression.Var): HIRExpression {
-        return when (val binding = ctx.resolver.resolve(expression.name)) {
-            null -> requireUnreachable {
-                "Found unresolved variable: ${expression.name} at ${expression.location}"
-            }
-            else -> lowerBinding(expression, binding)
         }
     }
 
@@ -1536,7 +1483,7 @@ class HIRGen(
         return HIRTypeParam(location = typeParam.location, name = typeParam.binder.identifier.name)
     }
 
-    private fun lowerGlobalName(binder: Binder): QualifiedName {
+    override fun lowerGlobalName(binder: Binder): QualifiedName {
         val binding = requireNotNull(ctx.resolver.resolve(binder.identifier))
         if (binding is Binding.GlobalFunction && binding.declaration.externName != null) {
             return QualifiedName(listOf(binding.declaration.externName.name))
