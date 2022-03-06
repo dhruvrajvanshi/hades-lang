@@ -22,19 +22,20 @@ import hadesc.resolver.Resolver
 import hadesc.types.Type
 import hadesc.unit
 import java.nio.file.Path
-interface HasContext {
-    val ctx: Context
 
-    val Expression.type get() = ctx.analyzer.typeOfExpression(this)
+interface ASTContext {
+    val Expression.type: Type
 }
 class Context(
     val options: BuildOptions
-) {
+): ASTContext {
     val analyzer = Analyzer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
     val diagnosticReporter = DiagnosticReporter()
+
+    override val Expression.type get() = analyzer.typeOfExpression(this)
 
     fun build() = profile("Context::build") {
         Checker(this).checkProgram()

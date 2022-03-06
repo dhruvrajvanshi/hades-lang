@@ -4,8 +4,8 @@ import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
+import hadesc.context.ASTContext
 import hadesc.context.Context
-import hadesc.context.HasContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.HIRStatement.Companion.ifStatement
@@ -21,12 +21,6 @@ import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import hadesc.hir.*
 
-private val INTRINSIC_TYPE_TO_BINOP = mapOf(
-    IntrinsicType.ADD to BinaryOperator.PLUS,
-    IntrinsicType.SUB to BinaryOperator.MINUS,
-    IntrinsicType.MUL to BinaryOperator.TIMES,
-)
-
 internal interface HIRGenModuleContext {
     fun lowerGlobalName(binder: Binder): QualifiedName
     fun typeOfExpression(expression: Expression): Type
@@ -39,10 +33,18 @@ internal interface HIRGenModuleContext {
     fun getExternDef(declaration: Declaration.ExternFunctionDef): HIRDefinition.ExternFunction
 }
 
-class HIRGen(override val ctx: Context): HasContext, HIRGenModuleContext {
+internal interface HIRGenFunctionContext {
+    fun lowerExpression(expression: Expression): HIRExpression
+}
+
+class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext {
     private val paramToLocal = ParamToLocal(ctx)
     private val enumTagFieldName = ctx.makeName("\$tag")
-    private val exprGen = HIRGenExpression(ctx, this)
+    private val exprGen = HIRGenExpression(
+        ctx,
+        moduleContext = this,
+        functionContext = this
+    )
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         try {
@@ -621,11 +623,11 @@ class HIRGen(override val ctx: Context): HasContext, HIRGenModuleContext {
         }
     }
 
-    private fun lowerExpression(expression: Expression): HIRExpression {
+    override fun lowerExpression(expression: Expression): HIRExpression {
         val lowered = when (expression) {
             is Expression.Error -> requireUnreachable()
             is Expression.Var -> exprGen.lowerVarExpression(expression)
-            is Expression.Call -> lowerCallExpression(expression)
+            is Expression.Call -> exprGen.lowerCallExpression(expression)
             is Expression.Property -> lowerPropertyExpression(expression)
             is Expression.ByteString -> lowerByteString(expression)
             is Expression.BoolLiteral -> lowerBoolLiteral(expression)
@@ -1379,84 +1381,6 @@ class HIRGen(override val ctx: Context): HasContext, HIRGenModuleContext {
         }
     }
 
-    private fun lowerCallExpression(expression: Expression.Call): HIRExpression {
-        if (isIntrinsicCall(expression)) {
-            return lowerIntrinsicCall(expression)
-        }
-        val callee = lowerExpression(expression.callee)
-        if (callee.type is Type.Function) {
-            return HIRExpression.InvokeClosure(
-                location = expression.location,
-                type = expression.type,
-                closure = lowerExpression(expression.callee),
-                args = expression.args.map { lowerExpression(it.expression)}
-            )
-        } else {
-            val calleeType = callee.type
-            check(calleeType is Type.Ptr && calleeType.to is Type.Function)
-        }
-        val receiver = ctx.analyzer.getCallReceiver(expression)?.let { lowerExpression(it) }
-        val args =
-            if (receiver != null) {
-                listOf(receiver) + expression.args.map { lowerExpression(it.expression) }
-            } else {
-                expression.args.map { lowerExpression(it.expression) }
-            }
-        return HIRExpression.Call(
-            location = expression.location,
-            type = expression.type,
-            callee = callee,
-            args = args
-        )
-    }
-
-    private fun isIntrinsicCall(expression: Expression.Call): Boolean {
-        return expression.callee is Expression.Intrinsic
-                || (expression.callee is Expression.TypeApplication && expression.callee.lhs is Expression.Intrinsic)
-    }
-
-    private fun lowerIntrinsicCall(expression: Expression.Call): HIRExpression {
-        check(isIntrinsicCall(expression))
-        val intrinsic = if (expression.callee is Expression.TypeApplication) {
-            val intrinsic = expression.callee.lhs
-            check(intrinsic is Expression.Intrinsic)
-            intrinsic
-        } else {
-            check(expression.callee is Expression.Intrinsic)
-            expression.callee
-        }
-        return when (intrinsic.intrinsicType) {
-            IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL -> {
-                check(expression.args.size == 2)
-                return HIRExpression.BinOp(
-                    expression.location,
-                    expression.type,
-                    lowerExpression(expression.args[0].expression),
-                    checkNotNull(INTRINSIC_TYPE_TO_BINOP[intrinsic.intrinsicType]),
-                    lowerExpression(expression.args[1].expression),
-                )
-            }
-            IntrinsicType.PTR_TO_INT -> {
-                check(expression.type is Type.Size)
-                check(expression.args.size == 1)
-                return HIRExpression.IntegerConvert(
-                    expression.location,
-                    expression.type,
-                    lowerExpression(expression.args[0].expression)
-                )
-            }
-            IntrinsicType.INT_TO_PTR -> {
-                check(expression.type is Type.Ptr)
-                check(expression.args.size == 1)
-                return HIRExpression.IntegerConvert(
-                    expression.location,
-                    expression.type,
-                    lowerExpression(expression.args[0].expression)
-                )
-            }
-            IntrinsicType.ERROR -> requireUnreachable()
-        }
-    }
 
     private fun applyType(type: Type.TypeFunction, args: List<Type>): Type {
         require(type.params.size == args.size)
