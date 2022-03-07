@@ -22,6 +22,7 @@ import libhades.collections.Stack
 import hadesc.hir.*
 
 internal interface HIRGenModuleContext {
+    val enumTagFieldName: Name
     fun lowerGlobalName(binder: Binder): QualifiedName
     fun typeOfExpression(expression: Expression): Type
     fun lowerLocalBinder(binder: Binder): Name
@@ -35,11 +36,15 @@ internal interface HIRGenModuleContext {
 
 internal interface HIRGenFunctionContext {
     fun lowerExpression(expression: Expression): HIRExpression
+    fun addStatement(statement: HIRStatement)
+    fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
+    fun declareAndAssign(location: SourceLocation, rhs: HIRExpression, namePrefix: String = ""): HIRExpression
+    fun declareVariable(location: SourceLocation, type: Type, namePrefix: String = ""): HIRExpression.ValRef
 }
 
 class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext {
     private val paramToLocal = ParamToLocal(ctx)
-    private val enumTagFieldName = ctx.makeName("\$tag")
+    override val enumTagFieldName = ctx.makeName("\$tag")
     private val exprGen = HIRGenExpression(
         ctx,
         moduleContext = this,
@@ -472,16 +477,16 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         deferStack.pop()
     }
 
-    private fun buildBlock(location: SourceLocation, name: Name? = null, f: () -> Unit): HIRBlock {
+    override fun buildBlock(location: SourceLocation, name: Name?, builder: () -> Unit): HIRBlock {
         val oldStatements = currentStatements
         val statements = mutableListOf<HIRStatement>()
         currentStatements = statements
-        f()
+        builder()
         currentStatements = oldStatements
         return HIRBlock(location, name ?: ctx.makeUniqueName(), statements)
     }
 
-    private fun addStatement(statement: HIRStatement) {
+    override fun addStatement(statement: HIRStatement) {
         requireNotNull(currentStatements).add(statement)
     }
 
@@ -707,139 +712,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             return lowerIntegralMatchExpression(expression)
         }
 
-        return lowerEnumMatchExpression(expression)
+        return exprGen.lowerEnumMatchExpression(expression)
     }
 
-    private fun lowerEnumMatchExpression(expression: Expression.Match): HIRExpression {
-        val discriminantType = expression.value.type
-        val enumDef = ctx.analyzer.getEnumTypeDeclaration(discriminantType)
-        checkNotNull(enumDef)
 
-        // match value {
-        //   X -> e1,
-        //   Y -> e2,
-        //   X -> e3
-        // }
-        //  ------------------ =>
-        // val result: expression.type
-        // val discriminant: expression.value.type
-        // discriminant = expression.value
-        // val tag      = expression.value.$tag
-        // switch int [
-        //    0 -> .0
-        //    1 -> .1
-        //    2 -> .2
-        // ]
-
-        val resultVar = declareVariable(expression.location, expression.type, "result")
-        val discriminantVar =
-            declareAndAssign(expression.value.location, lowerExpression(expression.value), "discriminant")
-
-        val tagVar = declareAndAssign(
-            expression.value.location,
-            HIRExpression.GetStructField(
-                expression.value.location,
-                ctx.enumTagType(),
-                discriminantVar,
-                enumTagFieldName,
-                0),
-            "tag")
-
-        val arms = expression.arms.mapNotNull { arm ->
-            when (arm.pattern) {
-                is Pattern.EnumCase -> {
-                    val blockName = ctx.makeUniqueName(arm.pattern.identifier.name.text)
-                    val (_, index) = checkNotNull(enumDef.getCase(arm.pattern.identifier.name))
-
-                    MatchIntArm(
-                        HIRConstant.IntValue(arm.pattern.location, ctx.enumTagType(), index),
-                        buildBlock(arm.value.location, blockName) {
-                            arm.pattern.args?.forEachIndexed { argIndex, arg ->
-                                when (arg) {
-                                    is Pattern.Val -> {
-                                        val type = ctx.analyzer.typeOfMatchArmEnumCaseArgBinding(Binding.MatchArmEnumCaseArg(
-                                            arm.pattern,
-                                            argIndex
-                                        ))
-                                        addStatement(HIRStatement.ValDeclaration(arg.location, arg.binder.name, isMutable = false, type))
-                                        val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
-
-                                        val unappliedPayloadType = payloadUnionType.members[index]
-                                        val payloadType =
-                                            if (enumDef.typeParams != null) {
-                                                val typeArgs = discriminantType.typeArgs()
-                                                check(typeArgs.size == enumDef.typeParams.size)
-                                                unappliedPayloadType.applySubstitution(
-                                                    enumDef.typeParams.zip(typeArgs).associate { (it, arg) ->
-                                                        it.location to arg
-                                                    }.toSubstitution()
-                                                )
-                                            } else {
-                                                unappliedPayloadType
-                                            }
-                                        addStatement(
-                                            HIRStatement.Assignment(
-                                                arg.location,
-                                                arg.binder.name,
-                                                HIRExpression.GetStructField(
-                                                    arg.location,
-                                                    type,
-                                                    HIRExpression.GetStructField(
-                                                        arg.location,
-                                                        payloadType,
-                                                        discriminantVar,
-                                                        ctx.makeName("payload"),
-                                                        1
-                                                    ),
-                                                    ctx.makeName("$argIndex"),
-                                                    argIndex
-                                                )
-                                            )
-                                        )
-                                    }
-                                    else -> {}
-                                }
-                            }
-                            addStatement(
-                                HIRStatement.Assignment(
-                                    arm.value.location,
-                                    resultVar.name,
-                                    lowerExpression(arm.value)
-                                )
-                            )
-                        }
-                    )
-                }
-                is Pattern.Wildcard -> null // handled separately as an otherwise block
-                else -> requireUnreachable()
-            }
-        }
-
-        val elseArm = expression.arms.find {
-            it.pattern is Pattern.Wildcard
-        }
-
-        addStatement(HIRStatement.MatchInt(
-            expression.location,
-            tagVar,
-            arms,
-            otherwise = buildBlock(elseArm?.location ?: expression.location, ctx.makeUniqueName("else")) {
-                if (elseArm != null) {
-                    addStatement(
-                        HIRStatement.Assignment(
-                            elseArm.value.location,
-                            resultVar.name,
-                            lowerExpression(elseArm.value)
-                        )
-                    )
-                }
-            }
-        ))
-
-        return resultVar
-    }
-
-    private fun declareAndAssign(location: SourceLocation, rhs: HIRExpression, namePrefix: String): HIRExpression {
+    override fun declareAndAssign(location: SourceLocation, rhs: HIRExpression, namePrefix: String): HIRExpression {
         val variable = declareVariable(location, rhs.type, namePrefix)
         addStatement(HIRStatement.Assignment(
             location,
@@ -1151,7 +1028,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 lowerTypeAnnotation(expression.type))
     }
 
-    private fun declareVariable(location: SourceLocation, type: Type, namePrefix: String = ""): HIRExpression.ValRef {
+    override fun declareVariable(location: SourceLocation, type: Type, namePrefix: String): HIRExpression.ValRef {
         val name = ctx.makeUniqueName(namePrefix)
         addStatement(HIRStatement.ValDeclaration(
             location,
