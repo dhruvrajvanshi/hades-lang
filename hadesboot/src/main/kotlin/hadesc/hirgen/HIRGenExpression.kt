@@ -196,7 +196,6 @@ internal class HIRGenExpression(
                 ctx.enumTagType()
             ),
         )
-        val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
         fun applyTypeArgs(type: Type) =
             if (enumDef.typeParams != null) {
                 val typeArgs = discriminantType.typeArgs()
@@ -209,6 +208,9 @@ internal class HIRGenExpression(
             } else {
                 type
             }
+
+        val payloadUnionType = applyTypeArgs(ctx.analyzer.getEnumPayloadType(enumDef))
+        check(payloadUnionType is Type.UntaggedUnion)
         val arms = expression.arms.mapNotNull { arm ->
             when (arm.pattern) {
                 is Pattern.EnumCase -> {
@@ -228,8 +230,7 @@ internal class HIRGenExpression(
                                         ))
                                         val argPatternValRef = declareVariable(arg.binder.name, type)
 
-                                        val unappliedPayloadType = payloadUnionType.members[index]
-                                        val payloadType = applyTypeArgs(unappliedPayloadType)
+                                        val payloadType = payloadUnionType.members[index]
                                         emitAssign(
                                             argPatternValRef,
                                             discriminantVar
