@@ -7,31 +7,31 @@ import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
-sealed class HIRExpression: HIRNode {
-    abstract val type: Type
+sealed interface HIRExpression: HIRNode {
+    val type: Type
     data class Call(
             override val location: SourceLocation,
             override val type: Type,
             val callee: HIRExpression,
             val args: List<HIRExpression>
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class TypeApplication(
             override val location: SourceLocation,
             override val type: Type,
             val expression: HIRExpression,
             val args: List<Type>
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class GlobalRef(
             override val location: SourceLocation,
             override val type: Type,
             val name: QualifiedName
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class Constant(
             val constant: HIRConstant
-    ) : HIRExpression() {
+    ) : HIRExpression {
         override val location: SourceLocation
             get() = constant.location
 
@@ -44,13 +44,13 @@ sealed class HIRExpression: HIRNode {
             override val type: Type,
             val name: Name,
             val binder: Binder,
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class ValRef(
             override val location: SourceLocation,
             override val type: Type,
             val name: Name
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class GetStructField(
             override val location: SourceLocation,
@@ -58,7 +58,7 @@ sealed class HIRExpression: HIRNode {
             val lhs: HIRExpression,
             val name: Name,
             val index: Int
-    ) : HIRExpression() {
+    ) : HIRExpression {
         init {
             require(lhs.type !is Type.Ptr) {
                 TODO()
@@ -72,7 +72,7 @@ sealed class HIRExpression: HIRNode {
             val lhs: HIRExpression,
             val memberName: Name,
             val memberIndex: Int
-    ) : HIRExpression() {
+    ) : HIRExpression {
         init {
             require(lhs.type is Type.Ptr)
         }
@@ -80,7 +80,7 @@ sealed class HIRExpression: HIRNode {
 
     data class Not(
             val expression: HIRExpression
-    ) : HIRExpression() {
+    ) : HIRExpression {
         override val location get() = expression.location
         override val type get() = expression.type
     }
@@ -91,36 +91,36 @@ sealed class HIRExpression: HIRNode {
         val lhs: HIRExpression,
         val operator: BinaryOperator,
         val rhs: HIRExpression
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class NullPtr(
             override val location: SourceLocation,
             override val type: Type.Ptr
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class SizeOf(
             override val location: SourceLocation,
             override val type: Type,
             val ofType: Type
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class AddressOf(
             override val location: SourceLocation,
             override val type: Type.Ptr,
             val name: Name
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class Load(
         override val location: SourceLocation,
         override val type: Type,
         val ptr: HIRExpression
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class PointerCast(
         override val location: SourceLocation,
         val toPointerOfType: Type,
         val value: HIRExpression
-    ) : HIRExpression() {
+    ) : HIRExpression {
         override val type: Type
             get() = Type.Ptr(toPointerOfType, isMutable = true)
     }
@@ -131,20 +131,20 @@ sealed class HIRExpression: HIRNode {
             val traitName: QualifiedName,
             val traitArgs: List<Type>,
             val methodName: Name,
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class UnsafeCast(
         override val location: SourceLocation,
         override val type: Type,
         val value: HIRExpression,
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class When(
         override val location: SourceLocation,
         override val type: Type,
         val discriminant: HIRExpression,
         val cases: List<Case>
-    ) : HIRExpression() {
+    ) : HIRExpression {
         data class Case(
             val casePayloadType: Type,
             val caseName: Name,
@@ -162,29 +162,29 @@ sealed class HIRExpression: HIRNode {
         val params: List<HIRParam>,
         val returnType: Type,
         val body: HIRBlock
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class InvokeClosure(
         override val location: SourceLocation,
         override val type: Type,
         val closure: HIRExpression,
         val args: List<HIRExpression>,
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class IntegerConvert(
         override val location: SourceLocation,
         override val type: Type,
         val value: HIRExpression,
-    ) : HIRExpression()
+    ) : HIRExpression
 
     data class ArrayIndex(
         override val location: SourceLocation,
         override val type: Type,
         val array: HIRExpression,
         val index: HIRExpression
-    ) : HIRExpression()
+    ) : HIRExpression
 
-    data class BlockExpression(override val type: Type, val block: HIRBlock): HIRExpression() {
+    data class BlockExpression(override val type: Type, val block: HIRBlock): HIRExpression {
         override val location get() = block.location
     }
 
