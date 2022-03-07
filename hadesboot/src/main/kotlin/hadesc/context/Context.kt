@@ -26,9 +26,13 @@ import java.nio.file.Path
 interface ASTContext {
     val Expression.type: Type
 }
+interface NamingContext {
+    fun makeUniqueName(prefix: String = ""): Name
+    fun makeName(text: String): Name = Name(text)
+}
 class Context(
     val options: BuildOptions
-): ASTContext {
+): ASTContext, NamingContext {
     val analyzer = Analyzer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
@@ -84,7 +88,6 @@ class Context(
             Parser(this, moduleName, path).parseSourceFile()
         }
 
-    fun makeName(text: String): Name = Name(text)
 
     fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
         return resolveSourceFile(qualifiedPathToName(modulePath))
@@ -143,7 +146,7 @@ class Context(
     }
 
     private var _nameIndex = 0
-    fun makeUniqueName(prefix: String = ""): Name {
+    override fun makeUniqueName(prefix: String): Name {
         _nameIndex++
         if (prefix.isNotBlank()) {
             return makeName("\$$prefix\$$_nameIndex")

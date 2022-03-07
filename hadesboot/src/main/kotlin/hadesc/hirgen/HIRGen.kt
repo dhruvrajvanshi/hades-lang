@@ -6,6 +6,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
+import hadesc.context.NamingContext
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.HIRStatement.Companion.ifStatement
@@ -34,16 +35,10 @@ internal interface HIRGenModuleContext {
     fun getExternDef(declaration: Declaration.ExternFunctionDef): HIRDefinition.ExternFunction
 }
 
-internal interface HIRGenFunctionContext {
-    val currentLocation: SourceLocation
-    fun lowerExpression(expression: Expression): HIRExpression
-    fun emit(statement: HIRStatement)
-    fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
-    fun declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = currentLocation): HIRExpression
-    fun declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef
-}
+internal interface HIRGenFunctionContext: HIRBuilder
 
-class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext {
+class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx {
+    override val namingCtx: NamingContext get() = ctx
     private val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
     private val exprGen = HIRGenExpression(
@@ -492,8 +487,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return HIRBlock(location, name ?: ctx.makeUniqueName(), statements)
     }
 
-    override fun emit(statement: HIRStatement) {
+    override fun <T: HIRStatement> emit(statement: T): T {
         requireNotNull(currentStatements).add(statement)
+        return statement
     }
 
     private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
@@ -721,18 +717,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return exprGen.lowerEnumMatchExpression(expression)
     }
 
-
-    override fun declareAndAssign(namePrefix: String, rhs: HIRExpression, location: SourceLocation): HIRExpression {
-        val variable = declareVariable(namePrefix, rhs.type, location)
-        emit(HIRStatement.Assignment(
-            location,
-            variable.name,
-            rhs
-        ))
-
-        return variable
-    }
-
     private fun lowerIntegralMatchExpression(expression: Expression.Match): HIRExpression {
         val resultType = typeOfExpression(expression)
         val discriminantType = typeOfExpression(expression.value)
@@ -753,13 +737,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     val blockName = ctx.makeUniqueName()
                     MatchIntArm(
                         HIRConstant.IntValue(arm.location, discriminantType, arm.pattern.value.toInt()),
-                        HIRBlock(arm.location, blockName, mutableListOf(
-                            HIRStatement.Assignment(
-                                arm.location,
-                                result.name,
-                                lowerExpression(arm.value)
-                            )
-                        ))
+                        buildBlock(arm.location, blockName) {
+                            emitAssign(result, lowerExpression(arm.value))
+                        }
                     )
                 },
                 HIRBlock(
@@ -1028,21 +1008,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 lowerTypeAnnotation(expression.type))
     }
 
-    override fun declareVariable(namePrefix: String, type: Type, location: SourceLocation): HIRExpression.ValRef {
-        val name = ctx.makeUniqueName(namePrefix)
-        emit(HIRStatement.ValDeclaration(
-            location,
-            name,
-            type = type,
-            isMutable = false)
-        )
-
-        return HIRExpression.ValRef(
-            location,
-            type,
-            name,
-        )
-    }
     private fun lowerIfExpression(expression: Expression.If): HIRExpression {
         val result = declareVariable("if_result", typeOfExpression(expression))
         val name = result.name
