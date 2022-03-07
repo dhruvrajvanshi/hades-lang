@@ -196,7 +196,19 @@ internal class HIRGenExpression(
                 ctx.enumTagType()
             ),
         )
-
+        val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
+        fun applyTypeArgs(type: Type) =
+            if (enumDef.typeParams != null) {
+                val typeArgs = discriminantType.typeArgs()
+                check(typeArgs.size == enumDef.typeParams.size)
+                type.applySubstitution(
+                    enumDef.typeParams.zip(typeArgs).associate { (it, arg) ->
+                        it.location to arg
+                    }.toSubstitution()
+                )
+            } else {
+                type
+            }
         val arms = expression.arms.mapNotNull { arm ->
             when (arm.pattern) {
                 is Pattern.EnumCase -> {
@@ -215,21 +227,9 @@ internal class HIRGenExpression(
                                             argIndex
                                         ))
                                         val argPatternValRef = declareVariable(arg.binder.name, type)
-                                        val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
 
                                         val unappliedPayloadType = payloadUnionType.members[index]
-                                        val payloadType =
-                                            if (enumDef.typeParams != null) {
-                                                val typeArgs = discriminantType.typeArgs()
-                                                check(typeArgs.size == enumDef.typeParams.size)
-                                                unappliedPayloadType.applySubstitution(
-                                                    enumDef.typeParams.zip(typeArgs).associate { (it, arg) ->
-                                                        it.location to arg
-                                                    }.toSubstitution()
-                                                )
-                                            } else {
-                                                unappliedPayloadType
-                                            }
+                                        val payloadType = applyTypeArgs(unappliedPayloadType)
                                         emitAssign(
                                             argPatternValRef,
                                             discriminantVar
