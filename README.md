@@ -1,5 +1,4 @@
 # Hades
- [![Hades](https://circleci.com/gh/dhruvrajvanshi/hades-lang.svg?style=shield)](https://app.circleci.com/pipelines/github/dhruvrajvanshi/hades-lang)
  [![Linux](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/linux.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/linux.yml)
  [![Windows](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/windows.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/windows.yml)
  
