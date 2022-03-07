@@ -12,7 +12,7 @@ internal interface HIRBuilder {
     var currentLocation: SourceLocation
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
-    fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
+    fun buildBlock(location: SourceLocation = currentLocation, name: Name? = null, builder: () -> Unit): HIRBlock
 
     fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.GetStructField {
         return HIRExpression.GetStructField(

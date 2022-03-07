@@ -596,11 +596,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 location = statement.location,
                 condition = lowerExpression(statement.condition),
                 trueBranch = lowerBlock(statement.ifTrue),
-                falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: HIRBlock(
-                        location = statement.location,
-                        statements = mutableListOf(),
-                        name = ctx.makeUniqueName()
-                )
+                falseBranch = statement.ifFalse?.let { lowerBlock(it) } ?: buildBlock {}
             )
         )
     }
@@ -739,17 +735,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                         }
                     )
                 },
-                HIRBlock(
+                buildBlock(
                     elseArm.location,
-                    elseBlockName,
-                    mutableListOf(
-                        HIRStatement.Assignment(
-                            elseArm.location,
-                            result.name,
-                            lowerExpression(elseArm.value)
-                        )
-                    )
-                )
+                    elseBlockName
+                ) {
+                     emitAssign(result, lowerExpression(elseArm.value))
+                }
             )
         )
 
