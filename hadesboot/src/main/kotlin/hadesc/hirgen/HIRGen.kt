@@ -35,9 +35,11 @@ internal interface HIRGenModuleContext {
     fun getExternDef(declaration: Declaration.ExternFunctionDef): HIRDefinition.ExternFunction
 }
 
-internal interface HIRGenFunctionContext: HIRBuilder
+internal interface HIRGenFunctionContext: HIRBuilder {
+    fun lowerExpression(expression: Expression): HIRExpression
+}
 
-class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx {
+class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
     override val namingCtx: NamingContext get() = ctx
     private val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
@@ -47,6 +49,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         functionContext = this
     )
     override lateinit var currentLocation: SourceLocation
+    override var currentStatements: MutableList<HIRStatement>? = null
 
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
@@ -453,7 +456,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return last is Block.Member.Statement && last.statement is Statement.Return
     }
 
-    private var currentStatements: MutableList<HIRStatement>? = null
     private val deferStack = Stack<MutableList<HIRStatement>>()
     private fun lowerBlock(
         body: Block,
@@ -485,11 +487,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         builder()
         currentStatements = oldStatements
         return HIRBlock(location, name ?: ctx.makeUniqueName(), statements)
-    }
-
-    override fun <T: HIRStatement> emit(statement: T): T {
-        requireNotNull(currentStatements).add(statement)
-        return statement
     }
 
     private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
