@@ -9,6 +9,7 @@ import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.resolver.Binding
 import hadesc.types.Type
+import hadesc.types.ptr
 import hadesc.types.toSubstitution
 
 internal class HIRGenExpression(
@@ -188,13 +189,10 @@ internal class HIRGenExpression(
         val resultVar = declareVariable("match_result", expression.type)
         val discriminantVar = declareAndAssign("match_discriminant", lowerExpression(expression.value))
 
-        val tagVar = declareAndAssign(
-            "tag",
-            discriminantVar.getStructField(
-                enumTagFieldName,
-                0,
-                ctx.enumTagType()
-            ),
+        val tagVar = discriminantVar.getStructField(
+            enumTagFieldName,
+            0,
+            ctx.enumTagType()
         )
         fun applyTypeArgs(type: Type) =
             if (enumDef.typeParams != null) {
@@ -233,9 +231,11 @@ internal class HIRGenExpression(
                                         val payloadType = payloadUnionType.members[index]
                                         emitAssign(
                                             argPatternValRef,
-                                            discriminantVar
-                                                .getStructField("payload", 1, payloadType)
-                                                .getStructField("$argIndex", argIndex, type)
+                                            addressOf(discriminantVar)
+                                                .fieldPtr(ctx.makeName("payload"), 1, payloadUnionType.ptr())
+                                                .ptrCast(payloadType)
+                                                .fieldPtr(ctx.makeName("$argIndex"), argIndex, type.ptr())
+                                                .deref()
                                         )
                                     }
                                     else -> {}

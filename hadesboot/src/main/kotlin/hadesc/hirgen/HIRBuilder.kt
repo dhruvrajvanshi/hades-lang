@@ -27,6 +27,39 @@ internal interface HIRBuilder {
     fun HIRExpression.getStructField(name: String, index: Int, type: Type): HIRExpression.GetStructField {
         return getStructField(namingCtx.makeName(name), index, type)
     }
+
+    fun addressOf(valRef: HIRExpression.ValRef): HIRExpression.AddressOf {
+        return HIRExpression.AddressOf(
+            currentLocation,
+            Type.Ptr(valRef.type, isMutable = false),
+            valRef.name
+        )
+    }
+
+    fun HIRExpression.fieldPtr(name: Name, index: Int, type: Type.Ptr): HIRExpression.GetStructFieldPointer {
+        return HIRExpression.GetStructFieldPointer(
+            currentLocation,
+            type,
+            this,
+            name,
+            index
+        )
+    }
+
+    fun HIRExpression.ptrCast(toPointerOfType: Type): HIRExpression.PointerCast {
+        return HIRExpression.PointerCast(
+            currentLocation,
+            toPointerOfType,
+            this
+        )
+    }
+
+    fun HIRExpression.deref(): HIRExpression {
+        val ptrTy = type
+        check(ptrTy is Type.Ptr)
+
+        return HIRExpression.Load(currentLocation, ptrTy.to, this)
+    }
 }
 
 
@@ -55,7 +88,7 @@ internal fun HIRBuilder.declareVariable(name: Name, type: Type, location: Source
 }
 
 
-internal fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression {
+internal fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
     val variable = declareVariable(namePrefix, rhs.type, location)
     emit(HIRStatement.Assignment(
         location,
