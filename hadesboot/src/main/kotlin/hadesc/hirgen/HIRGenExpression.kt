@@ -208,13 +208,14 @@ internal class HIRGenExpression(
                         HIRConstant.IntValue(arm.pattern.location, ctx.enumTagType(), index),
                         buildBlock(arm.value.location, blockName) {
                             arm.pattern.args?.forEachIndexed { argIndex, arg ->
+                                currentLocation = arg.location
                                 when (arg) {
                                     is Pattern.Val -> {
                                         val type = ctx.analyzer.typeOfMatchArmEnumCaseArgBinding(Binding.MatchArmEnumCaseArg(
                                             arm.pattern,
                                             argIndex
                                         ))
-                                        emit(HIRStatement.ValDeclaration(arg.location, arg.binder.name, isMutable = false, type))
+                                        val argPatternValRef = declareVariable(arg.binder.name, type)
                                         val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
 
                                         val unappliedPayloadType = payloadUnionType.members[index]
@@ -230,36 +231,27 @@ internal class HIRGenExpression(
                                             } else {
                                                 unappliedPayloadType
                                             }
-                                        emit(
-                                            HIRStatement.Assignment(
+                                        emitAssign(
+                                            argPatternValRef,
+                                            HIRExpression.GetStructField(
                                                 arg.location,
-                                                arg.binder.name,
+                                                type,
                                                 HIRExpression.GetStructField(
                                                     arg.location,
-                                                    type,
-                                                    HIRExpression.GetStructField(
-                                                        arg.location,
-                                                        payloadType,
-                                                        discriminantVar,
-                                                        ctx.makeName("payload"),
-                                                        1
-                                                    ),
-                                                    ctx.makeName("$argIndex"),
-                                                    argIndex
-                                                )
+                                                    payloadType,
+                                                    discriminantVar,
+                                                    ctx.makeName("payload"),
+                                                    1
+                                                ),
+                                                ctx.makeName("$argIndex"),
+                                                argIndex
                                             )
                                         )
                                     }
                                     else -> {}
                                 }
                             }
-                            emit(
-                                HIRStatement.Assignment(
-                                    arm.value.location,
-                                    resultVar.name,
-                                    lowerExpression(arm.value)
-                                )
-                            )
+                            emitAssign(resultVar, lowerExpression(arm.value))
                         }
                     )
                 }

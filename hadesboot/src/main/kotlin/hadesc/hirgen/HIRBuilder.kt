@@ -9,7 +9,7 @@ import hadesc.location.SourceLocation
 import hadesc.types.Type
 
 internal interface HIRBuilder {
-    val currentLocation: SourceLocation
+    var currentLocation: SourceLocation
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
     fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
@@ -23,6 +23,9 @@ internal fun <T: HIRStatement> HIRBuilder.emit(statement: T): T {
 
 internal fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     val name = namingCtx.makeUniqueName(namePrefix)
+    return declareVariable(name, type, location)
+}
+internal fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     emit(HIRStatement.ValDeclaration(
         location,
         name,
