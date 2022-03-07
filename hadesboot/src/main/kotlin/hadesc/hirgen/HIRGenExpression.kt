@@ -185,19 +185,18 @@ internal class HIRGenExpression(
         //    2 -> .2
         // ]
 
-        val resultVar = declareVariable(expression.location, expression.type, "result")
-        val discriminantVar =
-            declareAndAssign(expression.value.location, lowerExpression(expression.value), "discriminant")
+        val resultVar = declareVariable("match_result", expression.type)
+        val discriminantVar = declareAndAssign("match_discriminant", lowerExpression(expression.value))
 
         val tagVar = declareAndAssign(
-            expression.value.location,
+            "tag",
             HIRExpression.GetStructField(
                 expression.value.location,
                 ctx.enumTagType(),
                 discriminantVar,
                 enumTagFieldName,
                 0),
-            "tag")
+        )
 
         val arms = expression.arms.mapNotNull { arm ->
             when (arm.pattern) {

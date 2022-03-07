@@ -35,11 +35,12 @@ internal interface HIRGenModuleContext {
 }
 
 internal interface HIRGenFunctionContext {
+    val currentLocation: SourceLocation
     fun lowerExpression(expression: Expression): HIRExpression
     fun addStatement(statement: HIRStatement)
     fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
-    fun declareAndAssign(location: SourceLocation, rhs: HIRExpression, namePrefix: String = ""): HIRExpression
-    fun declareVariable(location: SourceLocation, type: Type, namePrefix: String = ""): HIRExpression.ValRef
+    fun declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = currentLocation): HIRExpression
+    fun declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef
 }
 
 class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext {
@@ -50,10 +51,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         moduleContext = this,
         functionContext = this
     )
+    override lateinit var currentLocation: SourceLocation
+
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         try {
             for (sourceFile in sourceFiles) {
+                currentLocation = sourceFile.location
                 for (it in sourceFile.declarations) {
                     declarations.addAll(lowerDeclaration(it))
                 }
@@ -71,7 +75,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerDeclaration(declaration: Declaration): List<HIRDefinition> = when (declaration) {
+    private fun lowerDeclaration(declaration: Declaration): List<HIRDefinition> {
+        currentLocation = declaration.location
+        return lowerDeclarationHelper(declaration)
+    }
+    private fun lowerDeclarationHelper(declaration: Declaration): List<HIRDefinition> = when (declaration) {
         is Declaration.Error -> requireUnreachable()
         is Declaration.ImportAs -> emptyList()
         is Declaration.FunctionDef -> listOf(lowerFunctionDef(declaration))
@@ -244,7 +252,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val loc = case.name.location
         val tag = HIRExpression.GlobalRef(loc, ctx.enumTagType(), caseTagName(enumName, case))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
-            val payloadVal = declareVariable(loc, payloadTypeUnion, "payload")
+            val payloadVal = declareVariable("payload", payloadTypeUnion)
             val paramSubst = declaration.typeParams?.associate {
                 it.location to Type.ParamRef(it.binder)
             }?.toSubstitution() ?: emptySubstitution()
@@ -550,7 +558,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerWhileStatement(statement: Statement.While): Collection<HIRStatement> {
-        val conditionVar = declareVariable(statement.condition.location, Type.Bool, namePrefix = "while_condition")
+        currentLocation = statement.condition.location
+        val conditionVar = declareVariable("while_condition", Type.Bool)
         return listOf(
                 HIRStatement.While(
                     statement.location,
@@ -629,6 +638,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     override fun lowerExpression(expression: Expression): HIRExpression {
+        currentLocation = expression.location
         val lowered = when (expression) {
             is Expression.Error -> requireUnreachable()
             is Expression.Var -> exprGen.lowerVarExpression(expression)
@@ -716,8 +726,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
 
-    override fun declareAndAssign(location: SourceLocation, rhs: HIRExpression, namePrefix: String): HIRExpression {
-        val variable = declareVariable(location, rhs.type, namePrefix)
+    override fun declareAndAssign(namePrefix: String, rhs: HIRExpression, location: SourceLocation): HIRExpression {
+        val variable = declareVariable(namePrefix, rhs.type, location)
         addStatement(HIRStatement.Assignment(
             location,
             variable.name,
@@ -731,7 +741,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val resultType = typeOfExpression(expression)
         val discriminantType = typeOfExpression(expression.value)
         require(discriminantType.isIntegral())
-        val result = declareVariable(expression.location, resultType)
+        val result = declareVariable("result", resultType)
         val arms = expression.arms.takeWhile { it.pattern !is Pattern.Wildcard }
         val elseArm = expression.arms.find { it.pattern is Pattern.Wildcard }
         check(elseArm != null)
@@ -1028,7 +1038,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 lowerTypeAnnotation(expression.type))
     }
 
-    override fun declareVariable(location: SourceLocation, type: Type, namePrefix: String): HIRExpression.ValRef {
+    override fun declareVariable(namePrefix: String, type: Type, location: SourceLocation): HIRExpression.ValRef {
         val name = ctx.makeUniqueName(namePrefix)
         addStatement(HIRStatement.ValDeclaration(
             location,
@@ -1044,7 +1054,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
     private fun lowerIfExpression(expression: Expression.If): HIRExpression {
-        val result = declareVariable(expression.location, typeOfExpression(expression))
+        val result = declareVariable("if_result", typeOfExpression(expression))
         val name = result.name
         val trueBlock = buildBlock(expression.trueBranch.location) {
             addStatement(HIRStatement.Assignment(
