@@ -91,14 +91,11 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
                         Type.Bool,
                         lhs = discriminantTag,
                         operator = BinaryOperator.EQUALS,
-                        rhs = HIRExpression.Constant(
-                            HIRConstant.IntValue(
-                                case.expression.location,
-                                ctx.enumTagType(),
-                                index
-                            )
+                        rhs = HIRConstant.IntValue(
+                            case.expression.location,
+                            ctx.enumTagType(),
+                            index
                         )
-
                     ),
                     trueBranch,
                     HIRBlock(location = case.expression.location, ctx.makeUniqueName())

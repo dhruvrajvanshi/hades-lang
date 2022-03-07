@@ -1,11 +1,9 @@
 package hadesc.hir
 
-import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed interface HIRConstant: HasLocation {
-    val type: Type
+sealed interface HIRConstant: HIRExpression {
 
     data class ByteString(
             override val location: SourceLocation,
@@ -36,16 +34,4 @@ sealed interface HIRConstant: HasLocation {
         override val type: Type.Array,
         val items: List<HIRConstant>,
     ) : HIRConstant
-
-    fun prettyPrint(): String = when(this) {
-        is ByteString -> "b\"" + String(bytes)
-                .replace("\"", "\"\"")
-                .replace("\\", "\\\\") + "\""
-        is BoolValue -> value.toString()
-        is IntValue -> value.toString()
-        is FloatValue -> value.toString()
-        is ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
-                    items.joinToString(", ") { it.prettyPrint() } +
-                "]"
-    }
 }

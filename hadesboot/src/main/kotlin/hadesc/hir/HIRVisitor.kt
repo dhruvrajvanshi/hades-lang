@@ -70,7 +70,6 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.BinOp -> visitBinOp(expression)
             is HIRExpression.Call -> visitCall(expression)
             is HIRExpression.Closure -> visitClosure(expression)
-            is HIRExpression.Constant -> visitConstant(expression)
             is HIRExpression.GetStructField -> visitGetStructField(expression)
             is HIRExpression.GetStructFieldPointer -> visitGetStructFieldPointer(expression)
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
@@ -89,6 +88,7 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.When -> visitWhen(expression)
             is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
             is HIRExpression.BlockExpression -> visitBlockExpression(expression)
+            is HIRConstant -> visitConstant(expression)
         }
     }
 
@@ -121,7 +121,7 @@ interface HIRVisitor : TypeVisitor {
         visitExpression(expression.lhs)
     }
 
-    fun visitConstant(expression: HIRExpression.Constant) {
+    fun visitConstant(expression: HIRConstant) {
 
     }
 

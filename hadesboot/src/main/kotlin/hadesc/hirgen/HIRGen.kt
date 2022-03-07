@@ -195,12 +195,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             HIRDefinition.Const(
                 case.name.location,
                 caseTagName(enumName, case),
-                HIRExpression.Constant(
-                    HIRConstant.IntValue(
-                        case.name.location,
-                        ctx.enumTagType(),
-                        index
-                    )
+                HIRConstant.IntValue(
+                    case.name.location,
+                    ctx.enumTagType(),
+                    index
                 )
             ),
             sealedCaseConstructorOrConst(declaration, enumName, case)
@@ -707,12 +705,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerFloatLiteral(expression: Expression.FloatLiteral): HIRExpression {
         val ty = expression.type
         check(ty is Type.FloatingPoint)
-        return HIRExpression.Constant(
-            HIRConstant.FloatValue(
-                expression.location,
-                ty,
-                expression.value
-            )
+        return HIRConstant.FloatValue(
+            expression.location,
+            ty,
+            expression.value
         )
     }
 
@@ -784,12 +780,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerByteCharExpression(expression: Expression.ByteCharLiteral): HIRExpression {
-        return HIRExpression.Constant(
-            HIRConstant.IntValue(
-                expression.location,
-                expression.type,
-                expression.value.code
-            )
+        return HIRConstant.IntValue(
+            expression.location,
+            expression.type,
+            expression.value.code
         )
     }
 
@@ -804,21 +798,19 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 HIRExpression.BinOp(
                     expression.location,
                     inner.type,
-                    HIRExpression.Constant(
-                        if (type is Type.FloatingPoint) {
-                            HIRConstant.FloatValue(
-                                expression.location,
-                                type,
-                                0.0
-                            )
-                        } else {
-                            HIRConstant.IntValue(
-                                expression.location,
-                                type,
-                                0
-                            )
-                        }
-                    ),
+                    if (type is Type.FloatingPoint) {
+                        HIRConstant.FloatValue(
+                            expression.location,
+                            type,
+                            0.0
+                        )
+                    } else {
+                        HIRConstant.IntValue(
+                            expression.location,
+                            type,
+                            0
+                        )
+                    },
                     BinaryOperator.MINUS,
                     inner
                 )
@@ -850,12 +842,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         check(exprType is Type.Array)
         val items = expression.items.map {
             val item = lowerExpression(it)
-            check(item is HIRExpression.Constant)
-            item.constant
+            check(item is HIRConstant)
+            item
         }
-        return HIRExpression.Constant(
-            HIRConstant.ArrayLiteral(expression.location, exprType, items)
-        )
+        return HIRConstant.ArrayLiteral(expression.location, exprType, items)
     }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
@@ -1100,31 +1090,28 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerIntLiteral(expression: Expression.IntLiteral): HIRExpression {
         if (expression.type.isIntegral()) {
-            return HIRExpression.Constant(
-                HIRConstant.IntValue(
-                    expression.location,
-                    typeOfExpression(expression),
-                    expression.value)
+            return HIRConstant.IntValue(
+                expression.location,
+                typeOfExpression(expression),
+                expression.value
             )
         } else {
             val exprType = expression.type
             check(exprType is Type.FloatingPoint)
-            return HIRExpression.Constant(
-                HIRConstant.FloatValue(
-                    expression.location,
-                    exprType,
-                    expression.value.toDouble()
-                )
+            return HIRConstant.FloatValue(
+                expression.location,
+                exprType,
+                expression.value.toDouble()
             )
         }
     }
 
     private fun lowerBoolLiteral(expression: Expression.BoolLiteral): HIRExpression {
-        return HIRExpression.Constant(HIRConstant.BoolValue(
-                expression.location,
-                typeOfExpression(expression),
-                expression.value
-        ))
+        return HIRConstant.BoolValue(
+            expression.location,
+            typeOfExpression(expression),
+            expression.value
+        )
     }
 
     private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
@@ -1241,11 +1228,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerByteString(expression: Expression.ByteString): HIRExpression {
-        return HIRExpression.Constant(
-                HIRConstant.ByteString(
-                        expression.location,
-                        typeOfExpression(expression),
-                        expression.bytes))
+        return HIRConstant.ByteString(
+            expression.location,
+            typeOfExpression(expression),
+            expression.bytes
+        )
     }
 
     private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()

@@ -237,7 +237,6 @@ interface HIRTransformer: TypeTransformer {
     fun transformExpression(expression: HIRExpression): HIRExpression = when(expression) {
         is HIRExpression.Call -> transformCall(expression)
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
-        is HIRExpression.Constant -> transformConstant(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
         is HIRExpression.ValRef -> transformValRef(expression)
         is HIRExpression.GetStructField -> transformGetStructField(expression)
@@ -258,6 +257,7 @@ interface HIRTransformer: TypeTransformer {
         is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
         is HIRExpression.ArrayIndex -> transformArrayIndex(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
+        is HIRConstant -> transformConstant(expression)
     }
 
     fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
@@ -460,7 +460,7 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformConstant(expression: HIRExpression.Constant): HIRExpression.Constant = when(expression.constant) {
+    fun transformConstant(expression: HIRConstant): HIRConstant = when(expression) {
         is HIRConstant.ByteString -> expression
         is HIRConstant.BoolValue -> expression
         is HIRConstant.IntValue -> expression

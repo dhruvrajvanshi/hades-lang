@@ -29,16 +29,6 @@ sealed interface HIRExpression: HIRNode {
             val name: QualifiedName
     ) : HIRExpression
 
-    data class Constant(
-            val constant: HIRConstant
-    ) : HIRExpression {
-        override val location: SourceLocation
-            get() = constant.location
-
-        override val type: Type
-            get() = constant.type
-    }
-
     data class ParamRef(
             override val location: SourceLocation,
             override val type: Type,
@@ -193,7 +183,6 @@ sealed interface HIRExpression: HIRNode {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
         is GlobalRef -> name.mangle()
-        is Constant -> constant.prettyPrint()
         is ParamRef -> name.text
         is ValRef -> name.text
         is GetStructField -> "(${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()})"
@@ -220,5 +209,14 @@ sealed interface HIRExpression: HIRNode {
         is IntegerConvert -> "(${value.prettyPrint()} as ${type.prettyPrint()})"
         is ArrayIndex -> "${array.prettyPrint()}.[${index.prettyPrint()}]"
         is BlockExpression -> block.prettyPrint()
+        is HIRConstant.ByteString -> "b\"" + String(bytes)
+            .replace("\"", "\"\"")
+            .replace("\\", "\\\\") + "\""
+        is HIRConstant.BoolValue -> value.toString()
+        is HIRConstant.IntValue -> value.toString()
+        is HIRConstant.FloatValue -> value.toString()
+        is HIRConstant.ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
+                items.joinToString(", ") { it.prettyPrint() } +
+                "]"
     }
 }

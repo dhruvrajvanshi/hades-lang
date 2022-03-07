@@ -132,7 +132,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         val trueValue = HIRConstant.IntValue(location, Type.Bool, 1)
         return HIRStatement.SwitchInt(
             location,
-            HIRExpression.Constant(trueValue),
+            trueValue,
             listOf(
                 SwitchIntCase(trueValue, branch)
             ),

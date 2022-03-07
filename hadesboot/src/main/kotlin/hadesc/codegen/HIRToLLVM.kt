@@ -349,7 +349,6 @@ class HIRToLLVM(
             is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
-            is HIRExpression.Constant -> lowerConstant(expression.constant)
             is HIRExpression.GetStructField -> lowerGetStructField(expression)
             is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
@@ -368,6 +367,7 @@ class HIRToLLVM(
             is HIRExpression.Closure -> requireUnreachable()
             is HIRExpression.When -> requireUnreachable()
             is HIRExpression.BlockExpression -> requireUnreachable()
+            is HIRConstant -> lowerConstant(expression)
         }
     }
 

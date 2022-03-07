@@ -4,7 +4,6 @@ import hadesc.context.Context
 import hadesc.hir.HIRBlock
 import hadesc.hir.HIRConstant.BoolValue
 import hadesc.hir.HIRExpression
-import hadesc.hir.HIRExpression.Constant
 import hadesc.hir.HIRExpression.ValRef
 import hadesc.hir.HIRStatement.*
 import hadesc.hir.BinaryOperator
@@ -51,12 +50,10 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                             Assignment(
                                 expression.rhs.location,
                                 name,
-                                Constant(
-                                    BoolValue(
-                                        expression.lhs.location,
-                                        Type.Bool,
-                                        false
-                                    )
+                                BoolValue(
+                                    expression.lhs.location,
+                                    Type.Bool,
+                                    false
                                 )
                             )
                         ))
@@ -95,7 +92,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                                 Assignment(
                                     expression.lhs.location,
                                     name,
-                                    Constant(BoolValue(expression.lhs.location, Type.Bool, true))
+                                    BoolValue(expression.lhs.location, Type.Bool, true)
                                 )
                             )
                         ),
