@@ -37,7 +37,7 @@ internal interface HIRGenModuleContext {
 internal interface HIRGenFunctionContext {
     val currentLocation: SourceLocation
     fun lowerExpression(expression: Expression): HIRExpression
-    fun addStatement(statement: HIRStatement)
+    fun emit(statement: HIRStatement)
     fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
     fun declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = currentLocation): HIRExpression
     fun declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef
@@ -267,7 +267,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                         declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: emptyList()
                     )
             if (case.params != null && case.params.isNotEmpty()) {
-                addStatement(
+                emit(
                     HIRStatement.Assignment(
                         loc,
                         payloadVal.name,
@@ -308,7 +308,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     payloadVal
                 )
             )
-            addStatement(
+            emit(
                 HIRStatement.Return(
                     case.name.location,
                     baseConstructorCall
@@ -468,18 +468,18 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         header: List<HIRStatement> = emptyList()
     ): HIRBlock = buildBlock(body.location) {
         deferStack.push(mutableListOf())
-        header.forEach { addStatement(it) }
+        header.forEach { emit(it) }
         for (member in body.members) {
             lowerBlockMember(member).forEach {
-                addStatement(it)
+                emit(it)
             }
         }
         if (addReturnVoid) {
             terminateScope()
-            addStatement(HIRStatement.ReturnVoid(body.location))
+            emit(HIRStatement.ReturnVoid(body.location))
         } else {
             for (statement in requireNotNull(deferStack.peek())) {
-                addStatement(statement)
+                emit(statement)
             }
         }
         deferStack.pop()
@@ -494,7 +494,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return HIRBlock(location, name ?: ctx.makeUniqueName(), statements)
     }
 
-    override fun addStatement(statement: HIRStatement) {
+    override fun emit(statement: HIRStatement) {
         requireNotNull(currentStatements).add(statement)
     }
 
@@ -565,7 +565,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     statement.location,
                     conditionName = conditionVar.name,
                     buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
-                       addStatement(HIRStatement.Assignment(
+                       emit(HIRStatement.Assignment(
                            statement.condition.location,
                            conditionVar.name,
                            lowerExpression(statement.condition)
@@ -632,7 +632,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun terminateScope() {
         for (deferStatements in deferStack) {
             for (statement in deferStatements.reversed()) {
-                addStatement(statement)
+                emit(statement)
             }
         }
     }
@@ -728,7 +728,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     override fun declareAndAssign(namePrefix: String, rhs: HIRExpression, location: SourceLocation): HIRExpression {
         val variable = declareVariable(namePrefix, rhs.type, location)
-        addStatement(HIRStatement.Assignment(
+        emit(HIRStatement.Assignment(
             location,
             variable.name,
             rhs
@@ -747,7 +747,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         check(elseArm != null)
         val elseBlockName = ctx.makeUniqueName()
 
-        addStatement(
+        emit(
             HIRStatement.MatchInt(
                 expression.location,
                 lowerExpression(expression.value),
@@ -1040,7 +1040,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     override fun declareVariable(namePrefix: String, type: Type, location: SourceLocation): HIRExpression.ValRef {
         val name = ctx.makeUniqueName(namePrefix)
-        addStatement(HIRStatement.ValDeclaration(
+        emit(HIRStatement.ValDeclaration(
             location,
             name,
             type = type,
@@ -1057,20 +1057,20 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val result = declareVariable("if_result", typeOfExpression(expression))
         val name = result.name
         val trueBlock = buildBlock(expression.trueBranch.location) {
-            addStatement(HIRStatement.Assignment(
+            emit(HIRStatement.Assignment(
                 expression.location,
                 name,
                 lowerExpression(expression.trueBranch)
             ))
         }
         val falseBlock = buildBlock(expression.falseBranch.location) {
-            addStatement(HIRStatement.Assignment(
+            emit(HIRStatement.Assignment(
                 expression.location,
                 name,
                 lowerExpression(expression.falseBranch)
             ))
         }
-        addStatement(ifStatement(
+        emit(ifStatement(
                 expression.location,
                 lowerExpression(expression.condition),
                 trueBlock,

@@ -214,7 +214,7 @@ internal class HIRGenExpression(
                                             arm.pattern,
                                             argIndex
                                         ))
-                                        addStatement(HIRStatement.ValDeclaration(arg.location, arg.binder.name, isMutable = false, type))
+                                        emit(HIRStatement.ValDeclaration(arg.location, arg.binder.name, isMutable = false, type))
                                         val payloadUnionType = ctx.analyzer.getEnumPayloadType(enumDef)
 
                                         val unappliedPayloadType = payloadUnionType.members[index]
@@ -230,7 +230,7 @@ internal class HIRGenExpression(
                                             } else {
                                                 unappliedPayloadType
                                             }
-                                        addStatement(
+                                        emit(
                                             HIRStatement.Assignment(
                                                 arg.location,
                                                 arg.binder.name,
@@ -253,7 +253,7 @@ internal class HIRGenExpression(
                                     else -> {}
                                 }
                             }
-                            addStatement(
+                            emit(
                                 HIRStatement.Assignment(
                                     arm.value.location,
                                     resultVar.name,
@@ -272,14 +272,14 @@ internal class HIRGenExpression(
             it.pattern is Pattern.Wildcard
         }
 
-        addStatement(
+        emit(
             HIRStatement.MatchInt(
             expression.location,
             tagVar,
             arms,
             otherwise = buildBlock(elseArm?.location ?: expression.location, ctx.makeUniqueName("else")) {
                 if (elseArm != null) {
-                    addStatement(
+                    emit(
                         HIRStatement.Assignment(
                             elseArm.value.location,
                             resultVar.name,
