@@ -190,12 +190,11 @@ internal class HIRGenExpression(
 
         val tagVar = declareAndAssign(
             "tag",
-            HIRExpression.GetStructField(
-                expression.value.location,
-                ctx.enumTagType(),
-                discriminantVar,
+            discriminantVar.getStructField(
                 enumTagFieldName,
-                0),
+                0,
+                ctx.enumTagType()
+            ),
         )
 
         val arms = expression.arms.mapNotNull { arm ->
@@ -233,19 +232,9 @@ internal class HIRGenExpression(
                                             }
                                         emitAssign(
                                             argPatternValRef,
-                                            HIRExpression.GetStructField(
-                                                arg.location,
-                                                type,
-                                                HIRExpression.GetStructField(
-                                                    arg.location,
-                                                    payloadType,
-                                                    discriminantVar,
-                                                    ctx.makeName("payload"),
-                                                    1
-                                                ),
-                                                ctx.makeName("$argIndex"),
-                                                argIndex
-                                            )
+                                            discriminantVar
+                                                .getStructField("payload", 1, payloadType)
+                                                .getStructField("$argIndex", argIndex, type)
                                         )
                                     }
                                     else -> {}

@@ -13,6 +13,20 @@ internal interface HIRBuilder {
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
     fun buildBlock(location: SourceLocation, name: Name? = null, builder: () -> Unit): HIRBlock
+
+    fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.GetStructField {
+        return HIRExpression.GetStructField(
+            currentLocation,
+            type,
+            this,
+            name,
+            index
+        )
+    }
+
+    fun HIRExpression.getStructField(name: String, index: Int, type: Type): HIRExpression.GetStructField {
+        return getStructField(namingCtx.makeName(name), index, type)
+    }
 }
 
 
