@@ -18,10 +18,8 @@ class DesugarWhenExpressions(
         val discriminantPtr = addressOf(discriminantRef)
 
         expression.cases.forEachIndexed { index, case ->
-            val trueBranch = HIRBlock(
-                case.expression.location,
-                namingCtx.makeUniqueName(),
-                mutableListOf(
+            val trueBranch = buildBlock(case.expression.location) {
+                emitAll(mutableListOf(
                     HIRStatement.ValDeclaration(
                         case.expression.location,
                         case.valueBinder,
@@ -38,15 +36,16 @@ class DesugarWhenExpressions(
                                 case.expression.location,
                                 case.casePayloadType,
                                 discriminantPtr
-                            ))
+                            )
+                        )
                     ),
                     HIRStatement.Assignment(
                         case.expression.location,
                         resultRef.name,
                         transformExpression(case.expression)
                     )
-                )
-            )
+                ))
+            }
             emit(
                 HIRStatement.ifStatement(
                     case.expression.location,
