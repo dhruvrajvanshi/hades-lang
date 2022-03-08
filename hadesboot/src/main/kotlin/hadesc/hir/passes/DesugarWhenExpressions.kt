@@ -19,13 +19,9 @@ class DesugarWhenExpressions(
 
         expression.cases.forEachIndexed { index, case ->
             val trueBranch = buildBlock(case.expression.location) {
+                currentLocation = case.expression.location
+                declareVariable(case.valueBinder, case.casePayloadType)
                 emitAll(mutableListOf(
-                    HIRStatement.ValDeclaration(
-                        case.expression.location,
-                        case.valueBinder,
-                        isMutable = false,
-                        type = case.casePayloadType
-                    ),
                     HIRStatement.Assignment(
                         case.expression.location,
                         case.valueBinder,
@@ -39,13 +35,10 @@ class DesugarWhenExpressions(
                             )
                         )
                     ),
-                    HIRStatement.Assignment(
-                        case.expression.location,
-                        resultRef.name,
-                        transformExpression(case.expression)
-                    )
+
                 ))
             }
+            emitAssign(resultRef, transformExpression(case.expression))
             emit(
                 HIRStatement.ifStatement(
                     case.expression.location,

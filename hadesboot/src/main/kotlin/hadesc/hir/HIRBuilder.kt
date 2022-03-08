@@ -99,6 +99,17 @@ fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, loc
     return variable
 }
 
+fun HIRBuilder.declareAndAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
+    val variable = declareVariable(name, rhs.type, location)
+    emit(HIRStatement.Assignment(
+        location,
+        variable.name,
+        rhs
+    ))
+
+    return variable
+}
+
 fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
     emit(
         HIRStatement.Assignment(
