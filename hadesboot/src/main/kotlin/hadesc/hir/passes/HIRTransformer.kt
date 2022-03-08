@@ -123,19 +123,10 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
 
     override var currentStatements: MutableList<HIRStatement>?
-    fun transformBlock(body: HIRBlock): HIRBlock {
-        val oldStatements = currentStatements
-        val currentStatements = mutableListOf<HIRStatement>()
-        this.currentStatements = currentStatements
+    fun transformBlock(body: HIRBlock): HIRBlock = buildBlock(body.location, body.name) {
         body.statements.forEach {
-            currentStatements.addAll(transformStatement(it))
+            emitAll(transformStatement(it))
         }
-        this.currentStatements = oldStatements
-        return HIRBlock(
-            location = body.location,
-            statements = currentStatements,
-            name = body.name
-        )
     }
 
     fun transformStatement(statement: HIRStatement): Collection<HIRStatement> {

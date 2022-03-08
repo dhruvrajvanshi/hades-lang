@@ -64,6 +64,10 @@ fun <T: HIRStatement> HIRBuilder.emit(statement: T): T {
     return statement
 }
 
+fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
+    requireNotNull(currentStatements).addAll(statements)
+}
+
 fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     val name = namingCtx.makeUniqueName(namePrefix)
     return declareVariable(name, type, location)
