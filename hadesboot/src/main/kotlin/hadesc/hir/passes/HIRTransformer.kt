@@ -12,7 +12,7 @@ open class AbstractHIRTransformer: HIRTransformer {
     override var statements: MutableList<HIRStatement>? = null
     private var basicBlocks: MutableList<HIRBlock>? = null
 
-    protected fun appendStatement(statement: HIRStatement) {
+    protected fun emit(statement: HIRStatement) {
         checkNotNull(statements).add(statement)
     }
 

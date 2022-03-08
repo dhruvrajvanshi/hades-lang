@@ -27,7 +27,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
              */
             BinaryOperator.AND -> {
                 val name = ctx.makeUniqueName()
-                appendStatement(
+                emit(
                     ValDeclaration(
                         expression.location,
                         name,
@@ -35,7 +35,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                         Type.Bool,
                     )
                 )
-                appendStatement(
+                emit(
                     Companion.ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
@@ -75,7 +75,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
              */
             BinaryOperator.OR -> {
                 val name = ctx.makeUniqueName()
-                appendStatement(
+                emit(
                     ValDeclaration(
                         expression.location,
                         name,
@@ -83,7 +83,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                         type = Type.Bool,
                     )
                 )
-                appendStatement(
+                emit(
                     HIRStatement.ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
