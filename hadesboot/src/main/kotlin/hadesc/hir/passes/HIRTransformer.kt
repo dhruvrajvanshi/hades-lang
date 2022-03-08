@@ -9,11 +9,11 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
 open class AbstractHIRTransformer: HIRTransformer {
-    override var statements: MutableList<HIRStatement>? = null
+    override var currentStatements: MutableList<HIRStatement>? = null
     private var basicBlocks: MutableList<HIRBlock>? = null
 
     protected fun emit(statement: HIRStatement) {
-        checkNotNull(statements).add(statement)
+        checkNotNull(currentStatements).add(statement)
     }
 
     override fun transformFunctionDef(
@@ -120,15 +120,15 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    var statements: MutableList<HIRStatement>?
+    var currentStatements: MutableList<HIRStatement>?
     fun transformBlock(body: HIRBlock): HIRBlock {
-        val oldStatements = statements
+        val oldStatements = currentStatements
         val currentStatements = mutableListOf<HIRStatement>()
-        statements = currentStatements
+        this.currentStatements = currentStatements
         body.statements.forEach {
             currentStatements.addAll(transformStatement(it))
         }
-        statements = oldStatements
+        this.currentStatements = oldStatements
         return HIRBlock(
             location = body.location,
             statements = currentStatements,

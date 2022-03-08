@@ -7,12 +7,12 @@ import hadesc.hir.HIRStatement
 import hadesc.types.Type
 
 class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
-    override var statements: MutableList<HIRStatement>? = null
+    override var currentStatements: MutableList<HIRStatement>? = null
 
     override fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
         val resultName = ctx.makeUniqueName()
 
-        checkNotNull(statements).apply {
+        checkNotNull(currentStatements).apply {
             val initialBlock = transformBlock(expression.block)
             val block = when (val lastMember = initialBlock.statements.lastOrNull()) {
                 is HIRStatement.Expression -> {

@@ -10,7 +10,7 @@ import hadesc.types.Type
 
 class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer() {
     override fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
-        val blockStatements = requireNotNull(statements)
+        val blockStatements = requireNotNull(currentStatements)
         val discriminantName = ctx.makeUniqueName()
         val resultName = ctx.makeUniqueName()
         blockStatements.addAll(
