@@ -21,23 +21,8 @@ class DesugarWhenExpressions(
             val trueBranch = buildBlock(case.expression.location) {
                 currentLocation = case.expression.location
                 declareVariable(case.valueBinder, case.casePayloadType)
-                emitAll(mutableListOf(
-                    HIRStatement.Assignment(
-                        case.expression.location,
-                        case.valueBinder,
-                        HIRExpression.Load(
-                            case.expression.location,
-                            case.casePayloadType,
-                            HIRExpression.PointerCast(
-                                case.expression.location,
-                                case.casePayloadType,
-                                discriminantPtr
-                            )
-                        )
-                    ),
-
-                ))
             }
+            emitAssign(case.valueBinder, discriminantPtr.ptrCast(case.casePayloadType))
             emitAssign(resultRef, transformExpression(case.expression))
             emit(
                 HIRStatement.ifStatement(

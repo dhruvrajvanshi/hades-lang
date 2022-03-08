@@ -111,10 +111,13 @@ fun HIRBuilder.declareAndAssign(name: Name, rhs: HIRExpression, location: Source
 }
 
 fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
+    emitAssign(valRef.name, rhs)
+
+fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
     emit(
         HIRStatement.Assignment(
             location,
-            valRef.name,
+            name,
             rhs
         )
     )
