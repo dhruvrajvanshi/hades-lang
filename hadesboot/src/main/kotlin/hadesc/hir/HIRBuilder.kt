@@ -1,14 +1,11 @@
-package hadesc.hirgen
+package hadesc.hir
 
 import hadesc.Name
 import hadesc.context.NamingContext
-import hadesc.hir.HIRBlock
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIRStatement
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-internal interface HIRBuilder {
+interface HIRBuilder {
     var currentLocation: SourceLocation
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
@@ -63,16 +60,16 @@ internal interface HIRBuilder {
 }
 
 
-internal fun <T: HIRStatement> HIRBuilder.emit(statement: T): T {
+fun <T: HIRStatement> HIRBuilder.emit(statement: T): T {
     requireNotNull(currentStatements).add(statement)
     return statement
 }
 
-internal fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
+fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     val name = namingCtx.makeUniqueName(namePrefix)
     return declareVariable(name, type, location)
 }
-internal fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
+fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     emit(HIRStatement.ValDeclaration(
         location,
         name,
@@ -88,7 +85,7 @@ internal fun HIRBuilder.declareVariable(name: Name, type: Type, location: Source
 }
 
 
-internal fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
+fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
     val variable = declareVariable(namePrefix, rhs.type, location)
     emit(HIRStatement.Assignment(
         location,
@@ -99,7 +96,7 @@ internal fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpres
     return variable
 }
 
-internal fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
+fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
     emit(
         HIRStatement.Assignment(
             location,
