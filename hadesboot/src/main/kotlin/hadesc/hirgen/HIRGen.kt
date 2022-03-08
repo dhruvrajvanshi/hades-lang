@@ -480,15 +480,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         deferStack.pop()
     }
 
-    override fun buildBlock(location: SourceLocation, name: Name?, builder: () -> Unit): HIRBlock {
-        val oldStatements = currentStatements
-        val statements = mutableListOf<HIRStatement>()
-        currentStatements = statements
-        builder()
-        currentStatements = oldStatements
-        return HIRBlock(location, name ?: ctx.makeUniqueName(), statements)
-    }
-
     private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
         is Block.Member.Expression -> listOf(HIRStatement.Expression(lowerExpression(member.expression)))
         is Block.Member.Statement -> lowerStatement(member.statement)
