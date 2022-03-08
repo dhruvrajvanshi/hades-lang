@@ -30,12 +30,16 @@ interface NamingContext {
     fun makeUniqueName(prefix: String = ""): Name
     fun makeName(text: String): Name = Name(text)
 }
+interface GlobalConstantContext {
+    val enumTagType: Type
+}
 class Context(
     val options: BuildOptions
-): ASTContext, NamingContext {
+): ASTContext, NamingContext, GlobalConstantContext {
     val analyzer = Analyzer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
+    override val enumTagType: Type = Type.u8
 
     val diagnosticReporter = DiagnosticReporter()
 
@@ -52,7 +56,7 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        hirModule = DesugarWhenExpressions(this).transformModule(hirModule)
+        hirModule = DesugarWhenExpressions(this, this).transformModule(hirModule)
         logger().debug("DesugarWhenExpressions:\n${hirModule.prettyPrint()}")
 
         hirModule = DesugarClosures(this).transformModule(hirModule)
@@ -66,7 +70,7 @@ class Context(
         hirModule = DesugarBlockExpressions(this).transformModule(hirModule)
         logger().debug("DesugarBlockExpressions:\n${hirModule.prettyPrint()}")
 
-        hirModule = SimplifyVoidExpressions().transformModule(hirModule)
+        hirModule = SimplifyVoidExpressions(this).transformModule(hirModule)
 
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
         logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
@@ -154,5 +158,5 @@ class Context(
         return makeName("\$$_nameIndex")
     }
 
-    fun enumTagType(): Type = Type.u8
+    fun enumTagType(): Type = enumTagType
 }

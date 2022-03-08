@@ -1,6 +1,6 @@
 package hadesc.hir.passes
 
-import hadesc.context.Context
+import hadesc.context.NamingContext
 import hadesc.hir.HIRBlock
 import hadesc.hir.HIRConstant.BoolValue
 import hadesc.hir.HIRExpression
@@ -10,7 +10,7 @@ import hadesc.hir.BinaryOperator
 import hadesc.hir.HIRStatement
 import hadesc.types.Type
 
-class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer() {
+class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): AbstractHIRTransformer() {
 
     override fun transformBinOp(expression: HIRExpression.BinOp): HIRExpression {
         return when(expression.operator) {
@@ -26,7 +26,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
              * result
              */
             BinaryOperator.AND -> {
-                val name = ctx.makeUniqueName()
+                val name = namingCtx.makeUniqueName()
                 emit(
                     ValDeclaration(
                         expression.location,
@@ -39,14 +39,14 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                     Companion.ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
-                        trueBranch = HIRBlock(expression.lhs.location, ctx.makeUniqueName(), mutableListOf(
+                        trueBranch = HIRBlock(expression.lhs.location, namingCtx.makeUniqueName(), mutableListOf(
                             Assignment(
                                 expression.lhs.location,
                                 name,
                                 transformExpression(expression.rhs)
                             )
                         )),
-                        falseBranch = HIRBlock(expression.rhs.location, ctx.makeUniqueName(), mutableListOf(
+                        falseBranch = HIRBlock(expression.rhs.location, namingCtx.makeUniqueName(), mutableListOf(
                             Assignment(
                                 expression.rhs.location,
                                 name,
@@ -74,7 +74,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
              * }
              */
             BinaryOperator.OR -> {
-                val name = ctx.makeUniqueName()
+                val name = namingCtx.makeUniqueName()
                 emit(
                     ValDeclaration(
                         expression.location,
@@ -88,7 +88,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                         expression.location,
                         condition = transformExpression(expression.lhs),
                         trueBranch = HIRBlock(
-                            expression.lhs.location, ctx.makeUniqueName(), mutableListOf(
+                            expression.lhs.location, namingCtx.makeUniqueName(), mutableListOf(
                                 Assignment(
                                     expression.lhs.location,
                                     name,
@@ -97,7 +97,7 @@ class SimplifyShortCircuitingOperators(val ctx: Context): AbstractHIRTransformer
                             )
                         ),
                         falseBranch = HIRBlock(
-                            expression.rhs.location, ctx.makeUniqueName(), mutableListOf(
+                            expression.rhs.location, namingCtx.makeUniqueName(), mutableListOf(
                                 Assignment(
                                     expression.rhs.location,
                                     name,

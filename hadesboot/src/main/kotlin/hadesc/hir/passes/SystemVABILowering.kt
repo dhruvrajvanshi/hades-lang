@@ -1,6 +1,6 @@
 package hadesc.hir.passes
 
-import hadesc.context.Context
+import hadesc.context.NamingContext
 
 /**
  * This transformation pass converts functions and calls
@@ -10,7 +10,7 @@ import hadesc.context.Context
  * This ensures that the compiled code is interoperable with
  * separately compiled C libraries.
  */
-class SystemVABILowering(val ctx: Context): AbstractHIRTransformer()
+class SystemVABILowering(override val namingCtx: NamingContext): AbstractHIRTransformer()
 
 @Suppress("unused")
 enum class TypeClass {

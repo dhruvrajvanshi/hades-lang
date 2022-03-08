@@ -1,6 +1,7 @@
 package hadesc.hir.passes
 
-import hadesc.context.Context
+import hadesc.context.GlobalConstantContext
+import hadesc.context.NamingContext
 import hadesc.hir.HIRBlock
 import hadesc.hir.HIRConstant
 import hadesc.hir.HIRExpression
@@ -8,11 +9,14 @@ import hadesc.hir.HIRStatement
 import hadesc.hir.BinaryOperator
 import hadesc.types.Type
 
-class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer() {
+class DesugarWhenExpressions(
+    override val namingCtx: NamingContext,
+    private val constCtx: GlobalConstantContext
+) : AbstractHIRTransformer() {
     override fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
         val blockStatements = requireNotNull(currentStatements)
-        val discriminantName = ctx.makeUniqueName()
-        val resultName = ctx.makeUniqueName()
+        val discriminantName = namingCtx.makeUniqueName()
+        val resultName = namingCtx.makeUniqueName()
         blockStatements.addAll(
             listOfNotNull(
                 HIRStatement.ValDeclaration(
@@ -42,9 +46,9 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
         )
         val discriminantTag = HIRExpression.GetStructField(
             expression.location,
-            ctx.enumTagType(),
+            constCtx.enumTagType,
             lhs = discriminant,
-            name = ctx.makeName("\$tag"),
+            name = namingCtx.makeName("\$tag"),
             index = 0
         )
 
@@ -56,7 +60,7 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
         expression.cases.forEachIndexed { index, case ->
             val trueBranch = HIRBlock(
                 case.expression.location,
-                ctx.makeUniqueName(),
+                namingCtx.makeUniqueName(),
                 mutableListOf(
                     HIRStatement.ValDeclaration(
                         case.expression.location,
@@ -93,12 +97,12 @@ class DesugarWhenExpressions(private val ctx: Context) : AbstractHIRTransformer(
                         operator = BinaryOperator.EQUALS,
                         rhs = HIRConstant.IntValue(
                             case.expression.location,
-                            ctx.enumTagType(),
+                            constCtx.enumTagType,
                             index
                         )
                     ),
                     trueBranch,
-                    HIRBlock(location = case.expression.location, ctx.makeUniqueName())
+                    HIRBlock(location = case.expression.location, namingCtx.makeUniqueName())
                 )
             )
         }

@@ -1,16 +1,15 @@
 package hadesc.hir.passes
 
-import hadesc.context.Context
+import hadesc.context.NamingContext
 import hadesc.hir.HIRBlock
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
 import hadesc.types.Type
 
-class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
-    override var currentStatements: MutableList<HIRStatement>? = null
+class DesugarBlockExpressions(override val namingCtx: NamingContext): AbstractHIRTransformer() {
 
     override fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
-        val resultName = ctx.makeUniqueName()
+        val resultName = namingCtx.makeUniqueName()
 
         checkNotNull(currentStatements).apply {
             val initialBlock = transformBlock(expression.block)
@@ -25,7 +24,7 @@ class DesugarBlockExpressions(private val ctx: Context): HIRTransformer {
                     ))
                     HIRBlock(
                         initialBlock.location,
-                        ctx.makeUniqueName(),
+                        namingCtx.makeUniqueName(),
                         blockStatements
                     )
                 }

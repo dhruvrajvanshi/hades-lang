@@ -6,7 +6,7 @@ import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
-import hadesc.context.Context
+import hadesc.context.NamingContext
 import hadesc.hir.*
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
@@ -16,7 +16,7 @@ import hadesc.types.toSubstitution
 import java.util.concurrent.LinkedBlockingQueue
 
 class Monomorphization(
-        private val ctx: Context
+        override val namingCtx: NamingContext
 ): AbstractHIRTransformer() {
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
@@ -208,7 +208,7 @@ class Monomorphization(
     private fun specializeName(name: QualifiedName, typeArgs: List<Type>): QualifiedName {
         return QualifiedName(listOf(
                 *name.names.toTypedArray(),
-                ctx.makeName("[" +
+                namingCtx.makeName("[" +
                         typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
                 "]")
         ))
@@ -371,7 +371,7 @@ class Monomorphization(
     }
 
     private val HIRDefinition.Implementation.name get() =
-        ctx.makeName("${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
+        namingCtx.makeName("${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
 
 
 }

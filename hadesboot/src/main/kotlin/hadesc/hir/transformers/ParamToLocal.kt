@@ -30,7 +30,7 @@ import llvm.makeList
  * this is trivial.
  *
  */
-class ParamToLocal(private val ctx: Context): AbstractHIRTransformer() {
+class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
     private val paramCopies = mutableMapOf<TaggedLocation<Binder>, Name>()
 
     fun declareParamCopies(params: List<HIRParam>): List<HIRStatement> =
@@ -57,7 +57,7 @@ class ParamToLocal(private val ctx: Context): AbstractHIRTransformer() {
             )
 
     private fun declareParamCopy(param: HIRParam) = makeList {
-        val copyName = ctx.makeName("%${param.name.text}%copy")
+        val copyName = namingCtx.makeName("%${param.name.text}%copy")
         check(paramCopies[param.binder.taggedLocation()] == null) {"${param.location}: Duplicate param: ${param.name.text}"}
         paramCopies[param.binder.taggedLocation()] = copyName
         add(

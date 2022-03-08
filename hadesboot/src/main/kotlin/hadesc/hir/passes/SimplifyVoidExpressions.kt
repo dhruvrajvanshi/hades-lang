@@ -1,10 +1,11 @@
 package hadesc.hir.passes
 
+import hadesc.context.NamingContext
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
 import hadesc.types.Type
 
-class SimplifyVoidExpressions: AbstractHIRTransformer() {
+class SimplifyVoidExpressions(override val namingCtx: NamingContext): AbstractHIRTransformer() {
     override fun transformValDeclaration(statement: HIRStatement.ValDeclaration): Collection<HIRStatement> {
         return if (statement.type is Type.Void) {
             emptyList()

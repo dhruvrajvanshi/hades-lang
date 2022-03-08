@@ -5,11 +5,13 @@ import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.hir.*
 import hadesc.hir.TypeTransformer
+import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
-open class AbstractHIRTransformer: HIRTransformer {
+abstract class AbstractHIRTransformer: HIRTransformer {
     override var currentStatements: MutableList<HIRStatement>? = null
+    override lateinit var currentLocation: SourceLocation
     private var basicBlocks: MutableList<HIRBlock>? = null
 
     protected fun emit(statement: HIRStatement) {
@@ -38,7 +40,7 @@ open class AbstractHIRTransformer: HIRTransformer {
     }
 }
 
-interface HIRTransformer: TypeTransformer {
+interface HIRTransformer: TypeTransformer, HIRBuilder {
     fun transformModule(oldModule: HIRModule): HIRModule {
         val definitions = mutableListOf<HIRDefinition>()
         for (definition in oldModule.definitions) {
@@ -120,7 +122,7 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    var currentStatements: MutableList<HIRStatement>?
+    override var currentStatements: MutableList<HIRStatement>?
     fun transformBlock(body: HIRBlock): HIRBlock {
         val oldStatements = currentStatements
         val currentStatements = mutableListOf<HIRStatement>()
@@ -136,7 +138,11 @@ interface HIRTransformer: TypeTransformer {
         )
     }
 
-    fun transformStatement(statement: HIRStatement): Collection<HIRStatement> = when(statement) {
+    fun transformStatement(statement: HIRStatement): Collection<HIRStatement> {
+        currentLocation = statement.location
+        return transformStatementWorker(statement)
+    }
+    private fun transformStatementWorker(statement: HIRStatement): Collection<HIRStatement> = when(statement) {
         is HIRStatement.Expression -> transformExpressionStatement(statement)
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.ReturnVoid -> transformRetVoidStatement(statement)
@@ -234,7 +240,11 @@ interface HIRTransformer: TypeTransformer {
         return listOf(HIRStatement.Expression(transformExpression(statement.expression)))
     }
 
-    fun transformExpression(expression: HIRExpression): HIRExpression = when(expression) {
+    fun transformExpression(expression: HIRExpression): HIRExpression {
+        currentLocation = expression.location
+        return transformExpressionWorker(expression)
+    }
+    private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = when(expression) {
         is HIRExpression.Call -> transformCall(expression)
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)

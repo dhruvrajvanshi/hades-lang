@@ -4,7 +4,7 @@ import hadesc.Name
 import hadesc.analysis.ClosureCaptures
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
-import hadesc.context.Context
+import hadesc.context.NamingContext
 import hadesc.hir.*
 import hadesc.hir.HIRExpression.*
 import hadesc.hir.HIRStatement.*
@@ -16,11 +16,11 @@ import hadesc.types.Type
 import libhades.collections.Stack
 import java.nio.file.Path
 
-class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
+class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransformer() {
     private val definitions = mutableListOf<HIRDefinition>()
 
-    private val closureCtxFieldName = ctx.makeName("ctx")
-    private val closureFunctionPtrName = ctx.makeName("functionPtr")
+    private val closureCtxFieldName = namingCtx.makeName("ctx")
+    private val closureFunctionPtrName = namingCtx.makeName("functionPtr")
     private val closureCtxFieldIndex = 0
     private val closureFuncPtrFieldIndex = 1
     private val captureStack = Stack<Map<Name, CaptureInfo>>()
@@ -31,8 +31,8 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
             start = Position(0, 0),
             stop = Position(0, 0)
         )
-        val structName = ctx.makeName("\$builtin.ClosureWithResult")
-        val typeParamName = ctx.makeName("T")
+        val structName = namingCtx.makeName("\$builtin.ClosureWithResult")
+        val typeParamName = namingCtx.makeName("T")
         val typeParam = Binder(Identifier(location, typeParamName))
         val def = HIRDefinition.Struct(
             location = location,
@@ -56,7 +56,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
             start = Position(0, 0),
             stop = Position(0, 0)
         )
-        val structName = ctx.makeName("\$builtin.ClosureWithoutResult")
+        val structName = namingCtx.makeName("\$builtin.ClosureWithoutResult")
         val def = HIRDefinition.Struct(
             location = location,
             typeParams = null,
@@ -198,11 +198,11 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
             else
                 Type.Application(contextTypeConstructor, capturedTypeArgs)
 
-        val contextName = ctx.makeUniqueName()
-        val contextParamName = ctx.makeName("\$ctx")
-        val contextDerefname = ctx.makeName("\$ctx\$deref")
+        val contextName = namingCtx.makeUniqueName()
+        val contextParamName = namingCtx.makeName("\$ctx")
+        val contextDerefname = namingCtx.makeName("\$ctx\$deref")
 
-        val closureName = ctx.makeUniqueName()
+        val closureName = namingCtx.makeUniqueName()
         val closureType = getClosureType(type)
 
         // val contextName: contextType
@@ -264,7 +264,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
         )
 
 
-        val functionName = ctx.makeUniqueName()
+        val functionName = namingCtx.makeUniqueName()
         val signature = HIRFunctionSignature(
             location = expression.location,
             name = functionName.toQualifiedName(),
@@ -371,7 +371,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
                 )
         currentBlockStatements = oldBlockStatements
         captureStack.pop()
-        val body = HIRBlock(expression.body.location, ctx.makeName("entry"), statements)
+        val body = HIRBlock(expression.body.location, namingCtx.makeName("entry"), statements)
         val fn = HIRDefinition.Function(
             expression.location,
             signature,
@@ -384,7 +384,7 @@ class DesugarClosures(val ctx: Context): AbstractHIRTransformer() {
     }
 
     private fun makeAndAddClosureContextStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
-        val structName = ctx.makeUniqueName().toQualifiedName()
+        val structName = namingCtx.makeUniqueName().toQualifiedName()
         val structDef = HIRDefinition.Struct(
             location = location,
             name = structName,
