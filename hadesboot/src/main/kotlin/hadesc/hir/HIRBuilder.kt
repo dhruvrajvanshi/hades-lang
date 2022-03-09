@@ -130,3 +130,11 @@ fun HIRBuilder.buildBlock(location: SourceLocation = currentLocation, name: Name
     currentStatements = oldStatements
     return HIRBlock(location, name ?: namingCtx.makeUniqueName(), statements)
 }
+
+fun HIRBuilder.trueValue(location: SourceLocation = currentLocation): HIRConstant.BoolValue {
+    return HIRConstant.BoolValue(location, Type.Bool, true)
+}
+
+fun HIRBuilder.falseValue(location: SourceLocation = currentLocation): HIRConstant.BoolValue {
+    return HIRConstant.BoolValue(location, Type.Bool, false)
+}

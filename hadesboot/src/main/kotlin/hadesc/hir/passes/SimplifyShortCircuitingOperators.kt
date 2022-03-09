@@ -1,13 +1,8 @@
 package hadesc.hir.passes
 
 import hadesc.context.NamingContext
-import hadesc.hir.HIRBlock
-import hadesc.hir.HIRConstant.BoolValue
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIRExpression.ValRef
-import hadesc.hir.HIRStatement.*
-import hadesc.hir.BinaryOperator
-import hadesc.hir.HIRStatement
+import hadesc.hir.*
+import hadesc.hir.HIRStatement.Companion.ifStatement
 import hadesc.types.Type
 
 class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): AbstractHIRTransformer() {
@@ -26,44 +21,20 @@ class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): A
              * result
              */
             BinaryOperator.AND -> {
-                val name = namingCtx.makeUniqueName()
+                val resultRef = declareVariable("result", Type.Bool)
                 emit(
-                    ValDeclaration(
-                        expression.location,
-                        name,
-                        isMutable = false,
-                        Type.Bool,
-                    )
-                )
-                emit(
-                    Companion.ifStatement(
+                    ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
-                        trueBranch = HIRBlock(expression.lhs.location, namingCtx.makeUniqueName(), mutableListOf(
-                            Assignment(
-                                expression.lhs.location,
-                                name,
-                                transformExpression(expression.rhs)
-                            )
-                        )),
-                        falseBranch = HIRBlock(expression.rhs.location, namingCtx.makeUniqueName(), mutableListOf(
-                            Assignment(
-                                expression.rhs.location,
-                                name,
-                                BoolValue(
-                                    expression.lhs.location,
-                                    Type.Bool,
-                                    false
-                                )
-                            )
-                        ))
+                        trueBranch = buildBlock(expression.lhs.location) {
+                            emitAssign(resultRef, transformExpression(expression.rhs))
+                        },
+                        falseBranch = buildBlock(expression.rhs.location) {
+                            emitAssign(resultRef, falseValue())
+                        }
                     )
                 )
-                ValRef(
-                    expression.location,
-                    Type.Bool,
-                    name
-                )
+                return resultRef
             }
             /**
              * a or b
@@ -74,44 +45,21 @@ class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): A
              * }
              */
             BinaryOperator.OR -> {
-                val name = namingCtx.makeUniqueName()
+                val resultRef = declareVariable("result", Type.Bool)
+                currentLocation = expression.lhs.location
                 emit(
-                    ValDeclaration(
-                        expression.location,
-                        name,
-                        isMutable = false,
-                        type = Type.Bool,
-                    )
-                )
-                emit(
-                    HIRStatement.ifStatement(
+                    ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
-                        trueBranch = HIRBlock(
-                            expression.lhs.location, namingCtx.makeUniqueName(), mutableListOf(
-                                Assignment(
-                                    expression.lhs.location,
-                                    name,
-                                    BoolValue(expression.lhs.location, Type.Bool, true)
-                                )
-                            )
-                        ),
-                        falseBranch = HIRBlock(
-                            expression.rhs.location, namingCtx.makeUniqueName(), mutableListOf(
-                                Assignment(
-                                    expression.rhs.location,
-                                    name,
-                                    transformExpression(expression.rhs)
-                                )
-                            )
-                        )
+                        trueBranch = buildBlock {
+                            emitAssign(resultRef, trueValue())
+                        },
+                        falseBranch = buildBlock {
+                            emitAssign(resultRef, transformExpression(expression.rhs))
+                        }
                     )
                 )
-                ValRef(
-                    expression.location,
-                    Type.Bool,
-                    name
-                )
+                resultRef
             }
             else -> HIRExpression.BinOp(
                 expression.location,
