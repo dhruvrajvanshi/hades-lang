@@ -221,9 +221,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 )
 
         // context = contextStruct(...pointersToCaptures)
-        currentStatements?.add(
-            Assignment(
-            expression.location,
+        emitAssign(
             contextName,
             Call(
                 expression.location,
@@ -231,7 +229,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 contextConstructorCallee,
                 pointersToCaptures
             )
-        )
         )
 
 
@@ -279,9 +276,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             )
         })
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
-        currentStatements?.add(
-            Assignment(
-            expression.location,
+        emitAssign(
             closureName,
             Call(
                 expression.location,
@@ -308,7 +303,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                     )
                 )
             )
-        )
         )
 
         captureStack.push(expression.captures.values.entries.mapIndexed { index, it ->
