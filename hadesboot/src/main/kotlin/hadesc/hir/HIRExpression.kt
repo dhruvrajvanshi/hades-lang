@@ -184,7 +184,7 @@ sealed interface HIRExpression: HIRNode {
         }
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
-        is ValRef -> name.text
+        is ValRef -> "%${name.text}"
         is GetStructField -> "(${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()})"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"

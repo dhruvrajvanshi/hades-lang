@@ -109,7 +109,7 @@ sealed interface HIRStatement: HIRNode {
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
         is ReturnVoid -> "return"
-        is Alloca -> "${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
+        is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
         is Assignment -> "${name.text} = ${value.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +
                 arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +
