@@ -295,33 +295,33 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         captureStack.push(expression.captures.values.entries.mapIndexed { index, it ->
             it.key.name to CaptureInfo(contextDerefname, contextType, it.key.location, index)
         }.toMap())
-        val statements = mutableListOf<HIRStatement>()
-        val oldBlockStatements = currentStatements
-        currentStatements = statements
-        emit(Alloca(expression.location, name = contextDerefname, isMutable = true, type = contextType))
-        emit(
-            Assignment(
-                expression.location,
-                contextDerefname,
-                Load(
-                    expression.location,
-                    contextType,
-                    ParamRef(
-                        expression.location,
-                        Type.Ptr(contextType, isMutable = false),
-                        contextParamName,
-                        Binder(Identifier(expression.location, contextDerefname))
-                    )))
-        )
-        expression.body.statements.forEach {
-            emitAll(transformStatement(it))
-        }
-        if (type.to is Type.Void)
-            emit(ReturnVoid(expression.location))
 
-        currentStatements = oldBlockStatements
+        val body = buildBlock(expression.body.location, namingCtx.makeName("entry")) {
+            emit(Alloca(expression.location, name = contextDerefname, isMutable = true, type = contextType))
+            emit(
+                Assignment(
+                    expression.location,
+                    contextDerefname,
+                    Load(
+                        expression.location,
+                        contextType,
+                        ParamRef(
+                            expression.location,
+                            Type.Ptr(contextType, isMutable = false),
+                            contextParamName,
+                            Binder(Identifier(expression.location, contextDerefname))
+                        )
+                    )
+                )
+            )
+            expression.body.statements.forEach {
+                emitAll(transformStatement(it))
+            }
+            if (type.to is Type.Void)
+                emit(ReturnVoid(expression.location))
+
+        }
         captureStack.pop()
-        val body = HIRBlock(expression.body.location, namingCtx.makeName("entry"), statements)
         val fn = HIRDefinition.Function(
             expression.location,
             signature,
