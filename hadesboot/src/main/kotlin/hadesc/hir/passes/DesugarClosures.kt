@@ -144,17 +144,13 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         type: Type,
         varName: Name,
         captureInfo: CaptureInfo): HIRExpression {
-        return GetStructField(
+        return LocalRef(
             location,
-            Type.Ptr(type, isMutable = true),
-            lhs = ValRef(
-                location,
-                captureInfo.contextType,
-                captureInfo.contextName
-            ),
-            name = varName,
-            index = captureInfo.index
+            captureInfo.contextType.ptr(),
+            captureInfo.contextName
         )
+            .fieldPtr(varName, captureInfo.index, type.ptr())
+            .load()
     }
 
     override fun transformValDeclaration(statement: Alloca): Collection<HIRStatement> {
