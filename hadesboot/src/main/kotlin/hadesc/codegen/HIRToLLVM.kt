@@ -572,6 +572,7 @@ class HIRToLLVM(
             is HIRConstant.ByteString -> lowerByteString(constant)
             is HIRConstant.FloatValue -> lowerFloatLiteral(constant)
             is HIRConstant.IntValue -> lowerIntLiteral(constant)
+            is HIRConstant.Void -> requireUnreachable()
         }
 
     private fun lowerArrayLiteral(constant: HIRConstant.ArrayLiteral): Value {

@@ -476,6 +476,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRConstant.IntValue -> expression
         is HIRConstant.FloatValue -> expression
         is HIRConstant.ArrayLiteral -> expression
+        is HIRConstant.Void -> expression
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {

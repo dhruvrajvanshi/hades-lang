@@ -34,4 +34,9 @@ sealed interface HIRConstant: HIRExpression {
         override val type: Type.Array,
         val items: List<HIRConstant>,
     ) : HIRConstant
+
+    data class Void(override val location: SourceLocation): HIRConstant {
+        override val type: Type
+            get() = Type.Void
+    }
 }
