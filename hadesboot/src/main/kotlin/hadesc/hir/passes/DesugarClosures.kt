@@ -174,14 +174,10 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val type = expression.type
         require(type is Type.Function)
 
-        val contextStruct = makeAndAddClosureContextStruct(expression.location, expression.captures)
-        val contextTypeConstructor = Type.Constructor(contextStruct.name)
         val capturedTypeArgs = expression.captures.types.map { Type.ParamRef(Binder(Identifier(it.location, it.name))) }
-        val contextType =
-            if (expression.captures.types.isEmpty())
-                contextTypeConstructor
-            else
-                Type.Application(contextTypeConstructor, capturedTypeArgs)
+
+        val contextStruct = makeAndAddClosureContextStruct(expression.location, expression.captures)
+        val contextType = makeContextType(contextStruct, capturedTypeArgs)
 
         val contextName = namingCtx.makeUniqueName()
         val contextParamName = namingCtx.makeName("\$ctx")
@@ -209,16 +205,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             contextStruct.constructorType,
             contextStruct.name
         )
-        val contextConstructorCallee =
-            if (expression.captures.types.isEmpty())
-                contextConstructorRef
-            else
-                TypeApplication(
-                    expression.location,
-                    contextConstructorRef.type, // FIXME: This isn't the correct type of this expression.
-                    contextConstructorRef,
-                    capturedTypeArgs
-                )
+        val contextConstructorCallee = applyTypeArgs(contextConstructorRef, capturedTypeArgs)
 
         // context = contextStruct(...pointersToCaptures)
         emitAssign(
@@ -299,7 +286,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val body = buildBlock(expression.body.location, namingCtx.makeName("entry")) {
             declareAndAssign(contextDerefname, ParamRef(
                 expression.location,
-                Type.Ptr(contextType, isMutable = false),
+                contextType.ptr(),
                 contextParamName,
                 Binder(Identifier(expression.location, contextDerefname))
             ).load())
@@ -320,6 +307,26 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         definitions.add(fn)
 
         return ValRef(expression.location, closureType, closureName)
+    }
+
+    private fun applyTypeArgs(contextConstructorRef: HIRExpression, typeArgs: List<Type.ParamRef>): HIRExpression {
+        return if (typeArgs.isEmpty())
+            contextConstructorRef
+        else
+            TypeApplication(
+                currentLocation,
+                contextConstructorRef.type, // FIXME: This isn't the correct type of this expression.
+                contextConstructorRef,
+                typeArgs
+            )
+    }
+
+    private fun makeContextType(contextStruct: HIRDefinition.Struct, typeArgs: List<Type>): Type {
+        val contextTypeConstructor = Type.Constructor(contextStruct.name)
+        return if (typeArgs.isEmpty())
+                contextTypeConstructor
+            else
+                Type.Application(contextTypeConstructor, typeArgs)
     }
 
     private fun makeAndAddClosureContextStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
