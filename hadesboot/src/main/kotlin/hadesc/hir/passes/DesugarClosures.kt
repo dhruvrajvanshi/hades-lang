@@ -282,7 +282,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 emitAll(transformStatement(it))
             }
             if (type.to is Type.Void)
-                emit(ReturnVoid(expression.location))
+                emit(Return(expression.location, HIRConstant.Void(expression.location)))
 
         }
         captureStack.pop()

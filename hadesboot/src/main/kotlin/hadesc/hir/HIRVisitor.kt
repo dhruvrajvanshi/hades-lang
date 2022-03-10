@@ -16,7 +16,6 @@ interface HIRVisitor : TypeVisitor {
             is HIRStatement.Expression -> visitExpressionStatement(statement)
             is HIRStatement.MatchInt -> visitMatchInt(statement)
             is HIRStatement.Return -> visitReturnStatement(statement)
-            is HIRStatement.ReturnVoid -> unit
             is HIRStatement.Store -> visitStore(statement)
             is HIRStatement.Alloca -> visitValDeclaration(statement)
             is HIRStatement.While -> visitWhileStatement(statement)

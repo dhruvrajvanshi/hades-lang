@@ -25,7 +25,6 @@ sealed interface HIRStatement: HIRNode {
             val expression: HIRExpression
     ): HIRStatement
 
-    data class ReturnVoid(override val location: SourceLocation) : HIRStatement
     data class Alloca(
             override val location: SourceLocation,
             override val name: Name,
@@ -116,7 +115,6 @@ sealed interface HIRStatement: HIRNode {
     private fun prettyPrintInternal(): String = when(this) {
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
-        is ReturnVoid -> "return"
         is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
         is Assignment -> "%${name.text} = ${value.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +

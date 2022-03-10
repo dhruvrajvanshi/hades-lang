@@ -467,7 +467,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
         if (addReturnVoid) {
             terminateScope()
-            emit(HIRStatement.ReturnVoid(body.location))
+            emit(HIRStatement.Return(body.location, HIRConstant.Void(body.location)))
         } else {
             for (statement in requireNotNull(deferStack.peek())) {
                 emit(statement)
@@ -578,7 +578,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         terminateScope()
         requireNotNull(deferStack.peek()).removeIf { true }
         return if (statement.value == null) {
-            listOf(HIRStatement.ReturnVoid(statement.location))
+            listOf(HIRStatement.Return(statement.location, HIRConstant.Void(statement.location)))
         } else {
             listOf(
                 HIRStatement.Return(

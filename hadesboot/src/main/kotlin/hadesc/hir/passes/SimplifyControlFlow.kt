@@ -204,7 +204,6 @@ class SimplifyControlFlow(private val ctx: Context) {
             } else {
                 when (val statement = branch.statements.last()) {
                     is HIRStatement.Return -> Unit
-                    is HIRStatement.ReturnVoid -> Unit
                     is HIRStatement.SwitchInt -> {
                         for (case in statement.cases) {
                             visitBlock(getBlock(case.block))
@@ -229,7 +228,6 @@ class SimplifyControlFlow(private val ctx: Context) {
 
             is HIRStatement.Return,
             is HIRStatement.SwitchInt,
-            is HIRStatement.ReturnVoid,
                 -> true
 
             is HIRStatement.MatchInt -> requireUnreachable()

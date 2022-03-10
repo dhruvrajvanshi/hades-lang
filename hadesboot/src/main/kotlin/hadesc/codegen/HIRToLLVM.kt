@@ -260,9 +260,6 @@ class HIRToLLVM(
                 lowerExpression(statement.expression); unit
             }
             is HIRStatement.Return -> lowerReturnStatement(statement)
-            is HIRStatement.ReturnVoid -> {
-                builder.buildRetVoid(); unit
-            }
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
             is HIRStatement.MatchInt,
@@ -337,7 +334,11 @@ class HIRToLLVM(
 
 
     private fun lowerReturnStatement(statement: HIRStatement.Return) {
-        builder.buildRet(lowerExpression(statement.expression))
+        if (statement.expression.type == Type.Void) {
+            builder.buildRetVoid()
+        } else {
+            builder.buildRet(lowerExpression(statement.expression))
+        }
     }
 
     private fun lowerExpression(expression: HIRExpression): Value {

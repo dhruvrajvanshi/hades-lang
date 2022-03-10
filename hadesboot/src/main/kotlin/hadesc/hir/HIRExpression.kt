@@ -224,6 +224,7 @@ sealed interface HIRExpression: HIRNode {
         is HIRConstant.ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
                 items.joinToString(", ") { it.prettyPrint() } +
                 "]"
+        is HIRConstant.Void -> "void"
         is LocalRef -> "%${name.text}"
     }
 }
