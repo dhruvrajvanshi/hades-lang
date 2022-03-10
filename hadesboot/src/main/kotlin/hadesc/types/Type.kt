@@ -161,3 +161,4 @@ fun Map<SourceLocation, Type>.toSubstitution() = Substitution(ofMap = this)
 fun Iterable<Pair<Type.Param, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.binder.location to it.second })
 
 fun Type.ptr(isMutable: Boolean = false) = Type.Ptr(this, isMutable = isMutable)
+fun Type.mutPtr() = Type.Ptr(this, isMutable = true)

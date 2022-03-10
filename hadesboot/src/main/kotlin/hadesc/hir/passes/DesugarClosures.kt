@@ -13,6 +13,7 @@ import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.types.Type
+import hadesc.types.mutPtr
 import hadesc.types.ptr
 import libhades.collections.Stack
 import java.nio.file.Path
@@ -192,11 +193,11 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         // val closureName: closureType
         declareVariable(closureName, closureType)
 
-        val pointersToCaptures = expression.captures.values.map {
+        val pointersToCaptures = expression.captures.values.map { (binder, type) ->
             AddressOf(
                 expression.location,
-                Type.Ptr(it.value, isMutable = true),
-                it.key.name
+                type.mutPtr(),
+                binder.name
             )
         }
 
@@ -252,16 +253,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             signature.type,
             functionName.toQualifiedName()
         )
-        val functionPointer = transformExpression(if (expression.captures.types.isEmpty()) {
-            functionRef
-        } else {
-            TypeApplication(
-                location = expression.location,
-                type = signature.type,
-                expression = functionRef,
-                args = capturedTypeArgs
-            )
-        })
+        val functionPointer = transformExpression(applyTypeArgs(functionRef, capturedTypeArgs))
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
         emitAssign(
             closureName,
@@ -309,14 +301,14 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return ValRef(expression.location, closureType, closureName)
     }
 
-    private fun applyTypeArgs(contextConstructorRef: HIRExpression, typeArgs: List<Type.ParamRef>): HIRExpression {
+    private fun applyTypeArgs(type: HIRExpression, typeArgs: List<Type.ParamRef>): HIRExpression {
         return if (typeArgs.isEmpty())
-            contextConstructorRef
+            type
         else
             TypeApplication(
                 currentLocation,
-                contextConstructorRef.type, // FIXME: This isn't the correct type of this expression.
-                contextConstructorRef,
+                type.type, // FIXME: This isn't the correct type of this expression.
+                type,
                 typeArgs
             )
     }
