@@ -6,6 +6,14 @@ import hadesc.types.Type
 import hadesc.types.ptr
 
 sealed interface HIRStatement: HIRNode {
+    /**
+     * Instructions that bind a new name
+     * e.g.
+     * %x = alloca u32
+     */
+    sealed interface NameBinder {
+        val name: Name
+    }
     data class Expression(
             val expression: HIRExpression
     ) : HIRStatement {
@@ -20,10 +28,10 @@ sealed interface HIRStatement: HIRNode {
     data class ReturnVoid(override val location: SourceLocation) : HIRStatement
     data class Alloca(
             override val location: SourceLocation,
-            val name: Name,
+            override val name: Name,
             val isMutable: Boolean,
             val type: Type
-    ) : HIRStatement {
+    ) : HIRStatement, NameBinder {
         val pointerType get(): Type =
             type.ptr(isMutable)
     }
