@@ -13,6 +13,7 @@ import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.types.Type
+import hadesc.types.ptr
 import libhades.collections.Stack
 import java.nio.file.Path
 
@@ -38,10 +39,12 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             location = location,
             typeParams = listOf(HIRTypeParam(location, typeParamName)),
             fields = listOf(
-                closureCtxFieldName to Type.Ptr(Type.Void, isMutable = true),
+                closureCtxFieldName to Type.Void.ptr(),
                 closureFunctionPtrName to
-                        Type.Ptr(Type.Function(
-                            from = emptyList(), traitRequirements = emptyList(), to = Type.ParamRef(typeParam)), isMutable = false)
+                        Type.Function(
+                            from = emptyList(),
+                            traitRequirements = emptyList(),
+                            to = Type.ParamRef(typeParam)).ptr()
             ),
             name = structName.toQualifiedName()
         )
@@ -99,24 +102,20 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return Call(
             expression.location,
             expression.type,
-            PointerCast(
+            GetStructField(
                 closureRef.location,
-                toPointerOfType = Type.Function(
-                    from = expression.args.map { it.type } + listOf( Type.Ptr(Type.Void, isMutable = true) ),
-                    to = expression.type,
-                    traitRequirements = null
-                ),
-                value = GetStructField(
-                    closureRef.location,
-                    type = Type.Ptr(Type.Function(from = listOf(Type.Ptr(Type.Void, isMutable = true)), to = expression.type, traitRequirements = null), isMutable = false),
-                    lhs = closureRef,
-                    name = closureFunctionPtrName,
-                    index = closureFuncPtrFieldIndex
-                )
-            ),
+                type = Type.Function(from = listOf(Type.Void.ptr()), to = expression.type, traitRequirements = null).ptr(),
+                lhs = closureRef,
+                name = closureFunctionPtrName,
+                index = closureFuncPtrFieldIndex
+            ).ptrCast(Type.Function(
+                from = expression.args.map { it.type } + listOf(Type.Void.ptr()),
+                to = expression.type,
+                traitRequirements = null
+            )),
             expression.args.map { transformExpression(it) } + GetStructField(
                 closureRef.location,
-                type = Type.Ptr(Type.Void, isMutable = false),
+                type = Type.Void.ptr(),
                 lhs = closureRef,
                 name = closureCtxFieldName,
                 index = closureCtxFieldIndex,
