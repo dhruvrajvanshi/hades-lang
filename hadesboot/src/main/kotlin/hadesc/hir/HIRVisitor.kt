@@ -89,8 +89,11 @@ interface HIRVisitor : TypeVisitor {
             is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
             is HIRExpression.BlockExpression -> visitBlockExpression(expression)
             is HIRConstant -> visitConstant(expression)
+            is HIRExpression.LocalRef -> visitLocalRef(expression)
         }
     }
+
+    fun visitLocalRef(expression: HIRExpression.LocalRef) = unit
 
     fun visitBlockExpression(expression: HIRExpression.BlockExpression) {
         visitBlock(expression.block)

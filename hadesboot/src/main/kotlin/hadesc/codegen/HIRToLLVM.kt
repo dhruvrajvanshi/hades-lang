@@ -2,6 +2,7 @@ package hadesc.codegen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
+import hadesc.ast.Pattern
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.hir.passes.SimplifyControlFlow
@@ -29,7 +30,7 @@ class HIRToLLVM(
     private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)
     private var currentFunction: LLVMValueRef? = null
     private var currentHIRFunction: HIRDefinition.Function? = null
-    private val localPointers = mutableMapOf<Name, Value>()
+    private val localValues = mutableMapOf<Name, Value>()
     private val params = mutableMapOf<Name, Value>()
 
     private val log = logger()
@@ -192,7 +193,7 @@ class HIRToLLVM(
             attachDebugInfo(definition.signature, fn)
         }
         currentFunction = fn
-        localPointers.clear()
+        localValues.clear()
         blocks.clear()
         params.clear()
         definition.params.forEachIndexed { index, param ->
@@ -253,6 +254,7 @@ class HIRToLLVM(
             LLVM.LLVMSetCurrentDebugLocation2(builder, location)
         }
         when (statement) {
+            is HIRStatement.NameBinder -> lowerNameBinder(statement)
             is HIRStatement.Assignment -> lowerAssignment(statement)
             is HIRStatement.Expression -> {
                 lowerExpression(statement.expression); unit
@@ -262,13 +264,22 @@ class HIRToLLVM(
                 builder.buildRetVoid(); unit
             }
             is HIRStatement.Store -> lowerStore(statement)
-            is HIRStatement.Alloca -> lowerValDeclaration(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
             is HIRStatement.MatchInt,
             is HIRStatement.While -> requireUnreachable {
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
             }
         }
+    }
+
+    private fun lowerNameBinder(statement: HIRStatement.NameBinder) {
+        val value = when (statement) {
+            is HIRStatement.Alloca -> {
+                lowerAlloca(statement)
+            }
+        }
+
+        localValues[statement.name] = value
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
@@ -281,7 +292,7 @@ class HIRToLLVM(
     private fun lowerAssignment(statement: HIRStatement.Assignment) {
         log.debug("${statement.name.text} = ${statement.value.prettyPrint()}")
         val value = lowerExpression(statement.value)
-        val pointer = checkNotNull(localPointers[statement.name]) {
+        val pointer = checkNotNull(localValues[statement.name]) {
             TODO()
         }
         builder.buildStore(
@@ -290,13 +301,12 @@ class HIRToLLVM(
         )
     }
 
-    private fun lowerValDeclaration(statement: HIRStatement.Alloca) {
-        val value = builder.buildAlloca(
+    private fun lowerAlloca(statement: HIRStatement.Alloca): Value {
+        return builder.buildAlloca(
             lowerType(statement.type),
             statement.name.text,
             LLVM.LLVMABIAlignmentOfType(dataLayout, lowerType(statement.type))
         )
-        localPointers[statement.name] = value
     }
 
     private fun lowerSwitchInt(statement: HIRStatement.SwitchInt) {
@@ -368,6 +378,7 @@ class HIRToLLVM(
             is HIRExpression.When -> requireUnreachable()
             is HIRExpression.BlockExpression -> requireUnreachable()
             is HIRConstant -> lowerConstant(expression)
+            is HIRExpression.LocalRef -> lowerLocalRef(expression)
         }
     }
 
@@ -476,7 +487,7 @@ class HIRToLLVM(
     }
 
     private fun lowerAddressOf(expression: HIRExpression.AddressOf): Value {
-        return checkNotNull(localPointers[expression.name])
+        return checkNotNull(localValues[expression.name])
     }
 
     private fun lowerPointerCast(expression: HIRExpression.PointerCast): Value {
@@ -546,8 +557,12 @@ class HIRToLLVM(
     }
 
     private fun lowerValRef(expression: HIRExpression.ValRef): Value {
-        val ptr = checkNotNull(localPointers[expression.name])
+        val ptr = checkNotNull(localValues[expression.name])
         return builder.buildLoad(ptr, ctx.makeUniqueName().text)
+    }
+
+    private fun lowerLocalRef(expression: HIRExpression.LocalRef): Value {
+        return checkNotNull(localValues[expression.name])
     }
 
     private fun lowerConstant(constant: HIRConstant): Value =

@@ -42,6 +42,12 @@ sealed interface HIRExpression: HIRNode {
             val name: Name
     ) : HIRExpression
 
+    data class LocalRef(
+        override val location: SourceLocation,
+        override val type: Type,
+        val name: Name
+    ) : HIRExpression
+
     data class GetStructField(
             override val location: SourceLocation,
             override val type: Type,
@@ -218,5 +224,6 @@ sealed interface HIRExpression: HIRNode {
         is HIRConstant.ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
                 items.joinToString(", ") { it.prettyPrint() } +
                 "]"
+        is LocalRef -> "%${name.text}"
     }
 }

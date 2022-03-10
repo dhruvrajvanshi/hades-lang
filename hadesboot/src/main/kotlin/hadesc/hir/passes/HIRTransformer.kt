@@ -259,6 +259,15 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.ArrayIndex -> transformArrayIndex(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
         is HIRConstant -> transformConstant(expression)
+        is HIRExpression.LocalRef -> transformLocalRef(expression)
+    }
+
+    fun transformLocalRef(expression: HIRExpression.LocalRef): HIRExpression {
+        return HIRExpression.LocalRef(
+            expression.location,
+            lowerType(expression.type),
+            expression.name
+        )
     }
 
     fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
