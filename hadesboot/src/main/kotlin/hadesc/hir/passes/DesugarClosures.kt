@@ -191,24 +191,10 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val closureType = getClosureType(type)
 
         // val contextName: contextType
-        currentStatements?.add(
-            Alloca(
-            expression.location,
-            contextName,
-            isMutable = true,
-            contextType
-        )
-        )
+        declareVariable(contextName, contextType)
 
         // val closureName: closureType
-        currentStatements?.add(
-            Alloca(
-            expression.location,
-            closureName,
-            isMutable = false,
-            closureType
-        )
-        )
+        declareVariable(closureName, closureType)
 
         val pointersToCaptures = expression.captures.values.map {
             AddressOf(
