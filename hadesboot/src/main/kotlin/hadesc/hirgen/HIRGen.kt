@@ -263,18 +263,15 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                         declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: emptyList()
                     )
             if (case.params != null && case.params.isNotEmpty()) {
-                emit(
-                    HIRStatement.Assignment(
+                emitAssign(
+                    payloadVal.name,
+                    HIRExpression.Call(
                         loc,
-                        payloadVal.name,
-                        HIRExpression.Call(
-                            loc,
-                            payloadVal.type,
-                            caseFn,
-                            case.params.mapIndexed { index, it ->
-                                HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
-                            }
-                        )
+                        payloadVal.type,
+                        caseFn,
+                        case.params.mapIndexed { index, it ->
+                            HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
+                        }
                     )
                 )
             }
@@ -486,10 +483,16 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerStatement(statement: Statement): Collection<HIRStatement> = when(statement) {
         is Statement.Return -> lowerReturnStatement(statement)
-        is Statement.Val -> lowerValStatement(statement)
+        is Statement.Val -> {
+            lowerValStatement(statement)
+            emptyList()
+        }
         is Statement.While -> lowerWhileStatement(statement)
         is Statement.If -> lowerIfStatement(statement)
-        is Statement.LocalAssignment -> lowerLocalAssignment(statement)
+        is Statement.LocalAssignment -> {
+            lowerLocalAssignment(statement)
+            emptyList()
+        }
         is Statement.MemberAssignment -> lowerMemberAssignmentStatement(statement)
         is Statement.PointerAssignment -> lowerPointerAssignment(statement)
         is Statement.Defer -> lowerDeferStatement(statement)
@@ -526,16 +529,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerLocalAssignment(statement: Statement.LocalAssignment): Collection<HIRStatement> {
+    private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
         val binding = ctx.resolver.resolve(statement.name)
         require(binding is Binding.ValBinding)
-        return listOf(
-                HIRStatement.Assignment(
-                        statement.location,
-                        name = lowerLocalBinder(binding.statement.binder),
-                        value = lowerExpression(statement.value)
-                )
-        )
+        emitAssign(lowerLocalBinder(binding.statement.binder), lowerExpression(statement.value))
     }
 
     private fun lowerWhileStatement(statement: Statement.While): Collection<HIRStatement> {
@@ -546,33 +543,19 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     statement.location,
                     conditionName = conditionVar.name,
                     buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
-                       emit(HIRStatement.Assignment(
-                           statement.condition.location,
+                       emitAssign(
                            conditionVar.name,
                            lowerExpression(statement.condition)
-                       ))
+                       )
                     },
                     lowerBlock(statement.body)
                 )
         )
     }
 
-    private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {
+    private fun lowerValStatement(statement: Statement.Val) {
         val name = lowerLocalBinder(statement.binder)
-        return listOf(
-            HIRStatement.Alloca(
-                statement.location,
-                name,
-                statement.isMutable,
-                ctx.analyzer.reduceGenericInstances(statement.rhs.type)
-            ),
-            HIRStatement.Assignment(
-                statement.location,
-                name,
-                lowerExpression(statement.rhs),
-
-            )
-        )
+        declareAndAssign(name, lowerExpression(statement.rhs))
     }
 
     override fun lowerLocalBinder(binder: Binder): Name {
@@ -990,18 +973,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val result = declareVariable("if_result", typeOfExpression(expression))
         val name = result.name
         val trueBlock = buildBlock(expression.trueBranch.location) {
-            emit(HIRStatement.Assignment(
-                expression.location,
-                name,
-                lowerExpression(expression.trueBranch)
-            ))
+            emitAssign(name, lowerExpression(expression.trueBranch))
         }
         val falseBlock = buildBlock(expression.falseBranch.location) {
-            emit(HIRStatement.Assignment(
-                expression.location,
-                name,
-                lowerExpression(expression.falseBranch)
-            ))
+            emitAssign(name, lowerExpression(expression.falseBranch))
         }
         emit(ifStatement(
                 expression.location,
