@@ -52,7 +52,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         def
 
     }
-    private var currentBlockStatements = mutableListOf<HIRStatement>()
     private val structDefForClosureWithoutResult by lazy {
         val location = SourceLocation(
             file = SourcePath(Path.of("builtin.ClosureWithoutResult")),
@@ -82,19 +81,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             definitions.addAll(transformDefinition(definition))
         }
         return HIRModule(definitions)
-    }
-
-    override fun transformBlock(body: HIRBlock): HIRBlock {
-        val oldStatements = currentBlockStatements
-        currentBlockStatements = mutableListOf()
-
-        for (statement in body.statements) {
-            currentBlockStatements.addAll(transformStatement(statement))
-        }
-        val statements = currentBlockStatements
-
-        currentBlockStatements = oldStatements
-        return HIRBlock(body.location, body.name, statements)
     }
 
     override fun transformInvokeClosure(expression: InvokeClosure): HIRExpression {
@@ -205,7 +191,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val closureType = getClosureType(type)
 
         // val contextName: contextType
-        currentBlockStatements.add(
+        currentStatements?.add(
             Alloca(
             expression.location,
             contextName,
@@ -215,7 +201,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         )
 
         // val closureName: closureType
-        currentBlockStatements.add(
+        currentStatements?.add(
             Alloca(
             expression.location,
             closureName,
@@ -249,7 +235,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 )
 
         // context = contextStruct(...pointersToCaptures)
-        currentBlockStatements.add(
+        currentStatements?.add(
             Assignment(
             expression.location,
             contextName,
@@ -307,7 +293,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             )
         })
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
-        currentBlockStatements.add(
+        currentStatements?.add(
             Assignment(
             expression.location,
             closureName,
@@ -357,18 +343,18 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                         Binder(Identifier(expression.location, contextDerefname))
                     )))
         )
-        val oldBlockStatements = currentBlockStatements
-        currentBlockStatements = statements
+        val oldBlockStatements = currentStatements
+        currentStatements = statements
         expression.body.statements.forEach {
-            currentBlockStatements.addAll(transformStatement(it))
+            currentStatements?.addAll(transformStatement(it))
         }
-        currentBlockStatements.addAll(
+        currentStatements?.addAll(
                 if (type.to is Type.Void)
                     listOf(ReturnVoid(expression.location))
                 else
                     emptyList()
                 )
-        currentBlockStatements = oldBlockStatements
+        currentStatements = oldBlockStatements
         captureStack.pop()
         val body = HIRBlock(expression.body.location, namingCtx.makeName("entry"), statements)
         val fn = HIRDefinition.Function(
