@@ -50,7 +50,7 @@ interface HIRBuilder {
         )
     }
 
-    fun HIRExpression.deref(): HIRExpression {
+    fun HIRExpression.load(): HIRExpression {
         val ptrTy = type
         check(ptrTy is Type.Ptr)
 

@@ -1092,11 +1092,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return HIRExpression.GetStructField(
             expression.location,
             typeOfExpression(expression),
-            HIRExpression.ValRef(
+            HIRExpression.LocalRef(
                 expression.lhs.location,
                 caseType(binding),
                 binding.name.name,
-            ),
+            ).load(),
             binding.propertyName.name,
             binding.propertyIndex + 1, // 0th field is tag
         )

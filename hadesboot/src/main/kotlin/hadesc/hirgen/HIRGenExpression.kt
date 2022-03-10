@@ -235,7 +235,7 @@ internal class HIRGenExpression(
                                                 .fieldPtr(ctx.makeName("payload"), 1, payloadUnionType.ptr())
                                                 .ptrCast(payloadType)
                                                 .fieldPtr(ctx.makeName("$argIndex"), argIndex, type.ptr())
-                                                .deref()
+                                                .load()
                                         )
                                     }
                                     else -> {}
