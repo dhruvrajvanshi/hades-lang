@@ -191,7 +191,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val closureType = getClosureType(type)
 
         // val contextName: contextType
-        declareVariable(contextName, contextType)
+        val contextRef = declareVariable(contextName, contextType)
 
         // val closureName: closureType
         declareVariable(closureName, closureType)
@@ -283,24 +283,11 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 closureType,
                 closureConstructorCallee,
                 args = listOf(
-                    PointerCast(
-                        expression.location,
-                        Type.Void,
-                        AddressOf(
-                            expression.location,
-                            Type.Ptr(Type.Void, isMutable = true),
-                            contextName,
-                        )
-                    ),
-                    PointerCast(
-                        expression.location,
-                        toPointerOfType = Type.Function(
-                            from = listOf(),
-                            to = expression.returnType,
-                            traitRequirements = null,
-                        ),
-                        value = functionPointer
-                    )
+                    addressOf(contextRef).ptrCast(Type.Void),
+                    functionPointer.ptrCast(Type.Function(
+                        listOf(),
+                        expression.returnType,
+                    ))
                 )
             )
         )
@@ -308,8 +295,11 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         captureStack.push(expression.captures.values.entries.mapIndexed { index, it ->
             it.key.name to CaptureInfo(contextDerefname, contextType, it.key.location, index)
         }.toMap())
-        val statements = mutableListOf(
-            Alloca(expression.location, name = contextDerefname, isMutable = true, type = contextType),
+        val statements = mutableListOf<HIRStatement>()
+        val oldBlockStatements = currentStatements
+        currentStatements = statements
+        emit(Alloca(expression.location, name = contextDerefname, isMutable = true, type = contextType))
+        emit(
             Assignment(
                 expression.location,
                 contextDerefname,
@@ -323,17 +313,12 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                         Binder(Identifier(expression.location, contextDerefname))
                     )))
         )
-        val oldBlockStatements = currentStatements
-        currentStatements = statements
         expression.body.statements.forEach {
-            currentStatements?.addAll(transformStatement(it))
+            emitAll(transformStatement(it))
         }
-        currentStatements?.addAll(
-                if (type.to is Type.Void)
-                    listOf(ReturnVoid(expression.location))
-                else
-                    emptyList()
-                )
+        if (type.to is Type.Void)
+            emit(ReturnVoid(expression.location))
+
         currentStatements = oldBlockStatements
         captureStack.pop()
         val body = HIRBlock(expression.body.location, namingCtx.makeName("entry"), statements)
