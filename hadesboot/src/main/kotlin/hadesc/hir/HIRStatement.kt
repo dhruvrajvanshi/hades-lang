@@ -3,6 +3,7 @@ package hadesc.hir
 import hadesc.Name
 import hadesc.location.SourceLocation
 import hadesc.types.Type
+import hadesc.types.ptr
 
 sealed interface HIRStatement: HIRNode {
     data class Expression(
@@ -17,12 +18,15 @@ sealed interface HIRStatement: HIRNode {
     ): HIRStatement
 
     data class ReturnVoid(override val location: SourceLocation) : HIRStatement
-    data class ValDeclaration(
+    data class Alloca(
             override val location: SourceLocation,
             val name: Name,
             val isMutable: Boolean,
             val type: Type
-    ) : HIRStatement
+    ) : HIRStatement {
+        val pointerType get(): Type =
+            type.ptr(isMutable)
+    }
 
     data class Assignment(
             override val location: SourceLocation,
@@ -105,7 +109,7 @@ sealed interface HIRStatement: HIRNode {
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
         is ReturnVoid -> "return"
-        is ValDeclaration -> "val ${name.text}: ${type.prettyPrint()}"
+        is Alloca -> "${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
         is Assignment -> "${name.text} = ${value.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +
                 arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +

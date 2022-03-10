@@ -61,7 +61,7 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
         check(paramCopies[param.binder.taggedLocation()] == null) {"${param.location}: Duplicate param: ${param.name.text}"}
         paramCopies[param.binder.taggedLocation()] = copyName
         add(
-            HIRStatement.ValDeclaration(
+            HIRStatement.Alloca(
                 param.location,
                 name = copyName,
                 isMutable = false,

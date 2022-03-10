@@ -18,7 +18,7 @@ interface HIRVisitor : TypeVisitor {
             is HIRStatement.Return -> visitReturnStatement(statement)
             is HIRStatement.ReturnVoid -> unit
             is HIRStatement.Store -> visitStore(statement)
-            is HIRStatement.ValDeclaration -> visitValDeclaration(statement)
+            is HIRStatement.Alloca -> visitValDeclaration(statement)
             is HIRStatement.While -> visitWhileStatement(statement)
             is HIRStatement.SwitchInt -> visitConditionalBranchStatement(statement)
         }
@@ -33,7 +33,7 @@ interface HIRVisitor : TypeVisitor {
         visitBlock(statement.body)
     }
 
-    fun visitValDeclaration(statement: HIRStatement.ValDeclaration) {
+    fun visitValDeclaration(statement: HIRStatement.Alloca) {
         visitType(statement.type)
     }
 

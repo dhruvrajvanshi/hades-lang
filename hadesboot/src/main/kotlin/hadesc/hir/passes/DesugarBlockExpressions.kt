@@ -31,7 +31,7 @@ class DesugarBlockExpressions(override val namingCtx: NamingContext): AbstractHI
                 else -> initialBlock
             }
             if (expression.type !is Type.Void) {
-                add(HIRStatement.ValDeclaration(
+                add(HIRStatement.Alloca(
                     expression.location,
                     resultName,
                     isMutable = false,

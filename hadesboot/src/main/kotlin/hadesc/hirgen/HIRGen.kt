@@ -560,7 +560,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerValStatement(statement: Statement.Val): Collection<HIRStatement> {
         val name = lowerLocalBinder(statement.binder)
         return listOf(
-            HIRStatement.ValDeclaration(
+            HIRStatement.Alloca(
                 statement.location,
                 name,
                 statement.isMutable,

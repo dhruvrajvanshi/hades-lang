@@ -6,7 +6,7 @@ import hadesc.hir.HIRStatement
 import hadesc.types.Type
 
 class SimplifyVoidExpressions(override val namingCtx: NamingContext): AbstractHIRTransformer() {
-    override fun transformValDeclaration(statement: HIRStatement.ValDeclaration): Collection<HIRStatement> {
+    override fun transformValDeclaration(statement: HIRStatement.Alloca): Collection<HIRStatement> {
         return if (statement.type is Type.Void) {
             emptyList()
         } else {

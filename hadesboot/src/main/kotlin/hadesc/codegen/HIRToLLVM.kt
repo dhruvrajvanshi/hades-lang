@@ -262,7 +262,7 @@ class HIRToLLVM(
                 builder.buildRetVoid(); unit
             }
             is HIRStatement.Store -> lowerStore(statement)
-            is HIRStatement.ValDeclaration -> lowerValDeclaration(statement)
+            is HIRStatement.Alloca -> lowerValDeclaration(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
             is HIRStatement.MatchInt,
             is HIRStatement.While -> requireUnreachable {
@@ -290,7 +290,7 @@ class HIRToLLVM(
         )
     }
 
-    private fun lowerValDeclaration(statement: HIRStatement.ValDeclaration) {
+    private fun lowerValDeclaration(statement: HIRStatement.Alloca) {
         val value = builder.buildAlloca(
             lowerType(statement.type),
             statement.name.text,

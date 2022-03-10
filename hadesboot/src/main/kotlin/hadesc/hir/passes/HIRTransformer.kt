@@ -137,7 +137,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.Expression -> transformExpressionStatement(statement)
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.ReturnVoid -> transformRetVoidStatement(statement)
-        is HIRStatement.ValDeclaration -> transformValDeclaration(statement)
+        is HIRStatement.Alloca -> transformValDeclaration(statement)
         is HIRStatement.MatchInt -> transformMatchInt(statement)
         is HIRStatement.Assignment -> transformAssignmentStatement(statement)
         is HIRStatement.While -> transformWhileStatement(statement)
@@ -203,9 +203,9 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformValDeclaration(statement: HIRStatement.ValDeclaration): Collection<HIRStatement> {
+    fun transformValDeclaration(statement: HIRStatement.Alloca): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.ValDeclaration(
+                HIRStatement.Alloca(
                         location = statement.location,
                         name = transformValName(statement.name),
                         isMutable = statement.isMutable,

@@ -170,10 +170,10 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         )
     }
 
-    override fun transformValDeclaration(statement: ValDeclaration): Collection<HIRStatement> {
+    override fun transformValDeclaration(statement: Alloca): Collection<HIRStatement> {
         if (statement.type is Type.Function) {
             return listOf(
-                ValDeclaration(
+                Alloca(
                     statement.location,
                     statement.name,
                     statement.isMutable,
@@ -206,7 +206,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
         // val contextName: contextType
         currentBlockStatements.add(
-            ValDeclaration(
+            Alloca(
             expression.location,
             contextName,
             isMutable = true,
@@ -216,7 +216,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
         // val closureName: closureType
         currentBlockStatements.add(
-            ValDeclaration(
+            Alloca(
             expression.location,
             closureName,
             isMutable = false,
@@ -343,7 +343,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             it.key.name to CaptureInfo(contextDerefname, contextType, it.key.location, index)
         }.toMap())
         val statements = mutableListOf(
-            ValDeclaration(expression.location, name = contextDerefname, isMutable = true, type = contextType),
+            Alloca(expression.location, name = contextDerefname, isMutable = true, type = contextType),
             Assignment(
                 expression.location,
                 contextDerefname,

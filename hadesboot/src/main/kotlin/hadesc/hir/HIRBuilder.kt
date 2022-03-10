@@ -73,7 +73,7 @@ fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: So
     return declareVariable(name, type, location)
 }
 fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
-    emit(HIRStatement.ValDeclaration(
+    emit(HIRStatement.Alloca(
         location,
         name,
         type = type,
