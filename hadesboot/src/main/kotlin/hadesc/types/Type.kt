@@ -30,8 +30,8 @@ sealed class Type {
 
     data class Function(
             val from: List<Type>,
-            val traitRequirements: List<TraitRequirement>?,
-            val to: Type
+            val to: Type,
+            val traitRequirements: List<TraitRequirement>? = null,
     ) : Type()
 
     data class Constructor(val name: QualifiedName) : Type()

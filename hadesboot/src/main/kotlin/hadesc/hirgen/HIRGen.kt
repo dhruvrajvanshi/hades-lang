@@ -371,7 +371,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val from = case.params?.map { lowerTypeAnnotation(checkNotNull(it.annotation)) } ?: emptyList()
         val functionType = Type.Function(
             from,
-            null,
             instanceType
         )
 
