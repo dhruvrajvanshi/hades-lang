@@ -55,6 +55,7 @@ class HadesTestSuite {
                     "--output", outputPath.toString(),
                     "--module-path", directory.toString(),
                     "--main", file.toString(),
+                    "--enable-hir-verifier",
                 ).apply {
                     add("--c-source")
                     add(utilsCLib.toString())

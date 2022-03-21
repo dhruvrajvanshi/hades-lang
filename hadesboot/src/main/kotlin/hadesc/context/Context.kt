@@ -13,6 +13,7 @@ import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hirgen.HIRGen
 import hadesc.hir.passes.*
+import hadesc.hir.verifier.HIRVerifier
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -57,6 +58,9 @@ class Context(
             return
         }
         hirModule = DesugarWhenExpressions(this, this).transformModule(hirModule)
+        if (options.enableHIRVerifier) {
+            HIRVerifier(hirModule).verify()
+        }
         logger().debug("DesugarWhenExpressions:\n${hirModule.prettyPrint()}")
 
         hirModule = DesugarClosures(this).transformModule(hirModule)

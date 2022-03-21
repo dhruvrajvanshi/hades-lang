@@ -21,6 +21,7 @@ data class BuildOptions(
     val cSources: List<Path>,
     val dumpLLVMModule: Boolean,
     val libs: List<String>,
+    val enableHIRVerifier: Boolean,
 ) : Options
 
 class HadesCompiler: CliktCommand(name = "hades") {
@@ -43,6 +44,7 @@ class HadesCompiler: CliktCommand(name = "hades") {
     ).path().split(" ").default(emptyList())
     private val dumpLLVMModule by option("--dump-llvm-module").flag(default = false)
     private val libs by option("-l").multiple()
+    private val enableHIRVerifier by option("--enable-hir-verifier").flag(default = false)
 
     override fun run() {
         val hadesHome = System.getenv("HADES_HOME")
@@ -59,7 +61,8 @@ class HadesCompiler: CliktCommand(name = "hades") {
             debugSymbols = debugSymbols,
             cSources = cSources + cSourcesSplit + listOf(Path.of(hadesHome, "stdlib", "libc.c")),
             dumpLLVMModule = dumpLLVMModule,
-            libs = libs
+            libs = libs,
+            enableHIRVerifier = enableHIRVerifier,
         )
     }
 

@@ -235,7 +235,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         declaration: Declaration.Enum,
         enumName: QualifiedName,
         case: Declaration.Enum.Case,
-    ): HIRDefinition {
+    ): HIRDefinition.Function {
         val caseStructName = enumName.append(case.name.name)
         val fnName = caseStructName.append(ctx.makeName("constructor"))
         val enumStructRefType = typeOfEnumConstructor(declaration)
