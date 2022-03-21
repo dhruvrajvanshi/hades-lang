@@ -2,12 +2,12 @@ package hadesc.hir.verifier
 
 import hadesc.hir.HIRDefinition
 import hadesc.hir.HIRModule
-import hadesc.hir.HIRVisitor
+import hadesc.hir.HIRBlockVisitor
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
 import kotlin.system.exitProcess
 
-class HIRVerifier(private val module: HIRModule): HIRVisitor {
+class HIRVerifier(private val module: HIRModule): HIRBlockVisitor {
     private val fnVerifier = HIRFunctionVerifier(module)
     fun verify() {
         logger().info("HIRVerifier running on module")
@@ -19,7 +19,7 @@ class HIRVerifier(private val module: HIRModule): HIRVisitor {
     }
 }
 
-class HIRFunctionVerifier(private val module: HIRModule): HIRVisitor {
+class HIRFunctionVerifier(private val module: HIRModule): HIRBlockVisitor {
     fun verifyFunctionDef(fn: HIRDefinition.Function) {
         val defs = module.findDefinitions(fn.name)
         if (defs.size > 1) {
