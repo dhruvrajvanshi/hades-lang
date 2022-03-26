@@ -12,14 +12,9 @@ interface HIRBuilder {
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
 
-    fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.GetStructField {
-        return HIRExpression.GetStructField(
-            currentLocation,
-            type,
-            this,
-            name,
-            index
-        )
+    fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.LocalRef {
+        val s = emit(HIRStatement.GetStructField(location, namingCtx.makeUniqueName(), type, this, name, index))
+        return HIRExpression.LocalRef(location, type, s.name)
     }
 
     fun HIRStatement.Alloca.ptr(location: SourceLocation = currentLocation): HIRExpression.LocalRef {
@@ -30,7 +25,7 @@ interface HIRBuilder {
         return HIRExpression.LocalRef(location, type.mutPtr(), name)
     }
 
-    fun HIRExpression.getStructField(name: String, index: Int, type: Type): HIRExpression.GetStructField {
+    fun HIRExpression.getStructField(name: String, index: Int, type: Type): HIRExpression.LocalRef {
         return getStructField(namingCtx.makeName(name), index, type)
     }
 

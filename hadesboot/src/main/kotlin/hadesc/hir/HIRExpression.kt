@@ -55,20 +55,6 @@ sealed interface HIRExpression: HIRNode {
         val name: Name
     ) : HIRExpression
 
-    data class GetStructField(
-            override val location: SourceLocation,
-            override val type: Type,
-            val lhs: HIRExpression,
-            val name: Name,
-            val index: Int
-    ) : HIRExpression {
-        init {
-            require(lhs.type !is Type.Ptr) {
-                TODO()
-            }
-        }
-    }
-
     data class GetStructFieldPointer(
             override val location: SourceLocation,
             override val type: Type.Ptr,
@@ -170,7 +156,6 @@ sealed interface HIRExpression: HIRNode {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is ValRef -> "%${name.text}"
-        is GetStructField -> "(${lhs.prettyPrint()}.${name.text} : ${type.prettyPrint()})"
         is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"

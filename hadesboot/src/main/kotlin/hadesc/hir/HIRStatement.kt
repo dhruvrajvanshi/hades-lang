@@ -73,6 +73,23 @@ sealed interface HIRStatement: HIRNode {
         val otherwise: HIRBlock
     ) : HIRStatement
 
+
+    data class GetStructField(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val lhs: HIRExpression,
+        val fieldName: Name,
+        val index: Int
+    ) : HIRStatement, NameBinder {
+        init {
+            require(lhs.type !is Type.Ptr) {
+                TODO()
+            }
+        }
+    }
+
+
     /**
      * The basic structure of a while statement is this
      *
@@ -150,6 +167,7 @@ sealed interface HIRStatement: HIRNode {
                 "otherwise: ${otherwise.text}\n" +
                 "  ]"
         is Load -> "%${name.text} = load ${ptr.prettyPrint()}"
+        is GetStructField -> "%${name.text}: ${type.prettyPrint()} = ${lhs.prettyPrint()}.${fieldName.text}"
     }
 
     companion object {

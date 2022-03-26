@@ -1064,17 +1064,17 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
 
     private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIRExpression {
-        return HIRExpression.GetStructField(
-            expression.location,
-            typeOfExpression(expression),
-            HIRExpression.LocalRef(
-                expression.lhs.location,
-                caseType(binding),
-                binding.name.name,
-            ).load(),
-            binding.propertyName.name,
-            binding.propertyIndex + 1, // 0th field is tag
+        return HIRExpression.LocalRef(
+            expression.lhs.location,
+            caseType(binding),
+            binding.name.name,
         )
+            .load()
+            .getStructField(
+                binding.propertyName.name,
+                binding.propertyIndex + 1, // 0th field is tag
+                typeOfExpression(expression),
+            )
     }
 
     private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
@@ -1117,13 +1117,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             expression: Expression.Property,
             binding: PropertyBinding.StructField
     ): HIRExpression {
-        return HIRExpression.GetStructField(
-            expression.location,
-            typeOfExpression(expression),
-            lowerExpression(expression.lhs),
-            name = expression.property.name,
-            index = binding.memberIndex
-        )
+        return lowerExpression(expression.lhs)
+            .getStructField(
+                expression.property.name,
+                binding.memberIndex,
+                typeOfExpression(expression)
+            )
     }
 
 

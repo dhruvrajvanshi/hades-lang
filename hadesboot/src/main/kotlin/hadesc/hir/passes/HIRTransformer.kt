@@ -144,6 +144,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.SwitchInt -> transformSwitchInt(statement)
         is HIRStatement.Call -> transformCallStatement(statement)
         is HIRStatement.Load -> transformLoadStatement(statement)
+        is HIRStatement.GetStructField -> transformGetStructField(statement)
     }
 
     fun transformLoadStatement(statement: HIRStatement.Load): Collection<HIRStatement> {
@@ -247,7 +248,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
         is HIRExpression.ValRef -> transformValRef(expression)
-        is HIRExpression.GetStructField -> transformGetStructField(expression)
         is HIRExpression.Not -> transformNotExpression(expression)
         is HIRExpression.BinOp -> transformBinOp(expression)
         is HIRExpression.NullPtr -> transformNullPtr(expression)
@@ -396,14 +396,15 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return HIRExpression.Not(transformExpression(expression.expression))
     }
 
-    fun transformGetStructField(expression: HIRExpression.GetStructField): HIRExpression {
-        return HIRExpression.GetStructField(
-                location = expression.location,
-                name = expression.name,
-                type = lowerType(expression.type),
-                index = expression.index,
-                lhs = transformExpression(expression.lhs)
-        )
+    fun transformGetStructField(expression: HIRStatement.GetStructField): List<HIRStatement> {
+        return listOf(HIRStatement.GetStructField(
+            location = expression.location,
+            name = expression.name,
+            type = lowerType(expression.type),
+            index = expression.index,
+            fieldName = expression.fieldName,
+            lhs = transformExpression(expression.lhs)
+        ))
     }
 
     fun transformValRef(expression: HIRExpression.ValRef): HIRExpression {

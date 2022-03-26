@@ -282,6 +282,7 @@ class HIRToLLVM(
             }
             is HIRStatement.Load -> lowerLoadStatement(statement)
             is HIRStatement.Call -> lowerCallStatement(statement)
+            is HIRStatement.GetStructField -> lowerGetStructField(statement)
         }
 
         if (value != null) {
@@ -384,7 +385,6 @@ class HIRToLLVM(
             is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
-            is HIRExpression.GetStructField -> lowerGetStructField(expression)
             is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
             is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
@@ -521,7 +521,7 @@ class HIRToLLVM(
         return checkNotNull(params[expression.name])
     }
 
-    private fun lowerGetStructField(expression: HIRExpression.GetStructField): Value {
+    private fun lowerGetStructField(expression: HIRStatement.GetStructField): Value {
         return builder.buildExtractValue(
             lowerExpression(expression.lhs),
             expression.index,
