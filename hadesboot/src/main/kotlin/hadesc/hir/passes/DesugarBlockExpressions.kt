@@ -12,6 +12,14 @@ class DesugarBlockExpressions(override val namingCtx: NamingContext): AbstractHI
         val resultName = namingCtx.makeUniqueName()
 
         checkNotNull(currentStatements).apply {
+            if (expression.type !is Type.Void) {
+                add(HIRStatement.Alloca(
+                    expression.location,
+                    resultName,
+                    isMutable = false,
+                    type = expression.type
+                ))
+            }
             val initialBlock = transformBlock(expression.block)
             val block = when (val lastMember = initialBlock.statements.lastOrNull()) {
                 is HIRStatement.Expression -> {
@@ -29,14 +37,6 @@ class DesugarBlockExpressions(override val namingCtx: NamingContext): AbstractHI
                     )
                 }
                 else -> initialBlock
-            }
-            if (expression.type !is Type.Void) {
-                add(HIRStatement.Alloca(
-                    expression.location,
-                    resultName,
-                    isMutable = false,
-                    type = expression.type
-                ))
             }
             addAll(block.statements)
         }
