@@ -19,4 +19,6 @@ class Stack<T> {
     private fun isEmpty() = items.isEmpty()
 
     operator fun iterator() = items.asReversed().iterator()
+
+    fun items(): List<T> = items
 }
