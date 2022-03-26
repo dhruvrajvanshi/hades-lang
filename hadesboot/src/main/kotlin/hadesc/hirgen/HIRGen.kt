@@ -21,6 +21,7 @@ import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import hadesc.hir.*
+import hadesc.types.mutPtr
 
 internal interface HIRGenModuleContext {
     val enumTagFieldName: Name
@@ -901,7 +902,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(expr.name)
                 require(binding is Binding.ValBinding)
-                HIRExpression.AddressOf(
+                HIRExpression.LocalRef(
                     expression.location,
                     expression.type as Type.Ptr,
                     lowerLocalBinder(binding.statement.binder)
@@ -927,9 +928,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 require(expr.lhs is Expression.Var)
                 val lhsBinding = ctx.resolver.resolve(expr.lhs.name)
                 require(lhsBinding is Binding.ValBinding)
-                val structPtr = HIRExpression.AddressOf(
+                val structPtr = HIRExpression.LocalRef(
                     expr.location,
-                    Type.Ptr(expr.lhs.type, isMutable = true),
+                    expr.lhs.type.mutPtr(),
                     lowerLocalBinder(lhsBinding.statement.binder)
                 )
                 HIRExpression.GetStructFieldPointer(
@@ -949,7 +950,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(expr.name)
                 require(binding is Binding.ValBinding)
-                HIRExpression.AddressOf(
+                HIRExpression.LocalRef(
                     expression.location,
                     expression.type as Type.Ptr,
                     lowerLocalBinder(binding.statement.binder)

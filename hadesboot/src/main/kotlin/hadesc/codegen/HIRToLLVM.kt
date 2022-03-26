@@ -2,7 +2,6 @@ package hadesc.codegen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
-import hadesc.ast.Pattern
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.hir.passes.SimplifyControlFlow
@@ -242,7 +241,7 @@ class HIRToLLVM(
     }
 
 
-    private fun lowerStatement(statement: HIRStatement): Unit {
+    private fun lowerStatement(statement: HIRStatement) {
         if (shouldEmitDebugSymbols) {
             val location = LLVM.LLVMDIBuilderCreateDebugLocation(
                 llvmCtx,
@@ -356,7 +355,6 @@ class HIRToLLVM(
         }
 
         return when (expression) {
-            is HIRExpression.AddressOf -> lowerAddressOf(expression)
             is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
@@ -485,10 +483,6 @@ class HIRToLLVM(
             BinaryOperator.LESS_THAN_EQUAL -> if (isSigned) IntPredicate.SLE else IntPredicate.ULE
             else -> requireUnreachable()
         }
-    }
-
-    private fun lowerAddressOf(expression: HIRExpression.AddressOf): Value {
-        return checkNotNull(localValues[expression.name])
     }
 
     private fun lowerPointerCast(expression: HIRExpression.PointerCast): Value {

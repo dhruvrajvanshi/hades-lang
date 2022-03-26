@@ -65,7 +65,6 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitExpression(expression: HIRExpression) {
         visitType(expression.type)
         return when (expression) {
-            is HIRExpression.AddressOf -> visitAddressOf(expression)
             is HIRExpression.BinOp -> visitBinOp(expression)
             is HIRExpression.Call -> visitCall(expression)
             is HIRExpression.Closure -> visitClosure(expression)
@@ -192,8 +191,5 @@ interface HIRBlockVisitor : TypeVisitor {
         expression.cases.forEach {
             visitExpression(it.expression)
         }
-    }
-
-    fun visitAddressOf(expression: HIRExpression.AddressOf) {
     }
 }

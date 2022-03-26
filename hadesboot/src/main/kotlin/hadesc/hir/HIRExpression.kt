@@ -100,12 +100,6 @@ sealed interface HIRExpression: HIRNode {
             val ofType: Type
     ) : HIRExpression
 
-    data class AddressOf(
-            override val location: SourceLocation,
-            override val type: Type.Ptr,
-            val name: Name
-    ) : HIRExpression
-
     data class Load(
         override val location: SourceLocation,
         override val type: Type,
@@ -196,7 +190,6 @@ sealed interface HIRExpression: HIRNode {
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
-        is AddressOf -> "&${name.text}"
         is TypeApplication -> {
             val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
             "${expression.prettyPrint()}$typeArgsStr"

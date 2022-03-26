@@ -240,7 +240,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.BinOp -> transformBinOp(expression)
         is HIRExpression.NullPtr -> transformNullPtr(expression)
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
-        is HIRExpression.AddressOf -> transformAddressOfExpression(expression)
         is HIRExpression.TypeApplication -> transformTypeApplication(expression)
         is HIRExpression.Load -> transformLoadExpression(expression)
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
@@ -377,14 +376,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 lowerType(expression.type),
                 transformExpression(expression.expression),
                 expression.args.map { lowerType(it) }
-        )
-    }
-
-    fun transformAddressOfExpression(expression: HIRExpression.AddressOf): HIRExpression {
-        return HIRExpression.AddressOf(
-                expression.location,
-                lowerType(expression.type) as Type.Ptr,
-                transformValName(expression.name)
         )
     }
 

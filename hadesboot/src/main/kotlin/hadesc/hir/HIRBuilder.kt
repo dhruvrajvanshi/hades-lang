@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.context.NamingContext
 import hadesc.location.SourceLocation
 import hadesc.types.Type
+import hadesc.types.ptr
 
 interface HIRBuilder {
     var currentLocation: SourceLocation
@@ -24,10 +25,10 @@ interface HIRBuilder {
         return getStructField(namingCtx.makeName(name), index, type)
     }
 
-    fun addressOf(valRef: HIRExpression.ValRef): HIRExpression.AddressOf {
-        return HIRExpression.AddressOf(
+    fun addressOf(valRef: HIRExpression.ValRef): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
             currentLocation,
-            Type.Ptr(valRef.type, isMutable = false),
+            valRef.type.ptr(),
             valRef.name
         )
     }
@@ -111,7 +112,7 @@ fun HIRBuilder.declareAndAssign(name: Name, rhs: HIRExpression, location: Source
 }
 
 fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
-    emitAssign(valRef.name, rhs)
+    emitAssign(valRef.name, rhs, location)
 
 fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
     emit(

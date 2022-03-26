@@ -184,13 +184,14 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val closureType = getClosureType(type)
 
         // val contextName: contextType
-        val contextRef = declareVariable(contextName, contextType)
+        declareVariable(contextName, contextType)
+        val contextRef = LocalRef(currentLocation, contextType.ptr(), contextName)
 
         // val closureName: closureType
         declareVariable(closureName, closureType)
 
         val pointersToCaptures = expression.captures.values.map { (binder, type) ->
-            AddressOf(
+            LocalRef(
                 expression.location,
                 type.mutPtr(),
                 binder.name
@@ -258,7 +259,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 closureType,
                 closureConstructorCallee,
                 args = listOf(
-                    addressOf(contextRef).ptrCast(Type.Void),
+                    contextRef.ptrCast(Type.Void),
                     functionPointer.ptrCast(Type.Function(
                         listOf(),
                         expression.returnType,
