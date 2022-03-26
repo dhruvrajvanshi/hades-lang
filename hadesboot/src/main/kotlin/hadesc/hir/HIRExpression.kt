@@ -8,6 +8,10 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.ptr
 
+/**
+ * Subset of HIRExpressions that don't nest.
+ */
+sealed interface HIROperand: HIRExpression
 sealed interface HIRExpression: HIRNode {
     val type: Type
     @Deprecated("Use HIRStatement.Call")
@@ -29,7 +33,7 @@ sealed interface HIRExpression: HIRNode {
             override val location: SourceLocation,
             override val type: Type,
             val name: QualifiedName
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class ParamRef(
             override val location: SourceLocation,
@@ -42,7 +46,7 @@ sealed interface HIRExpression: HIRNode {
             override val location: SourceLocation,
             override val type: Type,
             val name: Name
-    ) : HIRExpression {
+    ) : HIRExpression, HIROperand {
         @Deprecated("Temporary method added for refactoring")
         fun asPtr(): LocalRef {
             return HIRExpression.LocalRef(location, type.ptr(), name)
@@ -53,7 +57,7 @@ sealed interface HIRExpression: HIRNode {
         override val location: SourceLocation,
         override val type: Type,
         val name: Name
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class GetStructFieldPointer(
             override val location: SourceLocation,
@@ -85,13 +89,13 @@ sealed interface HIRExpression: HIRNode {
     data class NullPtr(
             override val location: SourceLocation,
             override val type: Type.Ptr
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class SizeOf(
             override val location: SourceLocation,
             override val type: Type,
             val ofType: Type
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class PointerCast(
         override val location: SourceLocation,
@@ -108,7 +112,7 @@ sealed interface HIRExpression: HIRNode {
             val traitName: QualifiedName,
             val traitArgs: List<Type>,
             val methodName: Name,
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class UnsafeCast(
         override val location: SourceLocation,
