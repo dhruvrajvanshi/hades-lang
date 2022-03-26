@@ -99,25 +99,14 @@ fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation 
 
 
 fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
-    val variable = declareVariable(namePrefix, rhs.type, location)
-    emit(HIRStatement.Assignment(
-        location,
-        variable.name,
-        rhs
-    ))
-
-    return variable
+    val name = namingCtx.makeUniqueName(namePrefix)
+    return declareAndAssign(name, rhs, location)
 }
 
 fun HIRBuilder.declareAndAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
-    val variable = declareVariable(name, rhs.type, location)
-    emit(HIRStatement.Assignment(
-        location,
-        variable.name,
-        rhs
-    ))
-
-    return variable
+    val alloca = emitAlloca(name, rhs.type, location)
+    emitStore(alloca.mutPtr(), rhs)
+    return HIRExpression.ValRef(location, alloca.type, alloca.name)
 }
 
 fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
