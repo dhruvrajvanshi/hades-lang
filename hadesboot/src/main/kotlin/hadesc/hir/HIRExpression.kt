@@ -127,8 +127,8 @@ sealed interface HIRExpression: HIRNode {
     data class IntegerConvert(
         override val location: SourceLocation,
         override val type: Type,
-        val value: HIROperand,
-    ) : HIRExpression, HIROperand
+        val value: HIRExpression,
+    ) : HIRExpression
 
     data class ArrayIndex(
         override val location: SourceLocation,
