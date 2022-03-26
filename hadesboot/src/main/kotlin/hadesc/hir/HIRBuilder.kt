@@ -72,11 +72,14 @@ interface HIRBuilder {
         )
     }
 
-    fun HIRExpression.load(): HIRExpression {
+    fun HIRExpression.load(): HIRExpression.LocalRef {
         val ptrTy = type
         check(ptrTy is Type.Ptr)
 
-        return HIRExpression.Load(currentLocation, ptrTy.to, this)
+        val name = namingCtx.makeUniqueName()
+        emit(HIRStatement.Load(currentLocation, name, this))
+
+        return HIRExpression.LocalRef(currentLocation, ptrTy.to, name)
     }
 }
 
