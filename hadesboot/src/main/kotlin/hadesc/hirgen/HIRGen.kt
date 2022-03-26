@@ -688,7 +688,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val resultType = typeOfExpression(expression)
         val discriminantType = typeOfExpression(expression.value)
         require(discriminantType.isIntegral())
-        val result = declareVariable("result", resultType)
+        val resultMem = emitAlloca("result", resultType)
         val arms = expression.arms.takeWhile { it.pattern !is Pattern.Wildcard }
         val elseArm = expression.arms.find { it.pattern is Pattern.Wildcard }
         check(elseArm != null)
@@ -705,7 +705,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     MatchIntArm(
                         HIRConstant.IntValue(arm.location, discriminantType, arm.pattern.value.toInt()),
                         buildBlock(arm.location, blockName) {
-                            emitAssign(result, lowerExpression(arm.value))
+                            emitStore(resultMem.mutPtr(), lowerExpression(arm.value))
                         }
                     )
                 },
@@ -713,12 +713,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     elseArm.location,
                     elseBlockName
                 ) {
-                     emitAssign(result, lowerExpression(elseArm.value))
+                     emitStore(resultMem.mutPtr(), lowerExpression(elseArm.value))
                 }
             )
         )
 
-        return result
+        return resultMem.ptr().load()
     }
 
     private fun lowerByteCharExpression(expression: Expression.ByteCharLiteral): HIRExpression {
