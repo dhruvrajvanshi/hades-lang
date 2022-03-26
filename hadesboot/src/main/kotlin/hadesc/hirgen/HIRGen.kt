@@ -888,12 +888,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerDerefExpression(expression: Expression.Deref): HIRExpression {
-        return when (val pointerType = ctx.analyzer.typeOfExpression(expression.expression)) {
+        return when (ctx.analyzer.typeOfExpression(expression.expression)) {
             is Type.Ptr -> {
-                HIRExpression.Load(
-                    expression.location,
-                    pointerType.to,
-                    lowerExpression(expression.expression))
+                lowerExpression(expression.expression).load()
             }
             else -> requireUnreachable()
         }
