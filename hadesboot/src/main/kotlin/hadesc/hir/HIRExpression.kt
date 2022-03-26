@@ -107,6 +107,7 @@ sealed interface HIRExpression: HIRNode {
             val ofType: Type
     ) : HIRExpression
 
+    @Deprecated("Use HIRStatement.Load instead")
     data class Load(
         override val location: SourceLocation,
         override val type: Type,
