@@ -273,7 +273,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         }.toMap())
 
         val body = buildBlock(expression.body.location, namingCtx.makeName("entry")) {
-            declareAndAssign(contextDerefname, ParamRef(
+            allocaAssign(contextDerefname, ParamRef(
                 expression.location,
                 contextType.ptr(),
                 contextParamName,

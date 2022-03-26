@@ -556,7 +556,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerValStatement(statement: Statement.Val) {
         val name = lowerLocalBinder(statement.binder)
-        declareAndAssign(name, lowerExpression(statement.rhs))
+        allocaAssign(name, lowerExpression(statement.rhs))
     }
 
     override fun lowerLocalBinder(binder: Binder): Name {

@@ -52,6 +52,10 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRExpression.fieldPtr(name: String, index: Int, type: Type.Ptr): HIRExpression.GetStructFieldPointer {
+        return fieldPtr(namingCtx.makeName(name), index, type)
+    }
+
     fun HIRExpression.ptrCast(toPointerOfType: Type): HIRExpression.PointerCast {
         return HIRExpression.PointerCast(
             currentLocation,
@@ -98,15 +102,15 @@ fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation 
 }
 
 
-fun HIRBuilder.declareAndAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
+fun HIRBuilder.allocaAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Alloca {
     val name = namingCtx.makeUniqueName(namePrefix)
-    return declareAndAssign(name, rhs, location)
+    return allocaAssign(name, rhs, location)
 }
 
-fun HIRBuilder.declareAndAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRExpression.ValRef {
+fun HIRBuilder.allocaAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Alloca {
     val alloca = emitAlloca(name, rhs.type, location)
     emitStore(alloca.mutPtr(), rhs)
-    return HIRExpression.ValRef(location, alloca.type, alloca.name)
+    return alloca
 }
 
 fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =

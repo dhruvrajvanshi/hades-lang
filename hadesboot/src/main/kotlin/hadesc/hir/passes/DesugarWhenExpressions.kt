@@ -4,18 +4,19 @@ import hadesc.context.GlobalConstantContext
 import hadesc.context.NamingContext
 import hadesc.hir.*
 import hadesc.types.Type
+import hadesc.types.ptr
 
 class DesugarWhenExpressions(
     override val namingCtx: NamingContext,
     private val constCtx: GlobalConstantContext
 ) : AbstractHIRTransformer() {
     override fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
-        val discriminantRef = declareAndAssign("match_discriminant", transformExpression(expression.discriminant))
+        val discriminantLoc = allocaAssign("match_discriminant", transformExpression(expression.discriminant))
         val resultRef = declareVariable("match_result", expression.type)
 
-        val discriminantTag = discriminantRef.getStructField("\$tag", 0, constCtx.enumTagType)
+        val discriminantTag = discriminantLoc.ptr().fieldPtr("\$tag", 0, constCtx.enumTagType.ptr()).load()
 
-        val discriminantPtr = addressOf(discriminantRef)
+        val discriminantPtr = discriminantLoc.ptr()
 
         expression.cases.forEachIndexed { index, case ->
             val trueBranch = buildBlock(case.expression.location) {
