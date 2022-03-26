@@ -21,20 +21,20 @@ class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): A
              * result
              */
             BinaryOperator.AND -> {
-                val resultRef = declareVariable("result", Type.Bool)
+                val resultMem = emitAlloca("result", Type.Bool)
                 emit(
                     ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
                         trueBranch = buildBlock(expression.lhs.location) {
-                            emitAssign(resultRef, transformExpression(expression.rhs))
+                            emitStore(resultMem.mutPtr(), transformExpression(expression.rhs))
                         },
                         falseBranch = buildBlock(expression.rhs.location) {
-                            emitAssign(resultRef, falseValue())
+                            emitStore(resultMem.mutPtr(), falseValue())
                         }
                     )
                 )
-                return resultRef
+                return resultMem.ptr().load()
             }
             /**
              * a or b
@@ -45,21 +45,21 @@ class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): A
              * }
              */
             BinaryOperator.OR -> {
-                val resultRef = declareVariable("result", Type.Bool)
+                val resultMem = emitAlloca("result", Type.Bool)
                 currentLocation = expression.lhs.location
                 emit(
                     ifStatement(
                         expression.location,
                         condition = transformExpression(expression.lhs),
                         trueBranch = buildBlock {
-                            emitAssign(resultRef, trueValue())
+                            emitStore(resultMem.mutPtr(), trueValue())
                         },
                         falseBranch = buildBlock {
-                            emitAssign(resultRef, transformExpression(expression.rhs))
+                            emitStore(resultMem.mutPtr(), transformExpression(expression.rhs))
                         }
                     )
                 )
-                resultRef
+                resultMem.ptr().load()
             }
             else -> HIRExpression.BinOp(
                 expression.location,
