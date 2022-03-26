@@ -10,6 +10,7 @@ import hadesc.types.ptr
 
 sealed interface HIRExpression: HIRNode {
     val type: Type
+    @Deprecated("Use HIRStatement.Call")
     data class Call(
             override val location: SourceLocation,
             override val type: Type,
