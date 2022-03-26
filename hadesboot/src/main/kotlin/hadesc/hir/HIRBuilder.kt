@@ -34,6 +34,14 @@ interface HIRBuilder {
         return getStructField(namingCtx.makeName(name), index, type)
     }
 
+    fun HIRStatement.Call.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            resultType,
+            name
+        )
+    }
+
     fun addressOf(valRef: HIRExpression.ValRef): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(
             currentLocation,
@@ -135,6 +143,11 @@ fun HIRBuilder.emitStore(ptr: HIRExpression, value: HIRExpression) {
 
 fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = currentLocation): HIRStatement.Alloca {
     return emit(HIRStatement.Alloca(location, name, isMutable = true, type))
+}
+
+fun HIRBuilder.emitCall(resultType: Type, callee: HIRExpression, args: List<HIRExpression>, location: SourceLocation = currentLocation): HIRStatement.Call {
+    val name = namingCtx.makeUniqueName()
+    return emit(HIRStatement.Call(location, resultType, name, callee, args))
 }
 
 fun HIRBuilder.emitAlloca(namePrefix: String, type: Type, location: SourceLocation = currentLocation): HIRStatement.Alloca {
