@@ -11,6 +11,7 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.unit
+import libhades.collections.Stack
 import llvm.*
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.llvm.LLVM.LLVMMetadataRef
@@ -34,6 +35,7 @@ class HIRToLLVM(
 
     private val log = logger()
     private val i32Ty = intType(32, llvmCtx)
+    private val errorStack = Stack<HIRStatement>()
 
     fun lower(): LLVMModuleRef {
         if (shouldEmitDebugSymbols) {
@@ -242,6 +244,7 @@ class HIRToLLVM(
 
 
     private fun lowerStatement(statement: HIRStatement) {
+        errorStack.push(statement)
         if (shouldEmitDebugSymbols) {
             val location = LLVM.LLVMDIBuilderCreateDebugLocation(
                 llvmCtx,
@@ -266,6 +269,7 @@ class HIRToLLVM(
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
             }
         }
+        errorStack.pop()
     }
 
     private fun lowerNameBinder(statement: HIRStatement.NameBinder) {
@@ -557,7 +561,23 @@ class HIRToLLVM(
     }
 
     private fun lowerLocalRef(expression: HIRExpression.LocalRef): Value {
-        return checkNotNull(localValues[expression.name])
+        return checkNotNull(localValues[expression.name]) { buildErrorMessage("Local ${expression.name} not defined") }
+    }
+
+    private fun buildErrorMessage(message: String): String {
+
+        var resultMessage = "Bug in code generation: $message"
+        val currentStatement = errorStack.peek()
+        if (currentStatement != null) {
+            resultMessage += "\nWhile lowering statement (originally defined " +
+                    "at ${currentStatement.location.file}:${currentStatement.location.start.line})\n" +
+                    currentStatement.prettyPrint()
+
+            for (statement in errorStack.items()) {
+                resultMessage += statement.prettyPrint()
+            }
+        }
+        return resultMessage
     }
 
     private fun lowerConstant(constant: HIRConstant): Value =
