@@ -237,7 +237,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
 
     fun transformExpressionStatement(statement: HIRStatement.Expression): Collection<HIRStatement> {
-        return listOf(HIRStatement.Expression(transformExpression(statement.expression)))
+        return listOf(HIRStatement.Expression(statement.name, transformExpression(statement.expression)))
     }
 
     fun transformExpression(expression: HIRExpression): HIRExpression {

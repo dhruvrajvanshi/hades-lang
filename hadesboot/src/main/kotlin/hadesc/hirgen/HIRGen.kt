@@ -478,7 +478,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
-        is Block.Member.Expression -> listOf(HIRStatement.Expression(lowerExpression(member.expression)))
+        is Block.Member.Expression -> listOf(HIRStatement.Expression(ctx.makeUniqueName(), lowerExpression(member.expression)))
         is Block.Member.Statement -> lowerStatement(member.statement)
     }
 

@@ -280,6 +280,18 @@ class HIRToLLVM(
             is HIRStatement.Alloca -> {
                 lowerAlloca(statement)
             }
+            is HIRStatement.Expression -> {
+                val rhs = lowerExpression(statement.expression)
+                if (statement.expression.type == Type.Void) {
+                    rhs
+                } else {
+                    val ty = lowerType(statement.expression.type)
+                    val value = builder.buildAlloca(ty, statement.name.text, LLVM.LLVMABIAlignmentOfType(dataLayout, ty))
+                    builder.buildStore(value, rhs)
+                    value
+                }
+
+            }
             is HIRStatement.Load -> lowerLoadStatement(statement)
             is HIRStatement.Call -> lowerCallStatement(statement)
             is HIRStatement.GetStructField -> lowerGetStructField(statement)

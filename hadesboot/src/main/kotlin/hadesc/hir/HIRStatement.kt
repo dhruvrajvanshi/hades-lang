@@ -15,8 +15,9 @@ sealed interface HIRStatement: HIRNode {
         val name: Name
     }
     data class Expression(
-            val expression: HIRExpression
-    ) : HIRStatement {
+        override val name: Name,
+        val expression: HIRExpression
+    ) : HIRStatement, NameBinder {
         override val location: SourceLocation get() = expression.location
     }
 
