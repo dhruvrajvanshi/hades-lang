@@ -208,12 +208,11 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         // context = contextStruct(...pointersToCaptures)
         emitAssign(
             contextName,
-            HIRExpression.Call(
-                expression.location,
+            emitCall(
                 contextType,
                 contextConstructorCallee,
                 pointersToCaptures
-            )
+            ).result()
         )
 
 
