@@ -76,6 +76,9 @@ class HIRToLLVM(
             var index = -1
             for (field in definition.fields) {
                 index++
+                if (field.second is Type.Void) {
+                    continue
+                }
                 val fieldPtr = buildStructGEP(thisPtr, index, "field_$index")
                 val value = fn.getParameter(index)
                 buildStore(toPointer = fieldPtr, value = value)
@@ -285,10 +288,12 @@ class HIRToLLVM(
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
-        builder.buildStore(
-            lowerExpression(statement.ptr),
-            lowerExpression(statement.value),
-        )
+        val ptr = lowerExpression(statement.ptr)
+        val rhs = lowerExpression(statement.value)
+        if (statement.value.type != Type.Void) {
+            builder.buildStore(ptr, rhs)
+        }
+
     }
 
     private fun lowerAssignment(statement: HIRStatement.Assignment) {
