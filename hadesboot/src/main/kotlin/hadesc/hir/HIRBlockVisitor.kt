@@ -87,7 +87,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
             is HIRExpression.IntegerConvert -> visitIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
-            is HIRExpression.Load -> visitLoad(expression)
             is HIRExpression.Not -> visitNot(expression)
             is HIRExpression.NullPtr -> visitNullPtr(expression)
             is HIRExpression.ParamRef -> visitParamRef(expression)
@@ -154,10 +153,6 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitInvokeClosure(expression: HIRExpression.InvokeClosure) {
         visitExpression(expression.closure)
         expression.args.forEach { visitExpression(it) }
-    }
-
-    fun visitLoad(expression: HIRExpression.Load) {
-        visitExpression(expression.ptr)
     }
 
     fun visitNot(expression: HIRExpression.Not) {

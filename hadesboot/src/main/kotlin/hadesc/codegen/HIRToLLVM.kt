@@ -389,7 +389,6 @@ class HIRToLLVM(
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
             is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
-            is HIRExpression.Load -> lowerLoad(expression)
             is HIRExpression.Not -> lowerNotExpression(expression)
             is HIRExpression.NullPtr -> lowerNullPtr(expression)
             is HIRExpression.ParamRef -> lowerParamRef(expression)
@@ -526,13 +525,6 @@ class HIRToLLVM(
         return builder.buildExtractValue(
             lowerExpression(expression.lhs),
             expression.index,
-            ctx.makeUniqueName().text
-        )
-    }
-
-    private fun lowerLoad(expression: HIRExpression.Load): Value {
-        return builder.buildLoad(
-            lowerExpression(expression.ptr),
             ctx.makeUniqueName().text
         )
     }

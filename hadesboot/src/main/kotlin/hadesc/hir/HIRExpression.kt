@@ -107,13 +107,6 @@ sealed interface HIRExpression: HIRNode {
             val ofType: Type
     ) : HIRExpression
 
-    @Deprecated("Use HIRStatement.Load instead")
-    data class Load(
-        override val location: SourceLocation,
-        override val type: Type,
-        val ptr: HIRExpression
-    ) : HIRExpression
-
     data class PointerCast(
         override val location: SourceLocation,
         val toPointerOfType: Type,
@@ -186,7 +179,6 @@ sealed interface HIRExpression: HIRNode {
             val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
             "${expression.prettyPrint()}$typeArgsStr"
         }
-        is Load -> "*${ptr.prettyPrint()}"
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
         is GetStructFieldPointer -> "(gep (${lhs.prettyPrint()} ${memberName.text}) : ${type.prettyPrint()})"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
