@@ -113,11 +113,11 @@ fun HIRBuilder.allocaAssign(name: Name, rhs: HIRExpression, location: SourceLoca
 }
 
 @Deprecated(replaceWith = ReplaceWith("emitStore"), message = "Refactor to use emit store")
-fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
+fun HIRBuilder.emitAssign(valRef: HIRExpression.ValRef, rhs: HIRExpression, location: SourceLocation = rhs.location) =
     emitAssign(valRef.name, rhs, location)
 
 @Deprecated(replaceWith = ReplaceWith("emitStore"), message = "Refactor to store instructions")
-fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Assignment =
+fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location) {
     emit(
         HIRStatement.Assignment(
             location,
@@ -125,6 +125,7 @@ fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocati
             rhs
         )
     )
+}
 
 fun HIRBuilder.emitStore(ptr: HIRExpression, value: HIRExpression) {
     val ptrType = ptr.type
