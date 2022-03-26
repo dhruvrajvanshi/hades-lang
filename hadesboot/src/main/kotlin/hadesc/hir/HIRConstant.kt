@@ -3,7 +3,7 @@ package hadesc.hir
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed interface HIRConstant: HIRExpression {
+sealed interface HIRConstant: HIROperand {
 
     data class ByteString(
             override val location: SourceLocation,

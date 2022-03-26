@@ -20,7 +20,7 @@ internal class HIRGenExpression(
     HIRGenFunctionContext by functionContext,
     ASTContext by ctx
 {
-    internal fun lowerVarExpression(expression: Expression.Var): HIRExpression {
+    internal fun lowerVarExpression(expression: Expression.Var): HIROperand {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
             null -> requireUnreachable {
                 "Found unresolved variable: ${expression.name} at ${expression.location}"
@@ -33,7 +33,7 @@ internal class HIRGenExpression(
     internal fun lowerBinding(
         expression: Expression,
         binding: Binding
-    ): HIRExpression = when(binding) {
+    ): HIROperand = when(binding) {
         is Binding.GlobalFunction -> HIRExpression.GlobalRef(
             expression.location,
             typeOfExpression(expression),
@@ -165,7 +165,7 @@ internal class HIRGenExpression(
                 || (expression.callee is Expression.TypeApplication && expression.callee.lhs is Expression.Intrinsic)
     }
 
-    internal fun lowerEnumMatchExpression(expression: Expression.Match): HIRExpression {
+    internal fun lowerEnumMatchExpression(expression: Expression.Match): HIROperand {
         val discriminantType = expression.value.type
         val enumDef = ctx.analyzer.getEnumTypeDeclaration(discriminantType)
         checkNotNull(enumDef)

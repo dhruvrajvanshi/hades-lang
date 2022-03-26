@@ -667,7 +667,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         } else withAppliedTypes
     }
 
-    private fun lowerFloatLiteral(expression: Expression.FloatLiteral): HIRExpression {
+    private fun lowerFloatLiteral(expression: Expression.FloatLiteral): HIROperand {
         val ty = expression.type
         check(ty is Type.FloatingPoint)
         return HIRConstant.FloatValue(
@@ -723,7 +723,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return result
     }
 
-    private fun lowerByteCharExpression(expression: Expression.ByteCharLiteral): HIRExpression {
+    private fun lowerByteCharExpression(expression: Expression.ByteCharLiteral): HIROperand {
         return HIRConstant.IntValue(
             expression.location,
             expression.type,
@@ -781,7 +781,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerArrayLiteral(expression: Expression.ArrayLiteral): HIRExpression {
+    private fun lowerArrayLiteral(expression: Expression.ArrayLiteral): HIROperand {
         val exprType = expression.type
         check(exprType is Type.Array)
         val items = expression.items.map {
@@ -867,7 +867,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         else extensionForType
     }
 
-    private fun lowerThisExpression(expression: Expression.This): HIRExpression {
+    private fun lowerThisExpression(expression: Expression.This): HIROperand {
         return HIRExpression.ParamRef(
                 expression.location,
                 thisParamType(),
@@ -887,7 +887,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerDerefExpression(expression: Expression.Deref): HIRExpression {
+    private fun lowerDerefExpression(expression: Expression.Deref): HIROperand {
         return when (ctx.analyzer.typeOfExpression(expression.expression)) {
             is Type.Ptr -> {
                 lowerExpression(expression.expression).load()
@@ -896,7 +896,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerAddressOfMut(expression: Expression.AddressOfMut): HIRExpression {
+    private fun lowerAddressOfMut(expression: Expression.AddressOfMut): HIROperand {
         return when (val expr = expression.expression) {
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(expr.name)
@@ -911,7 +911,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             else -> requireUnreachable()
         }
     }
-    private fun addressOfStructField(expr: Expression.Property): HIRExpression {
+    private fun addressOfStructField(expr: Expression.Property): HIROperand {
         return when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expr)) {
             is PropertyBinding.StructPointerFieldLoad -> {
                 lowerExpression(expr.lhs)
@@ -939,7 +939,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerAddressOfExpression(expression: Expression.AddressOf): HIRExpression {
+    private fun lowerAddressOfExpression(expression: Expression.AddressOf): HIROperand {
         return when (val expr = expression.expression) {
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(expr.name)
@@ -957,7 +957,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerSizeOfExpression(expression: Expression.SizeOf): HIRExpression {
+    private fun lowerSizeOfExpression(expression: Expression.SizeOf): HIROperand {
         return HIRExpression.SizeOf(
                 expression.location,
                 typeOfExpression(expression),
@@ -982,7 +982,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return result
     }
 
-    private fun lowerNullPtr(expression: Expression.NullPtr): HIRExpression {
+    private fun lowerNullPtr(expression: Expression.NullPtr): HIROperand {
         return HIRExpression.NullPtr(expression.location, typeOfExpression(expression) as Type.Ptr)
     }
 
@@ -1001,7 +1001,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     }
 
-    private fun lowerIntLiteral(expression: Expression.IntLiteral): HIRExpression {
+    private fun lowerIntLiteral(expression: Expression.IntLiteral): HIROperand {
         if (expression.type.isIntegral()) {
             return HIRConstant.IntValue(
                 expression.location,
@@ -1019,7 +1019,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerBoolLiteral(expression: Expression.BoolLiteral): HIRExpression {
+    private fun lowerBoolLiteral(expression: Expression.BoolLiteral): HIROperand {
         return HIRConstant.BoolValue(
             expression.location,
             typeOfExpression(expression),
@@ -1027,7 +1027,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIRExpression = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
+    private fun lowerPropertyExpression(expression: Expression.Property): HIROperand = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
         is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
@@ -1039,7 +1039,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         is PropertyBinding.TraitFunctionRef -> lowerTraitFunctionRef(expression, binding)
     }
 
-    private fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.TraitFunctionRef): HIRExpression {
+    private fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.TraitFunctionRef): HIROperand {
         return HIRExpression.TraitMethodRef(
             expression.location,
             expression.type,
@@ -1049,7 +1049,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerExtensionPropertyBinding(expression: Expression.Property, binding: PropertyBinding.ExtensionDef): HIRExpression {
+    private fun lowerExtensionPropertyBinding(expression: Expression.Property, binding: PropertyBinding.ExtensionDef): HIROperand {
         return HIRExpression.GlobalRef(
             expression.location,
             binding.type,
@@ -1058,7 +1058,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
 
-    private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIRExpression {
+    private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIROperand {
         return HIRExpression.LocalRef(
             expression.lhs.location,
             caseType(binding),
@@ -1086,7 +1086,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerEnumCaseConstructor(expression: Expression.Property, binding: PropertyBinding.EnumTypeCaseConstructor): HIRExpression {
+    private fun lowerEnumCaseConstructor(expression: Expression.Property, binding: PropertyBinding.EnumTypeCaseConstructor): HIROperand {
         require(expression.lhs is Expression.Var)
         val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name).append(ctx.makeName("constructor"))
 
@@ -1100,7 +1100,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerStructPointerFieldLoad(
         expression: Expression.Property,
         binding: PropertyBinding.StructPointerFieldLoad
-    ): HIRExpression {
+    ): HIROperand {
         val structPtrType = expression.lhs.type
         require(structPtrType is Type.Ptr)
         return lowerExpression(expression.lhs)
@@ -1111,7 +1111,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerStructFieldBinding(
             expression: Expression.Property,
             binding: PropertyBinding.StructField
-    ): HIRExpression {
+    ): HIROperand {
         return lowerExpression(expression.lhs)
             .getStructField(
                 expression.property.name,
@@ -1132,7 +1132,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerByteString(expression: Expression.ByteString): HIRExpression {
+    private fun lowerByteString(expression: Expression.ByteString): HIROperand {
         return HIRConstant.ByteString(
             expression.location,
             typeOfExpression(expression),
