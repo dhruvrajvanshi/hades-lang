@@ -186,7 +186,7 @@ internal class HIRGenExpression(
         //    2 -> .2
         // ]
 
-        val resultMem = emitAlloca("match_result", expression.type)
+        val resultVar = declareVariable("match_result", expression.type)
         val discriminantMem = allocaAssign("match_discriminant", lowerExpression(expression.value))
 
         val tagVar = discriminantMem.ptr().fieldPtr(enumTagFieldName, 0, ctx.enumTagType().ptr()).load()
@@ -222,9 +222,11 @@ internal class HIRGenExpression(
                                             arm.pattern,
                                             argIndex
                                         ))
+                                        val argPatternValRef = declareVariable(arg.binder.name, type)
+
                                         val payloadType = payloadUnionType.members[index]
-                                        allocaAssign(
-                                            arg.binder.name,
+                                        emitAssign(
+                                            argPatternValRef,
                                             discriminantMem.ptr()
                                                 .fieldPtr(ctx.makeName("payload"), 1, payloadUnionType.ptr())
                                                 .ptrCast(payloadType)
@@ -235,7 +237,7 @@ internal class HIRGenExpression(
                                     else -> {}
                                 }
                             }
-                            emitStore(resultMem.mutPtr(), lowerExpression(arm.value))
+                            emitAssign(resultVar, lowerExpression(arm.value))
                         }
                     )
                 }
@@ -255,15 +257,18 @@ internal class HIRGenExpression(
             arms,
             otherwise = buildBlock(elseArm?.location ?: expression.location, ctx.makeUniqueName("else")) {
                 if (elseArm != null) {
-                    emitStore(
-                        resultMem.mutPtr(),
-                        lowerExpression(elseArm.value)
+                    emit(
+                        HIRStatement.Assignment(
+                            elseArm.value.location,
+                            resultVar.name,
+                            lowerExpression(elseArm.value)
+                        )
                     )
                 }
             }
         ))
 
-        return resultMem.ptr().load()
+        return resultVar
     }
 }
 

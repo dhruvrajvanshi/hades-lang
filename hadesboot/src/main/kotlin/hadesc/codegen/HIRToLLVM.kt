@@ -284,7 +284,9 @@ class HIRToLLVM(
             is HIRStatement.Call -> lowerCallStatement(statement)
         }
 
-        localValues[statement.name] = value
+        if (value != null) {
+            localValues[statement.name] = value
+        }
     }
 
     private fun lowerLoadStatement(statement: HIRStatement.Load): Value {
@@ -318,9 +320,9 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerAlloca(statement: HIRStatement.Alloca): Value {
+    private fun lowerAlloca(statement: HIRStatement.Alloca): Value? {
         if (statement.type is Type.Void) {
-            return constantInt(voidTy, 0)
+            return null
         }
         return builder.buildAlloca(
             lowerType(statement.type),
