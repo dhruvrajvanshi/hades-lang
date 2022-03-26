@@ -40,7 +40,7 @@ sealed interface HIRExpression: HIRNode {
             override val type: Type,
             val name: Name,
             val binder: Binder,
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class ValRef(
             override val location: SourceLocation,
