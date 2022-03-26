@@ -73,8 +73,6 @@ class Context(
         hirModule = DesugarBlockExpressions(this).transformModule(hirModule)
         logger().debug("DesugarBlockExpressions:\n${hirModule.prettyPrint()}")
 
-        hirModule = SimplifyVoidExpressions(this).transformModule(hirModule)
-
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
         logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
 

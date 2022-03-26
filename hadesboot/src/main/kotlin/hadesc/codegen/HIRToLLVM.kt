@@ -279,7 +279,9 @@ class HIRToLLVM(
             }
         }
 
-        localValues[statement.name] = value
+        if (value != null) {
+            localValues[statement.name] = value
+        }
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
@@ -292,16 +294,22 @@ class HIRToLLVM(
     private fun lowerAssignment(statement: HIRStatement.Assignment) {
         log.debug("${statement.name.text} = ${statement.value.prettyPrint()}")
         val value = lowerExpression(statement.value)
-        val pointer = checkNotNull(localValues[statement.name]) {
-            TODO()
+
+        if (statement.value.type !is Type.Void) {
+            val pointer = checkNotNull(localValues[statement.name]) {
+                TODO()
+            }
+            builder.buildStore(
+                value = value,
+                toPointer = pointer,
+            )
         }
-        builder.buildStore(
-            value = value,
-            toPointer = pointer,
-        )
     }
 
-    private fun lowerAlloca(statement: HIRStatement.Alloca): Value {
+    private fun lowerAlloca(statement: HIRStatement.Alloca): Value? {
+        if (statement.type is Type.Void) {
+            return null
+        }
         return builder.buildAlloca(
             lowerType(statement.type),
             statement.name.text,
@@ -555,6 +563,11 @@ class HIRToLLVM(
     }
 
     private fun lowerValRef(expression: HIRExpression.ValRef): Value {
+        if (expression.type == Type.Void) {
+            // Doesn't matter what we return here. This normally would be unreachable but
+            // because of the design right now, it's not. FIXME
+            return constantInt(voidTy, 0)
+        }
         val ptr = checkNotNull(localValues[expression.name])
         return builder.buildLoad(ptr, ctx.makeUniqueName().text)
     }
