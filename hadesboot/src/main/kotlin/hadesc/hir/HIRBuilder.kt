@@ -85,7 +85,8 @@ fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
 @Deprecated("Use emitAlloca")
 fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     val name = namingCtx.makeUniqueName(namePrefix)
-    return declareVariable(name, type, location)
+    val alloca = emitAlloca(name, type, location)
+    return HIRExpression.ValRef(location, type, alloca.name)
 }
 
 @Deprecated("Use emit alloca")
