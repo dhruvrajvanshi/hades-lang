@@ -323,13 +323,13 @@ class Analyzer(
     }
 
 
-    private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructFieldPointer? {
+    private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructPointerFieldLoad? {
         val lhsType = inferExpression(expression.lhs)
         if (lhsType !is Type.Ptr) {
             return null
         }
         val fieldBinding = resolveStructFieldBinding(lhsType.to, expression.property) ?: return null
-        return PropertyBinding.StructFieldPointer(
+        return PropertyBinding.StructPointerFieldLoad(
                 fieldBinding.structDecl,
                 fieldBinding.memberIndex,
                 type = fieldBinding.type
@@ -1041,7 +1041,7 @@ class Analyzer(
             when (val binding = resolvePropertyBinding(expression)) {
                 is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
                 is PropertyBinding.StructField -> binding.type
-                is PropertyBinding.StructFieldPointer -> binding.type
+                is PropertyBinding.StructPointerFieldLoad -> binding.type
                 is PropertyBinding.ExtensionDef -> binding.type
                 is PropertyBinding.WhereParamRef -> binding.type
                 is PropertyBinding.EnumTypeCaseConstructor -> binding.type

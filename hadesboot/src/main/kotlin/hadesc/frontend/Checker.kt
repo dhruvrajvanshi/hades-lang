@@ -438,7 +438,7 @@ class Checker(val ctx: Context) {
         checkExpressionHasType(statement.value, statement.lhs.type)
 
         val field = ctx.analyzer.resolvePropertyBinding(statement.lhs)
-        if (field !is PropertyBinding.StructField && field !is PropertyBinding.StructFieldPointer) {
+        if (field !is PropertyBinding.StructField && field !is PropertyBinding.StructPointerFieldLoad) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
             return
         }
@@ -851,7 +851,7 @@ class Checker(val ctx: Context) {
                     is PropertyBinding.StructField -> {
                         checkValueIsAddressable(expression.lhs)
                     }
-                    is PropertyBinding.StructFieldPointer -> unit
+                    is PropertyBinding.StructPointerFieldLoad -> unit
                     else -> {
                         error(expression, Diagnostic.Kind.NotAnAddressableValue)
                     }

@@ -18,7 +18,7 @@ sealed class PropertyBinding {
     ): PropertyBinding() {
         val member get(): Declaration.Struct.Member.Field = structDecl.members[memberIndex] as Declaration.Struct.Member.Field
     }
-    data class StructFieldPointer(
+    data class StructPointerFieldLoad(
         val structDecl: Declaration.Struct,
         val memberIndex: Int,
         val type: Type

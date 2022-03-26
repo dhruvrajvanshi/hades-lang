@@ -913,7 +913,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
     private fun addressOfStructField(expr: Expression.Property): HIRExpression {
         return when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expr)) {
-            is PropertyBinding.StructFieldPointer -> {
+            is PropertyBinding.StructPointerFieldLoad -> {
                 val structPtr = lowerExpression(expr.lhs)
                 HIRExpression.GetStructFieldPointer(
                     expr.location,
@@ -1036,7 +1036,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         null -> requireUnreachable()
         is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
-        is PropertyBinding.StructFieldPointer -> lowerStructFieldPointer(expression, binding)
+        is PropertyBinding.StructPointerFieldLoad -> lowerStructFieldPointer(expression, binding)
         is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
@@ -1102,7 +1102,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructFieldPointer): HIRExpression {
+    private fun lowerStructFieldPointer(expression: Expression.Property, binding: PropertyBinding.StructPointerFieldLoad): HIRExpression {
         val expressionType = expression.type
         val structPtrType = expression.lhs.type
         require(structPtrType is Type.Ptr)
