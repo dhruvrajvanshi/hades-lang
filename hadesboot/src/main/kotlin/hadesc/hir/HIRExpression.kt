@@ -6,6 +6,7 @@ import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import hadesc.types.ptr
 
 sealed interface HIRExpression: HIRNode {
     val type: Type
@@ -40,7 +41,12 @@ sealed interface HIRExpression: HIRNode {
             override val location: SourceLocation,
             override val type: Type,
             val name: Name
-    ) : HIRExpression
+    ) : HIRExpression {
+        @Deprecated("Temporary method added for refactoring")
+        fun asPtr(): LocalRef {
+            return HIRExpression.LocalRef(location, type.ptr(), name)
+        }
+    }
 
     data class LocalRef(
         override val location: SourceLocation,
