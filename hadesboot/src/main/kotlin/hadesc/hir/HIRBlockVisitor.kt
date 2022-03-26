@@ -83,7 +83,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.TypeApplication -> visitTypeApplication(expression)
             is HIRExpression.UnsafeCast -> visitUnsafeCast(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
-            is HIRExpression.When -> visitWhen(expression)
             is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
             is HIRExpression.BlockExpression -> visitBlockExpression(expression)
             is HIRConstant -> visitConstant(expression)
@@ -184,12 +183,5 @@ interface HIRBlockVisitor : TypeVisitor {
     }
 
     fun visitValRef(expression: HIRExpression.ValRef) {
-    }
-
-    fun visitWhen(expression: HIRExpression.When) {
-        visitExpression(expression.discriminant)
-        expression.cases.forEach {
-            visitExpression(it.expression)
-        }
     }
 }

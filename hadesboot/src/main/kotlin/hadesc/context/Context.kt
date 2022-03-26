@@ -57,7 +57,6 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
-        hirModule = DesugarWhenExpressions(this, this).transformModule(hirModule)
         if (options.enableHIRVerifier) {
             HIRVerifier(hirModule).verify()
         }

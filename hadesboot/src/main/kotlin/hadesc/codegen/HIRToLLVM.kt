@@ -378,7 +378,6 @@ class HIRToLLVM(
             is HIRExpression.TypeApplication -> requireUnreachable()
             is HIRExpression.TraitMethodRef -> requireUnreachable()
             is HIRExpression.Closure -> requireUnreachable()
-            is HIRExpression.When -> requireUnreachable()
             is HIRExpression.BlockExpression -> requireUnreachable()
             is HIRConstant -> lowerConstant(expression)
             is HIRExpression.LocalRef -> lowerLocalRef(expression)

@@ -246,7 +246,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
-        is HIRExpression.When -> transformWhenExpression(expression)
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
@@ -307,20 +306,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             expression.params.map { transformParam(it) },
             lowerType(expression.returnType),
             transformBlock(expression.body)
-        )
-    }
-
-    fun transformWhenExpression(expression: HIRExpression.When): HIRExpression {
-        return HIRExpression.When(
-            expression.location,
-            lowerType(expression.type),
-            transformExpression(expression.discriminant),
-            expression.cases.map { HIRExpression.When.Case(
-                caseName = it.caseName,
-                valueBinder = it.valueBinder,
-                expression = transformExpression(it.expression),
-                casePayloadType = lowerType(it.casePayloadType)
-            ) }
         )
     }
 

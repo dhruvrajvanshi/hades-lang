@@ -135,22 +135,6 @@ sealed interface HIRExpression: HIRNode {
         val value: HIRExpression,
     ) : HIRExpression
 
-    data class When(
-        override val location: SourceLocation,
-        override val type: Type,
-        val discriminant: HIRExpression,
-        val cases: List<Case>
-    ) : HIRExpression {
-        data class Case(
-            val casePayloadType: Type,
-            val caseName: Name,
-            val valueBinder: Name,
-            val expression: HIRExpression
-        ) {
-            fun prettyPrint() = "is ${valueBinder.text}: ${caseName.text} -> ${expression.prettyPrint()}"
-        }
-    }
-
     data class Closure(
         override val location: SourceLocation,
         override val type: Type,
@@ -206,9 +190,6 @@ sealed interface HIRExpression: HIRNode {
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
-        is When -> "when (${discriminant.prettyPrint()}) {\n" +
-                cases.joinToString("\n") { "  " + it.prettyPrint() } +
-                "\n} : ${type.prettyPrint()}"
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
         is IntegerConvert -> "(${value.prettyPrint()} as ${type.prettyPrint()})"
