@@ -4,22 +4,15 @@ import hadesc.context.NamingContext
 import hadesc.hir.HIRBlock
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
+import hadesc.hir.emitAlloca
 import hadesc.types.Type
 
 class DesugarBlockExpressions(override val namingCtx: NamingContext): AbstractHIRTransformer() {
 
     override fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
         val resultName = namingCtx.makeUniqueName()
-
+        emitAlloca(resultName, expression.type)
         checkNotNull(currentStatements).apply {
-            if (expression.type !is Type.Void) {
-                add(HIRStatement.Alloca(
-                    expression.location,
-                    resultName,
-                    isMutable = false,
-                    type = expression.type
-                ))
-            }
             val initialBlock = transformBlock(expression.block)
             val block = when (val lastMember = initialBlock.statements.lastOrNull()) {
                 is HIRStatement.Expression -> {
