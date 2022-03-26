@@ -90,12 +90,7 @@ fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: So
 
 @Deprecated("Use emit alloca")
 fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
-    emit(HIRStatement.Alloca(
-        location,
-        name,
-        type = type,
-        isMutable = false)
-    )
+    emitAlloca(name, type, location)
 
     return HIRExpression.ValRef(
         location,
