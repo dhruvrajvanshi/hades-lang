@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.context.Context
 import hadesc.hir.HIRExpression
+import hadesc.hir.HIROperand
 import hadesc.hir.HIRParam
 import hadesc.hir.HIRStatement
 import hadesc.hir.passes.AbstractHIRTransformer
@@ -45,7 +46,7 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
             )
         )
 
-    fun fixParamRef(expression: HIRExpression.ParamRef): HIRExpression =
+    fun fixParamRef(expression: HIRExpression.ParamRef): HIROperand =
         if (expression.name.text == "this")
             // TODO: Make param copies for this params
             expression
