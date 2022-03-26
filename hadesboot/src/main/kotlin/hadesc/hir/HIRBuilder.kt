@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.context.NamingContext
 import hadesc.location.SourceLocation
 import hadesc.types.Type
+import hadesc.types.mutPtr
 import hadesc.types.ptr
 
 interface HIRBuilder {
@@ -19,6 +20,14 @@ interface HIRBuilder {
             name,
             index
         )
+    }
+
+    fun HIRStatement.Alloca.ptr(location: SourceLocation = currentLocation): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(location, type.ptr(), name)
+    }
+
+    fun HIRStatement.Alloca.mutPtr(location: SourceLocation = currentLocation): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(location, type.mutPtr(), name)
     }
 
     fun HIRExpression.getStructField(name: String, index: Int, type: Type): HIRExpression.GetStructField {
