@@ -35,6 +35,14 @@ sealed interface HIRStatement: HIRNode {
             type.ptr(isMutable)
     }
 
+    data class Call(
+        override val location: SourceLocation,
+        val resultType: Type,
+        override val name: Name,
+        val callee: HIRExpression,
+        val args: List<HIRExpression>
+    ) : HIRStatement, NameBinder
+
     @Deprecated("Use Store")
     data class Assignment(
             override val location: SourceLocation,
@@ -114,6 +122,9 @@ sealed interface HIRStatement: HIRNode {
 
 
     private fun prettyPrintInternal(): String = when(this) {
+        is Call -> {
+            "%${name.text}: ${resultType.prettyPrint()} = ${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
+        }
         is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
         is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"

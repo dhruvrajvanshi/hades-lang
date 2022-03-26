@@ -280,6 +280,7 @@ class HIRToLLVM(
             is HIRStatement.Alloca -> {
                 lowerAlloca(statement)
             }
+            is HIRStatement.Call -> lowerCallStatement(statement)
         }
 
         if (value != null) {
@@ -660,6 +661,15 @@ class HIRToLLVM(
         return builder.buildCall(
             callee = lowerExpression(expression.callee),
             args = expression.args.map { lowerExpression(it) },
+            name = name?.text
+        )
+    }
+    private fun lowerCallStatement(statement: HIRStatement.Call): Value {
+        val name = if (statement.resultType is Type.Void) null else ctx.makeUniqueName()
+
+        return builder.buildCall(
+            callee = lowerExpression(statement.callee),
+            args = statement.args.map { lowerExpression(it) },
             name = name?.text
         )
     }

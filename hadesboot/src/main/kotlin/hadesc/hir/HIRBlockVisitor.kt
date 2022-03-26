@@ -20,6 +20,15 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.Alloca -> visitValDeclaration(statement)
             is HIRStatement.While -> visitWhileStatement(statement)
             is HIRStatement.SwitchInt -> visitConditionalBranchStatement(statement)
+            is HIRStatement.Call -> visitCallStatement(statement)
+        }
+    }
+
+    fun visitCallStatement(statement: HIRStatement.Call) {
+        visitType(statement.resultType)
+        visitExpression(statement.callee)
+        for (arg in statement.args) {
+            visitExpression(arg)
         }
     }
 

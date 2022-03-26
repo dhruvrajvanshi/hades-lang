@@ -86,7 +86,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
     override fun transformInvokeClosure(expression: InvokeClosure): HIRExpression {
         val closureRef = transformExpression(expression.closure)
-        return Call(
+        return HIRExpression.Call(
             expression.location,
             expression.type,
             GetStructField(
@@ -208,7 +208,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         // context = contextStruct(...pointersToCaptures)
         emitAssign(
             contextName,
-            Call(
+            HIRExpression.Call(
                 expression.location,
                 contextType,
                 contextConstructorCallee,
@@ -254,7 +254,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
         emitAssign(
             closureName,
-            Call(
+            HIRExpression.Call(
                 expression.location,
                 closureType,
                 closureConstructorCallee,

@@ -142,6 +142,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.While -> transformWhileStatement(statement)
         is HIRStatement.Store -> transformStoreStatement(statement)
         is HIRStatement.SwitchInt -> transformSwitchInt(statement)
+        is HIRStatement.Call -> transformCallStatement(statement)
     }
 
     fun transformSwitchInt(statement: HIRStatement.SwitchInt): Collection<HIRStatement> {
@@ -430,6 +431,18 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 type = lowerType(expression.type),
                 callee = transformExpression(expression.callee),
                 args = expression.args.map { transformExpression(it) }
+        )
+    }
+
+    fun transformCallStatement(statement: HIRStatement.Call): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.Call(
+                location = statement.location,
+                name = statement.name,
+                resultType = lowerType(statement.resultType),
+                callee = transformExpression(statement.callee),
+                args = statement.args.map { transformExpression(it) },
+            )
         )
     }
 
