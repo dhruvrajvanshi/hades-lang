@@ -23,6 +23,7 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.Call -> visitCallStatement(statement)
             is HIRStatement.Load -> visitLoadStatement(statement)
             is HIRStatement.GetStructField -> visitGetStructField(statement)
+            is HIRStatement.GetStructFieldPointer -> visitGetStructFieldPointer(statement)
         }
     }
 
@@ -83,7 +84,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.BinOp -> visitBinOp(expression)
             is HIRExpression.Call -> visitCall(expression)
             is HIRExpression.Closure -> visitClosure(expression)
-            is HIRExpression.GetStructFieldPointer -> visitGetStructFieldPointer(expression)
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
             is HIRExpression.IntegerConvert -> visitIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
@@ -139,7 +139,8 @@ interface HIRBlockVisitor : TypeVisitor {
 
     }
 
-    fun visitGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer) {
+    fun visitGetStructFieldPointer(expression: HIRStatement.GetStructFieldPointer) {
+        visitType(expression.type)
         visitExpression(expression.lhs)
     }
 

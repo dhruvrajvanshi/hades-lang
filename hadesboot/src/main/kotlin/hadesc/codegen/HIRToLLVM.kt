@@ -283,6 +283,7 @@ class HIRToLLVM(
             is HIRStatement.Load -> lowerLoadStatement(statement)
             is HIRStatement.Call -> lowerCallStatement(statement)
             is HIRStatement.GetStructField -> lowerGetStructField(statement)
+            is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPointer(statement)
         }
 
         if (value != null) {
@@ -385,7 +386,6 @@ class HIRToLLVM(
             is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
-            is HIRExpression.GetStructFieldPointer -> lowerGetStructFieldPointer(expression)
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
             is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
@@ -413,7 +413,7 @@ class HIRToLLVM(
         )
     }
 
-    private fun lowerGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): Value {
+    private fun lowerGetStructFieldPointer(expression: HIRStatement.GetStructFieldPointer): Value {
         return builder.buildStructGEP(
             pointer = lowerExpression(expression.lhs),
             name = ctx.makeUniqueName().text,

@@ -45,17 +45,16 @@ interface HIRBuilder {
         )
     }
 
-    fun HIRExpression.fieldPtr(name: Name, index: Int, type: Type.Ptr): HIRExpression.GetStructFieldPointer {
-        return HIRExpression.GetStructFieldPointer(
-            currentLocation,
+    fun HIRExpression.fieldPtr(name: Name, index: Int, type: Type.Ptr): HIRExpression.LocalRef {
+        val s = emit(HIRStatement.GetStructFieldPointer(location, namingCtx.makeUniqueName(), type, this, name, index))
+        return HIRExpression.LocalRef(
+            location,
             type,
-            this,
-            name,
-            index
+            s.name,
         )
     }
 
-    fun HIRExpression.fieldPtr(name: String, index: Int, type: Type.Ptr): HIRExpression.GetStructFieldPointer {
+    fun HIRExpression.fieldPtr(name: String, index: Int, type: Type.Ptr): HIRExpression.LocalRef {
         return fieldPtr(namingCtx.makeName(name), index, type)
     }
 

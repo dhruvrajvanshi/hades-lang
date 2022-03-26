@@ -914,14 +914,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun addressOfStructField(expr: Expression.Property): HIRExpression {
         return when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expr)) {
             is PropertyBinding.StructPointerFieldLoad -> {
-                val structPtr = lowerExpression(expr.lhs)
-                HIRExpression.GetStructFieldPointer(
-                    expr.location,
-                    Type.Ptr(expr.type, isMutable = true),
-                    structPtr,
-                    propertyBinding.member.binder.name,
-                    propertyBinding.memberIndex
-                )
+                lowerExpression(expr.lhs)
+                    .fieldPtr(
+                        propertyBinding.member.binder.name,
+                        propertyBinding.memberIndex,
+                        expr.type.mutPtr())
             }
             is PropertyBinding.StructField -> {
                 require(expr.lhs is Expression.Var)
@@ -932,12 +929,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     expr.lhs.type.mutPtr(),
                     lowerLocalBinder(lhsBinding.statement.binder)
                 )
-                HIRExpression.GetStructFieldPointer(
-                    expr.location,
-                    Type.Ptr(expr.type, isMutable = true),
-                    structPtr,
+                structPtr.fieldPtr(
                     propertyBinding.member.binder.name,
-                    propertyBinding.memberIndex
+                    propertyBinding.memberIndex,
+                    expr.type.mutPtr()
                 )
             }
             else -> requireUnreachable()

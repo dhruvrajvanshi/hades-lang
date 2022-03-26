@@ -59,18 +59,6 @@ sealed interface HIRExpression: HIRNode {
         val name: Name
     ) : HIRExpression, HIROperand
 
-    data class GetStructFieldPointer(
-            override val location: SourceLocation,
-            override val type: Type.Ptr,
-            val lhs: HIRExpression,
-            val memberName: Name,
-            val memberIndex: Int
-    ) : HIRExpression {
-        init {
-            require(lhs.type is Type.Ptr)
-        }
-    }
-
     data class Not(
             val expression: HIRExpression
     ) : HIRExpression {
@@ -169,7 +157,6 @@ sealed interface HIRExpression: HIRNode {
             "${expression.prettyPrint()}$typeArgsStr"
         }
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
-        is GetStructFieldPointer -> "(gep (${lhs.prettyPrint()} ${memberName.text}) : ${type.prettyPrint()})"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"

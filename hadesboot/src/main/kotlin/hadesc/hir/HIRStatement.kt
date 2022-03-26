@@ -89,6 +89,18 @@ sealed interface HIRStatement: HIRNode {
         }
     }
 
+    data class GetStructFieldPointer(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type.Ptr,
+        val lhs: HIRExpression,
+        val memberName: Name,
+        val memberIndex: Int
+    ) : HIRStatement, NameBinder {
+        init {
+            require(lhs.type is Type.Ptr)
+        }
+    }
 
     /**
      * The basic structure of a while statement is this
@@ -168,6 +180,7 @@ sealed interface HIRStatement: HIRNode {
                 "  ]"
         is Load -> "%${name.text} = load ${ptr.prettyPrint()}"
         is GetStructField -> "%${name.text}: ${type.prettyPrint()} = ${lhs.prettyPrint()}.${fieldName.text}"
+        is GetStructFieldPointer -> "%${name.text}: ${type.prettyPrint()} = field-offset ${lhs.prettyPrint()} ${memberName.text}"
     }
 
     companion object {

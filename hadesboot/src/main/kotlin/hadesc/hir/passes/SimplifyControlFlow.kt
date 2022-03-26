@@ -227,6 +227,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Call,
             is HIRStatement.Load,
             is HIRStatement.GetStructField,
+            is HIRStatement.GetStructFieldPointer,
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,

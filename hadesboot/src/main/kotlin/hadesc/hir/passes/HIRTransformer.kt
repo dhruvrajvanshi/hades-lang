@@ -145,6 +145,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.Call -> transformCallStatement(statement)
         is HIRStatement.Load -> transformLoadStatement(statement)
         is HIRStatement.GetStructField -> transformGetStructField(statement)
+        is HIRStatement.GetStructFieldPointer -> transformGetStructFieldPointer(statement)
     }
 
     fun transformLoadStatement(statement: HIRStatement.Load): Collection<HIRStatement> {
@@ -254,7 +255,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
         is HIRExpression.TypeApplication -> transformTypeApplication(expression)
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
-        is HIRExpression.GetStructFieldPointer -> transformGetStructFieldPointer(expression)
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.Closure -> transformClosure(expression)
@@ -338,16 +338,17 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformGetStructFieldPointer(expression: HIRExpression.GetStructFieldPointer): HIRExpression {
-        val type = lowerType(expression.type)
+    fun transformGetStructFieldPointer(statement: HIRStatement.GetStructFieldPointer): List<HIRStatement> {
+        val type = lowerType(statement.type)
         require(type is Type.Ptr)
-        return HIRExpression.GetStructFieldPointer(
-                expression.location,
-                type,
-                lhs = transformExpression(expression.lhs),
-                memberIndex = expression.memberIndex,
-                memberName = expression.memberName
-        )
+        return listOf(HIRStatement.GetStructFieldPointer(
+            statement.location,
+            name = statement.name,
+            type = statement.type,
+            lhs = transformExpression(statement.lhs),
+            memberIndex = statement.memberIndex,
+            memberName = statement.memberName
+        ))
     }
 
     fun transformPointerCastExpression(expression: HIRExpression.PointerCast): HIRExpression {
