@@ -501,7 +501,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerDeferStatement(statement: Statement.Defer): Collection<HIRStatement> {
-        requireNotNull(deferStack.peek()).addAll(lowerBlockMember(statement.blockMember).reversed())
+        intoStatementList(requireNotNull(deferStack.peek())) {
+            emitAll(lowerBlockMember(statement.blockMember).reversed())
+        }
         return emptyList()
     }
 
