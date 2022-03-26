@@ -129,6 +129,10 @@ fun HIRBuilder.emitStore(ptr: HIRExpression, value: HIRExpression) {
     emit(HIRStatement.Store(value.location, ptr, value))
 }
 
+fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = currentLocation): HIRStatement.Alloca {
+    return emit(HIRStatement.Alloca(location, name, isMutable = true, type))
+}
+
 fun HIRBuilder.buildBlock(location: SourceLocation = currentLocation, name: Name? = null, builder: () -> Unit): HIRBlock {
     val oldStatements = currentStatements
     val statements = mutableListOf<HIRStatement>()
