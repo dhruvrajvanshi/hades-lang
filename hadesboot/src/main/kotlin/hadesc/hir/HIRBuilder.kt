@@ -155,12 +155,16 @@ fun HIRBuilder.emitAlloca(namePrefix: String, type: Type, location: SourceLocati
 }
 
 fun HIRBuilder.buildBlock(location: SourceLocation = currentLocation, name: Name? = null, builder: () -> Unit): HIRBlock {
-    val oldStatements = currentStatements
     val statements = mutableListOf<HIRStatement>()
+    intoStatementList(statements) { builder() }
+    return HIRBlock(location, name ?: namingCtx.makeUniqueName(), statements)
+}
+
+fun HIRBuilder.intoStatementList(statements: MutableList<HIRStatement>, builder: () -> Unit) {
+    val oldStatements = currentStatements
     currentStatements = statements
     builder()
     currentStatements = oldStatements
-    return HIRBlock(location, name ?: namingCtx.makeUniqueName(), statements)
 }
 
 fun HIRBuilder.trueValue(location: SourceLocation = currentLocation): HIRConstant.BoolValue {
