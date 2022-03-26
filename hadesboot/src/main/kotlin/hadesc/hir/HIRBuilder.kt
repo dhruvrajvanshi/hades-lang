@@ -135,8 +135,8 @@ fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = cur
     return emit(HIRStatement.Alloca(location, name, isMutable = true, type))
 }
 
-fun HIRBuilder.emitAlloca(name: String, type: Type, location: SourceLocation = currentLocation): HIRStatement.Alloca {
-    return emitAlloca(namingCtx.makeName(name), type, location)
+fun HIRBuilder.emitAlloca(namePrefix: String, type: Type, location: SourceLocation = currentLocation): HIRStatement.Alloca {
+    return emitAlloca(namingCtx.makeUniqueName(namePrefix), type, location)
 }
 
 fun HIRBuilder.buildBlock(location: SourceLocation = currentLocation, name: Name? = null, builder: () -> Unit): HIRBlock {
