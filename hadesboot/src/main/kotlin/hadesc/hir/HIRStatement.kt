@@ -43,6 +43,16 @@ sealed interface HIRStatement: HIRNode {
         val args: List<HIRExpression>
     ) : HIRStatement, NameBinder
 
+    data class Load(
+        override val location: SourceLocation,
+        override val name: Name,
+        val ptr: HIRExpression
+    ) : HIRStatement, NameBinder {
+        init {
+            require(ptr.type is Type.Ptr)
+        }
+    }
+
     @Deprecated("Use Store")
     data class Assignment(
             override val location: SourceLocation,
@@ -139,6 +149,7 @@ sealed interface HIRStatement: HIRNode {
                 cases.joinToString { "case ${it.value.prettyPrint()}: ${it.block.text}\n    " } +
                 "otherwise: ${otherwise.text}\n" +
                 "  ]"
+        is Load -> "%${name.text} = load ${ptr.prettyPrint()}"
     }
 
     companion object {

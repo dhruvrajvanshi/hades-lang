@@ -280,10 +280,18 @@ class HIRToLLVM(
             is HIRStatement.Alloca -> {
                 lowerAlloca(statement)
             }
+            is HIRStatement.Load -> lowerLoadStatement(statement)
             is HIRStatement.Call -> lowerCallStatement(statement)
         }
 
         localValues[statement.name] = value
+    }
+
+    private fun lowerLoadStatement(statement: HIRStatement.Load): Value {
+        return builder.buildLoad(
+            name = statement.name.text,
+            ptr = lowerExpression(statement.ptr)
+        )
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {

@@ -143,6 +143,17 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.Store -> transformStoreStatement(statement)
         is HIRStatement.SwitchInt -> transformSwitchInt(statement)
         is HIRStatement.Call -> transformCallStatement(statement)
+        is HIRStatement.Load -> transformLoadStatement(statement)
+    }
+
+    fun transformLoadStatement(statement: HIRStatement.Load): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.Load(
+                statement.location,
+                name = statement.name,
+                ptr = transformExpression(statement.ptr)
+            )
+        )
     }
 
     fun transformSwitchInt(statement: HIRStatement.SwitchInt): Collection<HIRStatement> {

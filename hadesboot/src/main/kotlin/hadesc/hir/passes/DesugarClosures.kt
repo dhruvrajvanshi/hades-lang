@@ -131,7 +131,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
     override fun transformValRef(expression: ValRef): HIRExpression {
         val capture = findCapture(expression.name) ?: return super.transformValRef(expression)
-        return Load(
+        return HIRExpression.Load(
             expression.location,
             expression.type,
             getCapturedVariablePointer(expression.location, expression.type, expression.name, capture)

@@ -225,6 +225,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Store,
             is HIRStatement.Alloca,
             is HIRStatement.Call,
+            is HIRStatement.Load,
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,

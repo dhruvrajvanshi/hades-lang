@@ -21,7 +21,12 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.While -> visitWhileStatement(statement)
             is HIRStatement.SwitchInt -> visitConditionalBranchStatement(statement)
             is HIRStatement.Call -> visitCallStatement(statement)
+            is HIRStatement.Load -> visitLoadStatement(statement)
         }
+    }
+
+    fun visitLoadStatement(statement: HIRStatement.Load) {
+        visitExpression(statement.ptr)
     }
 
     fun visitCallStatement(statement: HIRStatement.Call) {
