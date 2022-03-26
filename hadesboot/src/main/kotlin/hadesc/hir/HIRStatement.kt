@@ -35,6 +35,7 @@ sealed interface HIRStatement: HIRNode {
             type.ptr(isMutable)
     }
 
+    @Deprecated("Use Store")
     data class Assignment(
             override val location: SourceLocation,
             val name: Name,
