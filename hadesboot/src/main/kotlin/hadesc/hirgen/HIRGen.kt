@@ -997,8 +997,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerNotExpression(expression: Expression.Not): HIRExpression {
-        return HIRExpression.Not(lowerExpression(expression.expression))
-
+        val s = emit(HIRStatement.Not(ctx.makeUniqueName(), lowerExpression(expression.expression)))
+        return HIRExpression.LocalRef(s.location, Type.Bool, s.name)
     }
 
     private fun lowerIntLiteral(expression: Expression.IntLiteral): HIROperand {

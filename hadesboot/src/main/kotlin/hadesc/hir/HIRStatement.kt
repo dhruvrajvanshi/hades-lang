@@ -21,6 +21,13 @@ sealed interface HIRStatement: HIRNode {
         override val location: SourceLocation get() = expression.location
     }
 
+    data class Not(
+        override val name: Name,
+        val expression: HIRExpression
+    ) : HIRStatement, NameBinder {
+        override val location get() = expression.location
+    }
+
     data class Return(
             override val location: SourceLocation,
             val expression: HIRExpression
@@ -182,6 +189,7 @@ sealed interface HIRStatement: HIRNode {
         is Load -> "%${name.text} = load ${ptr.prettyPrint()}"
         is GetStructField -> "%${name.text}: ${type.prettyPrint()} = ${lhs.prettyPrint()}.${fieldName.text}"
         is GetStructFieldPointer -> "%${name.text}: ${type.prettyPrint()} = field-offset ${lhs.prettyPrint()} ${memberName.text}"
+        is Not -> "%${name.text}: Bool = ${expression.prettyPrint()}"
     }
 
     companion object {

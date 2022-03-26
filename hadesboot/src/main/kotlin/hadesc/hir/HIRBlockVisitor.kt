@@ -24,6 +24,7 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.Load -> visitLoadStatement(statement)
             is HIRStatement.GetStructField -> visitGetStructField(statement)
             is HIRStatement.GetStructFieldPointer -> visitGetStructFieldPointer(statement)
+            is HIRStatement.Not -> visitNot(statement)
         }
     }
 
@@ -87,7 +88,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
             is HIRExpression.IntegerConvert -> visitIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
-            is HIRExpression.Not -> visitNot(expression)
             is HIRExpression.NullPtr -> visitNullPtr(expression)
             is HIRExpression.ParamRef -> visitParamRef(expression)
             is HIRExpression.PointerCast -> visitPointerCast(expression)
@@ -157,8 +157,8 @@ interface HIRBlockVisitor : TypeVisitor {
         expression.args.forEach { visitExpression(it) }
     }
 
-    fun visitNot(expression: HIRExpression.Not) {
-        visitExpression(expression.expression)
+    fun visitNot(statement: HIRStatement.Not) {
+        visitExpression(statement.expression)
     }
 
     fun visitNullPtr(expression: HIRExpression.NullPtr) {

@@ -296,6 +296,7 @@ class HIRToLLVM(
             is HIRStatement.Call -> lowerCallStatement(statement)
             is HIRStatement.GetStructField -> lowerGetStructField(statement)
             is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPointer(statement)
+            is HIRStatement.Not -> lowerNotStatement(statement)
         }
 
         if (value != null) {
@@ -401,7 +402,6 @@ class HIRToLLVM(
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
             is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
-            is HIRExpression.Not -> lowerNotExpression(expression)
             is HIRExpression.NullPtr -> lowerNullPtr(expression)
             is HIRExpression.ParamRef -> lowerParamRef(expression)
             is HIRExpression.PointerCast -> lowerPointerCast(expression)
@@ -576,8 +576,8 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerNotExpression(expression: HIRExpression.Not): Value {
-        return builder.buildNot(lowerExpression(expression.expression), ctx.makeUniqueName().text)
+    private fun lowerNotStatement(statement: HIRStatement.Not): Value {
+        return builder.buildNot(lowerExpression(statement.expression), statement.name.text)
     }
 
     private fun lowerValRef(expression: HIRExpression.ValRef): Value {

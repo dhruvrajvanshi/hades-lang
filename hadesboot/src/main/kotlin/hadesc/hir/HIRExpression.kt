@@ -59,12 +59,6 @@ sealed interface HIRExpression: HIRNode {
         val name: Name
     ) : HIRExpression, HIROperand
 
-    data class Not(
-            val expression: HIRExpression
-    ) : HIRExpression {
-        override val location get() = expression.location
-        override val type get() = expression.type
-    }
 
     data class BinOp(
         override val location: SourceLocation,
@@ -148,7 +142,6 @@ sealed interface HIRExpression: HIRNode {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is ValRef -> "%${name.text}"
-        is Not -> "not ${expression.prettyPrint()}"
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"

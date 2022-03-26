@@ -146,6 +146,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.Load -> transformLoadStatement(statement)
         is HIRStatement.GetStructField -> transformGetStructField(statement)
         is HIRStatement.GetStructFieldPointer -> transformGetStructFieldPointer(statement)
+        is HIRStatement.Not -> transformNotStatement(statement)
     }
 
     fun transformLoadStatement(statement: HIRStatement.Load): Collection<HIRStatement> {
@@ -249,7 +250,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
         is HIRExpression.ValRef -> transformValRef(expression)
-        is HIRExpression.Not -> transformNotExpression(expression)
         is HIRExpression.BinOp -> transformBinOp(expression)
         is HIRExpression.NullPtr -> transformNullPtr(expression)
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
@@ -393,8 +393,8 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformNotExpression(expression: HIRExpression.Not): HIRExpression {
-        return HIRExpression.Not(transformExpression(expression.expression))
+    fun transformNotStatement(statement: HIRStatement.Not): List<HIRStatement> {
+        return listOf(HIRStatement.Not(statement.name, transformExpression(statement.expression)))
     }
 
     fun transformGetStructField(expression: HIRStatement.GetStructField): List<HIRStatement> {
