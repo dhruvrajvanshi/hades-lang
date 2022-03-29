@@ -471,23 +471,27 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         body: Block,
         addReturnVoid: Boolean = false,
         header: List<HIRStatement> = emptyList()
-    ): HIRBlock = buildBlock(body.location) {
-        deferStack.push(mutableListOf())
-        header.forEach { emit(it) }
-        for (member in body.members) {
-            lowerBlockMember(member).forEach {
-                emit(it)
+    ): HIRBlock = scoped {
+        scopeStack.push(body)
+        defer { check(scopeStack.pop() === body) }
+        buildBlock(body.location) {
+            deferStack.push(mutableListOf())
+            header.forEach { emit(it) }
+            for (member in body.members) {
+                lowerBlockMember(member).forEach {
+                    emit(it)
+                }
             }
-        }
-        if (addReturnVoid) {
-            terminateScope()
-            emit(HIRStatement.Return(body.location, HIRConstant.Void(body.location)))
-        } else {
-            for (statement in requireNotNull(deferStack.peek())) {
-                emit(statement)
+            if (addReturnVoid) {
+                terminateScope()
+                emit(HIRStatement.Return(body.location, HIRConstant.Void(body.location)))
+            } else {
+                for (statement in requireNotNull(deferStack.peek())) {
+                    emit(statement)
+                }
             }
+            deferStack.pop()
         }
-        deferStack.pop()
     }
 
     private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
