@@ -39,10 +39,23 @@ internal interface HIRGenModuleContext {
 }
 
 internal interface HIRGenFunctionContext: HIRBuilder {
-    val scopeStack: Stack<ScopeTree>
+    val scopeStack: HIRGenScopeStack
     fun lowerExpression(expression: Expression): HIRExpression
 }
 
+internal class ScopeMeta
+
+class HIRGenScopeStack {
+    private val stack = mutableListOf<Pair<ScopeTree, ScopeMeta>>()
+    fun push(scope: ScopeTree) {
+        stack.add(Pair(scope, ScopeMeta()))
+    }
+
+    fun pop(): ScopeTree {
+        check(stack.isNotEmpty())
+        return stack.removeLast().first
+    }
+}
 class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
     override val namingCtx: NamingContext get() = ctx
     private val paramToLocal = ParamToLocal(ctx)
@@ -54,7 +67,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     )
     override lateinit var currentLocation: SourceLocation
     override var currentStatements: MutableList<HIRStatement>? = null
-    override val scopeStack = Stack<ScopeTree>()
+    override val scopeStack = HIRGenScopeStack()
 
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
