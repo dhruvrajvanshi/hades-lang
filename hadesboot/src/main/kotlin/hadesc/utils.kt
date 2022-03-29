@@ -16,4 +16,22 @@ inline fun <reified Ctx, T> Ctx.profile(message: String, block: () -> T): T {
     return result
 }
 
+fun <T> scoped(builder: Scoped.() -> T): T {
+    val defer = Scoped()
+    val result = defer.builder()
+    defer.done()
+    return result
+}
+
+class Scoped {
+    internal val blocks = mutableListOf<() -> Unit>()
+}
+
+internal fun Scoped.done() {
+    blocks.reversed().forEach { it() }
+}
+fun Scoped.defer(block: () -> Unit) {
+    blocks.add(block)
+}
+
 val unit = Unit

@@ -7,6 +7,8 @@ import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.context.NamingContext
+import hadesc.defer
+import hadesc.scoped
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.HIRStatement.Companion.ifStatement
@@ -37,6 +39,7 @@ internal interface HIRGenModuleContext {
 }
 
 internal interface HIRGenFunctionContext: HIRBuilder {
+    val scopeStack: Stack<ScopeTree>
     fun lowerExpression(expression: Expression): HIRExpression
 }
 
@@ -51,12 +54,15 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     )
     override lateinit var currentLocation: SourceLocation
     override var currentStatements: MutableList<HIRStatement>? = null
+    override val scopeStack = Stack<ScopeTree>()
 
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = mutableListOf<HIRDefinition>()
         try {
-            for (sourceFile in sourceFiles) {
+            for (sourceFile in sourceFiles) scoped {
                 currentLocation = sourceFile.location
+                scopeStack.push(sourceFile)
+                defer { check(scopeStack.pop() === sourceFile) }
                 for (it in sourceFile.declarations) {
                     declarations.addAll(lowerDeclaration(it))
                 }
@@ -384,9 +390,17 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerFunctionDef(
             declaration: Declaration.FunctionDef,
             qualifiedName: QualifiedName? = null
-    ): HIRDefinition.Function {
-        require(currentFunctionDef == null)
+    ): HIRDefinition.Function = scoped {
+        check(currentFunctionDef == null)
         currentFunctionDef = declaration
+        defer {
+            check(currentFunctionDef === declaration)
+            currentFunctionDef = null
+        }
+
+        scopeStack.push(declaration)
+        defer { check(scopeStack.pop() === declaration) }
+
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
@@ -396,8 +410,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             addReturnVoid,
             header,
         ).copy(name = ctx.makeName("entry"))
-        currentFunctionDef = null
-        return HIRDefinition.Function(
+        HIRDefinition.Function(
                 location = declaration.location,
                 signature = signature,
                 mutableListOf(body)
@@ -809,7 +822,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerClosure(expression: Expression.Closure): HIRExpression {
+    private fun lowerClosure(expression: Expression.Closure): HIRExpression = scoped {
+        scopeStack.push(expression)
+        defer { check(scopeStack.pop() === expression) }
         val params = expression.params.map {
             HIRParam(
                 it.location,
@@ -835,7 +850,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     paramToLocal.fixBinder(it.key)
                 }
             )
-        return HIRExpression.Closure(
+        HIRExpression.Closure(
             expression.location,
             ctx.analyzer.reduceGenericInstances(expression.type),
             captures,
