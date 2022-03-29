@@ -25,8 +25,11 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.GetStructField -> visitGetStructField(statement)
             is HIRStatement.GetStructFieldPointer -> visitGetStructFieldPointer(statement)
             is HIRStatement.Not -> visitNot(statement)
+            is HIRStatement.Jump -> visitJump(statement)
         }
     }
+
+    fun visitJump(statement: HIRStatement.Jump) = unit
 
     fun visitLoadStatement(statement: HIRStatement.Load) {
         visitExpression(statement.ptr)

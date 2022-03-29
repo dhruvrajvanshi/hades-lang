@@ -232,9 +232,9 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,
+            is HIRStatement.Jump,
             is HIRStatement.SwitchInt,
                 -> true
-
             is HIRStatement.MatchInt -> requireUnreachable()
             is HIRStatement.While -> requireUnreachable()
         }

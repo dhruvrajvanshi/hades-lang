@@ -14,6 +14,8 @@ sealed interface HIRStatement: HIRNode {
     sealed interface NameBinder {
         val name: Name
     }
+    sealed interface Terminator
+
     data class Expression(
         override val name: Name,
         val expression: HIRExpression
@@ -31,7 +33,7 @@ sealed interface HIRStatement: HIRNode {
     data class Return(
             override val location: SourceLocation,
             val expression: HIRExpression
-    ): HIRStatement
+    ): HIRStatement, Terminator
 
     data class Alloca(
             override val location: SourceLocation,
@@ -74,6 +76,7 @@ sealed interface HIRStatement: HIRNode {
             val value: HIRExpression
     ) : HIRStatement
 
+    @Deprecated("Use basic block structured instructions")
     data class MatchInt(
         override val location: SourceLocation,
         val value: HIRExpression,
@@ -142,6 +145,7 @@ sealed interface HIRStatement: HIRNode {
      * was run. Ideally, [hadesc.hir.passes.SimplifyShortCircuitingOperators] should be
      * more careful, but this was simpler to implement and reason about.
      */
+    @Deprecated("Use basic block structured instructions")
     data class While(
         override val location: SourceLocation,
         /**
@@ -165,7 +169,12 @@ sealed interface HIRStatement: HIRNode {
         val condition: HIRExpression,
         val cases: List<SwitchIntCase>,
         val otherwise: Name
-    ) : HIRStatement
+    ) : HIRStatement, Terminator
+
+    data class Jump(
+        override val location: SourceLocation,
+        val to: Name
+    ): HIRStatement, Terminator
 
 
     private fun prettyPrintInternal(): String = when(this) {
@@ -190,6 +199,7 @@ sealed interface HIRStatement: HIRNode {
         is GetStructField -> "%${name.text}: ${type.prettyPrint()} = ${lhs.prettyPrint()}.${fieldName.text}"
         is GetStructFieldPointer -> "%${name.text}: ${type.prettyPrint()} = field-offset ${lhs.prettyPrint()} ${memberName.text}"
         is Not -> "%${name.text}: Bool = ${expression.prettyPrint()}"
+        is Jump -> "jump ${to.text}"
     }
 
     companion object {

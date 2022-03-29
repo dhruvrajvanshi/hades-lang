@@ -147,6 +147,11 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.GetStructField -> transformGetStructField(statement)
         is HIRStatement.GetStructFieldPointer -> transformGetStructFieldPointer(statement)
         is HIRStatement.Not -> transformNotStatement(statement)
+        is HIRStatement.Jump -> transformJump(statement)
+    }
+
+    fun transformJump(statement: HIRStatement.Jump): Collection<HIRStatement> {
+        return listOf(statement)
     }
 
     fun transformLoadStatement(statement: HIRStatement.Load): Collection<HIRStatement> {
