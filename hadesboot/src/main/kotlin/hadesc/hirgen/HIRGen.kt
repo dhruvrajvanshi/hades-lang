@@ -41,7 +41,13 @@ internal interface HIRGenModuleContext {
 
 internal interface HIRGenFunctionContext: HIRBuilder {
     val scopeStack: HIRGenScopeStack
+    val paramToLocal: ParamToLocal
     fun lowerExpression(expression: Expression): HIRExpression
+    fun lowerBlock(
+        body: Block,
+        addReturnVoid: Boolean = false,
+        header: List<HIRStatement> = emptyList()
+    ): HIRBlock
 }
 
 internal class ScopeMeta
@@ -59,9 +65,14 @@ class HIRGenScopeStack {
 }
 class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
     override val namingCtx: NamingContext get() = ctx
-    private val paramToLocal = ParamToLocal(ctx)
+    override val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
     private val exprGen = HIRGenExpression(
+        ctx,
+        moduleContext = this,
+        functionContext = this
+    )
+    private val closureGen = HIRGenClosure(
         ctx,
         moduleContext = this,
         functionContext = this
@@ -481,10 +492,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private val deferStack = Stack<MutableList<HIRStatement>>()
-    private fun lowerBlock(
+    override fun lowerBlock(
         body: Block,
-        addReturnVoid: Boolean = false,
-        header: List<HIRStatement> = emptyList()
+        addReturnVoid: Boolean,
+        header: List<HIRStatement>,
     ): HIRBlock = scoped {
         scopeStack.push(body)
         defer { check(scopeStack.pop() === body) }
@@ -643,7 +654,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.If -> lowerIfExpression(expression)
             is Expression.TypeApplication -> lowerTypeApplication(expression)
             is Expression.This -> lowerThisExpression(expression)
-            is Expression.Closure -> lowerClosure(expression)
+            is Expression.Closure -> closureGen.lowerClosure(expression)
             is Expression.UnsafeCast -> lowerUnsafeCast(expression)
             is Expression.As -> lowerAsExpression(expression)
             is Expression.ArrayIndex -> lowerArrayIndexExpression(expression)
@@ -828,44 +839,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             expression.location,
             type,
             lowerExpression(expression.lhs)
-        )
-    }
-
-    private fun lowerClosure(expression: Expression.Closure): HIRExpression = scoped {
-        scopeStack.push(expression)
-        defer { check(scopeStack.pop() === expression) }
-        val params = expression.params.map {
-            HIRParam(
-                it.location,
-                it.binder,
-                ctx.analyzer.getParamType(it))
-        }
-        val header = paramToLocal.declareParamCopies(params)
-        val body = when (expression.body) {
-            is ClosureBody.Block -> lowerBlock(expression.body.block, header = header)
-            is ClosureBody.Expression -> lowerBlock(Block(expression.body.location, null,  listOf(
-                Block.Member.Statement(
-                    Statement.Return(
-                        expression.body.location,
-                        expression.body.expression
-                    )
-                )
-            )), header = header)
-        }
-        val captureData = ctx.analyzer.getClosureCaptures(expression)
-        val captures = captureData
-            .copy(
-                values = captureData.values.mapKeys {
-                    paramToLocal.fixBinder(it.key)
-                }
-            )
-        HIRExpression.Closure(
-            expression.location,
-            ctx.analyzer.reduceGenericInstances(expression.type),
-            captures,
-            params,
-            ctx.analyzer.getReturnType(expression),
-            body
         )
     }
 
