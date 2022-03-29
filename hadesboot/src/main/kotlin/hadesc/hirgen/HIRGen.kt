@@ -23,6 +23,7 @@ import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import hadesc.hir.*
+import hadesc.ignore
 import hadesc.types.mutPtr
 
 internal interface HIRGenModuleContext {
@@ -491,9 +492,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             deferStack.push(mutableListOf())
             header.forEach { emit(it) }
             for (member in body.members) {
-                lowerBlockMember(member).forEach {
-                    emit(it)
-                }
+                lowerBlockMember(member)
             }
             if (addReturnVoid) {
                 terminateScope()
@@ -507,53 +506,46 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerBlockMember(member: Block.Member): Collection<HIRStatement> = when(member) {
-        is Block.Member.Expression -> listOf(HIRStatement.Expression(ctx.makeUniqueName(), lowerExpression(member.expression)))
+    private fun lowerBlockMember(member: Block.Member): Unit = when(member) {
+        is Block.Member.Expression -> emit(HIRStatement.Expression(ctx.makeUniqueName(), lowerExpression(member.expression))).ignore()
         is Block.Member.Statement -> lowerStatement(member.statement)
     }
 
-    private fun lowerStatement(statement: Statement): Collection<HIRStatement> = when(statement) {
+    private fun lowerStatement(statement: Statement): Unit = when(statement) {
         is Statement.Return -> lowerReturnStatement(statement)
-        is Statement.Val -> {
-            lowerValStatement(statement)
-            emptyList()
-        }
+        is Statement.Val -> lowerValStatement(statement)
         is Statement.While -> lowerWhileStatement(statement)
         is Statement.If -> lowerIfStatement(statement)
-        is Statement.LocalAssignment -> {
-            lowerLocalAssignment(statement)
-            emptyList()
-        }
+        is Statement.LocalAssignment -> lowerLocalAssignment(statement)
         is Statement.MemberAssignment -> lowerMemberAssignmentStatement(statement)
         is Statement.PointerAssignment -> lowerPointerAssignment(statement)
         is Statement.Defer -> lowerDeferStatement(statement)
         is Statement.Error -> requireUnreachable()
     }
 
-    private fun lowerDeferStatement(statement: Statement.Defer): Collection<HIRStatement> {
+    private fun lowerDeferStatement(statement: Statement.Defer) {
         intoStatementList(requireNotNull(deferStack.peek())) {
-            emitAll(lowerBlockMember(statement.blockMember).reversed())
+            lowerBlockMember(statement.blockMember)
         }
-        return emptyList()
     }
 
-    private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment): Collection<HIRStatement> {
+    private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment) {
         require(statement.lhs.lhs is Expression.Var)
         val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
         require(binding is Binding.ValBinding)
         require(binding.statement.isMutable)
         val fieldAddr = addressOfStructField(statement.lhs)
-        return listOf(
-                HIRStatement.Store(
-                        location = statement.location,
-                        ptr = fieldAddr,
-                        value = lowerExpression(statement.value)
-                )
+        emit(
+            HIRStatement.Store(
+                location = statement.location,
+                ptr = fieldAddr,
+                value = lowerExpression(statement.value)
+            )
         )
     }
 
-    private fun lowerPointerAssignment(statement: Statement.PointerAssignment): Collection<HIRStatement> {
-        return listOf(
+    private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
+        emit(
                 HIRStatement.Store(
                         statement.location,
                         ptr = lowerExpression(statement.lhs.expression),
@@ -568,21 +560,21 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         emitAssign(lowerLocalBinder(binding.statement.binder), lowerExpression(statement.value))
     }
 
-    private fun lowerWhileStatement(statement: Statement.While): Collection<HIRStatement> {
+    private fun lowerWhileStatement(statement: Statement.While) {
         currentLocation = statement.condition.location
         val conditionVar = declareVariable("while_condition", Type.Bool)
-        return listOf(
-                HIRStatement.While(
-                    statement.location,
-                    conditionName = conditionVar.name,
-                    buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
-                       emitAssign(
-                           conditionVar.name,
-                           lowerExpression(statement.condition)
-                       )
-                    },
-                    lowerBlock(statement.body)
-                )
+        emit(
+            HIRStatement.While(
+                statement.location,
+                conditionName = conditionVar.name,
+                buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
+                   emitAssign(
+                       conditionVar.name,
+                       lowerExpression(statement.condition)
+                   )
+                },
+                lowerBlock(statement.body)
+            )
         )
     }
 
@@ -596,8 +588,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return binder.identifier.name
     }
 
-    private fun lowerIfStatement(statement: Statement.If): Collection<HIRStatement> {
-        return listOf(
+    private fun lowerIfStatement(statement: Statement.If) {
+        emit(
             ifStatement(
                 location = statement.location,
                 condition = lowerExpression(statement.condition),
@@ -607,13 +599,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerReturnStatement(statement: Statement.Return): Collection<HIRStatement> {
+    private fun lowerReturnStatement(statement: Statement.Return) {
         terminateScope()
         requireNotNull(deferStack.peek()).removeIf { true }
-        return if (statement.value == null) {
-            listOf(HIRStatement.Return(statement.location, HIRConstant.Void(statement.location)))
+        if (statement.value == null) {
+            emit(HIRStatement.Return(statement.location, HIRConstant.Void(statement.location)))
         } else {
-            listOf(
+            emit(
                 HIRStatement.Return(
                     statement.location,
                     lowerExpression(statement.value)

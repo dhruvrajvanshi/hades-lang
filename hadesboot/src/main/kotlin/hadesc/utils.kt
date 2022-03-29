@@ -35,3 +35,5 @@ fun Scoped.defer(block: () -> Unit) {
 }
 
 val unit = Unit
+
+inline fun <reified T> T.ignore(): Unit {}
