@@ -28,6 +28,7 @@ import hadesc.types.mutPtr
 
 internal interface HIRGenModuleContext {
     val enumTagFieldName: Name
+    val currentModule: HIRModule
     fun lowerGlobalName(binder: Binder): QualifiedName
     fun typeOfExpression(expression: Expression): Type
     fun lowerLocalBinder(binder: Binder): Name
@@ -67,6 +68,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val namingCtx: NamingContext get() = ctx
     override val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
+    override val currentModule = HIRModule(mutableListOf())
     private val exprGen = HIRGenExpression(
         ctx,
         moduleContext = this,
@@ -82,7 +84,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val scopeStack = HIRGenScopeStack()
 
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
-        val declarations = mutableListOf<HIRDefinition>()
+        val declarations = currentModule.definitions
         try {
             for (sourceFile in sourceFiles) scoped {
                 currentLocation = sourceFile.location
