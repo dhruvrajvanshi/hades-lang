@@ -113,6 +113,13 @@ sealed interface HIRStatement: HIRNode {
         }
     }
 
+    data class IntegerConvert(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val value: HIRExpression,
+    ) : HIRStatement, NameBinder
+
     /**
      * The basic structure of a while statement is this
      *
@@ -200,6 +207,7 @@ sealed interface HIRStatement: HIRNode {
         is GetStructFieldPointer -> "%${name.text}: ${type.prettyPrint()} = field-offset ${lhs.prettyPrint()} ${memberName.text}"
         is Not -> "%${name.text}: Bool = ${expression.prettyPrint()}"
         is Jump -> "jump ${to.text}"
+        is IntegerConvert -> "%${name.text}: ${type.prettyPrint()} = integer_convert[${type.prettyPrint()}] ${value.prettyPrint()}"
     }
 
     companion object {

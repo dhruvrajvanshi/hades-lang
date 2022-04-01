@@ -148,6 +148,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.GetStructFieldPointer -> transformGetStructFieldPointer(statement)
         is HIRStatement.Not -> transformNotStatement(statement)
         is HIRStatement.Jump -> transformJump(statement)
+        is HIRStatement.IntegerConvert -> listOf(transformIntegerConvert(statement))
     }
 
     fun transformJump(statement: HIRStatement.Jump): Collection<HIRStatement> {
@@ -260,7 +261,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
-        is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
 
     }
@@ -289,13 +289,14 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return HIRExpression.BlockExpression(lowerType(expression.type), transformBlock(expression.block))
     }
 
-    fun transformIntegerConvert(expression: HIRExpression.IntegerConvert): HIRExpression {
-        val type = lowerType(expression.type)
+    fun transformIntegerConvert(statement: HIRStatement.IntegerConvert): HIRStatement.IntegerConvert {
+        val type = lowerType(statement.type)
         require(type is Type.Integral || type is Type.Size || type is Type.Ptr)
-        return HIRExpression.IntegerConvert(
-            expression.location,
+        return HIRStatement.IntegerConvert(
+            statement.location,
+            statement.name,
             type,
-            transformExpression(expression.value)
+            transformExpression(statement.value)
         )
     }
 

@@ -118,12 +118,6 @@ sealed interface HIRExpression: HIRNode {
         val args: List<HIRExpression>,
     ) : HIRExpression
 
-    data class IntegerConvert(
-        override val location: SourceLocation,
-        override val type: Type,
-        val value: HIRExpression,
-    ) : HIRExpression
-
     data class BlockExpression(override val type: Type, val block: HIRBlock): HIRExpression {
         override val location get() = block.location
     }
@@ -148,7 +142,6 @@ sealed interface HIRExpression: HIRNode {
         is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
-        is IntegerConvert -> "(${value.prettyPrint()} as ${type.prettyPrint()})"
         is BlockExpression -> block.prettyPrint()
         is HIRConstant.ByteString -> "b\"" + String(bytes)
             .replace("\"", "\"\"")

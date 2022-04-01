@@ -813,11 +813,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerAsExpression(expression: Expression.As): HIRExpression {
         val type = expression.type
         require(type is Type.Integral || type is Type.Size)
-        return HIRExpression.IntegerConvert(
-            expression.location,
-            type,
-            lowerExpression(expression.lhs)
-        )
+
+        return emitIntegerConvert(lowerExpression(expression.lhs), type)
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {

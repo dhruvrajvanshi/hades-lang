@@ -87,6 +87,20 @@ fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
     requireNotNull(currentStatements).addAll(statements)
 }
 
+fun HIRBuilder.emitIntegerConvert(expression: HIRExpression, to: Type): HIROperand {
+    val s = emit(HIRStatement.IntegerConvert(
+        expression.location,
+        namingCtx.makeUniqueName(),
+        to,
+        expression
+    ))
+    return HIRExpression.LocalRef(
+        s.location,
+        s.type,
+        s.name
+    )
+}
+
 @Deprecated("Use emitAlloca")
 fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
     val name = namingCtx.makeUniqueName(namePrefix)

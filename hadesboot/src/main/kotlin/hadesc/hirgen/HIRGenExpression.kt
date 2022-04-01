@@ -111,19 +111,17 @@ internal class HIRGenExpression(
             IntrinsicType.PTR_TO_INT -> {
                 check(expression.type is Type.Size)
                 check(expression.args.size == 1)
-                return HIRExpression.IntegerConvert(
-                    expression.location,
-                    expression.type,
-                    lowerExpression(expression.args[0].expression)
+                return emitIntegerConvert(
+                    lowerExpression(expression.args[0].expression),
+                    expression.type
                 )
             }
             IntrinsicType.INT_TO_PTR -> {
                 check(expression.type is Type.Ptr)
                 check(expression.args.size == 1)
-                return HIRExpression.IntegerConvert(
-                    expression.location,
+                return emitIntegerConvert(
+                    lowerExpression(expression.args[0].expression),
                     expression.type,
-                    lowerExpression(expression.args[0].expression)
                 )
             }
             IntrinsicType.ERROR -> requireUnreachable()

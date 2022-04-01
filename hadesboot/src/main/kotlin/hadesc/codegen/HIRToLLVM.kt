@@ -296,6 +296,7 @@ class HIRToLLVM(
             is HIRStatement.GetStructField -> lowerGetStructField(statement)
             is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPointer(statement)
             is HIRStatement.Not -> lowerNotStatement(statement)
+            is HIRStatement.IntegerConvert -> lowerIntegerConvert(statement)
         }
 
         if (value != null) {
@@ -398,7 +399,6 @@ class HIRToLLVM(
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
-            is HIRExpression.IntegerConvert -> lowerIntegerConvert(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
             is HIRExpression.NullPtr -> lowerNullPtr(expression)
             is HIRExpression.ParamRef -> lowerParamRef(expression)
@@ -531,10 +531,10 @@ class HIRToLLVM(
         )
     }
 
-    private fun lowerIntegerConvert(expression: HIRExpression.IntegerConvert): Value {
-        val fromType = expression.value.type
+    private fun lowerIntegerConvert(statement: HIRStatement.IntegerConvert): Value {
+        val fromType = statement.value.type
         require(fromType is Type.Integral || fromType is Type.Size || fromType is Type.Ptr)
-        val toType = expression.type
+        val toType = statement.type
         require(toType is Type.Integral || toType is Type.Size || toType is Type.Ptr)
 
         val fromSize = fromType.sizeInBits
@@ -544,23 +544,23 @@ class HIRToLLVM(
         return when {
             toSize > fromSize -> {
                 builder.buildZExt(
-                    lowerExpression(expression.value),
+                    lowerExpression(statement.value),
                     toType = lowerType(toType),
-                    name = ctx.makeUniqueName().text,
+                    name = statement.name.text,
                 )
             }
             toSize < fromSize -> {
                 builder.buildTrunc(
-                    lowerExpression(expression.value),
+                    lowerExpression(statement.value),
                     lowerType(toType),
-                    name = ctx.makeUniqueName().text
+                    name = statement.name.text
                 )
             }
             else -> {
                 builder.buildBitCast(
-                    lowerExpression(expression.value),
+                    lowerExpression(statement.value),
                     lowerType(toType),
-                    ctx.makeUniqueName().text
+                    name = statement.name.text
                 )
             }
         }
