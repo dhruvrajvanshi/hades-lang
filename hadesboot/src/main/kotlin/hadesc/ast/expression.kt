@@ -112,12 +112,6 @@ sealed class Expression : HasLocation {
         val body: ClosureBody
     ) : Expression(), ScopeTree
 
-    data class UnsafeCast(
-        override val location: SourceLocation,
-        val toType: TypeAnnotation,
-        val value: Expression
-    ) : Expression()
-
     data class As(
         override val location: SourceLocation,
         val lhs: Expression,

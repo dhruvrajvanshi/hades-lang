@@ -574,7 +574,6 @@ class Checker(val ctx: Context) {
             is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
             is Expression.Closure -> checkClosureExpression(expression)
             is Expression.This -> checkThisExpression(expression)
-            is Expression.UnsafeCast -> checkUnsafeCast(expression)
             is Expression.As -> checkAsExpression(expression)
             is Expression.BlockExpression -> checkBlockExpression(expression)
             is Expression.Intrinsic -> checkIntrinsicExpression(expression)
@@ -786,11 +785,6 @@ class Checker(val ctx: Context) {
         if (expression.arg.type !is Type.Ptr) {
             error(expression.arg, Diagnostic.Kind.NotAPointerType(expression.arg.type))
         }
-    }
-
-    private fun checkUnsafeCast(expression: Expression.UnsafeCast) {
-        checkExpression(expression.value)
-        checkTypeAnnotation(expression.toType)
     }
 
     private fun checkDeref(expression: Expression.Deref) {

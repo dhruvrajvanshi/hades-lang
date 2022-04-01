@@ -780,7 +780,6 @@ class Analyzer(
             is Expression.TypeApplication -> inferTypeApplication(expression)
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
-            is Expression.UnsafeCast -> inferUnsafeCast(expression)
             is Expression.As -> {
                 inferExpression(expression.lhs)
                 annotationToType(expression.rhs)
@@ -896,11 +895,6 @@ class Analyzer(
             checkExpression(arm.value, expectedType)
         }
         return expectedType
-    }
-
-    private fun inferUnsafeCast(expression: Expression.UnsafeCast): Type {
-        inferExpression(expression.value)
-        return annotationToType(expression.toType)
     }
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {

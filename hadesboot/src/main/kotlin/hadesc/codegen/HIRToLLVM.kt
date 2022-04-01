@@ -404,7 +404,6 @@ class HIRToLLVM(
             is HIRExpression.ParamRef -> lowerParamRef(expression)
             is HIRExpression.PointerCast -> lowerPointerCast(expression)
             is HIRExpression.SizeOf -> lowerSizeOf(expression)
-            is HIRExpression.UnsafeCast -> requireUnreachable()
             is HIRExpression.ValRef -> lowerValRef(expression)
             is HIRExpression.TypeApplication -> requireUnreachable()
             is HIRExpression.TraitMethodRef -> requireUnreachable()

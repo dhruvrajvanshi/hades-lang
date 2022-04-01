@@ -97,7 +97,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.SizeOf -> visitSizeOf(expression)
             is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
             is HIRExpression.TypeApplication -> visitTypeApplication(expression)
-            is HIRExpression.UnsafeCast -> visitUnsafeCast(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
             is HIRExpression.BlockExpression -> visitBlockExpression(expression)
             is HIRConstant -> visitConstant(expression)
@@ -185,10 +184,6 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitTypeApplication(expression: HIRExpression.TypeApplication) {
         visitExpression(expression.expression)
         expression.args.forEach { visitType(it) }
-    }
-
-    fun visitUnsafeCast(expression: HIRExpression.UnsafeCast) {
-        visitExpression(expression.value)
     }
 
     fun visitValRef(expression: HIRExpression.ValRef) {

@@ -657,7 +657,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.TypeApplication -> lowerTypeApplication(expression)
             is Expression.This -> lowerThisExpression(expression)
             is Expression.Closure -> closureGen.lowerClosure(expression)
-            is Expression.UnsafeCast -> lowerUnsafeCast(expression)
             is Expression.As -> lowerAsExpression(expression)
             is Expression.BlockExpression -> lowerBlockExpression(expression)
             is Expression.Intrinsic -> requireUnreachable()
@@ -819,14 +818,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
         return lowerExpression(expression.lhs)
-    }
-
-    private fun lowerUnsafeCast(expression: Expression.UnsafeCast): HIRExpression {
-        return HIRExpression.UnsafeCast(
-            location = expression.location,
-            type = lowerTypeAnnotation(expression.toType),
-            value = lowerExpression(expression.value)
-        )
     }
 
     private fun thisParamType(): Type {

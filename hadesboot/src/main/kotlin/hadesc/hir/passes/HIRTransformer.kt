@@ -258,7 +258,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.BinOp -> transformBinOp(expression)
 
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
-        is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
@@ -320,14 +319,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             expression.params.map { transformParam(it) },
             lowerType(expression.returnType),
             transformBlock(expression.body)
-        )
-    }
-
-    fun transformUnsafeCast(expression: HIRExpression.UnsafeCast): HIRExpression {
-        return HIRExpression.UnsafeCast(
-            location = expression.location,
-            lowerType(expression.type),
-            transformExpression(expression.value)
         )
     }
 

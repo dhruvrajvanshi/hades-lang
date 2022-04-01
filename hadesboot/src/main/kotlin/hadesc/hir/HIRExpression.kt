@@ -96,12 +96,6 @@ sealed interface HIRExpression: HIRNode {
             val methodName: Name,
     ) : HIRExpression, HIROperand
 
-    data class UnsafeCast(
-        override val location: SourceLocation,
-        override val type: Type,
-        val value: HIRExpression,
-    ) : HIRExpression
-
     data class Closure(
         override val location: SourceLocation,
         override val type: Type,
@@ -139,7 +133,6 @@ sealed interface HIRExpression: HIRNode {
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
-        is UnsafeCast -> "unsafe_cast[${type.prettyPrint()}](${value.prettyPrint()})"
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
         is BlockExpression -> block.prettyPrint()

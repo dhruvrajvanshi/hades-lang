@@ -72,7 +72,6 @@ interface SyntaxVisitor {
         is Expression.SizeOf -> visitSizeOfExpr(expression)
         is Expression.This -> visitThisExpr(expression)
         is Expression.TypeApplication -> visitTypeApplicationExpr(expression)
-        is Expression.UnsafeCast -> visitUnsafeCastExpr(expression)
         is Expression.Var -> visitVarExpr(expression)
         is Expression.As -> visitAsExpression(expression)
         is Expression.BlockExpression -> visitBlockExpression(expression)
@@ -252,11 +251,6 @@ interface SyntaxVisitor {
         expression.args.forEach {
             visitType(it)
         }
-    }
-
-    fun visitUnsafeCastExpr(expression: Expression.UnsafeCast) {
-        visitType(expression.toType)
-        visitExpression(expression.value)
     }
 
     fun visitVarExpr(expression: Expression.Var) {
