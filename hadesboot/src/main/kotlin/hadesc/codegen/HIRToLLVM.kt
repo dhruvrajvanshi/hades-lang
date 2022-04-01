@@ -178,7 +178,6 @@ class HIRToLLVM(
         )
         is Type.Function -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
-        is Type.Array -> TODO()
         is Type.UntaggedUnion -> TODO()
         is Type.ParamRef,
         is Type.TypeFunction,
@@ -396,7 +395,6 @@ class HIRToLLVM(
         }
 
         return when (expression) {
-            is HIRExpression.ArrayIndex -> lowerArrayIndex(expression)
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
             is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
@@ -415,14 +413,6 @@ class HIRToLLVM(
             is HIRConstant -> lowerConstant(expression)
             is HIRExpression.LocalRef -> lowerLocalRef(expression)
         }
-    }
-
-    private fun lowerArrayIndex(expression: HIRExpression.ArrayIndex): Value {
-        return builder.buildExtractElement(
-            lowerExpression(expression.array),
-            lowerExpression(expression.index),
-            ctx.makeUniqueName().text,
-        )
     }
 
     private fun lowerGetStructFieldPointer(expression: HIRStatement.GetStructFieldPointer): Value {
@@ -612,21 +602,12 @@ class HIRToLLVM(
 
     private fun lowerConstant(constant: HIRConstant): Value =
         when (constant) {
-            is HIRConstant.ArrayLiteral -> lowerArrayLiteral(constant)
             is HIRConstant.BoolValue -> if (constant.value) trueValue else falseValue
             is HIRConstant.ByteString -> lowerByteString(constant)
             is HIRConstant.FloatValue -> lowerFloatLiteral(constant)
             is HIRConstant.IntValue -> lowerIntLiteral(constant)
             is HIRConstant.Void -> requireUnreachable()
         }
-
-    private fun lowerArrayLiteral(constant: HIRConstant.ArrayLiteral): Value {
-        return constantArray(
-            lowerType(constant.type.ofType),
-            constant.items.map { lowerConstant(it) },
-            constant.items.size
-        )
-    }
 
     private fun lowerFloatLiteral(constant: HIRConstant.FloatValue): Value {
         return constantFloat(
@@ -741,7 +722,6 @@ class HIRToLLVM(
         is Type.TypeFunction -> requireUnreachable()
         is Type.AssociatedTypeRef -> requireUnreachable()
         is Type.Select -> requireUnreachable()
-        is Type.Array -> arrayType(lowerType(type.ofType), type.length)
     }
 
     private fun sizeOfType(type: llvm.Type): Long {

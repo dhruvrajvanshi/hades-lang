@@ -75,8 +75,6 @@ interface SyntaxVisitor {
         is Expression.UnsafeCast -> visitUnsafeCastExpr(expression)
         is Expression.Var -> visitVarExpr(expression)
         is Expression.As -> visitAsExpression(expression)
-        is Expression.ArrayIndex -> visitArrayIndexExpression(expression)
-        is Expression.ArrayLiteral -> visitArrayLiteralExpression(expression)
         is Expression.BlockExpression -> visitBlockExpression(expression)
         is Expression.Intrinsic -> visitIntrinsicExpression(expression)
         is Expression.UnaryMinus -> visitUnaryMinusExpression(expression)
@@ -105,16 +103,6 @@ interface SyntaxVisitor {
 
     fun visitBlockExpression(expression: Expression.BlockExpression) {
         visitBlock(expression.block)
-    }
-
-    fun visitArrayLiteralExpression(expression: Expression.ArrayLiteral) {
-        visitType(expression.ofType)
-        expression.items.forEach { visitExpression(it) }
-    }
-
-    fun visitArrayIndexExpression(expression: Expression.ArrayIndex) {
-        visitExpression(expression.lhs)
-        visitExpression(expression.index)
     }
 
     fun visitAsExpression(expression: Expression.As) {

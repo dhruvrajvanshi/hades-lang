@@ -22,11 +22,6 @@ interface TypeTransformer {
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
         is Type.Select -> lowerSelectType(type)
-        is Type.Array -> lowerArrayType(type)
-    }
-
-    fun lowerArrayType(type: Type.Array): Type {
-        return Type.Array(lowerType(type.ofType), length = type.length)
     }
 
     fun lowerSelectType(type: Type.Select): Type {
@@ -115,11 +110,6 @@ interface TypeVisitor {
         is Type.FloatingPoint -> visitFloatingPointType(type)
         is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
         is Type.Select -> visitSelectType(type)
-        is Type.Array -> visitArrayType(type)
-    }
-
-    fun visitArrayType(type: Type.Array) {
-        visitType(type.ofType)
     }
 
     fun visitSelectType(type: Type.Select) = type.traitArgs.forEach {

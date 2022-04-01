@@ -124,18 +124,6 @@ sealed class Expression : HasLocation {
         val rhs: TypeAnnotation,
     ) : Expression()
 
-    data class ArrayLiteral(
-        override val location: SourceLocation,
-        val ofType: TypeAnnotation,
-        val items: List<Expression>
-    ) : Expression()
-
-    data class ArrayIndex(
-        override val location: SourceLocation,
-        val lhs: Expression,
-        val index: Expression
-    ) : Expression()
-
     data class BlockExpression(val block: Block) : Expression() {
         override val location: SourceLocation
             get() = block.location

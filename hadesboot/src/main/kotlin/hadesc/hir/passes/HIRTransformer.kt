@@ -265,7 +265,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
-        is HIRExpression.ArrayIndex -> transformArrayIndex(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
         is HIRConstant -> transformConstant(expression)
         is HIRExpression.LocalRef -> transformLocalRef(expression)
@@ -281,15 +280,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
     fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
         return HIRExpression.BlockExpression(lowerType(expression.type), transformBlock(expression.block))
-    }
-
-    fun transformArrayIndex(expression: HIRExpression.ArrayIndex): HIRExpression {
-        return HIRExpression.ArrayIndex(
-            expression.location,
-            lowerType(expression.type),
-            transformExpression(expression.array),
-            transformExpression(expression.index),
-        )
     }
 
     fun transformIntegerConvert(expression: HIRExpression.IntegerConvert): HIRExpression {
@@ -468,7 +458,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRConstant.BoolValue -> expression
         is HIRConstant.IntValue -> expression
         is HIRConstant.FloatValue -> expression
-        is HIRConstant.ArrayLiteral -> expression
         is HIRConstant.Void -> expression
     }
 

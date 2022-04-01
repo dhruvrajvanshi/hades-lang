@@ -99,7 +99,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.TypeApplication -> visitTypeApplication(expression)
             is HIRExpression.UnsafeCast -> visitUnsafeCast(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
-            is HIRExpression.ArrayIndex -> visitArrayIndex(expression)
             is HIRExpression.BlockExpression -> visitBlockExpression(expression)
             is HIRConstant -> visitConstant(expression)
             is HIRExpression.LocalRef -> visitLocalRef(expression)
@@ -110,11 +109,6 @@ interface HIRBlockVisitor : TypeVisitor {
 
     fun visitBlockExpression(expression: HIRExpression.BlockExpression) {
         visitBlock(expression.block)
-    }
-
-    fun visitArrayIndex(expression: HIRExpression.ArrayIndex) {
-        visitExpression(expression.array)
-        visitExpression(expression.index)
     }
 
     fun visitBinOp(expression: HIRExpression.BinOp) {

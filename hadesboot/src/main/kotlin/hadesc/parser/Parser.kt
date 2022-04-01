@@ -865,7 +865,6 @@ class Parser(
                 Expression.This(advance().location)
             }
             tt.VBAR -> parseClosureExpression()
-            tt.LSQB -> parseArrayLiteralExpression()
             tt.LBRACE -> parseBlockExpression()
             tt.AT_INTRINSIC -> parseIntrinsicExpression()
             tt.MINUS -> parseUnaryMinusExpression()
@@ -1004,23 +1003,6 @@ class Parser(
         return Expression.BlockExpression(block)
     }
 
-    private fun parseArrayLiteralExpression(): Expression {
-        val start = expect(tt.LSQB)
-        val ofType = parseTypeAnnotation()
-        expect(tt.RSQB)
-        expect(tt.LSQB)
-        val items = parseSeperatedList(tt.COMMA, terminator = tt.RSQB) {
-            parseExpression()
-        }
-        val stop = expect(tt.RSQB)
-
-        return Expression.ArrayLiteral(
-            makeLocation(start, stop),
-            ofType,
-            items
-        )
-    }
-
     private fun parseClosureExpression(): Expression {
         val start = expect(tt.VBAR)
         val params = parseSeperatedList(seperator = tt.COMMA, terminator = tt.VBAR) { parseParam() }
@@ -1128,27 +1110,14 @@ class Parser(
             }
             tt.DOT -> {
                 advance()
-                if (currentToken.kind == tt.LSQB) {
-                    advance()
-                    val index = parseExpression()
-                    val stop = expect(tt.RSQB)
-                    parseExpressionTail(
-                        Expression.ArrayIndex(
-                            makeLocation(head, stop),
-                            head,
-                            index,
-                        )
+                val ident = parseIdentifier()
+                parseExpressionTail(
+                    Expression.Property(
+                        makeLocation(head, ident),
+                        head,
+                        ident
                     )
-                } else {
-                    val ident = parseIdentifier()
-                    parseExpressionTail(
-                        Expression.Property(
-                            makeLocation(head, ident),
-                            head,
-                            ident
-                        )
-                    )
-                }
+                )
             }
             tt.AS -> {
                 advance()

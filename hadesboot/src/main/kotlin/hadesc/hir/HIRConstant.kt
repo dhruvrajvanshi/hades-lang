@@ -29,12 +29,6 @@ sealed interface HIRConstant: HIROperand {
         val value: Double
     ) : HIRConstant
 
-    data class ArrayLiteral(
-        override val location: SourceLocation,
-        override val type: Type.Array,
-        val items: List<HIRConstant>,
-    ) : HIRConstant
-
     data class Void(override val location: SourceLocation): HIRConstant {
         override val type: Type
             get() = Type.Void

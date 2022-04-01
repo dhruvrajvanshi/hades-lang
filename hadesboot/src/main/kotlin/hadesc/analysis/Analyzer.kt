@@ -781,8 +781,6 @@ class Analyzer(
             is Expression.This -> inferThisExpression(expression)
             is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
             is Expression.UnsafeCast -> inferUnsafeCast(expression)
-            is Expression.ArrayLiteral -> inferArrayLiteral(expression)
-            is Expression.ArrayIndex -> inferArrayIndex(expression)
             is Expression.As -> {
                 inferExpression(expression.lhs)
                 annotationToType(expression.rhs)
@@ -890,24 +888,6 @@ class Analyzer(
         }
 
         return Type.Void
-    }
-
-    private fun inferArrayIndex(expression: Expression.ArrayIndex): Type {
-        val lhsType = inferExpression(expression.lhs)
-        checkExpression(expression.index, Type.usize)
-        return if (lhsType is Type.Array) {
-            lhsType.ofType
-        } else {
-            Type.Error(expression.lhs.location)
-        }
-    }
-
-    private fun inferArrayLiteral(expression: Expression.ArrayLiteral): Type {
-        val itemType = annotationToType(expression.ofType)
-        for (item in expression.items) {
-            checkExpression(item, itemType)
-        }
-        return Type.Array(ofType = itemType, length = expression.items.size)
     }
 
     private fun checkMatchExpression(expression: Expression.Match, expectedType: Type): Type {
@@ -1711,8 +1691,6 @@ class Analyzer(
                 val binding = ctx.analyzer.resolvePropertyBinding(initializer)
                 binding is PropertyBinding.Global
             }
-            is Expression.ArrayLiteral ->
-                initializer.items.all { isCompileTimeConstant(it) }
             else -> {
                 false
             }

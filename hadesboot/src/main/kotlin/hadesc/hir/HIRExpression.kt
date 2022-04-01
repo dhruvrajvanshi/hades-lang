@@ -124,13 +124,6 @@ sealed interface HIRExpression: HIRNode {
         val value: HIRExpression,
     ) : HIRExpression
 
-    data class ArrayIndex(
-        override val location: SourceLocation,
-        override val type: Type,
-        val array: HIRExpression,
-        val index: HIRExpression
-    ) : HIRExpression
-
     data class BlockExpression(override val type: Type, val block: HIRBlock): HIRExpression {
         override val location get() = block.location
     }
@@ -156,7 +149,6 @@ sealed interface HIRExpression: HIRNode {
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
         is IntegerConvert -> "(${value.prettyPrint()} as ${type.prettyPrint()})"
-        is ArrayIndex -> "${array.prettyPrint()}.[${index.prettyPrint()}]"
         is BlockExpression -> block.prettyPrint()
         is HIRConstant.ByteString -> "b\"" + String(bytes)
             .replace("\"", "\"\"")
@@ -164,9 +156,6 @@ sealed interface HIRExpression: HIRNode {
         is HIRConstant.BoolValue -> value.toString()
         is HIRConstant.IntValue -> value.toString()
         is HIRConstant.FloatValue -> value.toString()
-        is HIRConstant.ArrayLiteral -> "[${type.ofType.prettyPrint()}][" +
-                items.joinToString(", ") { it.prettyPrint() } +
-                "]"
         is HIRConstant.Void -> "void"
         is LocalRef -> "%${name.text}"
     }

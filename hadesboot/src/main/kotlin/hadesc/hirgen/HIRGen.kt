@@ -659,8 +659,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.Closure -> closureGen.lowerClosure(expression)
             is Expression.UnsafeCast -> lowerUnsafeCast(expression)
             is Expression.As -> lowerAsExpression(expression)
-            is Expression.ArrayIndex -> lowerArrayIndexExpression(expression)
-            is Expression.ArrayLiteral -> lowerArrayLiteral(expression)
             is Expression.BlockExpression -> lowerBlockExpression(expression)
             is Expression.Intrinsic -> requireUnreachable()
             is Expression.UnaryMinus -> lowerUnaryMinus(expression)
@@ -801,30 +799,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerBlockExpression(expression: Expression.BlockExpression): HIRExpression {
         val block = lowerBlock(expression.block)
         return HIRExpression.BlockExpression(expression.type, block)
-    }
-
-    private fun lowerArrayIndexExpression(expression: Expression.ArrayIndex): HIRExpression {
-        val lhs = lowerExpression(expression.lhs)
-        val index = lowerExpression(expression.index)
-        val lhsType = lhs.type
-        check(lhsType is Type.Array)
-        return HIRExpression.ArrayIndex(
-            expression.location,
-            expression.type,
-            lhs,
-            index
-        )
-    }
-
-    private fun lowerArrayLiteral(expression: Expression.ArrayLiteral): HIROperand {
-        val exprType = expression.type
-        check(exprType is Type.Array)
-        val items = expression.items.map {
-            val item = lowerExpression(it)
-            check(item is HIRConstant)
-            item
-        }
-        return HIRConstant.ArrayLiteral(expression.location, exprType, items)
     }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
