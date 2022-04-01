@@ -672,6 +672,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val withAppliedTypes = if (typeArgs != null) {
             check(exprType is Type.TypeFunction)
             check(exprType.params.size == typeArgs.size)
+            check(lowered is HIROperand)
             HIRExpression.TypeApplication(
                 expression.location,
                 applyType(exprType, typeArgs),
@@ -687,6 +688,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
         val enumConstructorBinding = ctx.analyzer.getEnumConstructorBinding(expression)
         return if (enumConstructorBinding != null && expression !is Expression.TypeApplication) {
+            check(withAppliedTypes is HIROperand)
             if (enumConstructorBinding.case.params == null) {
                 HIRExpression.Call(
                     expression.location,

@@ -161,11 +161,11 @@ class Monomorphization(
         return listOf()
     }
 
-    override fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIRExpression {
+    override fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIROperand {
         return generateSpecialization(expression.expression, expression.args)
     }
 
-    private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIRExpression = when(expression) {
+    private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIROperand = when(expression) {
         is HIRExpression.GlobalRef -> {
             val name = getSpecializedName(expression.name, typeArgs.map { lowerType(it) })
             val definition = oldModule.findGlobalDefinition(expression.name)
@@ -249,7 +249,7 @@ class Monomorphization(
             )
         }
     }
-    override fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIRExpression {
+    override fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIROperand {
         val impl = getTraitImpl(expression.traitName, expression.traitArgs)
         val implMethodNames = impl.methods
         return HIRExpression.GlobalRef(

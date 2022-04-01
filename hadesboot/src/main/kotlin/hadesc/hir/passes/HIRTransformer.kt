@@ -251,26 +251,33 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return transformExpressionWorker(expression)
     }
     private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = when(expression) {
+        is HIROperand -> transformOperand(expression)
         is HIRExpression.Call -> transformCall(expression)
-        is HIRExpression.GlobalRef -> transformGlobalRef(expression)
-        is HIRExpression.ParamRef -> transformParamRef(expression)
-        is HIRExpression.ValRef -> transformValRef(expression)
+
         is HIRExpression.BinOp -> transformBinOp(expression)
-        is HIRExpression.NullPtr -> transformNullPtr(expression)
-        is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
-        is HIRExpression.TypeApplication -> transformTypeApplication(expression)
+
         is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
-        is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRExpression.UnsafeCast -> transformUnsafeCast(expression)
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.IntegerConvert -> transformIntegerConvert(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
-        is HIRConstant -> transformConstant(expression)
-        is HIRExpression.LocalRef -> transformLocalRef(expression)
+
     }
 
-    fun transformLocalRef(expression: HIRExpression.LocalRef): HIRExpression {
+    fun transformOperand(expression: HIROperand): HIROperand = when(expression) {
+        is HIRExpression.GlobalRef -> transformGlobalRef(expression)
+        is HIRExpression.ParamRef -> transformParamRef(expression)
+        is HIRExpression.ValRef -> transformValRef(expression)
+        is HIRExpression.NullPtr -> transformNullPtr(expression)
+        is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
+        is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
+        is HIRConstant -> transformConstant(expression)
+        is HIRExpression.LocalRef -> transformLocalRef(expression)
+        is HIRExpression.TypeApplication -> transformTypeApplication(expression)
+    }
+
+    fun transformLocalRef(expression: HIRExpression.LocalRef): HIROperand {
         return HIRExpression.LocalRef(
             expression.location,
             lowerType(expression.type),
@@ -323,7 +330,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIRExpression {
+    fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIROperand {
         return HIRExpression.TraitMethodRef(
                 expression.location,
                 expression.type,
@@ -354,16 +361,16 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIRExpression {
+    fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIROperand {
         return HIRExpression.TypeApplication(
                 expression.location,
                 lowerType(expression.type),
-                transformExpression(expression.expression),
+                transformOperand(expression.expression),
                 expression.args.map { lowerType(it) }
         )
     }
 
-    fun transformSizeOfExpression(expression: HIRExpression.SizeOf): HIRExpression {
+    fun transformSizeOfExpression(expression: HIRExpression.SizeOf): HIROperand {
         return HIRExpression.SizeOf(
                 expression.location,
                 type = lowerType(expression.type),
@@ -371,7 +378,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformNullPtr(expression: HIRExpression.NullPtr): HIRExpression {
+    fun transformNullPtr(expression: HIRExpression.NullPtr): HIROperand {
         return HIRExpression.NullPtr(
                 expression.location,
                 lowerType(expression.type) as Type.Ptr
@@ -403,7 +410,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         ))
     }
 
-    fun transformValRef(expression: HIRExpression.ValRef): HIRExpression {
+    fun transformValRef(expression: HIRExpression.ValRef): HIROperand {
         return HIRExpression.ValRef(
                 expression.location,
                 lowerType(expression.type),
@@ -415,7 +422,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return name
     }
 
-    fun transformParamRef(expression: HIRExpression.ParamRef): HIRExpression {
+    fun transformParamRef(expression: HIRExpression.ParamRef): HIROperand {
         return HIRExpression.ParamRef(
                 location = expression.location,
                 type = lowerType(expression.type),
@@ -428,7 +435,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return HIRExpression.Call(
                 location = expression.location,
                 type = lowerType(expression.type),
-                callee = transformExpression(expression.callee),
+                callee = transformOperand(expression.callee),
                 args = expression.args.map { transformExpression(it) }
         )
     }
@@ -445,7 +452,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformGlobalRef(expression: HIRExpression.GlobalRef): HIRExpression {
+    fun transformGlobalRef(expression: HIRExpression.GlobalRef): HIROperand {
         return HIRExpression.GlobalRef(
                 location = expression.location,
                 type = lowerType(expression.type),

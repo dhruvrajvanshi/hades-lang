@@ -18,16 +18,16 @@ sealed interface HIRExpression: HIRNode {
     data class Call(
             override val location: SourceLocation,
             override val type: Type,
-            val callee: HIRExpression,
+            val callee: HIROperand,
             val args: List<HIRExpression>
     ) : HIRExpression
 
     data class TypeApplication(
             override val location: SourceLocation,
             override val type: Type,
-            val expression: HIRExpression,
+            val expression: HIROperand,
             val args: List<Type>
-    ) : HIRExpression
+    ) : HIRExpression, HIROperand
 
     data class GlobalRef(
             override val location: SourceLocation,

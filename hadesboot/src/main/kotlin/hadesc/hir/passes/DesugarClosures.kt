@@ -125,7 +125,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return null
     }
 
-    override fun transformValRef(expression: ValRef): HIRExpression {
+    override fun transformValRef(expression: ValRef): HIROperand {
         val capture = findCapture(expression.name) ?: return super.transformValRef(expression)
         return getCapturedVariablePointer(expression.location, expression.type, expression.name, capture)
             .load()
@@ -290,14 +290,14 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return ValRef(expression.location, closureType, closureName)
     }
 
-    private fun applyTypeArgs(type: HIRExpression, typeArgs: List<Type.ParamRef>): HIRExpression {
+    private fun applyTypeArgs(expression: HIROperand, typeArgs: List<Type.ParamRef>): HIRExpression {
         return if (typeArgs.isEmpty())
-            type
+            expression
         else
             TypeApplication(
                 currentLocation,
-                type.type, // FIXME: This isn't the correct type of this expression.
-                type,
+                expression.type, // FIXME: This isn't the correct type of this expression.
+                expression,
                 typeArgs
             )
     }

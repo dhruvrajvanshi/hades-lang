@@ -147,6 +147,7 @@ internal class HIRGenExpression(
             check(calleeType is Type.Ptr && calleeType.to is Type.Function)
         }
         val receiver = ctx.analyzer.getCallReceiver(expression)?.let { lowerExpression(it) }
+        check(callee is HIROperand)
         val args =
             if (receiver != null) {
                 listOf(receiver) + expression.args.map { lowerExpression(it.expression) }
