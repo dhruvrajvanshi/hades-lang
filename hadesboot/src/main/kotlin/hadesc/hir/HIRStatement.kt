@@ -72,7 +72,7 @@ sealed interface HIRStatement: HIRNode {
 
     data class Store(
             override val location: SourceLocation,
-            val ptr: HIRExpression,
+            val ptr: HIROperand,
             val value: HIRExpression
     ) : HIRStatement
 

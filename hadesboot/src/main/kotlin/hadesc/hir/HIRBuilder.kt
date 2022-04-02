@@ -165,7 +165,7 @@ fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocati
     )
 }
 
-fun HIRBuilder.emitStore(ptr: HIRExpression, value: HIRExpression) {
+fun HIRBuilder.emitStore(ptr: HIROperand, value: HIRExpression) {
     val ptrType = ptr.type
     check(ptrType is Type.Ptr && ptrType.isMutable)
     emit(HIRStatement.Store(value.location, ptr, value))

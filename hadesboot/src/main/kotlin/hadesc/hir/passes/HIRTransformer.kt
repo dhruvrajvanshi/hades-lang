@@ -181,7 +181,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return listOf(
                 HIRStatement.Store(
                         statement.location,
-                        transformExpression(statement.ptr),
+                        transformOperand(statement.ptr),
                         transformExpression(statement.value)
                 )
         )

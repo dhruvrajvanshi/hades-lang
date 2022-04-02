@@ -547,10 +547,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
+        val ptr = lowerExpression(statement.lhs.expression)
+        check(ptr is HIROperand)
         emit(
                 HIRStatement.Store(
                         statement.location,
-                        ptr = lowerExpression(statement.lhs.expression),
+                        ptr = ptr,
                         value = lowerExpression(statement.value)
                 )
         )

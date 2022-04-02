@@ -135,7 +135,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         location: SourceLocation,
         type: Type,
         varName: Name,
-        captureInfo: CaptureInfo): HIRExpression {
+        captureInfo: CaptureInfo): HIROperand {
         val ptr = LocalRef(
             location,
             captureInfo.contextType.ptr(),
