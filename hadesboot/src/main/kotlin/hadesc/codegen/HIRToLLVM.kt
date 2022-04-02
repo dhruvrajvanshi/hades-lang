@@ -313,9 +313,12 @@ class HIRToLLVM(
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
-        val ptr = lowerExpression(statement.ptr)
+        if (statement.value is HIRConstant.Void) {
+            return
+        }
         val rhs = lowerExpression(statement.value)
         if (statement.value.type != Type.Void) {
+            val ptr = lowerExpression(statement.ptr)
             builder.buildStore(ptr, rhs)
         }
 

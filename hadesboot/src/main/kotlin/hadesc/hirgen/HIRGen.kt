@@ -47,7 +47,8 @@ internal interface HIRGenFunctionContext: HIRBuilder {
     fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean = false,
-        header: List<HIRStatement> = emptyList()
+        header: List<HIRStatement> = emptyList(),
+        after: HIRBuilder.() -> Unit = {}
     ): HIRBlock
 }
 
@@ -487,6 +488,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         body: Block,
         addReturnVoid: Boolean,
         header: List<HIRStatement>,
+        after: HIRBuilder.() -> Unit
     ): HIRBlock = scoped {
         scopeStack.push(body)
         defer { check(scopeStack.pop() === body) }
@@ -496,6 +498,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             for (member in body.members) {
                 lowerBlockMember(member)
             }
+            after()
             if (addReturnVoid) {
                 terminateScope()
                 emit(HIRStatement.Return(body.location, HIRConstant.Void(body.location)))
@@ -787,7 +790,26 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerBlockExpression(expression: Expression.BlockExpression): HIRExpression {
-        val block = lowerBlock(expression.block)
+        val resultRef = emitAlloca(ctx.makeUniqueName(), expression.type)
+        val lastMember = expression.block.members.lastOrNull()
+        val blockWithoutLastMember = expression.block.copy(members = expression.block.members.dropLast(1))
+        val block = lowerBlock(blockWithoutLastMember) {
+            val expr = if (lastMember == null) {
+                HIRConstant.Void(currentLocation)
+            } else {
+                when (lastMember) {
+                    is Block.Member.Expression -> {
+                        lowerExpression(lastMember.expression)
+                    }
+                    is Block.Member.Statement -> {
+                        lowerStatement(lastMember.statement)
+                        check(expression.type is Type.Void)
+                        HIRConstant.Void(currentLocation)
+                    }
+                }
+            }
+            emitStore(resultRef.mutPtr(), expr)
+        }
         return HIRExpression.BlockExpression(expression.type, block)
     }
 
