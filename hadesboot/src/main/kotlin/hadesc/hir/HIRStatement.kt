@@ -183,6 +183,13 @@ sealed interface HIRStatement: HIRNode {
         val to: Name
     ): HIRStatement, Terminator
 
+    data class TypeApplication(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val expression: HIROperand,
+        val args: List<Type>
+    ) : HIRStatement, NameBinder
 
     private fun prettyPrintInternal(): String = when(this) {
         is Call -> {
@@ -208,6 +215,10 @@ sealed interface HIRStatement: HIRNode {
         is Not -> "%${name.text}: Bool = ${expression.prettyPrint()}"
         is Jump -> "jump ${to.text}"
         is IntegerConvert -> "%${name.text}: ${type.prettyPrint()} = integer_convert[${type.prettyPrint()}] ${value.prettyPrint()}"
+        is TypeApplication -> {
+            val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
+            "%${name.text}: ${type.prettyPrint()} = ${expression.prettyPrint()}$typeArgsStr"
+        }
     }
 
     companion object {

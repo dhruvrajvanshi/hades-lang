@@ -230,6 +230,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.GetStructFieldPointer,
             is HIRStatement.Not,
             is HIRStatement.IntegerConvert,
+            is HIRStatement.TypeApplication,
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,

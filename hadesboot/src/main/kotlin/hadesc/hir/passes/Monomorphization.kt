@@ -149,6 +149,7 @@ class Monomorphization(
 
     override fun transformFunctionDef(definition: HIRDefinition.Function, newName: QualifiedName?): Collection<HIRDefinition> {
         if (definition.typeParams == null) {
+            specializedFnRef.clear()
             return super.transformFunctionDef(definition, newName)
         }
         return listOf()
@@ -161,8 +162,28 @@ class Monomorphization(
         return listOf()
     }
 
-    override fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIROperand {
-        return generateSpecialization(expression.expression, expression.args)
+
+    private val specializedFnRef = mutableMapOf<Name, HIROperand>()
+    override fun transformTypeApplication(statement: HIRStatement.TypeApplication): List<HIRStatement> {
+        val specializedRef = generateSpecialization(statement.expression, statement.args)
+        specializedFnRef[statement.name] = specializedRef
+        return emptyList()
+    }
+
+    override fun transformValRef(expression: HIRExpression.ValRef): HIROperand {
+        val specialized = specializedFnRef[expression.name]
+        if (specialized != null) {
+            return specialized
+        }
+        return super.transformValRef(expression)
+    }
+
+    override fun transformLocalRef(expression: HIRExpression.LocalRef): HIROperand {
+        val specialized = specializedFnRef[expression.name]
+        if (specialized != null) {
+            return specialized
+        }
+        return super.transformLocalRef(expression)
     }
 
     private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIROperand = when(expression) {

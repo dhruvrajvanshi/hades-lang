@@ -297,6 +297,7 @@ class HIRToLLVM(
             is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPointer(statement)
             is HIRStatement.Not -> lowerNotStatement(statement)
             is HIRStatement.IntegerConvert -> lowerIntegerConvert(statement)
+            is HIRStatement.TypeApplication -> requireUnreachable()
         }
 
         if (value != null) {
@@ -405,7 +406,6 @@ class HIRToLLVM(
             is HIRExpression.PointerCast -> lowerPointerCast(expression)
             is HIRExpression.SizeOf -> lowerSizeOf(expression)
             is HIRExpression.ValRef -> lowerValRef(expression)
-            is HIRExpression.TypeApplication -> requireUnreachable()
             is HIRExpression.TraitMethodRef -> requireUnreachable()
             is HIRExpression.Closure -> requireUnreachable()
             is HIRExpression.BlockExpression -> requireUnreachable()

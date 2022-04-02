@@ -22,12 +22,6 @@ sealed interface HIRExpression: HIRNode {
             val args: List<HIRExpression>
     ) : HIRExpression
 
-    data class TypeApplication(
-            override val location: SourceLocation,
-            override val type: Type,
-            val expression: HIROperand,
-            val args: List<Type>
-    ) : HIRExpression, HIROperand
 
     data class GlobalRef(
             override val location: SourceLocation,
@@ -126,10 +120,6 @@ sealed interface HIRExpression: HIRNode {
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
-        is TypeApplication -> {
-            val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
-            "${expression.prettyPrint()}$typeArgsStr"
-        }
         is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text

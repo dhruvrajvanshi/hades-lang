@@ -149,6 +149,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.Not -> transformNotStatement(statement)
         is HIRStatement.Jump -> transformJump(statement)
         is HIRStatement.IntegerConvert -> listOf(transformIntegerConvert(statement))
+        is HIRStatement.TypeApplication -> transformTypeApplication(statement)
     }
 
     fun transformJump(statement: HIRStatement.Jump): Collection<HIRStatement> {
@@ -273,7 +274,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRConstant -> transformConstant(expression)
         is HIRExpression.LocalRef -> transformLocalRef(expression)
-        is HIRExpression.TypeApplication -> transformTypeApplication(expression)
     }
 
     fun transformLocalRef(expression: HIRExpression.LocalRef): HIROperand {
@@ -353,13 +353,14 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformTypeApplication(expression: HIRExpression.TypeApplication): HIROperand {
-        return HIRExpression.TypeApplication(
-                expression.location,
-                lowerType(expression.type),
-                transformOperand(expression.expression),
-                expression.args.map { lowerType(it) }
-        )
+    fun transformTypeApplication(statement: HIRStatement.TypeApplication): List<HIRStatement> {
+        return listOf(HIRStatement.TypeApplication(
+            statement.location,
+            statement.name,
+            lowerType(statement.type),
+            transformOperand(statement.expression),
+            statement.args.map { lowerType(it) }
+        ))
     }
 
     fun transformSizeOfExpression(expression: HIRExpression.SizeOf): HIROperand {

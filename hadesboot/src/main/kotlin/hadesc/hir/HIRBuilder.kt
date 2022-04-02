@@ -6,6 +6,7 @@ import hadesc.location.SourceLocation
 import hadesc.types.Type
 import hadesc.types.mutPtr
 import hadesc.types.ptr
+import hadesc.types.toSubstitution
 
 interface HIRBuilder {
     var currentLocation: SourceLocation
@@ -33,6 +34,14 @@ interface HIRBuilder {
         return HIRExpression.LocalRef(
             currentLocation,
             resultType,
+            name
+        )
+    }
+
+    fun HIRStatement.TypeApplication.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
             name
         )
     }
@@ -99,6 +108,16 @@ fun HIRBuilder.emitIntegerConvert(expression: HIRExpression, to: Type): HIROpera
         s.type,
         s.name
     )
+}
+
+fun HIRBuilder.emitTypeApplication(lhs: HIROperand, args: List<Type>): HIRStatement.TypeApplication {
+    val lhsType = lhs.type
+    check(lhsType is Type.TypeFunction)
+    check(lhsType.params.size == args.size)
+    val appliedType = lhsType.body.applySubstitution(
+        lhsType.params.zip(args).toSubstitution()
+    )
+    return emit(HIRStatement.TypeApplication(currentLocation, namingCtx.makeUniqueName(), appliedType, lhs, args))
 }
 
 @Deprecated("Use emitAlloca")

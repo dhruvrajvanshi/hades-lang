@@ -231,12 +231,10 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             if (type.to is Type.Void)
                 closureStructConstructorRef
             else
-                TypeApplication(
-                    expression.location,
-                    closureStructConstructorRef.type,
+                emitTypeApplication(
                     closureStructConstructorRef,
                     listOf(type.to)
-                )
+                ).result()
 
         val functionRef = GlobalRef(
             expression.location,
@@ -290,16 +288,14 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return ValRef(expression.location, closureType, closureName)
     }
 
-    private fun applyTypeArgs(expression: HIROperand, typeArgs: List<Type.ParamRef>): HIRExpression {
+    private fun applyTypeArgs(expression: HIROperand, typeArgs: List<Type.ParamRef>): HIROperand {
         return if (typeArgs.isEmpty())
             expression
         else
-            TypeApplication(
-                currentLocation,
-                expression.type, // FIXME: This isn't the correct type of this expression.
+            emitTypeApplication(
                 expression,
                 typeArgs
-            )
+            ).result()
     }
 
     private fun makeContextType(contextStruct: HIRDefinition.Struct, typeArgs: List<Type>): Type {

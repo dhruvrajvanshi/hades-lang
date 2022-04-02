@@ -283,19 +283,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val tag = HIRExpression.GlobalRef(loc, ctx.enumTagType(), caseTagName(enumName, case))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
             val payloadVal = declareVariable("payload", payloadTypeUnion)
-            val paramSubst = declaration.typeParams?.associate {
-                it.location to Type.ParamRef(it.binder)
-            }?.toSubstitution() ?: emptySubstitution()
-            val caseFn =
+            val caseFn: HIROperand =
                 if (caseStructRefType !is Type.TypeFunction)
                     caseStructRef
                 else
-                    HIRExpression.TypeApplication(
-                        loc,
-                        caseStructRefType.body.applySubstitution(paramSubst),
+                    emitTypeApplication(
                         caseStructRef,
                         declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: emptyList()
-                    )
+                    ).result()
             if (case.params != null && case.params.isNotEmpty()) {
                 emitAssign(
                     payloadVal.name,
@@ -315,16 +310,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 else {
                     check(enumStructRefType is Type.TypeFunction)
                     check(enumStructRefType.params.size == declaration.typeParams.size)
-                    HIRExpression.TypeApplication(
-                        loc,
-                        enumStructRefType.body.applySubstitution(
-                            declaration.typeParams.associate {
-                                it.location to Type.ParamRef(it.binder)
-                            }.toSubstitution()
-                        ),
+                    emitTypeApplication(
                         enumStructRef,
                         declaration.typeParams.map { Type.ParamRef(it.binder) }
-                    )
+                    ).result()
                 }
             val baseConstructorCall = HIRExpression.Call(
                 loc,
@@ -672,12 +661,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             check(exprType is Type.TypeFunction)
             check(exprType.params.size == typeArgs.size)
             check(lowered is HIROperand)
-            HIRExpression.TypeApplication(
-                expression.location,
-                applyType(exprType, typeArgs),
+            emitTypeApplication(
                 lowered,
                 typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
-            )
+            ).result()
         } else {
             check(exprType !is Type.TypeFunction) {
                 "${expression.location}"
