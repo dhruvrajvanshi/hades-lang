@@ -28,6 +28,7 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.Jump -> visitJump(statement)
             is HIRStatement.IntegerConvert -> visitIntegerConvert(statement)
             is HIRStatement.TypeApplication -> visitTypeApplication(statement)
+            is HIRStatement.PointerCast -> visitPointerCast(statement)
         }
     }
 
@@ -94,7 +95,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
             is HIRExpression.NullPtr -> visitNullPtr(expression)
             is HIRExpression.ParamRef -> visitParamRef(expression)
-            is HIRExpression.PointerCast -> visitPointerCast(expression)
             is HIRExpression.SizeOf -> visitSizeOf(expression)
             is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
@@ -166,9 +166,9 @@ interface HIRBlockVisitor : TypeVisitor {
 
     }
 
-    fun visitPointerCast(expression: HIRExpression.PointerCast) {
-        visitExpression(expression.value)
-        visitType(expression.toPointerOfType)
+    fun visitPointerCast(statement: HIRStatement.PointerCast) {
+        visitExpression(statement.value)
+        visitType(statement.toPointerOfType)
     }
 
     fun visitSizeOf(expression: HIRExpression.SizeOf) {

@@ -231,6 +231,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Not,
             is HIRStatement.IntegerConvert,
             is HIRStatement.TypeApplication,
+            is HIRStatement.PointerCast,
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,

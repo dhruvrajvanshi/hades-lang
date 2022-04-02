@@ -150,6 +150,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.Jump -> transformJump(statement)
         is HIRStatement.IntegerConvert -> listOf(transformIntegerConvert(statement))
         is HIRStatement.TypeApplication -> transformTypeApplication(statement)
+        is HIRStatement.PointerCast -> transformPointerCast(statement)
     }
 
     fun transformJump(statement: HIRStatement.Jump): Collection<HIRStatement> {
@@ -257,8 +258,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.Call -> transformCall(expression)
 
         is HIRExpression.BinOp -> transformBinOp(expression)
-
-        is HIRExpression.PointerCast -> transformPointerCastExpression(expression)
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
         is HIRExpression.BlockExpression -> transformBlockExpression(expression)
@@ -345,12 +344,13 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         ))
     }
 
-    fun transformPointerCastExpression(expression: HIRExpression.PointerCast): HIRExpression {
-        return HIRExpression.PointerCast(
-            location = expression.location,
-            toPointerOfType = lowerType(expression.toPointerOfType),
-            value = transformExpression(expression.value)
-        )
+    fun transformPointerCast(statement: HIRStatement.PointerCast): List<HIRStatement> {
+        return listOf(HIRStatement.PointerCast(
+            location = statement.location,
+            name = statement.name,
+            toPointerOfType = lowerType(statement.toPointerOfType),
+            value = transformExpression(statement.value)
+        ))
     }
 
     fun transformTypeApplication(statement: HIRStatement.TypeApplication): List<HIRStatement> {

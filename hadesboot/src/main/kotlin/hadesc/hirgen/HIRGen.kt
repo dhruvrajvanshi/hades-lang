@@ -828,15 +828,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerPointerCast(expression: Expression.PointerCast): HIRExpression {
+    private fun lowerPointerCast(expression: Expression.PointerCast): HIROperand {
         val value = lowerExpression(expression.arg)
         require(value.type is Type.Ptr)
         val type = lowerTypeAnnotation(expression.toType)
-        return HIRExpression.PointerCast(
-            expression.location,
-            toPointerOfType = type,
-            value = value
-        )
+        return value.ptrCast(type)
     }
 
     private fun lowerDerefExpression(expression: Expression.Deref): HIROperand {

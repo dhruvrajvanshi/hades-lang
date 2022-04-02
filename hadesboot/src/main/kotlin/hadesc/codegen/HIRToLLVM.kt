@@ -297,6 +297,7 @@ class HIRToLLVM(
             is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPointer(statement)
             is HIRStatement.Not -> lowerNotStatement(statement)
             is HIRStatement.IntegerConvert -> lowerIntegerConvert(statement)
+            is HIRStatement.PointerCast -> lowerPointerCast(statement)
             is HIRStatement.TypeApplication -> requireUnreachable()
         }
 
@@ -403,7 +404,6 @@ class HIRToLLVM(
             is HIRExpression.InvokeClosure -> requireUnreachable()
             is HIRExpression.NullPtr -> lowerNullPtr(expression)
             is HIRExpression.ParamRef -> lowerParamRef(expression)
-            is HIRExpression.PointerCast -> lowerPointerCast(expression)
             is HIRExpression.SizeOf -> lowerSizeOf(expression)
             is HIRExpression.ValRef -> lowerValRef(expression)
             is HIRExpression.TraitMethodRef -> requireUnreachable()
@@ -510,10 +510,10 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerPointerCast(expression: HIRExpression.PointerCast): Value {
+    private fun lowerPointerCast(statement: HIRStatement.PointerCast): Value {
         return builder.buildPointerCast(
-            lowerExpression(expression.value),
-            pointerType(lowerType(expression.toPointerOfType)),
+            lowerExpression(statement.value),
+            pointerType(lowerType(statement.toPointerOfType)),
             ctx.makeUniqueName().text
         )
     }

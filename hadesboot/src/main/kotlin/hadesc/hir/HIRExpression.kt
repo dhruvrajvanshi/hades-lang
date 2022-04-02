@@ -73,15 +73,6 @@ sealed interface HIRExpression: HIRNode {
             val ofType: Type
     ) : HIRExpression, HIROperand
 
-    data class PointerCast(
-        override val location: SourceLocation,
-        val toPointerOfType: Type,
-        val value: HIRExpression
-    ) : HIRExpression {
-        override val type: Type
-            get() = Type.Ptr(toPointerOfType, isMutable = true)
-    }
-
     data class TraitMethodRef(
             override val location: SourceLocation,
             override val type: Type,
@@ -120,7 +111,6 @@ sealed interface HIRExpression: HIRNode {
         is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
-        is PointerCast -> "(pointer-cast ${value.prettyPrint()} to ${type.prettyPrint()})"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"

@@ -63,6 +63,17 @@ sealed interface HIRStatement: HIRNode {
         }
     }
 
+    data class PointerCast(
+        override val location: SourceLocation,
+        override val name: Name,
+        val toPointerOfType: Type,
+        val value: HIRExpression
+    ) : HIRStatement, NameBinder {
+        val type: Type
+            get() = Type.Ptr(toPointerOfType, isMutable = true)
+    }
+
+
     @Deprecated("Use Store")
     data class Assignment(
             override val location: SourceLocation,
@@ -219,6 +230,8 @@ sealed interface HIRStatement: HIRNode {
             val typeArgsStr = "[${args.joinToString(", ") { it.prettyPrint() } }]"
             "%${name.text}: ${type.prettyPrint()} = ${expression.prettyPrint()}$typeArgsStr"
         }
+        is PointerCast ->
+            "%${name.text}: ${type.prettyPrint()} = pointer-cast[${toPointerOfType}] ${value.prettyPrint()}"
     }
 
     companion object {

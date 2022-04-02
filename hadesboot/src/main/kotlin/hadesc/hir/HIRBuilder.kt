@@ -67,11 +67,17 @@ interface HIRBuilder {
         return fieldPtr(namingCtx.makeName(name), index, type)
     }
 
-    fun HIRExpression.ptrCast(toPointerOfType: Type): HIRExpression.PointerCast {
-        return HIRExpression.PointerCast(
+    fun HIRExpression.ptrCast(toPointerOfType: Type): HIRExpression.LocalRef {
+        val s = emit(HIRStatement.PointerCast(
             currentLocation,
+            namingCtx.makeUniqueName(),
             toPointerOfType,
             this
+        ))
+        return HIRExpression.LocalRef(
+            currentLocation,
+            s.type,
+            s.name
         )
     }
 
