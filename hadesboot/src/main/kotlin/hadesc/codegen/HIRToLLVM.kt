@@ -314,9 +314,9 @@ class HIRToLLVM(
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
-        val ptr = lowerExpression(statement.ptr)
         val rhs = lowerExpression(statement.value)
         if (statement.value.type != Type.Void) {
+            val ptr = lowerExpression(statement.ptr)
             builder.buildStore(ptr, rhs)
         }
 
@@ -398,20 +398,26 @@ class HIRToLLVM(
         }
 
         return when (expression) {
+            is HIROperand -> lowerOperand(expression)
             is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
-            is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
-            is HIRExpression.NullPtr -> lowerNullPtr(expression)
-            is HIRExpression.ParamRef -> lowerParamRef(expression)
-            is HIRExpression.SizeOf -> lowerSizeOf(expression)
-            is HIRExpression.ValRef -> lowerValRef(expression)
-            is HIRExpression.TraitMethodRef -> requireUnreachable()
+
             is HIRExpression.Closure -> requireUnreachable()
             is HIRExpression.BlockExpression -> requireUnreachable()
-            is HIRConstant -> lowerConstant(expression)
-            is HIRExpression.LocalRef -> lowerLocalRef(expression)
+
         }
+    }
+
+    private fun lowerOperand(expression: HIROperand): Value = when (expression) {
+        is HIRExpression.NullPtr -> lowerNullPtr(expression)
+        is HIRExpression.ParamRef -> lowerParamRef(expression)
+        is HIRExpression.SizeOf -> lowerSizeOf(expression)
+        is HIRExpression.ValRef -> lowerValRef(expression)
+        is HIRExpression.TraitMethodRef -> requireUnreachable()
+        is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
+        is HIRConstant -> lowerConstant(expression)
+        is HIRExpression.LocalRef -> lowerLocalRef(expression)
     }
 
     private fun lowerGetStructFieldPointer(expression: HIRStatement.GetStructFieldPointer): Value {
