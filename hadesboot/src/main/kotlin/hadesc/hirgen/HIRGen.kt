@@ -282,7 +282,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val loc = case.name.location
         val tag = HIRExpression.GlobalRef(loc, ctx.enumTagType(), caseTagName(enumName, case))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
-            val payloadVal = declareVariable("payload", payloadTypeUnion)
+            val payloadRef = emitAlloca("payload", payloadTypeUnion)
             val caseFn: HIROperand =
                 if (caseStructRefType !is Type.TypeFunction)
                     caseStructRef
@@ -292,11 +292,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                         declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: emptyList()
                     ).result()
             if (case.params != null && case.params.isNotEmpty()) {
-                emitAssign(
-                    payloadVal.name,
+                emitStore(
+                    payloadRef.mutPtr(),
                     HIRExpression.Call(
                         loc,
-                        payloadVal.type,
+                        payloadRef.type,
                         caseFn,
                         case.params.mapIndexed { index, it ->
                             HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
@@ -321,7 +321,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 baseStructRefApplied,
                 listOf(
                     tag,
-                    payloadVal
+                    payloadRef.ptr().load()
                 )
             )
             emit(
