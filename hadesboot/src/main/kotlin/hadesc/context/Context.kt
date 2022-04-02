@@ -60,7 +60,6 @@ class Context(
         if (options.enableHIRVerifier) {
             HIRVerifier(hirModule).verify()
         }
-        logger().debug("DesugarWhenExpressions:\n${hirModule.prettyPrint()}")
 
         hirModule = DesugarClosures(this).transformModule(hirModule)
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
