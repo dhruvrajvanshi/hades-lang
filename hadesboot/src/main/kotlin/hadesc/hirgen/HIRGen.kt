@@ -917,13 +917,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerIfExpression(expression: Expression.If): HIRExpression {
-        val result = declareVariable("if_result", typeOfExpression(expression))
-        val name = result.name
+        val resultRef = emitAlloca("if_result", typeOfExpression(expression))
         val trueBlock = buildBlock(expression.trueBranch.location) {
-            emitAssign(name, lowerExpression(expression.trueBranch))
+            emitStore(resultRef.mutPtr(), lowerExpression(expression.trueBranch))
         }
         val falseBlock = buildBlock(expression.falseBranch.location) {
-            emitAssign(name, lowerExpression(expression.falseBranch))
+            emitStore(resultRef.mutPtr(), lowerExpression(expression.falseBranch))
         }
         emit(ifStatement(
                 expression.location,
@@ -931,7 +930,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 trueBlock,
                 falseBlock
         ))
-        return result
+        return resultRef.ptr().load()
     }
 
     private fun lowerNullPtr(expression: Expression.NullPtr): HIROperand {
