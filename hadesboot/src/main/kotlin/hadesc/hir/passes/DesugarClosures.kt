@@ -181,10 +181,11 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         // val closureName: closureType
         val closureRef = emitAlloca("closure", closureType)
 
-        val pointersToCaptures = expression.captures.values.map { (binder, type) ->
+        val pointersToCaptures = expression.captures.values.map { (binder, capture) ->
+            val captureType = capture.second
             LocalRef(
                 expression.location,
-                type.mutPtr(),
+                captureType.mutPtr(),
                 binder.name
             )
         }
@@ -313,7 +314,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                     null
                 else
                     captures.types.map { HIRTypeParam(it.location, it.name) },
-            fields = captures.values.map { it.key.name to Type.Ptr(it.value, isMutable = true) }
+            fields = captures.values.map { it.key.name to Type.Ptr(it.value.second, isMutable = true) }
         )
         definitions.add(structDef)
 

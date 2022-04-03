@@ -299,7 +299,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             expression.location,
             lowerType(expression.type),
             expression.captures.copy(
-                values = expression.captures.values.mapValues { lowerType(it.value) },
+                values = expression.captures.values.mapValues { it.value.first to lowerType(it.value.second) },
                 types = expression.captures.types
             ),
             expression.params.map { transformParam(it) },

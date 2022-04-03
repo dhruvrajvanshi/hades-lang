@@ -1742,7 +1742,7 @@ class Analyzer(
     }
 
     fun getClosureCaptures(closure: Expression.Closure): ClosureCaptures {
-        val values = mutableMapOf<Binder, Type>()
+        val values = mutableMapOf<Binder, Pair<Binding, Type>>()
         val types = mutableSetOf<Binder>()
         object : SyntaxVisitor {
             val typeVisitor = object : TypeVisitor {
@@ -1787,14 +1787,14 @@ class Analyzer(
             override fun visitVarExpr(expression: Expression.Var) {
                 val binding = ctx.resolver.resolve(expression.name)
                 if (binding != null && !binding.isGlobal() && !binding.isLocalTo(closure)) {
-                    values[binding.binder] = typeOfBinder(binding.binder)
+                    values[binding.binder] = binding to typeOfBinder(binding.binder)
                 }
             }
 
             override fun visitLocalAssignment(statement: Statement.LocalAssignment) {
                 val binding = ctx.resolver.resolve(statement.name)
                 if (binding != null && !binding.isGlobal() && !binding.isLocalTo(closure)) {
-                    values[binding.binder] = typeOfBinder(binding.binder)
+                    values[binding.binder] = binding to typeOfBinder(binding.binder)
                 }
                 super.visitLocalAssignment(statement)
             }
@@ -1865,7 +1865,7 @@ class Analyzer(
 }
 
 data class ClosureCaptures(
-    val values: Map<Binder, Type>,
+    val values: Map<Binder, Pair<Binding, Type>>,
     val types: Set<Binder>
 )
 
