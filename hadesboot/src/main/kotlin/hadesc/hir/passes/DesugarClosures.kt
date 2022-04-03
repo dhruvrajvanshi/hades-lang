@@ -178,11 +178,10 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val closureType = getClosureType(type)
 
         // val contextName: contextType
-        declareVariable(contextName, contextType)
-        val contextRef = LocalRef(currentLocation, contextType.ptr(), contextName)
+        val contextRef = emitAlloca(contextName, contextType)
 
         // val closureName: closureType
-        declareVariable(closureName, closureType)
+        val closureRef = emitAlloca(closureName, closureType)
 
         val pointersToCaptures = expression.captures.values.map { (binder, type) ->
             LocalRef(
@@ -200,8 +199,8 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val contextConstructorCallee = applyTypeArgs(contextConstructorRef, capturedTypeArgs)
 
         // context = contextStruct(...pointersToCaptures)
-        emitAssign(
-            contextName,
+        emitStore(
+            contextRef.mutPtr(),
             emitCall(
                 contextType,
                 contextConstructorCallee,
@@ -243,13 +242,13 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         )
         val functionPointer = transformExpression(applyTypeArgs(functionRef, capturedTypeArgs))
         // closure: closureType = closureConstructorRef(closureCtx, fnPtrRef)
-        emitAssign(
-            closureName,
+        emitStore(
+            closureRef.mutPtr(),
             emitCall(
                 closureType,
                 closureConstructorCallee,
                 args = listOf(
-                    contextRef.ptrCast(Type.Void),
+                    contextRef.mutPtr().ptrCast(Type.Void),
                     functionPointer.ptrCast(Type.Function(
                         listOf(),
                         expression.returnType,
