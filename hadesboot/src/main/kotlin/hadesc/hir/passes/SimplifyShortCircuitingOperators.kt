@@ -1,5 +1,6 @@
 package hadesc.hir.passes
 
+import hadesc.assertions.requireUnreachable
 import hadesc.context.NamingContext
 import hadesc.hir.*
 import hadesc.hir.HIRStatement.Companion.ifStatement
@@ -20,22 +21,7 @@ class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): A
              * }
              * result
              */
-            BinaryOperator.AND -> {
-                val resultMem = emitAlloca("result", Type.Bool)
-                emit(
-                    ifStatement(
-                        expression.location,
-                        condition = transformExpression(expression.lhs),
-                        trueBranch = buildBlock(expression.lhs.location) {
-                            emitStore(resultMem.mutPtr(), transformExpression(expression.rhs))
-                        },
-                        falseBranch = buildBlock(expression.rhs.location) {
-                            emitStore(resultMem.mutPtr(), falseValue())
-                        }
-                    )
-                )
-                return resultMem.ptr().load()
-            }
+            BinaryOperator.AND -> requireUnreachable()
             /**
              * a or b
              * if a {

@@ -934,13 +934,30 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerBinaryExpression(expression: Expression.BinaryOperation): HIRExpression {
-        return HIRExpression.BinOp(
+        return when (expression.operator) {
+            BinaryOperator.AND -> lowerAndExpression(expression)
+            else -> HIRExpression.BinOp(
                 expression.location,
                 typeOfExpression(expression),
                 lowerExpression(expression.lhs),
                 expression.operator,
                 lowerExpression(expression.rhs)
-        )
+            )
+        }
+    }
+
+    private fun lowerAndExpression(expression: Expression.BinaryOperation): HIROperand {
+        val resultRef = allocaAssign(ctx.makeUniqueName(), lowerExpression(expression.lhs))
+        emit(ifStatement(
+            currentLocation,
+            resultRef.ptr().load(),
+            trueBranch = buildBlock {
+                emitStore(resultRef.mutPtr(), lowerExpression(expression.rhs))
+            },
+            falseBranch = buildBlock {}
+        ))
+
+        return resultRef.ptr().load()
     }
 
     private fun lowerNotExpression(expression: Expression.Not): HIRExpression {
