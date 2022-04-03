@@ -798,7 +798,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerAsExpression(expression: Expression.As): HIRExpression {
+    private fun lowerAsExpression(expression: Expression.As): HIROperand {
         val type = expression.type
         require(type is Type.Integral || type is Type.Size)
 
@@ -912,7 +912,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 lowerTypeAnnotation(expression.type))
     }
 
-    private fun lowerIfExpression(expression: Expression.If): HIRExpression {
+    private fun lowerIfExpression(expression: Expression.If): HIROperand {
         val resultRef = emitAlloca("if_result", typeOfExpression(expression))
         val trueBlock = buildBlock(expression.trueBranch.location) {
             emitStore(resultRef.mutPtr(), lowerExpression(expression.trueBranch))
@@ -974,7 +974,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return resultRef.ptr().load()
     }
 
-    private fun lowerNotExpression(expression: Expression.Not): HIRExpression {
+    private fun lowerNotExpression(expression: Expression.Not): HIROperand {
         val s = emit(HIRStatement.Not(ctx.makeUniqueName(), lowerExpression(expression.expression)))
         return HIRExpression.LocalRef(s.location, Type.Bool, s.name)
     }
