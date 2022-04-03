@@ -76,9 +76,6 @@ internal class HIRGenClosure(
                 // Local variables are captured by pointer because
                 // they can be mutated within the capturing context
                 is Binding.ValBinding -> capture.second.mutPtr()
-                else -> requireUnreachable {
-                    "Illegal closure capture binding: ${capture.first::class}"
-                }
             }
             name.name to type
         }
