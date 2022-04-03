@@ -138,7 +138,7 @@ internal class HIRGenExpression(
             return HIRExpression.InvokeClosure(
                 location = expression.location,
                 type = expression.type,
-                closure = lowerExpression(expression.callee),
+                closure = lowerExpression(expression.callee) as HIROperand,
                 args = expression.args.map { lowerExpression(it.expression)}
             )
         } else {

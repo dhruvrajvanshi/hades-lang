@@ -290,7 +290,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return HIRExpression.InvokeClosure(
             location = expression.location,
             type = expression.type,
-            closure = transformExpression(expression.closure),
+            closure = transformOperand(expression.closure),
             args = expression.args.map { transformExpression(it) },
         )
     }

@@ -71,7 +71,7 @@ sealed interface HIRExpression: HIRNode {
     data class InvokeClosure(
         override val location: SourceLocation,
         override val type: Type,
-        val closure: HIRExpression,
+        val closure: HIROperand,
         val args: List<HIRExpression>,
     ) : HIRExpression
 
