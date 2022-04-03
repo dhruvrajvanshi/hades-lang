@@ -153,12 +153,11 @@ internal class HIRGenExpression(
             } else {
                 expression.args.map { lowerExpression(it.expression) }
             }
-        return HIRExpression.Call(
-            location = expression.location,
-            type = expression.type,
+        return emitCall(
+            resultType = expression.type,
             callee = callee,
             args = args
-        )
+        ).result()
     }
     private fun isIntrinsicCall(expression: Expression.Call): Boolean {
         return expression.callee is Expression.Intrinsic
