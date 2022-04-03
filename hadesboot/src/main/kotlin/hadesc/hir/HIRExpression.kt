@@ -53,12 +53,6 @@ sealed interface HIRExpression: HIRNode {
         val name: Name
     ) : HIRExpression, HIROperand
 
-
-    data class NullPtr(
-            override val location: SourceLocation,
-            override val type: Type.Ptr
-    ) : HIRExpression, HIROperand
-
     data class SizeOf(
             override val location: SourceLocation,
             override val type: Type,
@@ -100,7 +94,6 @@ sealed interface HIRExpression: HIRNode {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is ValRef -> "%${name.text}"
-        is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
@@ -114,6 +107,7 @@ sealed interface HIRExpression: HIRNode {
         is HIRConstant.IntValue -> value.toString()
         is HIRConstant.FloatValue -> value.toString()
         is HIRConstant.Void -> "void"
+        is HIRConstant.NullPtr -> "null : ${type.prettyPrint()}"
         is LocalRef -> "%${name.text}"
     }
 }

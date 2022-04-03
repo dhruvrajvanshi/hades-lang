@@ -33,4 +33,12 @@ sealed interface HIRConstant: HIROperand {
         override val type: Type
             get() = Type.Void
     }
+
+
+
+    data class NullPtr(
+        override val location: SourceLocation,
+        override val type: Type.Ptr
+    ) : HIRConstant
+
 }

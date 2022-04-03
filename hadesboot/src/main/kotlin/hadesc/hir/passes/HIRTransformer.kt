@@ -268,7 +268,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
         is HIRExpression.ValRef -> transformValRef(expression)
-        is HIRExpression.NullPtr -> transformNullPtr(expression)
         is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRConstant -> transformConstant(expression)
@@ -371,13 +370,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         )
     }
 
-    fun transformNullPtr(expression: HIRExpression.NullPtr): HIROperand {
-        return HIRExpression.NullPtr(
-                expression.location,
-                lowerType(expression.type) as Type.Ptr
-        )
-    }
-
     fun transformBinOp(statement: HIRStatement.BinOp): List<HIRStatement> {
         return listOf(HIRStatement.BinOp(
             statement.location,
@@ -460,6 +452,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRConstant.IntValue -> expression
         is HIRConstant.FloatValue -> expression
         is HIRConstant.Void -> expression
+        is HIRConstant.NullPtr -> expression.copy(type = Type.Ptr(lowerType(expression.type.to), expression.type.isMutable))
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {

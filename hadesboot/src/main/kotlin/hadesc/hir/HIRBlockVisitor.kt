@@ -93,7 +93,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.Closure -> visitClosure(expression)
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
-            is HIRExpression.NullPtr -> visitNullPtr(expression)
             is HIRExpression.ParamRef -> visitParamRef(expression)
             is HIRExpression.SizeOf -> visitSizeOf(expression)
             is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
@@ -131,9 +130,7 @@ interface HIRBlockVisitor : TypeVisitor {
         visitExpression(expression.lhs)
     }
 
-    fun visitConstant(expression: HIRConstant) {
-
-    }
+    fun visitConstant(expression: HIRConstant) = unit
 
     fun visitGetStructFieldPointer(expression: HIRStatement.GetStructFieldPointer) {
         visitType(expression.type)
@@ -156,10 +153,6 @@ interface HIRBlockVisitor : TypeVisitor {
 
     fun visitNot(statement: HIRStatement.Not) {
         visitExpression(statement.expression)
-    }
-
-    fun visitNullPtr(expression: HIRExpression.NullPtr) {
-
     }
 
     fun visitParamRef(expression: HIRExpression.ParamRef) {

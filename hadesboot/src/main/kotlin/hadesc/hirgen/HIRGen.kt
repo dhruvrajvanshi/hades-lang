@@ -931,7 +931,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerNullPtr(expression: Expression.NullPtr): HIROperand {
-        return HIRExpression.NullPtr(expression.location, typeOfExpression(expression) as Type.Ptr)
+        return HIRConstant.NullPtr(expression.location, typeOfExpression(expression) as Type.Ptr)
     }
 
     private fun lowerBinaryExpression(expression: Expression.BinaryOperation): HIRExpression {
