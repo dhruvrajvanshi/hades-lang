@@ -9,20 +9,7 @@ class DesugarBlockExpressions(override val namingCtx: NamingContext): AbstractHI
         val resultName = namingCtx.makeUniqueName()
         emitAlloca(resultName, expression.type)
         val initialBlock = transformBlock(expression.block)
-        val block = when (val lastMember = initialBlock.statements.lastOrNull()) {
-            is HIRStatement.Expression -> {
-                buildBlock {
-                    emitAll(initialBlock.statements.dropLast(1))
-                    emit(HIRStatement.Assignment(
-                        lastMember.location,
-                        resultName,
-                        transformExpression(lastMember.expression)
-                    ))
-                }
-            }
-            else -> initialBlock
-        }
-        emitAll(block.statements)
+        emitAll(initialBlock.statements)
 
         return HIRExpression.ValRef(
             expression.location,

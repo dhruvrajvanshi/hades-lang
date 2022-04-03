@@ -134,7 +134,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return transformStatementWorker(statement)
     }
     private fun transformStatementWorker(statement: HIRStatement): Collection<HIRStatement> = when(statement) {
-        is HIRStatement.Expression -> transformExpressionStatement(statement)
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.Alloca -> transformValDeclaration(statement)
         is HIRStatement.MatchInt -> transformMatchInt(statement)
@@ -244,10 +243,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                         expression = transformExpression(statement.expression)
                 )
         )
-    }
-
-    fun transformExpressionStatement(statement: HIRStatement.Expression): Collection<HIRStatement> {
-        return listOf(HIRStatement.Expression(statement.name, transformExpression(statement.expression)))
     }
 
     fun transformExpression(expression: HIRExpression): HIRExpression {

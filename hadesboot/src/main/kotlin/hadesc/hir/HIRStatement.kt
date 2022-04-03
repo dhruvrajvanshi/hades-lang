@@ -17,13 +17,6 @@ sealed interface HIRStatement: HIRNode {
     }
     sealed interface Terminator
 
-    data class Expression(
-        override val name: Name,
-        val expression: HIRExpression
-    ) : HIRStatement, NameBinder {
-        override val location: SourceLocation get() = expression.location
-    }
-
     data class Not(
         override val name: Name,
         val expression: HIRExpression
@@ -217,7 +210,6 @@ sealed interface HIRStatement: HIRNode {
         is Call -> {
             "%${name.text}: ${resultType.prettyPrint()} = ${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
-        is Expression -> expression.prettyPrint()
         is Return -> "return ${expression.prettyPrint()}"
         is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
         is Assignment -> "%${name.text} = ${value.prettyPrint()}"

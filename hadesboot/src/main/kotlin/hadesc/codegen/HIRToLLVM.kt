@@ -260,9 +260,6 @@ class HIRToLLVM(
         when (statement) {
             is HIRStatement.NameBinder -> lowerNameBinder(statement)
             is HIRStatement.Assignment -> lowerAssignment(statement)
-            is HIRStatement.Expression -> {
-                lowerExpression(statement.expression); unit
-            }
             is HIRStatement.Return -> lowerReturnStatement(statement)
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
@@ -278,18 +275,6 @@ class HIRToLLVM(
         val value = when (statement) {
             is HIRStatement.Alloca -> {
                 lowerAlloca(statement)
-            }
-            is HIRStatement.Expression -> {
-                val rhs = lowerExpression(statement.expression)
-                if (statement.expression.type == Type.Void) {
-                    rhs
-                } else {
-                    val ty = lowerType(statement.expression.type)
-                    val value = builder.buildAlloca(ty, statement.name.text, LLVM.LLVMABIAlignmentOfType(dataLayout, ty))
-                    builder.buildStore(value, rhs)
-                    value
-                }
-
             }
             is HIRStatement.Load -> lowerLoadStatement(statement)
             is HIRStatement.Call -> lowerCallStatement(statement)
