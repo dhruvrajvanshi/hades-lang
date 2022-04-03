@@ -84,7 +84,6 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitExpression(expression: HIRExpression) {
         visitType(expression.type)
         return when (expression) {
-            is HIRExpression.Call -> visitCall(expression)
             is HIRExpression.Closure -> visitClosure(expression)
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
@@ -102,11 +101,6 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitBinOp(statement: HIRStatement.BinOp) {
         visitExpression(statement.lhs)
         visitExpression(statement.rhs)
-    }
-
-    fun visitCall(expression: HIRExpression.Call) {
-        visitExpression(expression.callee)
-        expression.args.forEach { visitExpression(it) }
     }
 
     fun visitClosure(expression: HIRExpression.Closure) {

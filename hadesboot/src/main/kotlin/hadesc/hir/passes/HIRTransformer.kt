@@ -251,7 +251,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
     private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = when(expression) {
         is HIROperand -> transformOperand(expression)
-        is HIRExpression.Call -> transformCall(expression)
 
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
@@ -404,15 +403,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 type = lowerType(expression.type),
                 name = transformParamName(expression.name),
                 binder = Binder(Identifier(expression.binder.location, transformParamName(expression.name)))
-        )
-    }
-
-    fun transformCall(expression: HIRExpression.Call): HIRExpression {
-        return HIRExpression.Call(
-                location = expression.location,
-                type = lowerType(expression.type),
-                callee = transformOperand(expression.callee),
-                args = expression.args.map { transformExpression(it) }
         )
     }
 

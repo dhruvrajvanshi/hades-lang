@@ -14,14 +14,6 @@ import hadesc.types.ptr
 sealed interface HIROperand: HIRExpression
 sealed interface HIRExpression: HIRNode {
     val type: Type
-    @Deprecated("Use HIRStatement.Call")
-    data class Call(
-            override val location: SourceLocation,
-            override val type: Type,
-            val callee: HIROperand,
-            val args: List<HIRExpression>
-    ) : HIRExpression
-
 
     data class GlobalRef(
             override val location: SourceLocation,
@@ -84,9 +76,6 @@ sealed interface HIRExpression: HIRNode {
     ) : HIRExpression
 
     override fun prettyPrint(): String = when(this) {
-        is Call -> {
-            "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
-        }
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is ValRef -> "%${name.text}"

@@ -401,7 +401,6 @@ class HIRToLLVM(
 
         return when (expression) {
             is HIROperand -> lowerOperand(expression)
-            is HIRExpression.Call -> lowerCallExpression(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
 
             is HIRExpression.Closure -> requireUnreachable()
@@ -653,15 +652,6 @@ class HIRToLLVM(
         }
     }
 
-
-    private fun lowerCallExpression(expression: HIRExpression.Call): Value {
-        val name = if (expression.type is Type.Void) null else ctx.makeUniqueName()
-        return builder.buildCall(
-            callee = lowerExpression(expression.callee),
-            args = expression.args.map { lowerExpression(it) },
-            name = name?.text
-        )
-    }
     private fun lowerCallStatement(statement: HIRStatement.Call): Value {
         val name = if (statement.resultType is Type.Void) null else ctx.makeUniqueName()
 
