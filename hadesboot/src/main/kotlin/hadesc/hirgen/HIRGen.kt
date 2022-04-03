@@ -571,14 +571,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerWhileStatement(statement: Statement.While) {
         currentLocation = statement.condition.location
-        val conditionVar = declareVariable("while_condition", Type.Bool)
+        val conditionVar = emitAlloca("while_condition", Type.Bool)
         emit(
             HIRStatement.While(
                 statement.location,
                 conditionName = conditionVar.name,
                 buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
-                   emitAssign(
-                       conditionVar.name,
+                   emitStore(
+                       conditionVar.mutPtr(),
                        lowerExpression(statement.condition)
                    )
                 },
