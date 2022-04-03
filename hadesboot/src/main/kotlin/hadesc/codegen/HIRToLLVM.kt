@@ -410,7 +410,6 @@ class HIRToLLVM(
 
     private fun lowerOperand(expression: HIROperand): Value = when (expression) {
         is HIRExpression.ParamRef -> lowerParamRef(expression)
-        is HIRExpression.SizeOf -> lowerSizeOf(expression)
         is HIRExpression.ValRef -> lowerValRef(expression)
         is HIRExpression.TraitMethodRef -> requireUnreachable()
         is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
@@ -426,8 +425,8 @@ class HIRToLLVM(
         )
     }
 
-    private fun lowerSizeOf(expression: HIRExpression.SizeOf): Value {
-        return Value(LLVM.LLVMSizeOf(lowerType(expression.ofType).ref))
+    private fun lowerSizeOf(constant: HIRConstant.SizeOf): Value {
+        return Value(LLVM.LLVMSizeOf(lowerType(constant.ofType).ref))
     }
 
     private fun lowerNullPtr(expression: HIRConstant.NullPtr): Value {
@@ -610,6 +609,7 @@ class HIRToLLVM(
             is HIRConstant.FloatValue -> lowerFloatLiteral(constant)
             is HIRConstant.IntValue -> lowerIntLiteral(constant)
             is HIRConstant.NullPtr -> lowerNullPtr(constant)
+            is HIRConstant.SizeOf -> lowerSizeOf(constant)
             is HIRConstant.Void -> requireUnreachable()
         }
 

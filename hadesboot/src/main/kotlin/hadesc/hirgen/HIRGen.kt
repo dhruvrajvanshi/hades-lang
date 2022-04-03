@@ -941,7 +941,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerSizeOfExpression(expression: Expression.SizeOf): HIROperand {
-        return HIRExpression.SizeOf(
+        return HIRConstant.SizeOf(
                 expression.location,
                 typeOfExpression(expression),
                 lowerTypeAnnotation(expression.type))

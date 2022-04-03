@@ -261,7 +261,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
         is HIRExpression.ValRef -> transformValRef(expression)
-        is HIRExpression.SizeOf -> transformSizeOfExpression(expression)
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRConstant -> transformConstant(expression)
         is HIRExpression.LocalRef -> transformLocalRef(expression)
@@ -351,11 +350,11 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         ))
     }
 
-    fun transformSizeOfExpression(expression: HIRExpression.SizeOf): HIROperand {
-        return HIRExpression.SizeOf(
-                expression.location,
-                type = lowerType(expression.type),
-                ofType = lowerType(expression.ofType)
+    fun transformSizeOfExpression(constant: HIRConstant.SizeOf): HIRConstant {
+        return HIRConstant.SizeOf(
+                constant.location,
+                type = lowerType(constant.type),
+                ofType = lowerType(constant.ofType)
         )
     }
 
@@ -433,6 +432,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRConstant.FloatValue -> expression
         is HIRConstant.Void -> expression
         is HIRConstant.NullPtr -> expression.copy(type = Type.Ptr(lowerType(expression.type.to), expression.type.isMutable))
+        is HIRConstant.SizeOf -> transformSizeOfExpression(expression)
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {

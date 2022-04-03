@@ -88,7 +88,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
             is HIRExpression.ParamRef -> visitParamRef(expression)
-            is HIRExpression.SizeOf -> visitSizeOf(expression)
             is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
             is HIRConstant -> visitConstant(expression)
@@ -148,8 +147,8 @@ interface HIRBlockVisitor : TypeVisitor {
         visitType(statement.toPointerOfType)
     }
 
-    fun visitSizeOf(expression: HIRExpression.SizeOf) {
-        visitType(expression.ofType)
+    fun visitSizeOf(constant: HIRConstant.SizeOf) {
+        visitType(constant.ofType)
     }
 
     fun visitTraitMethodRef(expression: HIRExpression.TraitMethodRef) {
