@@ -2,16 +2,6 @@ package hadesc.hir.passes
 
 import hadesc.context.NamingContext
 
-/**
- * This transformation pass converts functions and calls
- * to System-V ABI compatible instructions/definitions.
- * This involves things like passing "medium sized" structs
- * as multiple arguments, large structs by value, etc.
- * This ensures that the compiled code is interoperable with
- * separately compiled C libraries.
- */
-class SystemVABILowering(override val namingCtx: NamingContext): AbstractHIRTransformer()
-
 @Suppress("unused")
 enum class TypeClass {
     POINTER,
