@@ -30,23 +30,7 @@ class SimplifyShortCircuitingOperators(override val namingCtx: NamingContext): A
              *   result = b
              * }
              */
-            BinaryOperator.OR -> {
-                val resultMem = emitAlloca("result", Type.Bool)
-                currentLocation = expression.lhs.location
-                emit(
-                    ifStatement(
-                        expression.location,
-                        condition = transformExpression(expression.lhs),
-                        trueBranch = buildBlock {
-                            emitStore(resultMem.mutPtr(), trueValue())
-                        },
-                        falseBranch = buildBlock {
-                            emitStore(resultMem.mutPtr(), transformExpression(expression.rhs))
-                        }
-                    )
-                )
-                resultMem.ptr().load()
-            }
+            BinaryOperator.OR -> requireUnreachable()
             else -> HIRExpression.BinOp(
                 expression.location,
                 lowerType(expression.type),
