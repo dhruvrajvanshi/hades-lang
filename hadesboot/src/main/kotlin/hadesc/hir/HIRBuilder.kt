@@ -135,13 +135,6 @@ fun HIRBuilder.emitTypeApplication(lhs: HIROperand, args: List<Type>): HIRStatem
     return emit(HIRStatement.TypeApplication(currentLocation, namingCtx.makeUniqueName(), appliedType, lhs, args))
 }
 
-@Deprecated("Use emitAlloca")
-fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
-    val name = namingCtx.makeUniqueName(namePrefix)
-    val alloca = emitAlloca(name, type, location)
-    return HIRExpression.ValRef(location, type, alloca.name)
-}
-
 fun HIRBuilder.allocaAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Alloca {
     val name = namingCtx.makeUniqueName(namePrefix)
     return allocaAssign(name, rhs, location)
