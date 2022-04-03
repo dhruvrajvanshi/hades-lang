@@ -5,6 +5,7 @@ import hadesc.location.HasLocation
 
 sealed class Binding {
     abstract val binder: Binder
+    sealed interface Local
     data class GlobalFunction(
         val declaration: Declaration.FunctionDef
     ) : Binding() {
@@ -27,7 +28,7 @@ sealed class Binding {
     data class FunctionParam(
             val index: Int,
             val declaration: Declaration.FunctionDef
-    ) : Binding() {
+    ) : Binding(), Local {
         val param get() = declaration.params[index]
         override val binder: Binder
             get() = param.binder
@@ -35,7 +36,7 @@ sealed class Binding {
 
     data class ValBinding(
             val statement: Statement.Val
-    ) : Binding() {
+    ) : Binding(), Local {
         override val binder get() = statement.binder
     }
 
@@ -51,7 +52,7 @@ sealed class Binding {
         override val binder get() = declaration.name
     }
 
-    data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding() {
+    data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding(), Local {
         val param get() = closure.params[index]
 
         override val binder get() = param.binder

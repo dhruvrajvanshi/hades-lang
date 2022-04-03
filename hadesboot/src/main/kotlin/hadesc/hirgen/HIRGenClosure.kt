@@ -1,6 +1,7 @@
 package hadesc.hirgen
 
 import hadesc.analysis.ClosureCaptures
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.Block
 import hadesc.ast.ClosureBody
 import hadesc.ast.Expression
@@ -13,8 +14,11 @@ import hadesc.hir.HIRExpression
 import hadesc.hir.HIRParam
 import hadesc.hir.HIRTypeParam
 import hadesc.location.SourceLocation
+import hadesc.resolver.Binding
 import hadesc.scoped
 import hadesc.types.Type
+import hadesc.types.mutPtr
+import hadesc.types.ptr
 
 internal class HIRGenClosure(
     private val ctx: Context,
@@ -66,7 +70,17 @@ internal class HIRGenClosure(
     private fun addCaptureStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
         val typeParams = captures.types.map { HIRTypeParam(it.location, it.name) }
         val fields = captures.values.entries.map { (name, capture) ->
-            name.name to capture.second
+            val type = when (capture.first) {
+                is Binding.ClosureParam -> capture.second
+                is Binding.FunctionParam -> capture.second
+                // Local variables are captured by pointer because
+                // they can be mutated within the capturing context
+                is Binding.ValBinding -> capture.second.mutPtr()
+                else -> requireUnreachable {
+                    "Illegal closure capture binding: ${capture.first::class}"
+                }
+            }
+            name.name to type
         }
         val structDef = HIRDefinition.Struct(
             name = ctx.makeUniqueName("closure_captures").toQualifiedName(),
