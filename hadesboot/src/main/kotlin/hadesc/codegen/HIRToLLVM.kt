@@ -405,7 +405,6 @@ class HIRToLLVM(
             is HIRExpression.InvokeClosure -> requireUnreachable()
 
             is HIRExpression.Closure -> requireUnreachable()
-            is HIRExpression.BlockExpression -> requireUnreachable()
 
         }
     }

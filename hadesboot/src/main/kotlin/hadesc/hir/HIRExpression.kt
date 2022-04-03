@@ -83,10 +83,6 @@ sealed interface HIRExpression: HIRNode {
         val args: List<HIRExpression>,
     ) : HIRExpression
 
-    data class BlockExpression(override val type: Type, val block: HIRBlock): HIRExpression {
-        override val location get() = block.location
-    }
-
     override fun prettyPrint(): String = when(this) {
         is Call -> {
             "${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -99,7 +95,6 @@ sealed interface HIRExpression: HIRNode {
                 methodName.text
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
-        is BlockExpression -> block.prettyPrint()
         is HIRConstant.ByteString -> "b\"" + String(bytes)
             .replace("\"", "\"\"")
             .replace("\\", "\\\\") + "\""

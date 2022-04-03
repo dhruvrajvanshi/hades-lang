@@ -92,17 +92,12 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.SizeOf -> visitSizeOf(expression)
             is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
             is HIRExpression.ValRef -> visitValRef(expression)
-            is HIRExpression.BlockExpression -> visitBlockExpression(expression)
             is HIRConstant -> visitConstant(expression)
             is HIRExpression.LocalRef -> visitLocalRef(expression)
         }
     }
 
     fun visitLocalRef(expression: HIRExpression.LocalRef) = unit
-
-    fun visitBlockExpression(expression: HIRExpression.BlockExpression) {
-        visitBlock(expression.block)
-    }
 
     fun visitBinOp(statement: HIRStatement.BinOp) {
         visitExpression(statement.lhs)

@@ -255,7 +255,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
         is HIRExpression.Closure -> transformClosure(expression)
         is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
-        is HIRExpression.BlockExpression -> transformBlockExpression(expression)
 
     }
 
@@ -275,10 +274,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             lowerType(expression.type),
             expression.name
         )
-    }
-
-    fun transformBlockExpression(expression: HIRExpression.BlockExpression): HIRExpression {
-        return HIRExpression.BlockExpression(lowerType(expression.type), transformBlock(expression.block))
     }
 
     fun transformIntegerConvert(statement: HIRStatement.IntegerConvert): HIRStatement.IntegerConvert {
