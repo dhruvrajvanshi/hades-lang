@@ -294,14 +294,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             if (case.params != null && case.params.isNotEmpty()) {
                 emitStore(
                     payloadRef.mutPtr(),
-                    HIRExpression.Call(
-                        loc,
+                    emitCall(
                         payloadRef.type,
                         caseFn,
                         case.params.mapIndexed { index, it ->
                             HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
                         }
-                    )
+                    ).result()
                 )
             }
             val baseStructRefApplied =
