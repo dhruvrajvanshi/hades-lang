@@ -678,12 +678,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return if (enumConstructorBinding != null && expression !is Expression.TypeApplication) {
             check(withAppliedTypes is HIROperand)
             if (enumConstructorBinding.case.params == null) {
-                HIRExpression.Call(
-                    expression.location,
+                emitCall(
                     withAppliedTypes.type,
                     withAppliedTypes,
                     emptyList(),
-                )
+                ).result()
             } else {
                 withAppliedTypes
             }

@@ -185,7 +185,7 @@ fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = cur
     return emit(HIRStatement.Alloca(location, name, isMutable = true, type))
 }
 
-fun HIRBuilder.emitCall(resultType: Type, callee: HIRExpression, args: List<HIRExpression>, location: SourceLocation = currentLocation): HIRStatement.Call {
+fun HIRBuilder.emitCall(resultType: Type, callee: HIROperand, args: List<HIRExpression>, location: SourceLocation = currentLocation): HIRStatement.Call {
     val name = namingCtx.makeUniqueName()
     return emit(HIRStatement.Call(location, resultType, name, callee, args))
 }

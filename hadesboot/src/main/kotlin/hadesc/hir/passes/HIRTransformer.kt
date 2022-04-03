@@ -432,7 +432,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 location = statement.location,
                 name = statement.name,
                 resultType = lowerType(statement.resultType),
-                callee = transformExpression(statement.callee),
+                callee = transformOperand(statement.callee),
                 args = statement.args.map { transformExpression(it) },
             )
         )

@@ -50,7 +50,7 @@ sealed interface HIRStatement: HIRNode {
         override val location: SourceLocation,
         val resultType: Type,
         override val name: Name,
-        val callee: HIRExpression,
+        val callee: HIROperand,
         val args: List<HIRExpression>
     ) : HIRStatement, NameBinder
 
