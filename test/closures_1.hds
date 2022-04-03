@@ -1,0 +1,20 @@
+
+extern def puts(*u8): Void = puts
+def main(): Void {
+  foo(b"1")
+}
+
+def foo(message: *u8): Void {
+  val message2 = b"2"
+  val mut message3 = b"FAIL"
+  apply || {
+    puts(message)
+    puts(message2)
+    message3 = b"3"
+    puts(message3)
+  }
+}
+
+def apply(fn: || -> Void): Void {
+    fn()
+}
