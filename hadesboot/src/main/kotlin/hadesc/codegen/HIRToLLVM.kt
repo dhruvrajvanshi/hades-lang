@@ -292,10 +292,18 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerLoadStatement(statement: HIRStatement.Load): Value {
+    private fun lowerLoadStatement(statement: HIRStatement.Load): Value? {
+        val ptrTy = statement.ptr.type
+        check(ptrTy is Type.Ptr)
+        if (ptrTy.to is Type.Void) {
+            // loads from void pointers are no-ops because they don't have a size
+            // since ptr is an operand, it can't have any side effect, so lowering
+            // it is not required.
+            return null
+        }
         return builder.buildLoad(
             name = statement.name.text,
-            ptr = lowerExpression(statement.ptr)
+            ptr = lowerOperand(statement.ptr)
         )
     }
 
