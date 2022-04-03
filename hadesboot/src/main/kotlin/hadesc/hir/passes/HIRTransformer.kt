@@ -162,7 +162,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             HIRStatement.Load(
                 statement.location,
                 name = statement.name,
-                ptr = transformExpression(statement.ptr)
+                ptr = transformOperand(statement.ptr)
             )
         )
     }

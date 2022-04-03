@@ -89,10 +89,15 @@ interface HIRBuilder {
         val ptrTy = type
         check(ptrTy is Type.Ptr)
 
-        val name = namingCtx.makeUniqueName()
-        emit(HIRStatement.Load(currentLocation, name, this))
+        return if (this is HIROperand) {
+            val name = namingCtx.makeUniqueName()
+            emit(HIRStatement.Load(currentLocation, name, this))
+            HIRExpression.LocalRef(currentLocation, ptrTy.to, name)
+        } else {
+            val ptrRef = allocaAssign(namingCtx.makeUniqueName(), this)
+            ptrRef.ptr().load().load()
+        }
 
-        return HIRExpression.LocalRef(currentLocation, ptrTy.to, name)
     }
 }
 

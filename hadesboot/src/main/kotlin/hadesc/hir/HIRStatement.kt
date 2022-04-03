@@ -50,7 +50,7 @@ sealed interface HIRStatement: HIRNode {
     data class Load(
         override val location: SourceLocation,
         override val name: Name,
-        val ptr: HIRExpression
+        val ptr: HIROperand
     ) : HIRStatement, NameBinder {
         init {
             require(ptr.type is Type.Ptr)
