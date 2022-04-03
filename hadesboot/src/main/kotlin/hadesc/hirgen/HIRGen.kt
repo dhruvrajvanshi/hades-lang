@@ -315,15 +315,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                         declaration.typeParams.map { Type.ParamRef(it.binder) }
                     ).result()
                 }
-            val baseConstructorCall = HIRExpression.Call(
-                loc,
+            val baseConstructorCall = emitCall(
                 baseInstanceType,
                 baseStructRefApplied,
                 listOf(
                     tag,
                     payloadRef.ptr().load()
                 )
-            )
+            ).result()
             emit(
                 HIRStatement.Return(
                     case.name.location,
