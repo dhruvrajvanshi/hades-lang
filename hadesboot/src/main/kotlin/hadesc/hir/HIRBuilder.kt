@@ -142,18 +142,6 @@ fun HIRBuilder.declareVariable(namePrefix: String = "", type: Type, location: So
     return HIRExpression.ValRef(location, type, alloca.name)
 }
 
-@Deprecated("Use emit alloca")
-fun HIRBuilder.declareVariable(name: Name, type: Type, location: SourceLocation = currentLocation): HIRExpression.ValRef {
-    emitAlloca(name, type, location)
-
-    return HIRExpression.ValRef(
-        location,
-        type,
-        name,
-    )
-}
-
-
 fun HIRBuilder.allocaAssign(namePrefix: String = "", rhs: HIRExpression, location: SourceLocation = rhs.location): HIRStatement.Alloca {
     val name = namingCtx.makeUniqueName(namePrefix)
     return allocaAssign(name, rhs, location)
