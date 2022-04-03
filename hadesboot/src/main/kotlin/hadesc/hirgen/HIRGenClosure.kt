@@ -9,10 +9,7 @@ import hadesc.ast.Statement
 import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.defer
-import hadesc.hir.HIRDefinition
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIRParam
-import hadesc.hir.HIRTypeParam
+import hadesc.hir.*
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
 import hadesc.scoped
@@ -36,7 +33,12 @@ internal class HIRGenClosure(
                 it.binder,
                 ctx.analyzer.getParamType(it))
         }
-        val captureStructDef = addCaptureStruct(expression.location, ctx.analyzer.getClosureCaptures(expression))
+        val captureInfo = ctx.analyzer.getClosureCaptures(expression)
+        val captureStructDef = addCaptureStruct(expression.location, captureInfo)
+        val captureTypeArgs = captureInfo.types.map { Type.ParamRef(it) }
+        val captureRef = emitAlloca(ctx.makeUniqueName("closure_capture"), captureStructDef.instanceType(captureTypeArgs))
+        emitCaptureFieldInitializers(captureInfo, captureRef)
+
         val header = paramToLocal.declareParamCopies(params)
         val body = when (expression.body) {
             is ClosureBody.Block -> lowerBlock(expression.body.block, header = header)
@@ -67,16 +69,37 @@ internal class HIRGenClosure(
         )
     }
 
+    private fun emitCaptureFieldInitializers(captureInfo: ClosureCaptures, captureRef: HIRStatement.Alloca) {
+        captureInfo.values.entries.forEachIndexed { index, (binder, capture) ->
+            val type = capturedFieldType(capture)
+            val fieldPtr = captureRef.mutPtr().fieldPtr(binder.name, index, type.mutPtr())
+
+            val value = when (capture.first) {
+                is Binding.ValBinding -> {
+                    HIRExpression.LocalRef(
+                        currentLocation,
+                        type,
+                        binder.name
+                    ).load()
+                }
+                is Binding.FunctionParam -> {
+                    HIRExpression.ParamRef(
+                        currentLocation,
+                        type,
+                        binder.name,
+                        binder,
+                    )
+                }
+                is Binding.ClosureParam -> requireUnreachable()
+            }
+            emitStore(fieldPtr, value)
+        }
+    }
+
     private fun addCaptureStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
         val typeParams = captures.types.map { HIRTypeParam(it.location, it.name) }
         val fields = captures.values.entries.map { (name, capture) ->
-            val type = when (capture.first) {
-                is Binding.ClosureParam -> capture.second
-                is Binding.FunctionParam -> capture.second
-                // Local variables are captured by pointer because
-                // they can be mutated within the capturing context
-                is Binding.ValBinding -> capture.second.mutPtr()
-            }
+            val type = capturedFieldType(capture)
             name.name to type
         }
         val structDef = HIRDefinition.Struct(
@@ -87,5 +110,15 @@ internal class HIRGenClosure(
         )
         currentModule.addDefinition(structDef)
         return structDef
+    }
+
+    private fun capturedFieldType(capture: Pair<Binding.Local, Type>): Type {
+        return when (capture.first) {
+            is Binding.ClosureParam -> capture.second
+            is Binding.FunctionParam -> capture.second
+            // Local variables are captured by pointer because
+            // they can be mutated within the capturing context
+            is Binding.ValBinding -> capture.second.mutPtr()
+        }
     }
 }
