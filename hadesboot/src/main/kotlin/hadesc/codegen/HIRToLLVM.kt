@@ -299,6 +299,7 @@ class HIRToLLVM(
             is HIRStatement.IntegerConvert -> lowerIntegerConvert(statement)
             is HIRStatement.PointerCast -> lowerPointerCast(statement)
             is HIRStatement.TypeApplication -> requireUnreachable()
+            is HIRStatement.BinOp -> lowerBinOp(statement)
         }
 
         if (value != null) {
@@ -399,7 +400,6 @@ class HIRToLLVM(
 
         return when (expression) {
             is HIROperand -> lowerOperand(expression)
-            is HIRExpression.BinOp -> lowerBinOp(expression)
             is HIRExpression.Call -> lowerCallExpression(expression)
             is HIRExpression.InvokeClosure -> requireUnreachable()
 
@@ -436,35 +436,35 @@ class HIRToLLVM(
         return lowerType(expression.type).getConstantNullPointer()
     }
 
-    private fun lowerBinOp(expression: HIRExpression.BinOp): Value {
-        val name = ctx.makeUniqueName().text
-        return if (isPredicateOperator(expression.operator)) {
+    private fun lowerBinOp(statement: HIRStatement.BinOp): Value {
+        val name = statement.name.text
+        return if (isPredicateOperator(statement.operator)) {
             val isSigned =
-                when (expression.type) {
-                    is Type.Integral -> expression.type.isSigned
-                    is Type.Size -> expression.type.isSigned
+                when (statement.type) {
+                    is Type.Integral -> statement.type.isSigned
+                    is Type.Size -> statement.type.isSigned
                     is Type.Bool -> false
-                    else -> requireUnreachable { expression.type.prettyPrint() }
+                    else -> requireUnreachable { statement.type.prettyPrint() }
                 }
             builder.buildICmp(
-                lowerPredicateOperator(isSigned, expression.operator),
-                lowerExpression(expression.lhs),
-                lowerExpression(expression.rhs),
+                lowerPredicateOperator(isSigned, statement.operator),
+                lowerExpression(statement.lhs),
+                lowerExpression(statement.rhs),
                 name
             )
         } else {
-            if (expression.type is Type.FloatingPoint) {
+            if (statement.type is Type.FloatingPoint) {
                 builder.buildBinOp(
-                    lowerFloatingPointOperator(expression.operator),
-                    lowerExpression(expression.lhs),
-                    lowerExpression(expression.rhs),
+                    lowerFloatingPointOperator(statement.operator),
+                    lowerExpression(statement.lhs),
+                    lowerExpression(statement.rhs),
                     name,
                 )
             } else {
                 builder.buildBinOp(
-                    lowerOperator(expression.operator),
-                    lowerExpression(expression.lhs),
-                    lowerExpression(expression.rhs),
+                    lowerOperator(statement.operator),
+                    lowerExpression(statement.lhs),
+                    lowerExpression(statement.rhs),
                     name
                 )
             }

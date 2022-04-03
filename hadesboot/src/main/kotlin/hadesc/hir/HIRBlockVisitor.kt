@@ -29,6 +29,7 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.IntegerConvert -> visitIntegerConvert(statement)
             is HIRStatement.TypeApplication -> visitTypeApplication(statement)
             is HIRStatement.PointerCast -> visitPointerCast(statement)
+            is HIRStatement.BinOp -> visitBinOp(statement)
         }
     }
 
@@ -88,7 +89,6 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitExpression(expression: HIRExpression) {
         visitType(expression.type)
         return when (expression) {
-            is HIRExpression.BinOp -> visitBinOp(expression)
             is HIRExpression.Call -> visitCall(expression)
             is HIRExpression.Closure -> visitClosure(expression)
             is HIRExpression.GlobalRef -> visitGlobalRef(expression)
@@ -110,9 +110,9 @@ interface HIRBlockVisitor : TypeVisitor {
         visitBlock(expression.block)
     }
 
-    fun visitBinOp(expression: HIRExpression.BinOp) {
-        visitExpression(expression.lhs)
-        visitExpression(expression.rhs)
+    fun visitBinOp(statement: HIRStatement.BinOp) {
+        visitExpression(statement.lhs)
+        visitExpression(statement.rhs)
     }
 
     fun visitCall(expression: HIRExpression.Call) {

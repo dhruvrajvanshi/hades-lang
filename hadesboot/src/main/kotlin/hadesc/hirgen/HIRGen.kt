@@ -762,8 +762,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Type.FloatingPoint,
             is Type.Size,
             -> {
-                HIRExpression.BinOp(
+                emit(HIRStatement.BinOp(
                     expression.location,
+                    ctx.makeUniqueName(),
                     inner.type,
                     if (type is Type.FloatingPoint) {
                         HIRConstant.FloatValue(
@@ -780,7 +781,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     },
                     BinaryOperator.MINUS,
                     inner
-                )
+                )).result()
             }
             else -> requireUnreachable()
         }
@@ -937,13 +938,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return when (expression.operator) {
             BinaryOperator.AND -> lowerAndExpression(expression)
             BinaryOperator.OR  -> lowerOrExpression(expression)
-            else -> HIRExpression.BinOp(
+            else -> emit(HIRStatement.BinOp(
                 expression.location,
+                ctx.makeUniqueName(),
                 typeOfExpression(expression),
                 lowerExpression(expression.lhs),
                 expression.operator,
                 lowerExpression(expression.rhs)
-            )
+            )).result()
         }
     }
 

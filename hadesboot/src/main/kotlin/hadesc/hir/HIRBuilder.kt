@@ -22,6 +22,10 @@ interface HIRBuilder {
         return HIRExpression.LocalRef(location, type.ptr(), name)
     }
 
+    fun HIRStatement.BinOp.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(location, type, name)
+    }
+
     fun HIRStatement.Alloca.mutPtr(location: SourceLocation = currentLocation): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(location, type.mutPtr(), name)
     }

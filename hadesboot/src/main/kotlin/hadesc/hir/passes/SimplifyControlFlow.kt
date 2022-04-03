@@ -232,6 +232,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.IntegerConvert,
             is HIRStatement.TypeApplication,
             is HIRStatement.PointerCast,
+            is HIRStatement.BinOp,
             is HIRStatement.Expression, -> false
 
             is HIRStatement.Return,

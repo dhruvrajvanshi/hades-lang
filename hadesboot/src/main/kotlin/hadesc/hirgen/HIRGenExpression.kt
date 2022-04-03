@@ -100,13 +100,14 @@ internal class HIRGenExpression(
         return when (intrinsic.intrinsicType) {
             IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL -> {
                 check(expression.args.size == 2)
-                return HIRExpression.BinOp(
+                return emit(HIRStatement.BinOp(
                     expression.location,
+                    ctx.makeUniqueName(),
                     expression.type,
                     lowerExpression(expression.args[0].expression),
                     checkNotNull(INTRINSIC_TYPE_TO_BINOP[intrinsic.intrinsicType]),
                     lowerExpression(expression.args[1].expression),
-                )
+                )).result()
             }
             IntrinsicType.PTR_TO_INT -> {
                 check(expression.type is Type.Size)

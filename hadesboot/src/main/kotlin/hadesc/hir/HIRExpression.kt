@@ -54,14 +54,6 @@ sealed interface HIRExpression: HIRNode {
     ) : HIRExpression, HIROperand
 
 
-    data class BinOp(
-        override val location: SourceLocation,
-        override val type: Type,
-        val lhs: HIRExpression,
-        val operator: BinaryOperator,
-        val rhs: HIRExpression
-    ) : HIRExpression
-
     data class NullPtr(
             override val location: SourceLocation,
             override val type: Type.Ptr
@@ -108,7 +100,6 @@ sealed interface HIRExpression: HIRNode {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is ValRef -> "%${name.text}"
-        is BinOp -> "(${lhs.prettyPrint()} ${operator.prettyPrint()} ${rhs.prettyPrint()})"
         is NullPtr -> "(nullptr : ${type.prettyPrint()})"
         is SizeOf -> "size_of[${type.prettyPrint()}]"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +

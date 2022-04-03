@@ -2,6 +2,7 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.location.SourceLocation
+import hadesc.parser.op
 import hadesc.types.Type
 import hadesc.types.ptr
 
@@ -178,6 +179,16 @@ sealed interface HIRStatement: HIRNode {
         val body: HIRBlock
     ) : HIRStatement
 
+
+    data class BinOp(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val lhs: HIRExpression,
+        val operator: BinaryOperator,
+        val rhs: HIRExpression
+    ) : HIRStatement, NameBinder
+
     override fun prettyPrint(): String {
         return "${prettyPrintInternal()} // $location"
     }
@@ -232,6 +243,8 @@ sealed interface HIRStatement: HIRNode {
         }
         is PointerCast ->
             "%${name.text}: ${type.prettyPrint()} = pointer-cast[${toPointerOfType}] ${value.prettyPrint()}"
+        is BinOp ->
+            "%${name.text}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()}, ${rhs.prettyPrint()}"
     }
 
     companion object {
