@@ -1,0 +1,10 @@
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+    {
+        puts(b"1")
+        {
+            puts(b"2")
+        }
+    }
+}

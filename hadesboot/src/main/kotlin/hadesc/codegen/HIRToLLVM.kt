@@ -3,6 +3,7 @@ package hadesc.codegen
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
+import hadesc.exhaustive
 import hadesc.hir.*
 import hadesc.hir.passes.SimplifyControlFlow
 import hadesc.hir.BinaryOperator
@@ -257,7 +258,7 @@ class HIRToLLVM(
             )
             LLVM.LLVMSetCurrentDebugLocation2(builder, location)
         }
-        when (statement) {
+        exhaustive(when (statement) {
             is HIRStatement.NameBinder -> lowerNameBinder(statement)
             is HIRStatement.Assignment -> lowerAssignment(statement)
             is HIRStatement.Return -> lowerReturnStatement(statement)
@@ -267,7 +268,8 @@ class HIRToLLVM(
             is HIRStatement.While -> requireUnreachable {
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
             }
-        }
+            is HIRStatement.Jump -> TODO()
+        })
         errorStack.pop()
     }
 
@@ -308,9 +310,12 @@ class HIRToLLVM(
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
+        if (statement.value is HIROperand && statement.value.type is Type.Void) {
+            return
+        }
         val rhs = lowerExpression(statement.value)
         if (statement.value.type != Type.Void) {
-            val ptr = lowerExpression(statement.ptr)
+            val ptr = lowerOperand(statement.ptr)
             builder.buildStore(ptr, rhs)
         }
 
@@ -318,6 +323,9 @@ class HIRToLLVM(
 
     private fun lowerAssignment(statement: HIRStatement.Assignment) {
         log.debug("${statement.name.text} = ${statement.value.prettyPrint()}")
+        if (statement.value is HIROperand && statement.value.type is Type.Void) {
+            return
+        }
         val value = lowerExpression(statement.value)
 
         if (statement.value.type !is Type.Void) {

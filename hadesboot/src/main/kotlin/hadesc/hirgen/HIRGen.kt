@@ -47,7 +47,8 @@ internal interface HIRGenFunctionContext: HIRBuilder {
     fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean = false,
-        header: List<HIRStatement> = emptyList()
+        header: List<HIRStatement> = emptyList(),
+        after: HIRBuilder.() -> Unit = {}
     ): HIRBlock
 }
 
@@ -486,6 +487,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         body: Block,
         addReturnVoid: Boolean,
         header: List<HIRStatement>,
+        after: HIRBuilder.() -> Unit,
     ): HIRBlock = scoped {
         scopeStack.push(body)
         defer { check(scopeStack.pop() === body) }
@@ -495,6 +497,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             for (member in body.members) {
                 lowerBlockMember(member)
             }
+            after()
             if (addReturnVoid) {
                 terminateScope()
                 emit(HIRStatement.Return(body.location, HIRConstant.Void(body.location)))
@@ -790,8 +793,38 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerBlockExpression(expression: Expression.BlockExpression): HIRExpression {
-        val block = lowerBlock(expression.block)
-        return HIRExpression.BlockExpression(expression.type, block)
+        val resultRef = emitAlloca("block_expression_result", expression.type)
+        val blockWithoutLastMember = expression.block.copy(members = expression.block.members.dropLast(1))
+        val lastMember = expression.block.members.lastOrNull()
+        val loweredBlock = lowerBlock(blockWithoutLastMember) {
+            val resultVal = when (lastMember) {
+                is Block.Member.Expression -> {
+                    lowerExpression(lastMember.expression)
+                }
+                is Block.Member.Statement -> {
+                    check(expression.type is Type.Void)
+                    lowerStatement(lastMember.statement)
+                    HIRConstant.Void(currentLocation)
+                }
+                null -> {
+                    check(expression.type is Type.Void)
+                    HIRConstant.Void(currentLocation)
+                }
+            }
+            emitStore(resultRef.mutPtr(), resultVal)
+        }
+        emit(HIRStatement.MatchInt(
+            currentLocation,
+            HIRConstant.IntValue(currentLocation, Type.u8, 1),
+            arms = listOf(
+                MatchIntArm(
+                    HIRConstant.IntValue(currentLocation, Type.u8, 1),
+                    loweredBlock
+                )
+            ),
+            otherwise = buildBlock {}
+        ))
+        return resultRef.ptr().load()
     }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
