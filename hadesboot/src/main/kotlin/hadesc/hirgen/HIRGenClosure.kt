@@ -2,20 +2,20 @@ package hadesc.hirgen
 
 import hadesc.analysis.ClosureCaptures
 import hadesc.assertions.requireUnreachable
-import hadesc.ast.Block
-import hadesc.ast.ClosureBody
-import hadesc.ast.Expression
-import hadesc.ast.Statement
+import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.defer
 import hadesc.hir.*
+import hadesc.location.Position
 import hadesc.location.SourceLocation
+import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.scoped
 import hadesc.types.Type
 import hadesc.types.mutPtr
 import hadesc.types.ptr
+import java.nio.file.Path
 
 internal class HIRGenClosure(
     private val ctx: Context,
@@ -33,11 +33,8 @@ internal class HIRGenClosure(
                 it.binder,
                 ctx.analyzer.getParamType(it))
         }
-        val captureInfo = ctx.analyzer.getClosureCaptures(expression)
-        val captureStructDef = addCaptureStruct(expression.location, captureInfo)
-        val captureTypeArgs = captureInfo.types.map { Type.ParamRef(it) }
-        val captureRef = emitAlloca(ctx.makeUniqueName("closure_capture"), captureStructDef.instanceType(captureTypeArgs))
-        emitCaptureFieldInitializers(captureInfo, captureRef)
+
+        lowerClosureNew(expression)
 
         val header = paramToLocal.declareParamCopies(params)
         val body = when (expression.body) {
@@ -68,6 +65,139 @@ internal class HIRGenClosure(
             body
         )
     }
+
+    // This is the new codegen for closures, not enabled yet
+    private fun lowerClosureNew(expression: Expression.Closure) {
+        if (true) return
+        val captureInfo = ctx.analyzer.getClosureCaptures(expression)
+        val captureStructDef = addCaptureStruct(expression.location, captureInfo)
+        val captureTypeArgs = captureInfo.types.map { Type.ParamRef(it) }
+        val captureRef = emitAlloca(ctx.makeUniqueName("closure_capture"), captureStructDef.instanceType(captureTypeArgs))
+        emitCaptureFieldInitializers(captureInfo, captureRef)
+
+        val closureFn = emitClosureFn(expression, captureInfo, captureStructDef)
+        val returnType = ctx.analyzer.getReturnType(expression)
+    }
+
+    private fun emitClosureFn(
+        expression: Expression.Closure,
+        captureInfo: ClosureCaptures,
+        captureStructDef: HIRDefinition.Struct,
+    ): HIRDefinition.Function = scoped {
+        val fnName = ctx.makeUniqueName("closure_fn")
+        val captureParam = HIRParam(
+            expression.location,
+            Binder(Identifier(currentLocation, closureCtxParamName)),
+            captureStructDef.instanceType(
+                captureInfo.types.map { Type.ParamRef(it) }
+            ).ptr()
+        )
+
+        val oldSubstitution = valueSubstitution
+        val oldAssignmentSubstitution = localAssignmentSubstitution
+        val newSubstitution: ValueSubstitution = mutableMapOf()
+        val newAssignmentSubstitution: ValueSubstitution = mutableMapOf()
+        captureInfo.values.entries.forEachIndexed { index, (binder, capture) ->
+            val type = capture.second
+            val binding = capture.first
+            val isCapturedByPointer = binding is Binding.ValBinding
+            if (isCapturedByPointer) {
+                newSubstitution[binder] = {
+                    HIRExpression.LocalRef(
+                        currentLocation,
+                        type.mutPtr(),
+                        binder.name
+                    ).load()
+                }
+                newAssignmentSubstitution[binder] = {
+                    HIRExpression.LocalRef(
+                        currentLocation,
+                        type.mutPtr(),
+                        binder.name
+                    )
+                }
+            } else {
+                newSubstitution[binder] = {
+                    HIRExpression.LocalRef(
+                        currentLocation,
+                        type,
+                        binder.name
+                    )
+                }
+            }
+        }
+        valueSubstitution = newSubstitution
+        defer {
+            check(valueSubstitution === newSubstitution)
+            valueSubstitution = oldSubstitution
+        }
+
+        localAssignmentSubstitution = newAssignmentSubstitution
+        defer {
+            check(localAssignmentSubstitution === newAssignmentSubstitution)
+            localAssignmentSubstitution = oldAssignmentSubstitution
+        }
+
+
+        val body = when (expression.body) {
+            is ClosureBody.Block -> {
+                lowerBlock(expression.body.block, before = {
+                    emitClosureFnHeader(captureInfo, captureParam)
+                })
+            }
+            is ClosureBody.Expression -> {
+                buildBlock {
+                    emitClosureFnHeader(captureInfo, captureParam)
+                    emit(
+                        HIRStatement.Return(
+                            currentLocation,
+                            lowerExpression(expression.body.expression)
+                        )
+                    )
+                }
+            }
+        }
+
+        val signature = HIRFunctionSignature(
+            currentLocation,
+            fnName.toQualifiedName(),
+            typeParams = captureInfo.types.map { HIRTypeParam(it.location, it.name) }.ifEmpty { null },
+            params = expression.params.map {
+                HIRParam(it.location, it.binder, ctx.analyzer.getParamType(it))
+            } + listOf(
+                captureParam
+            ),
+            returnType = ctx.analyzer.getReturnType(expression)
+        )
+        val fn = HIRDefinition.Function(
+            currentLocation,
+            signature,
+            mutableListOf(body)
+        )
+        currentModule.addDefinition(fn)
+        fn
+    }
+
+    private fun emitClosureFnHeader(captures: ClosureCaptures, capturePtrParam: HIRParam) {
+        captures.values.entries.forEachIndexed { index, (binder, capture) ->
+            val type = capture.second
+            val binding = capture.first
+            val capturePtr = capturePtrParam.ref()
+            val isCapturedByPointer = binding is Binding.ValBinding
+
+            if (isCapturedByPointer) {
+                capturePtr
+                    .fieldPtr(binder.name, index, type.mutPtr().ptr())
+                    .load(binder.name)
+            } else {
+                capturePtr
+                    .fieldPtr(binder.name, index, type.ptr()) // * capture.type
+                    .load(binder.name)
+            }
+        }
+    }
+
+    private val closureCtxParamName = ctx.makeName("\$ctx")
 
     private fun emitCaptureFieldInitializers(captureInfo: ClosureCaptures, captureRef: HIRStatement.Alloca) {
         captureInfo.values.entries.forEachIndexed { index, (binder, capture) ->
@@ -120,5 +250,37 @@ internal class HIRGenClosure(
             // they can be mutated within the capturing context
             is Binding.ValBinding -> capture.second.mutPtr()
         }
+    }
+
+    private val closureCtxFieldName = ctx.makeName("ctx")
+    private val closureFunctionPtrName = ctx.makeName("fn")
+    private val closureStruct by lazy {
+        val location = SourceLocation(
+            file = SourcePath(Path.of("builtin.Closure")),
+            start = Position(0, 0),
+            stop = Position(0, 0)
+        )
+        val structName = namingCtx.makeName("\$builtin.Closure")
+        val typeParamName = namingCtx.makeName("T")
+        val typeParam = Binder(Identifier(location, typeParamName))
+        val def = HIRDefinition.Struct(
+            location = location,
+            typeParams = listOf(HIRTypeParam(location, typeParamName)),
+            fields = listOf(
+                closureCtxFieldName to Type.Void.ptr(),
+                closureFunctionPtrName to fnTypeThatReturns(Type.ParamRef(typeParam)).ptr(),
+            ),
+            name = structName.toQualifiedName()
+        )
+        currentModule.addDefinition(def)
+        def
+
+    }
+
+    private fun fnTypeThatReturns(returns: Type): Type.Function {
+        return Type.Function(
+            from = listOf(),
+            to = returns
+        )
     }
 }

@@ -1,6 +1,8 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.ast.Binder
+import hadesc.ast.Identifier
 import hadesc.context.NamingContext
 import hadesc.location.SourceLocation
 import hadesc.types.Type
@@ -58,13 +60,35 @@ interface HIRBuilder {
         )
     }
 
-    fun HIRExpression.fieldPtr(name: Name, index: Int, type: Type.Ptr): HIRExpression.LocalRef {
-        val s = emit(HIRStatement.GetStructFieldPointer(location, namingCtx.makeUniqueName(), type, this, name, index))
+    fun HIRExpression.fieldPtr(name: Name, index: Int, type: Type.Ptr, resultName: Name = namingCtx.makeUniqueName()): HIRExpression.LocalRef {
+        val s = emit(HIRStatement.GetStructFieldPointer(location, resultName, type, this, name, index))
         return HIRExpression.LocalRef(
             location,
             type,
             s.name,
         )
+    }
+
+    fun HIRDefinition.Function.ref(): HIRExpression.GlobalRef {
+        return HIRExpression.GlobalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
+    fun HIROperand.typeApplication(args: List<Type>): HIROperand {
+        val ty = type
+        check(ty is Type.TypeFunction)
+        check(ty.params.size == args.size)
+        val substitution = ty.params.zip(args).toSubstitution()
+        return emit(HIRStatement.TypeApplication(
+            currentLocation,
+            namingCtx.makeUniqueName(),
+            ty.body.applySubstitution(substitution),
+            this,
+            args
+        )).result()
     }
 
     fun HIRExpression.fieldPtr(name: String, index: Int, type: Type.Ptr): HIRExpression.LocalRef {
@@ -85,19 +109,27 @@ interface HIRBuilder {
         )
     }
 
-    fun HIRExpression.load(): HIRExpression.LocalRef {
+    fun HIRExpression.load(name: Name = namingCtx.makeUniqueName()): HIRExpression.LocalRef {
         val ptrTy = type
         check(ptrTy is Type.Ptr)
 
         return if (this is HIROperand) {
-            val name = namingCtx.makeUniqueName()
             emit(HIRStatement.Load(currentLocation, name, this))
             HIRExpression.LocalRef(currentLocation, ptrTy.to, name)
         } else {
-            val ptrRef = allocaAssign(namingCtx.makeUniqueName(), this)
+            val ptrRef = allocaAssign(name, this)
             ptrRef.ptr().load().load()
         }
 
+    }
+
+    fun HIRParam.ref(): HIRExpression.ParamRef {
+        return HIRExpression.ParamRef(
+            currentLocation,
+            type,
+            name,
+            binder,
+        )
     }
 }
 

@@ -34,6 +34,32 @@ internal class HIRGenExpression(
         expression: Expression,
         binding: Binding
     ): HIROperand = when(binding) {
+        is Binding.Local -> {
+            val substitute = valueSubstitution[binding.binder]
+            if (substitute != null) {
+                substitute()
+            } else {
+                when (binding) {
+                    is Binding.FunctionParam -> HIRExpression.ParamRef(
+                        expression.location,
+                        typeOfExpression(expression),
+                        lowerLocalBinder(binding.param.binder),
+                        binding.binder
+                    )
+                    is Binding.ValBinding -> HIRExpression.ValRef(
+                        expression.location,
+                        typeOfExpression(expression),
+                        lowerLocalBinder(binding.statement.binder)
+                    )
+                    is Binding.ClosureParam -> HIRExpression.ParamRef(
+                        expression.location,
+                        typeOfExpression(expression),
+                        lowerLocalBinder(binding.param.binder),
+                        binding.binder,
+                    )
+                }
+            }
+        }
         is Binding.GlobalFunction -> HIRExpression.GlobalRef(
             expression.location,
             typeOfExpression(expression),
@@ -47,17 +73,6 @@ internal class HIRGenExpression(
                 lowerGlobalName(binding.declaration.binder)
             )
         }
-        is Binding.FunctionParam -> HIRExpression.ParamRef(
-            expression.location,
-            typeOfExpression(expression),
-            lowerLocalBinder(binding.param.binder),
-            binding.binder
-        )
-        is Binding.ValBinding -> HIRExpression.ValRef(
-            expression.location,
-            typeOfExpression(expression),
-            lowerLocalBinder(binding.statement.binder)
-        )
         is Binding.Struct -> HIRExpression.GlobalRef(
             expression.location,
             typeOfExpression(expression),
@@ -67,12 +82,6 @@ internal class HIRGenExpression(
             expression.location,
             typeOfExpression(expression),
             lowerGlobalName(binding.declaration.name)
-        )
-        is Binding.ClosureParam -> HIRExpression.ParamRef(
-            expression.location,
-            typeOfExpression(expression),
-            lowerLocalBinder(binding.param.binder),
-            binding.binder,
         )
         is Binding.Enum -> TODO()
         is Binding.ExternConst -> HIRExpression.GlobalRef(

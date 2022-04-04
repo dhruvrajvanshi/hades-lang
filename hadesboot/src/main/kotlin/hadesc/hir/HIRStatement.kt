@@ -55,6 +55,13 @@ sealed interface HIRStatement: HIRNode {
         init {
             require(ptr.type is Type.Ptr)
         }
+
+        val ptrType get(): Type.Ptr {
+            val t = ptr.type
+            check(t is Type.Ptr)
+            return t
+        }
+        val type get() = ptrType.to
     }
 
     data class PointerCast(
@@ -223,7 +230,7 @@ sealed interface HIRStatement: HIRNode {
                 cases.joinToString { "case ${it.value.prettyPrint()}: ${it.block.text}\n    " } +
                 "otherwise: ${otherwise.text}\n" +
                 "  ]"
-        is Load -> "%${name.text} = load ${ptr.prettyPrint()}"
+        is Load -> "%${name.text}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
         is GetStructField -> "%${name.text}: ${type.prettyPrint()} = ${lhs.prettyPrint()}.${fieldName.text}"
         is GetStructFieldPointer -> "%${name.text}: ${type.prettyPrint()} = field-offset ${lhs.prettyPrint()} ${memberName.text}"
         is Not -> "%${name.text}: Bool = ${expression.prettyPrint()}"

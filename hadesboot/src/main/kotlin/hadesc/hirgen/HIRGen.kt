@@ -19,16 +19,20 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
-import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import hadesc.hir.*
 import hadesc.ignore
 import hadesc.types.mutPtr
 
+internal typealias ValueSubstitution =
+        MutableMap<Binder, HIRBuilder.() -> HIROperand>
+
 internal interface HIRGenModuleContext {
     val enumTagFieldName: Name
     val currentModule: HIRModule
+    var valueSubstitution: ValueSubstitution
+    var localAssignmentSubstitution: ValueSubstitution
     fun lowerGlobalName(binder: Binder): QualifiedName
     fun typeOfExpression(expression: Expression): Type
     fun lowerLocalBinder(binder: Binder): Name
@@ -48,6 +52,7 @@ internal interface HIRGenFunctionContext: HIRBuilder {
         body: Block,
         addReturnVoid: Boolean = false,
         header: List<HIRStatement> = emptyList(),
+        before: HIRBuilder.() -> Unit = {},
         after: HIRBuilder.() -> Unit = {}
     ): HIRBlock
 }
@@ -70,6 +75,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
     override val currentModule = HIRModule(mutableListOf())
+    override var valueSubstitution: ValueSubstitution = mutableMapOf()
+    override var localAssignmentSubstitution: ValueSubstitution = mutableMapOf()
+
     private val exprGen = HIRGenExpression(
         ctx,
         moduleContext = this,
@@ -486,12 +494,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         body: Block,
         addReturnVoid: Boolean,
         header: List<HIRStatement>,
+        before: HIRBuilder.() -> Unit,
         after: HIRBuilder.() -> Unit,
     ): HIRBlock = scoped {
         scopeStack.push(body)
         defer { check(scopeStack.pop() === body) }
         buildBlock(body.location) {
             deferStack.push(mutableListOf())
+            before()
             header.forEach { emit(it) }
             for (member in body.members) {
                 lowerBlockMember(member)
@@ -566,7 +576,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
         val binding = ctx.resolver.resolve(statement.name)
         require(binding is Binding.ValBinding)
-        emitAssign(lowerLocalBinder(binding.statement.binder), lowerExpression(statement.value))
+        val substitutionPtr = localAssignmentSubstitution[binding.binder]
+        if (substitutionPtr != null) {
+            emitStore(substitutionPtr(), lowerExpression(statement.value))
+        } else {
+            emitAssign(lowerLocalBinder(binding.statement.binder), lowerExpression(statement.value))
+        }
     }
 
     private fun lowerWhileStatement(statement: Statement.While) {
