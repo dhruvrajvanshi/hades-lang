@@ -66,16 +66,16 @@ internal class HIRGenClosure(
         )
     }
 
-    // This is the new codegen for closures, not enabled yet
+    private val enableNewClosureGen = false
     private fun lowerClosureNew(expression: Expression.Closure) {
-        if (true) return
+        if (!enableNewClosureGen) return
         val captureInfo = ctx.analyzer.getClosureCaptures(expression)
-        val captureStructDef = addCaptureStruct(expression.location, captureInfo)
-        val captureTypeArgs = captureInfo.types.map { Type.ParamRef(it) }
-        val captureRef = emitAlloca(ctx.makeUniqueName("closure_capture"), captureStructDef.instanceType(captureTypeArgs))
-        emitCaptureFieldInitializers(captureInfo, captureRef)
+        val ctxStruct = addCaptureStruct(expression.location, captureInfo)
+        val ctxTypeArgs = captureInfo.types.map { Type.ParamRef(it) }
+        val ctxRef = emitAlloca(ctx.makeUniqueName("closure_ctx"), ctxStruct.instanceType(ctxTypeArgs))
+        emitCaptureFieldInitializers(captureInfo, ctxRef)
 
-        val closureFn = emitClosureFn(expression, captureInfo, captureStructDef)
+        val closureFn = emitClosureFn(expression, captureInfo, ctxStruct)
         val returnType = ctx.analyzer.getReturnType(expression)
     }
 
@@ -233,7 +233,7 @@ internal class HIRGenClosure(
             name.name to type
         }
         val structDef = HIRDefinition.Struct(
-            name = ctx.makeUniqueName("closure_captures").toQualifiedName(),
+            name = ctx.makeUniqueName("ClosureContext").toQualifiedName(),
             location = location,
             typeParams = typeParams.ifEmpty { null },
             fields = fields
