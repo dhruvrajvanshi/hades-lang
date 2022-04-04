@@ -127,6 +127,18 @@ sealed class HIRDefinition: HasLocation {
                 )
             }
         }
+
+        private fun getField(fieldName: Name): Pair<Type, Int> {
+            val index = fields.indexOfFirst {
+                fieldName == it.first
+            }
+            val field = fields[index]
+            return field.second to index
+        }
+
+        fun fieldType(fieldName: Name): Type {
+            return getField(fieldName).first
+        }
     }
 
     fun prettyPrint(): String = when(this) {
