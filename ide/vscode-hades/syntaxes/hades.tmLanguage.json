@@ -24,7 +24,7 @@
 		"tokens": {
 			"patterns": [
 				{
-					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension)\\b",
+					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for)\\b",
 					"captures": {
 						"0": { "name": "keyword" }
 					}
@@ -42,7 +42,7 @@
 					}
 				},
 				{
-					"match": "\\b(if|else|while|return)\\b",
+					"match": "\\b(if|else|while|return|match)\\b",
 					"captures": {
 						"0": { "name": "keyword.control" }
 					}
@@ -51,6 +51,12 @@
 					"match": "\\b(Void|Bool|u8|u16|u32|u64|i8|i16|i32|i64|f16|f32|f64)\\b",
 					"captures": {
 						"0": { "name": "entity.name.type" }
+					}
+				},
+				{
+					"match": "\\b(true|false)\\b",
+					"captures": {
+						"0": { "name": "constant.language" }
 					}
 				},
 				{
