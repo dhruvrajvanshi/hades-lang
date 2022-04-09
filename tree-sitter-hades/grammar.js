@@ -1,5 +1,5 @@
 module.exports = grammar({
-  name: 'Hades',
+  name: 'hades',
   rules: {
     source_file: $ => repeat($.definition),
     definition: $ => choice(
