@@ -3,7 +3,7 @@
 	"name": "Hades",
 	"patterns": [
 		{
-			"include": "#declarations"
+			"include": "#tokens"
 		},
 		{
 			"include": "#comments"
@@ -21,833 +21,81 @@
 				}
 			}
 		},
-		"declarations": {
+		"tokens": {
 			"patterns": [
 				{
-					"include": "#extern-function-def"
+					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension)\\b",
+					"captures": {
+						"0": { "name": "keyword" }
+					}
 				},
 				{
-					"include": "#function-def"
+					"match": "\\bextern\\b",
+					"captures": {
+						"0": { "name": "storage.modifier" }
+					}
 				},
 				{
-					"include": "#import-as"
+					"match": "\\bthis\\b",
+					"captures": {
+						"0": { "name": "variable.parameter" }
+					}
 				},
 				{
-					"include": "#import-members"
+					"match": "\\b(if|else|while|return)\\b",
+					"captures": {
+						"0": { "name": "keyword.control" }
+					}
 				},
 				{
-					"include": "#struct-def"
+					"match": "\\b(Void|Bool|u8|u16|u32|u64|i8|i16|i32|i64|f16|f32|f64)\\b",
+					"captures": {
+						"0": { "name": "entity.name.type" }
+					}
 				},
 				{
-					"include": "#const-def"
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*\\s*)\\(",
+					"captures": {
+						"1": { "name": "entity.name.function" }
+					}
+
 				},
 				{
-					"include": "#trait-def"
+					"match": "\\d+(\\.\\d+)?",
+					"captures": {
+						"0": { "name": "constant.numeric" }
+					}
 				},
 				{
-					"include": "#implementation-def"
-				},
-				{
-					"include": "#type-alias"
-				},
-				{
-					"include": "#extension-def"
-				},
-				{
-					"include": "#enum-def"
-				}
-			]
-		},
-		"enum-def": {
-			"begin": "\\b(enum)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "(?<=(}))",
-			"beginCaptures": {
-				"1": { "name": "keyword" },
-				"2": { "name": "entity.name.type" }
-			},
-			"patterns": [
-				{
-					"begin": "{",
-					"end": "}",
+					"begin": "(b)(\")",
+					"end": "\"",
+					"beginCaptures": {
+						"1": { "name": "emphasis" },
+						"2": { "name": "string" }
+					},
+					"endCaptures": {
+						"0": { "name": "string" }
+					},
 					"patterns": [
 						{
-							"begin": "([a-zA-Z_][a-zA-Z0-9_]*)",
-							"end": "(?=([}\n,]))",
-							"beginCaptures": {
-								"0": { "name": "entity.name.method" }
+							"match": "\\\\[\"nbr]",
+							"captures": {
+								"0": {
+									"name": "constant.character.escape"
+								}
+							}
+						},
+						{
+							"match": "[^\"]",
+							"captures": {
+								"0": {
+									"name": "string"
+								}
 							}
 						}
 					]
 				}
 			]
-		},
-		"extension-def": {
-			"begin": "\\b(extension)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": { "name": "keyword.hades" },
-				"2": { "name": "entity.name.class" },
-				"3": { "name": "keyword.hades" }
-			},
-			"patterns": [
-				{
-					"match": "\\b(for)\\b",
-					"captures": {
-						"1": {
-							"name": "keyword"
-						}
-					}
-				},
-				{
-					"begin": "([{])",
-					"end": "([}])",
-					"patterns": [
-						{
-							"include": "#function-def"
-						}
-					]
-				}
-			]
-		},
-		"extern-function-def": {
-			"begin": "\\b(extern)\\s+",
-			"end": "[;\n]",
-			"beginCaptures": {
-				"1": {
-					"name": "storage.modifier.hades"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#function-signature"
-				}
-			]
-		},
-		"function-signature": {
-			"begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "(?=[={;\\n])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword"
-				},
-				"2": {
-					"name": "entity.name.function.hades"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#comments"
-				},
-				{
-					"include": "#type-parameter-list"
-				},
-				{
-					"include": "#parameter-list"
-				},
-				{
-					"include": "#where-parameter-list"
-				},
-				{
-					"include": "#colon-and-type-annotation"
-				}
-			]
-		},
-		"where-parameter-list": {
-			"begin": "\\b(where)\\b",
-			"end": "(?={)",
-			"beginCaptures": {
-				"1": { "name": "keyword" }
-			},
-			"patterns": [
-				{
-					"begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\.([a-zA-Z_][a-zA-Z0-9_]*))*",
-					"end": "(?<=(\\]))",
-					"beginCaptures": {
-						"1": { "name": "entity.name.class" },
-						"3": { "name": "entity.name.class" }
-					},
-					"patterns": [
-						{
-							"include": "#type-parameter-list"
-						}
-					]
-				}
-			]
-		},
-		"parameter-list": {
-			"begin": "[|(]",
-			"end": "[|)]",
-			"patterns": [
-				{
-					"match": "\\b(\\*)?(ref\\s+)?(mut\\s+)?(this)\\b",
-					"captures": {
-						"2": { "name": "keyword" },
-						"3": { "name": "storage.modifier" },
-						"4": { "name": "constant.language" }
-					}
-				},
-				{
-					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=[,:)|])",
-					"captures": {
-						"1": { "name": "variable.parameter" }
-					}
-				},
-				{
-					"include": "#colon-and-type-annotation"
-				},
-				{
-					"include": "#comments"
-				}
-			]
-		},
-		"colon-and-type-annotation": {
-			"begin": "\\:",
-			"end": "(?=([|,\\)={;])|where|def)",
-			"patterns": [
-				{
-					"include": "#type-annotations"
-				}
-			]
-		},
-		"type-parameter-list": {
-			"begin": "(\\[)",
-			"end": "(\\])",
-			"patterns": [
-				{
-					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-					"captures": {
-						"1": { "name": "entity.name.class" }
-					}
-				},
-				{
-					"include": "#comments"
-				}
-			]
-		},
-		"implementation-def": {
-			"begin": "\\b(implementation)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": { "name": "keyword" }
-			},
-			"patterns": [
-				{
-					"include": "#colon-and-type-annotation"
-				},
-				{
-					"include": "#where-parameter-list"
-				},
-				{
-					"begin": "(?<=(implementation))\\s*(?=\\[)",
-					"end": "(?=(where|{))",
-					"patterns": [
-						{
-							"include": "#type-parameter-list"
-						},
-						{
-							"include": "#type-annotations"
-						},
-						{
-							"include": "#comments"
-						}
-					]
-				},
-				{
-					"begin": "(?<=(implementation))\\s+(([a-zA-Z_][a-zA-Z0-9_]*)(\\s*\\.\\s*[a-zA-Z_][a-zA-Z0-9_]*)*)(?=\\[)",
-					"end": "(?=(where|{))",
-					"beginCaptures": {
-						"2": {
-							"name": "entity.name.type"
-						}
-					},
-					"patterns": [
-						{
-							"include": "#type-parameter-list"
-						},
-						{
-							"include": "#type-annotations"
-						},
-						{
-							"include": "#comments"
-						}
-					]
-				},
-				{
-					"begin": "{",
-					"end": "}",
-					"patterns": [
-						{
-							"include": "#function-def"
-						},
-						{
-							"include": "#type-alias"
-						},
-						{
-							"include": "#comments"
-						}
-					]
-				}
-			]
-		},
-		"trait-def": {
-			"begin": "\\b(trait)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": { "name": "keyword" }
-			},
-			"patterns": [
-				{
-					"include": "#comments"
-				},
-				{
-					"begin": "(?<=(\\btrait\\s+))([a-zA-Z_][a-zA-Z0-9_]*)",
-					"end": "(?<=[}])",
-					"beginCaptures": {
-						"2": { "name": "entity.name.class" }
-					},
-					"patterns": [
-						{
-							"include": "#comments"
-						},
-						{
-							"include": "#type-parameter-list"
-						},
-						{
-							"begin": "(?<=[{])",
-							"end": "([}])",
-							"patterns": [
-								{
-									"include": "#function-signature"
-								},
-								{
-									"include": "#comments"
-								},
-								{
-									"include": "#type-alias"
-								}
-							]
-						}
-					]
-				}
-			]
-		},
-		"type-annotations": {
-			"patterns": [
-				{
-					"match": "\\b(Bool|Void|Size|u8|i8|i16|u16|i32|u32|i64|u64|f32|f64)",
-					"captures": {
-						"1": { "name": "entity.name.type" }
-					}
-				},
-				{
-					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-					"captures": {
-						"1": { "name": "entity.name.class" }
-					}
-				}
-			]
-		},
-		"type-alias": {
-			"begin": "\\b(type)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "(?<=[;\\n])",
-			"beginCaptures": {
-				"1": { "name": "keyword" },
-				"2": { "name": "entity.name.type" }
-			}
-		},
-		"function-def": {
-			"begin": "\\b(?=def)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.hades"
-				},
-				"2": {
-					"name": "entity.name.function.hades"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#function-signature"
-				},
-				{
-					"include": "#block"
-				}
-			]
-		},
-		"import-members": {
-			"begin": "\\b(import)\\s+([a-zA-Z_][a-zA-Z0-9]*)\\s*(\\.\\s*[a-zA-Z_][a-zA-Z0-9_]*)*\\.\\{",
-			"end": "([}])",
-			"beginCaptures": {
-				"1": {"name": "keyword"},
-				"2": {"name": "entity.name.class"},
-				"3": {"name": "entity.name.class"}
-			}
-		},
-		"import-as": {
-			"begin": "\\b(import)\\s+([a-zA-Z_][a-zA-Z0-9]*)\\s*(\\.\\s*[a-zA-Z_][a-zA-Z0-9_]*)*\\s+(as)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-			"end": "[;\n]",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.hades"
-				},
-				"2": {
-					"name": "entity.name.class.hades"
-				},
-				"3": {
-					"name": "entity.name.class.hades"
-				},
-				"4": {
-					"name": "keyword.hades"
-				},
-				"5": {
-					"name": "variable.name"
-				}
-			}
-		},
-		"struct-def": {
-			"begin": "\\b(struct|class)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.hades"
-				},
-				"2": {
-					"name": "entity.name.class"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#keywords"
-				},
-				{
-					"include": "#comments"
-				}
-			]
-		},
-		"block": {
-			"begin": "([{])",
-			"end": "([}])",
-			"patterns": [
-				{
-					"include": "#comments"
-				},
-				{
-					"include": "#statements"
-				}
-			]
-		},
-		"statements": {
-			"patterns": [
-				{
-					"include": "#val-statement"
-				},
-				{
-					"include": "#return-statement"
-				},
-				{
-					"include": "#defer-statement"
-				},
-				{
-					"include": "#while-statement"
-				},
-				{
-					"include": "#if-statement"
-				},
-				{
-					"include": "#else-statement"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"val-statement": {
-			"begin": "\\b(val)\\s+((mut)\\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "([;\n])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.other"
-				},
-				"3": {
-					"name": "storage.modifier"
-				},
-				"4": {
-					"name": "variable.name"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"while-statement": {
-			"begin": "\\b(while)\\s+",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": { "name": "keyword.control" }
-			},
-			"patterns": [
-				{
-					"include": "#block"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"return-statement": {
-			"begin": "\\b(return)\\b",
-			"end": "([;\n])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.control"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"defer-statement": {
-			"begin": "\\b(defer)\\b",
-			"end": "([;\n])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.control"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"if-statement": {
-			"begin": "\\b(if)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.control.hades"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#block"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"else-statement": {
-			"begin": "\\b(else)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.control.hades"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#block"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"expressions": {
-			"patterns": [
-				{
-					"match": "\\b(as)\\b",
-					"captures": {
-						"1": {"name": "keyword"}
-					}
-				},
-				{
-					"include": "#match-expression"
-				},
-				{
-					"include": "#ref-expression"
-				},
-				{
-					"include": "#closure-expression"
-				},
-				{
-					"include": "#boolean-literals"
-				},
-				{
-					"include": "#new-expression"
-				},
-				{
-					"include": "#string-literal"
-				},
-				{
-					"include": "#variable-expressions"
-				},
-				{
-					"include": "#numeric-literals"
-				}
-			]
-		},
-		"match-expression": {
-			"begin": "\\b(match)\\b",
-			"end": "(?<=[}])",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword.control"
-				}
-			},
-			"patterns": [
-				{
-					"begin": "(?<=(match\\s+))",
-					"end": "(?=[{])",
-					"patterns": [
-						{
-							"include": "#expressions"
-						}
-					]
-				},
-				{
-					"begin": "{",
-					"end": "}",
-					"patterns": [
-						{
-							"begin": "(?<={)",
-							"end": "(?=-\\>)",
-							"patterns": [
-								{
-									"include": "#patterns"
-								}
-							]
-						},
-						{
-							"begin": "-\\>\\s+(?={)",
-							"end": "(?<=})",
-							"patterns": [
-								{
-									"include": "#block"
-								}
-							]
-						},
-						{
-							"begin": "-\\>\\s+",
-							"end": "(?=[},\n])",
-							"patterns": [
-								{ "include": "#expressions" }
-							]
-						}
-					]
-
-				}
-			]
-		},
-		"patterns": {
-			"patterns": [
-				{
-					"match": "\\b(val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-					"captures": {
-						"1": { "name": "keyword.other" },
-						"2": { "name": "variable" }
-					}
-				},
-				{
-					"begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
-					"end": "\\)",
-					"beginCaptures": {
-						"1": { "name": "entity.name.class" }
-					},
-					"patterns": [
-						{ "include": "#patterns" }
-					]
-				},
-				{
-					"match": "\\b(\\d+)\\b",
-					"captures": {
-						"1": { "name": "constant" }
-					}
-				},
-				{
-					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-					"captures": {
-						"1": { "name": "entity.name.class" }
-					}
-				},
-				{
-					"match": "\\b(_)\\b",
-					"captures": {
-						"1": {"name": "keyword" }
-					}
-				}
-			]
-		},
-		"closure-expression": {
-			"begin": "(?=\\|)",
-			"end": "(?=(val|if|while|return|break|def))",
-			"patterns": [
-				{
-					"include": "#parameter-list"
-				},
-				{
-					"include": "#block"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"new-expression": {
-			"match": "\\b(new)\\b",
-			"captures": {
-				"1": {"name": "keyword.control.new"}
-			}
-		},
-		"ref-expression": {
-			"match": "\\b(ref)\\b",
-			"captures": {
-				"1": {"name": "keyword.operator"}
-			}
-		},
-		"boolean-literals": {
-			"match": "\\b(true|false)\\b",
-			"captures": {
-				"1": {
-					"name": "constant.language"
-				}
-			}
-		},
-		"numeric-literals": {
-			"match": "\\b([\\d]+)\\b",
-			"captures": {
-				"1": {
-					"name": "constant.numeric"
-				}
-			}
-		},
-		"string-literal": {
-			"begin": "((b?)([\"]))",
-			"end": "([\"])",
-			"beginCaptures": {
-				"3": {
-					"name": "string.quoted.double"
-				},
-				"2": {
-					"name": "emphasis"
-				}
-			},
-			"endCaptures": {
-				"1": {
-					"name": "string.quoted.double"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#inside-string"
-				},
-				{
-					"include": "#string-escapes"
-				}
-			]
-		},
-		"inside-string": {
-			"match": "([^\"\\\\]+)",
-			"captures": {
-				"1": {
-					"name": "string.quoted.double.hades"
-				}
-			}
-		},
-		"string-escapes": {
-			"match": "(\\\\[n\\\\t\"])",
-			"captures": {
-				"1": {
-					"name": "constant.character.escape"
-				}
-			}
-		},
-		"keywords": {
-			"match": "\\b(val)\\b",
-			"name": "keyword"
-		},
-		"const-def": {
-			"begin": "\\b(const)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
-			"end": "[;\n]",
-			"beginCaptures": {
-				"1": {
-					"name": "keyword"
-				},
-				"2": {
-					"name": "variable"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#colon-and-type-annotation"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"variable-expressions": {
-			"patterns": [
-				{
-					"include": "#variable-method"
-				},
-				{
-					"include": "#variable-call"
-				},
-				{
-					"include": "#variable-lowercase"
-				},
-				{
-					"include": "#variable-uppercase"
-				}
-			]
-		},
-		"variable-lowercase": {
-			"match": "\\b([a-z_][a-zA-Z0-9_]*)\\b",
-			"captures": {
-				"1": {
-					"name": "variable.name"
-				}
-			}
-		},
-		"variable-uppercase": {
-			"match": "\\b([A-Z_][a-zA-Z0-9_]*)\\b",
-			"captures": {
-				"1": {
-					"name": "entity.name.class"
-				}
-			}		
-		},
-		"variable-call": {
-			"begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\(\\b",
-			"end": "\\)",
-			"beginCaptures": {
-				"1": {
-					"name": "entity.name.function"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#comments"
-				},
-				{
-					"include": "#expressions"
-				}
-			]
-		},
-		"variable-method": {
-			"match": "\\b(\\.)(([a-zA-Z_][a-zA-Z0-9_]*))\\(\\b",
-			"captures": {
-				"2": {
-					"name": "entity.name.function"
-				}
-			}
 		}
 	},
 	"scopeName": "hades"
