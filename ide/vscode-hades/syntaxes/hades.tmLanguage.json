@@ -67,7 +67,7 @@
 
 				},
 				{
-					"match": "\\d+(\\.\\d+)?",
+					"match": "\\b\\d+(\\.\\d+)?\\b",
 					"captures": {
 						"0": { "name": "constant.numeric" }
 					}
