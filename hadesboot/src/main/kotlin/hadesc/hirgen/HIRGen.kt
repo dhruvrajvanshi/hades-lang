@@ -99,7 +99,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 currentLocation = sourceFile.location
                 scopeStack.push(sourceFile)
                 defer { check(scopeStack.pop() === sourceFile) }
-                for (it in sourceFile.declarations) {
+                val sourceDeclarations = sourceFile
+                    .declarations
+                    // Struct and enum defs are emitted before everything else
+                    // to ensure HIRBuilder methods can verify the proper types of struct field
+                    // accessors.
+                    .sortedBy { if (it is Declaration.Struct || it is Declaration.Enum) 0 else 1 }
+                for (it in sourceDeclarations) {
                     declarations.addAll(lowerDeclaration(it))
                 }
             }

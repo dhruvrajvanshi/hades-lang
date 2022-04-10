@@ -19,7 +19,7 @@ import libhades.collections.Stack
 import java.nio.file.Path
 
 class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransformer() {
-    private val definitions = mutableListOf<HIRDefinition>()
+    private val definitions get() = currentModule.definitions
 
     private val closureCtxFieldName = namingCtx.makeName("ctx")
     private val closureFunctionPtrName = namingCtx.makeName("functionPtr")
@@ -74,14 +74,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         definitions.add(def)
         def
 
-    }
-
-    override fun transformModule(oldModule: HIRModule): HIRModule {
-        logger().debug("Before closure desugaring: ${oldModule.prettyPrint()}")
-        for (definition in oldModule.definitions) {
-            definitions.addAll(transformDefinition(definition))
-        }
-        return HIRModule(definitions)
     }
 
     override fun transformInvokeClosure(expression: InvokeClosure): HIRExpression {
@@ -305,7 +297,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
     }
 
     private fun makeAndAddClosureContextStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
-        val structName = namingCtx.makeUniqueName().toQualifiedName()
+        val structName = namingCtx.makeUniqueName("closure_captures").toQualifiedName()
         val structDef = HIRDefinition.Struct(
             location = location,
             name = structName,

@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.context.NamingContext
@@ -14,6 +15,7 @@ interface HIRBuilder {
     var currentLocation: SourceLocation
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
+    val currentModule: HIRModule
 
     fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.LocalRef {
         val s = emit(HIRStatement.GetStructField(location, namingCtx.makeUniqueName(), type, this, name, index))
@@ -64,11 +66,31 @@ interface HIRBuilder {
         val s = emit(HIRStatement.GetStructFieldPointer(location, resultName, type, this, name, index))
         val lhsType = this.type
         check(lhsType is Type.Ptr)
+
+        val lhsStructType = getStructDefinition(lhsType.to)
         return HIRExpression.LocalRef(
             location,
             type,
             s.name,
         )
+    }
+
+    private fun getStructDefinition(ty: Type): HIRDefinition.Struct {
+        val name = when (ty) {
+            is Type.Constructor -> ty.name
+            is Type.Application -> {
+                check(ty.callee is Type.Constructor)
+                ty.callee.name
+            }
+            else -> requireUnreachable()
+        }
+        val def = currentModule.findGlobalDefinition(name)
+
+        check(def is HIRDefinition.Struct) {
+            "${ty.prettyPrint()} is not a struct type"
+        }
+
+        return def
     }
 
     fun HIRDefinition.Function.ref(): HIRExpression.GlobalRef {

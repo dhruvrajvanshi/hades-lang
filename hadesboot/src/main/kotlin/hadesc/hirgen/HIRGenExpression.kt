@@ -20,6 +20,8 @@ internal class HIRGenExpression(
     HIRGenFunctionContext by functionContext,
     ASTContext by ctx
 {
+    override val currentModule: HIRModule
+        get() = moduleContext.currentModule
     internal fun lowerVarExpression(expression: Expression.Var): HIROperand {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
             null -> requireUnreachable {
