@@ -211,7 +211,11 @@ sealed interface HIRStatement: HIRNode {
         val type: Type,
         val expression: HIROperand,
         val args: List<Type>
-    ) : HIRStatement, NameBinder
+    ) : HIRStatement, NameBinder {
+        init {
+            require(expression.type is Type.TypeFunction || expression.type is Type.Constructor)
+        }
+    }
 
     private fun prettyPrintInternal(): String = when(this) {
         is Call -> {
