@@ -291,13 +291,20 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val enumStructRef = HIRExpression.GlobalRef(case.name.location, enumStructRefType, enumName)
         val caseStructRefType = enumCaseConstructorRefType(declaration, case)
         val caseStructRef = HIRExpression.GlobalRef(case.name.location, caseStructRefType, caseStructName)
-        val payloadTypeUnion = ctx.analyzer.getEnumPayloadType(declaration)
+        val payloadTypeConstructor = Type.Constructor(enumName.append(case.name.name))
+        val payloadType = if (declaration.typeParams == null) {
+            payloadTypeConstructor
+        } else {
+            Type.Application(
+                payloadTypeConstructor, declaration.typeParams.map { Type.ParamRef(it.binder) }
+            )
+        }
         val baseInstanceType = typeOfEnumInstance(declaration, declaration.typeParams?.map { Type.ParamRef(it.binder) })
 
         val loc = case.name.location
         val tag = HIRExpression.GlobalRef(loc, ctx.enumTagType(), caseTagName(enumName, case))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
-            val payloadRef = emitAlloca("payload", payloadTypeUnion)
+            val payloadRef = emitAlloca("payload", payloadType)
             val caseFn: HIROperand =
                 if (caseStructRefType !is Type.TypeFunction)
                     caseStructRef
