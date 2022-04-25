@@ -12,6 +12,7 @@ import hadesc.types.Type
 abstract class AbstractHIRTransformer: HIRTransformer {
     override var currentStatements: MutableList<HIRStatement>? = null
     override lateinit var currentLocation: SourceLocation
+    override val currentModule: HIRModule = HIRModule(mutableListOf())
     private var basicBlocks: MutableList<HIRBlock>? = null
 
     protected fun emit(statement: HIRStatement) {
@@ -42,11 +43,11 @@ abstract class AbstractHIRTransformer: HIRTransformer {
 
 interface HIRTransformer: TypeTransformer, HIRBuilder {
     fun transformModule(oldModule: HIRModule): HIRModule {
-        val definitions = mutableListOf<HIRDefinition>()
+        val definitions = currentModule.definitions
         for (definition in oldModule.definitions) {
             definitions.addAll(transformDefinition(definition))
         }
-        return HIRModule(definitions)
+        return currentModule
     }
 
     fun transformDefinition(definition: HIRDefinition): Collection<HIRDefinition> = when(definition) {

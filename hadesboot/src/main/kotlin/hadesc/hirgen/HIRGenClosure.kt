@@ -24,6 +24,8 @@ internal class HIRGenClosure(
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
     ASTContext by ctx {
+    override val currentModule: HIRModule
+        get() = moduleContext.currentModule
     internal fun lowerClosure(expression: Expression.Closure): HIRExpression = scoped {
         scopeStack.push(expression)
         defer { check(scopeStack.pop() === expression) }
