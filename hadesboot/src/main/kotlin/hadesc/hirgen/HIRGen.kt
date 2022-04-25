@@ -99,7 +99,16 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 currentLocation = sourceFile.location
                 scopeStack.push(sourceFile)
                 defer { check(scopeStack.pop() === sourceFile) }
-                for (it in sourceFile.declarations) {
+                val decls = sourceFile.declarations
+                    .sortedBy {
+                        when (it) {
+                            is Declaration.Struct,
+                            is Declaration.Enum,
+                                -> 1
+                            else -> 2
+                        }
+                    }
+                for (it in decls) {
                     declarations.addAll(lowerDeclaration(it))
                 }
             }
