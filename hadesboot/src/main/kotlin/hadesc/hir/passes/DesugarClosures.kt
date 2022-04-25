@@ -19,7 +19,7 @@ import libhades.collections.Stack
 import java.nio.file.Path
 
 class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransformer() {
-    private val definitions = mutableListOf<HIRDefinition>()
+    private val definitions = currentModule.definitions
 
     private val closureCtxFieldName = namingCtx.makeName("ctx")
     private val closureFunctionPtrName = namingCtx.makeName("functionPtr")
