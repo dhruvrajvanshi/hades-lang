@@ -141,7 +141,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             captureInfo.contextType.ptr(),
             captureInfo.contextName
         )
-            .fieldPtr(varName, captureInfo.index, type.ptr().ptr())
+            .fieldPtr(varName)
             .load()
         check(ptr.type is Type.Ptr)
         return ptr

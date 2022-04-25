@@ -922,10 +922,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expr)) {
             is PropertyBinding.StructPointerFieldLoad -> {
                 lowerExpression(expr.lhs)
-                    .fieldPtr(
-                        propertyBinding.member.binder.name,
-                        propertyBinding.memberIndex,
-                        expr.type.mutPtr())
+                    .fieldPtr(propertyBinding.member.binder.name)
             }
             is PropertyBinding.StructField -> {
                 require(expr.lhs is Expression.Var)
@@ -936,11 +933,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     expr.lhs.type.mutPtr(),
                     lowerLocalBinder(lhsBinding.statement.binder)
                 )
-                structPtr.fieldPtr(
-                    propertyBinding.member.binder.name,
-                    propertyBinding.memberIndex,
-                    expr.type.mutPtr()
-                )
+                structPtr.fieldPtr(propertyBinding.member.binder.name)
             }
             else -> requireUnreachable()
         }
@@ -1142,7 +1135,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val structPtrType = expression.lhs.type
         require(structPtrType is Type.Ptr)
         return lowerExpression(expression.lhs)
-            .fieldPtr(expression.property.name, binding.memberIndex, structPtrType)
+            .fieldPtr(expression.property.name)
             .load()
     }
 

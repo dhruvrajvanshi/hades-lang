@@ -199,7 +199,7 @@ internal class HIRGenExpression(
         val resultRef = emitAlloca("match_result", expression.type)
         val discriminantMem = allocaAssign("match_discriminant", lowerExpression(expression.value))
 
-        val tagVar = discriminantMem.ptr().fieldPtr(enumTagFieldName, 0, ctx.enumTagType().ptr()).load()
+        val tagVar = discriminantMem.ptr().fieldPtr(enumTagFieldName).load()
         fun applyTypeArgs(type: Type) =
             if (enumDef.typeParams != null) {
                 val typeArgs = discriminantType.typeArgs()
@@ -238,9 +238,9 @@ internal class HIRGenExpression(
                                         emitStore(
                                             argPatternValRef.mutPtr(),
                                             discriminantMem.ptr()
-                                                .fieldPtr(ctx.makeName("payload"), 1, payloadUnionType.ptr())
+                                                .fieldPtr(ctx.makeName("payload"))
                                                 .ptrCast(payloadType)
-                                                .fieldPtr(ctx.makeName("$argIndex"), argIndex, type.ptr())
+                                                .fieldPtr(ctx.makeName("$argIndex"))
                                                 .load()
                                         )
                                     }

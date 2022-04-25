@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
+import hadesc.hir.HIRTypeParam
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
@@ -141,6 +142,19 @@ sealed class Type {
         is Constructor -> name
         is Application -> callee.nominalName()
         else -> requireUnreachable { prettyPrint() }
+    }
+
+    fun applyTypeArgs(typeParams: List<HIRTypeParam>?, typeArgs: List<Type>): Type {
+        return if (typeParams == null) {
+            check(typeArgs.isEmpty())
+            this
+        } else {
+            check(typeArgs.size == typeParams.size)
+            val subst = typeParams.zip(typeArgs).map { (param, arg) ->
+                Param(param.toBinder()) to arg
+            }.toSubstitution()
+            this.applySubstitution(subst)
+        }
     }
 
     companion object {

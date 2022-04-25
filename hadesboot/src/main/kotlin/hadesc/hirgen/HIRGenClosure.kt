@@ -181,19 +181,18 @@ internal class HIRGenClosure(
     }
 
     private fun emitClosureFnHeader(captures: ClosureCaptures, capturePtrParam: HIRParam) {
-        captures.values.entries.forEachIndexed { index, (binder, capture) ->
-            val type = capture.second
+        captures.values.entries.forEach { (binder, capture) ->
             val binding = capture.first
             val capturePtr = capturePtrParam.ref()
             val isCapturedByPointer = binding is Binding.ValBinding
 
             if (isCapturedByPointer) {
                 capturePtr
-                    .fieldPtr(binder.name, index, type.mutPtr().ptr())
+                    .fieldPtr(binder.name)
                     .load(binder.name)
             } else {
                 capturePtr
-                    .fieldPtr(binder.name, index, type.ptr()) // * capture.type
+                    .fieldPtr(binder.name) // * capture.type
                     .load(binder.name)
             }
         }
@@ -204,7 +203,7 @@ internal class HIRGenClosure(
     private fun emitCaptureFieldInitializers(captureInfo: ClosureCaptures, captureRef: HIRStatement.Alloca) {
         captureInfo.values.entries.forEachIndexed { index, (binder, capture) ->
             val type = capturedFieldType(capture)
-            val fieldPtr = captureRef.mutPtr().fieldPtr(binder.name, index, type.mutPtr())
+            val fieldPtr = captureRef.mutPtr().fieldPtr(binder.name)
 
             val value = when (capture.first) {
                 is Binding.ValBinding -> {
