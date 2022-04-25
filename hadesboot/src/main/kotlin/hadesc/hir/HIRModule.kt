@@ -21,6 +21,15 @@ data class HIRModule(
         }
     }
 
+    fun findDefinition(name: QualifiedName): HIRDefinition {
+        return findDefinitions(name).let {
+            check(it.size == 1) {
+                "Definition $name not found in module."
+            }
+            it.first()
+        }
+    }
+
     private fun hasName(definition: HIRDefinition, name: QualifiedName): Boolean = when(definition) {
         is HIRDefinition.Function -> definition.name == name
         is HIRDefinition.ExternFunction -> definition.name == name
@@ -32,5 +41,13 @@ data class HIRModule(
 
     fun addDefinition(definition: HIRDefinition) {
         definitions.add(definition)
+    }
+
+    fun findStructDef(structName: QualifiedName): HIRDefinition.Struct {
+        return findDefinition(structName)
+            .let {
+                check(it is HIRDefinition.Struct)
+                it
+            }
     }
 }

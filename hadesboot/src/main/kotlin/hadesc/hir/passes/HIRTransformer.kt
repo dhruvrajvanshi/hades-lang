@@ -44,7 +44,13 @@ abstract class AbstractHIRTransformer: HIRTransformer {
 interface HIRTransformer: TypeTransformer, HIRBuilder {
     fun transformModule(oldModule: HIRModule): HIRModule {
         val definitions = currentModule.definitions
-        for (definition in oldModule.definitions) {
+        val defns = oldModule.definitions.sortedBy {
+            when (it) {
+                is HIRDefinition.Struct -> 1
+                else -> 2
+            }
+        }
+        for (definition in defns) {
             definitions.addAll(transformDefinition(definition))
         }
         return currentModule

@@ -60,7 +60,14 @@ interface HIRBuilder {
     }
 
     fun HIRExpression.fieldPtr(name: Name, index: Int, type: Type.Ptr, resultName: Name = namingCtx.makeUniqueName()): HIRExpression.LocalRef {
-        val s = emit(HIRStatement.GetStructFieldPointer(location, resultName, type, this, name, index))
+        val lhsType = this.type
+        check(lhsType is Type.Ptr)
+        val lhsStructType = lhsType.to
+        val structName = lhsStructType.nominalName()
+        val structDef = currentModule.findStructDef(structName)
+        val fieldIndex = structDef.fieldIndex(name)
+        val s = emit(HIRStatement.GetStructFieldPointer(location, resultName, type, this, name, fieldIndex))
+
         return HIRExpression.LocalRef(
             location,
             type,

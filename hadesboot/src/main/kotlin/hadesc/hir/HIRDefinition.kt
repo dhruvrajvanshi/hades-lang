@@ -136,6 +136,10 @@ sealed class HIRDefinition: HasLocation {
             return field.second to index
         }
 
+        fun fieldIndex(fieldName: Name): Int {
+            return getField(fieldName).second
+        }
+
         fun fieldType(fieldName: Name): Type {
             return getField(fieldName).first
         }

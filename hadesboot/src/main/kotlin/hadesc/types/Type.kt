@@ -2,6 +2,7 @@ package hadesc.types
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -134,6 +135,12 @@ sealed class Type {
     fun typeArgs(): List<Type> = when(this) {
         is Application -> args
         else -> emptyList()
+    }
+
+    fun nominalName(): QualifiedName = when(this) {
+        is Constructor -> name
+        is Application -> callee.nominalName()
+        else -> requireUnreachable { prettyPrint() }
     }
 
     companion object {
