@@ -38,7 +38,7 @@
 					}
 				},
 				{
-					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for)\\b",
+					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for|where)\\b",
 					"captures": {
 						"0": { "name": "keyword" }
 					}

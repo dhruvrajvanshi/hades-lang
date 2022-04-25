@@ -12,7 +12,9 @@ data class HIRModule(
         val foundDef = definitions.find {
             hasName(it, name)
         }
-        return requireNotNull(foundDef)
+        return requireNotNull(foundDef) {
+            "No def with name: ${name.mangle()}"
+        }
     }
 
     fun findDefinitions(name: QualifiedName): List<HIRDefinition> {

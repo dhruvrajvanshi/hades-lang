@@ -1,10 +1,7 @@
 import libc as c
+import libc.{stdout}
 
 extern def put_usize(usize, *c.File): Void = hscript_put_usize
-
-def stdout(): *c.File {
-    return c.stdout()
-}
 
 extern def puts(*u8): Void = puts
 

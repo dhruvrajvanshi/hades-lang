@@ -4,8 +4,10 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
+import hadesc.ignore
 import hadesc.location.SourceLocation
 import hadesc.types.Type
+import hadesc.types.ptr
 import llvm.makeList
 
 /**
@@ -76,7 +78,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         when(statement) {
             is HIRStatement.MatchInt -> lowerMatchInt(statement)
             is HIRStatement.While -> lowerWhileStatement(statement)
-            else -> appendStatement(statement)
+            else -> appendStatement(statement).ignore()
         }
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {
@@ -91,10 +93,12 @@ class SimplifyControlFlow(private val ctx: Context) {
                 lowerStatement(s)
             }
             lowerBlock(statement.conditionBlock)
+            val conditionPtr = HIRExpression.LocalRef(statement.conditionBlock.location, Type.Bool.ptr(), statement.conditionName)
+            val conditionLoad = appendStatement(HIRStatement.Load(conditionPtr.location, ctx.makeUniqueName(), conditionPtr))
             appendStatement(
                 condBr(
                     statement.conditionBlock.location,
-                    HIRExpression.ValRef(statement.conditionBlock.location, Type.Bool, statement.conditionName),
+                    HIRExpression.LocalRef(conditionLoad.location, Type.Bool, conditionLoad.name),
                     whileBody.name,
                     whileExit.name
                 )
@@ -249,8 +253,9 @@ class SimplifyControlFlow(private val ctx: Context) {
         return block
     }
 
-    private fun appendStatement(statement: HIRStatement, intoBlock: HIRBlock = checkNotNull(currentBlock)) {
+    private fun <T: HIRStatement> appendStatement(statement: T, intoBlock: HIRBlock = checkNotNull(currentBlock)): T {
         intoBlock.statements.add(statement)
+        return statement
     }
 
     private fun getBlock(name: Name): HIRBlock {
