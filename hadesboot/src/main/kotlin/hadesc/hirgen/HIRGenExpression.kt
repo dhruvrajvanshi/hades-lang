@@ -3,6 +3,7 @@ package hadesc.hirgen
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Expression
 import hadesc.ast.IntrinsicType
+import hadesc.ast.Param
 import hadesc.ast.Pattern
 import hadesc.context.ASTContext
 import hadesc.context.Context
@@ -42,22 +43,14 @@ internal class HIRGenExpression(
                 substitute()
             } else {
                 when (binding) {
-                    is Binding.FunctionParam -> HIRExpression.ParamRef(
-                        expression.location,
-                        typeOfExpression(expression),
-                        lowerLocalBinder(binding.param.binder),
-                        binding.binder
-                    )
+                    is Binding.FunctionParam ->
+                        lowerParamRef(expression, binding.param)
+                    is Binding.ClosureParam ->
+                        lowerParamRef(expression, binding.param)
                     is Binding.ValBinding -> HIRExpression.ValRef(
                         expression.location,
                         typeOfExpression(expression),
                         lowerLocalBinder(binding.statement.binder)
-                    )
-                    is Binding.ClosureParam -> HIRExpression.ParamRef(
-                        expression.location,
-                        typeOfExpression(expression),
-                        lowerLocalBinder(binding.param.binder),
-                        binding.binder,
                     )
                 }
             }
@@ -95,6 +88,16 @@ internal class HIRGenExpression(
             expression.location,
             typeOfExpression(expression),
             lowerLocalBinder(binding.arg.binder)
+        )
+    }
+
+
+    private fun lowerParamRef(expression: Expression, param: Param): HIROperand {
+        return HIRExpression.ParamRef(
+            expression.location,
+            typeOfExpression(expression),
+            lowerLocalBinder(param.binder),
+            param.binder
         )
     }
 
