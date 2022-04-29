@@ -93,6 +93,10 @@ internal class HIRGenExpression(
 
 
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {
+        val substitute = valueSubstitution[param.binder]
+        if (substitute != null) {
+            return substitute()
+        }
         return HIRExpression.ParamRef(
             expression.location,
             typeOfExpression(expression),
