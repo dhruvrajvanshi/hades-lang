@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.Name
+import hadesc.analysis.TypeAnalyzer
 import hadesc.context.NamingContext
 import hadesc.location.SourceLocation
 import hadesc.types.Type
@@ -13,6 +14,7 @@ interface HIRBuilder {
     val namingCtx: NamingContext
     var currentStatements: MutableList<HIRStatement>?
     val currentModule: HIRModule
+    val typeAnalyzer: TypeAnalyzer
 
     fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.LocalRef {
         val s = emit(HIRStatement.GetStructField(location, namingCtx.makeUniqueName(), type, this, name, index))
@@ -204,6 +206,12 @@ fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocati
 fun HIRBuilder.emitStore(ptr: HIROperand, value: HIRExpression) {
     val ptrType = ptr.type
     check(ptrType is Type.Ptr && ptrType.isMutable)
+    check(
+        typeAnalyzer.isTypeAssignableTo(
+            source = value.type,
+            destination = ptrType.to
+        )
+    )
     emit(HIRStatement.Store(value.location, ptr, value))
 }
 

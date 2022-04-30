@@ -2,6 +2,7 @@ package hadesc.hirgen
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
+import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.ASTContext
@@ -71,6 +72,7 @@ class HIRGenScopeStack {
     }
 }
 class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
+    override val typeAnalyzer = TypeAnalyzer()
     override val namingCtx: NamingContext get() = ctx
     override val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")

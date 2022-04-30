@@ -1,6 +1,7 @@
 package hadesc.hir.passes
 
 import hadesc.Name
+import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.hir.*
@@ -10,6 +11,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
 abstract class AbstractHIRTransformer: HIRTransformer {
+    override val typeAnalyzer = TypeAnalyzer()
     override var currentStatements: MutableList<HIRStatement>? = null
     override lateinit var currentLocation: SourceLocation
     override val currentModule: HIRModule = HIRModule(mutableListOf())
