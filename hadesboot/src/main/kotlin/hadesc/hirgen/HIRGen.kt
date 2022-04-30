@@ -96,23 +96,27 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = currentModule.definitions
+        val inputDeclarations = mutableListOf<Declaration>()
         try {
             for (sourceFile in sourceFiles) scoped {
                 currentLocation = sourceFile.location
                 scopeStack.push(sourceFile)
                 defer { check(scopeStack.pop() === sourceFile) }
-                val decls = sourceFile.declarations
-                    .sortedBy {
-                        when (it) {
-                            is Declaration.Struct,
-                            is Declaration.Enum,
-                                -> 1
-                            else -> 2
-                        }
+
+                inputDeclarations.addAll(sourceFile.declarations)
+
+            }
+            val decls = inputDeclarations
+                .sortedBy {
+                    when (it) {
+                        is Declaration.Struct,
+                        is Declaration.Enum,
+                        -> 1
+                        else -> 2
                     }
-                for (it in decls) {
-                    declarations.addAll(lowerDeclaration(it))
                 }
+            decls.forEach { declaration ->
+                declarations.addAll(lowerDeclaration(declaration))
             }
             declarations.addAll(externDefs.values)
             val result = HIRModule(declarations)
