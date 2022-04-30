@@ -97,19 +97,14 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         val closureRef = transformExpression(expression.closure)
         return emitCall(
             expression.type,
-            closureRef.getStructField(
-                closureFunctionPtrName,
-                closureFuncPtrFieldIndex,
-                Type.Function(from = listOf(Type.Void.ptr()), to = expression.type, traitRequirements = null).ptr(),
-            ).ptrCast(Type.Function(
-                from = expression.args.map { it.type } + listOf(Type.Void.ptr()),
-                to = expression.type,
-                traitRequirements = null
-            )),
-            expression.args.map { transformExpression(it) } + closureRef.getStructField(
-                name = closureCtxFieldName,
-                index = closureCtxFieldIndex,
-                type = Type.Void.ptr(),
+            closureRef.getStructField(closureFunctionPtrName)
+                .ptrCast(Type.Function(
+                    from = expression.args.map { it.type } + listOf(Type.Void.ptr()),
+                    to = expression.type,
+                    traitRequirements = null
+                )),
+            expression.args.map { transformExpression(it) } + closureRef
+                .getStructField(closureCtxFieldName).ptrCast(Type.Void.ptr()
             )
         ).result()
     }

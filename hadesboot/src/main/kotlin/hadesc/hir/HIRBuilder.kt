@@ -16,9 +16,17 @@ interface HIRBuilder {
     val currentModule: HIRModule
     val typeAnalyzer: TypeAnalyzer
 
-    fun HIRExpression.getStructField(name: Name, index: Int, type: Type): HIRExpression.LocalRef {
-        val s = emit(HIRStatement.GetStructField(location, namingCtx.makeUniqueName(), type, this, name, index))
-        return HIRExpression.LocalRef(location, type, s.name)
+    fun HIRExpression.getStructField(name: Name): HIRExpression.LocalRef {
+        val lhsType = this.type
+        check(lhsType !is Type.Ptr)
+        val structName = lhsType.nominalName()
+        val structDef = currentModule.findStructDef(structName)
+        val fieldIndex = structDef.fieldIndex(name)
+        val typeArgs = lhsType.typeArgs()
+        val fieldType = structDef.fieldType(name).applyTypeArgs(structDef.typeParams, typeArgs)
+        val s =
+            emit(HIRStatement.GetStructField(location, namingCtx.makeUniqueName(), fieldType, this, name, fieldIndex))
+        return HIRExpression.LocalRef(location, fieldType, s.name)
     }
 
     fun HIRStatement.Alloca.ptr(location: SourceLocation = currentLocation): HIRExpression.LocalRef {
@@ -33,8 +41,8 @@ interface HIRBuilder {
         return HIRExpression.LocalRef(location, type.mutPtr(), name)
     }
 
-    fun HIRExpression.getStructField(name: String, index: Int, type: Type): HIRExpression.LocalRef {
-        return getStructField(namingCtx.makeName(name), index, type)
+    fun HIRExpression.getStructField(name: String): HIRExpression.LocalRef {
+        return getStructField(namingCtx.makeName(name))
     }
 
     fun HIRStatement.Call.result(): HIRExpression.LocalRef {

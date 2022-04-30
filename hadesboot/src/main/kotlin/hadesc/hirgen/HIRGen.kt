@@ -1102,11 +1102,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             binding.name.name,
         )
             .load()
-            .getStructField(
-                binding.propertyName.name,
-                binding.propertyIndex + 1, // 0th field is tag
-                typeOfExpression(expression),
-            )
+            .getStructField(binding.propertyName.name)
     }
 
     private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
@@ -1150,11 +1146,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             binding: PropertyBinding.StructField
     ): HIROperand {
         return lowerExpression(expression.lhs)
-            .getStructField(
-                expression.property.name,
-                binding.memberIndex,
-                typeOfExpression(expression)
-            )
+            .getStructField(expression.property.name)
     }
 
 
