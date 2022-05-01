@@ -227,8 +227,34 @@ fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = cur
     return emit(HIRStatement.Alloca(location, name, isMutable = true, type))
 }
 
-fun HIRBuilder.emitCall(resultType: Type, callee: HIROperand, args: List<HIRExpression>, location: SourceLocation = currentLocation): HIRStatement.Call {
+fun HIRBuilder.emitCall(
+    resultType: Type,
+    callee: HIROperand,
+    args: List<HIRExpression>,
+    location: SourceLocation = currentLocation,
+    /**
+     * Temporary way to skip the type checking of arguments
+     * for specific cases.
+     * TODO: Remove the need for this flag
+     *       Currently only used for one case where the callee
+     *       type is not a fn ptr when Enum case constructors
+     *       without parameters are automatically converted
+     *       to no parameter functions. This is currently done
+     *       in HIRGen in a hacky way. Once that is fixed,
+     *       this flag won't be required.
+     */
+    skipVerification: Boolean = false
+): HIRStatement.Call {
     val name = namingCtx.makeUniqueName()
+    val calleeType = callee.type
+    if (!skipVerification) {
+        check(calleeType is Type.Ptr) {
+            "Expected ${calleeType.prettyPrint()} to be a function pointer"
+        }
+        check(calleeType.to is Type.Function) {
+            "Expected ${calleeType.prettyPrint()} to be a function pointer"
+        }
+    }
     return emit(HIRStatement.Call(location, resultType, name, callee, args))
 }
 

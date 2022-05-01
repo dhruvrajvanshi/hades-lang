@@ -323,7 +323,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                         caseFn,
                         case.params.mapIndexed { index, it ->
                             HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
-                        }
+                        },
+                        skipVerification = true // FIXME
                     ).result()
                 )
             }
@@ -717,6 +718,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     withAppliedTypes.type,
                     withAppliedTypes,
                     emptyList(),
+                    skipVerification = true // FIXME
                 ).result()
             } else {
                 withAppliedTypes
