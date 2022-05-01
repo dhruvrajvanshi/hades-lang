@@ -105,7 +105,8 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 )),
             expression.args.map { transformExpression(it) } + closureRef
                 .getStructField(closureCtxFieldName).ptrCast(Type.Void.ptr()
-            )
+            ),
+            skipVerification = true,
         ).result()
     }
 

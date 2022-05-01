@@ -37,6 +37,18 @@ interface HIRBuilder {
         return HIRExpression.LocalRef(location, type, name)
     }
 
+    fun Type.verifyAssignableTo(destination: Type) {
+        if (this is Type.Select || destination is Type.Select) {
+            // FIXME: Right now, type analyzer doesn't have access to
+            //        trait bodies, so it can't reduce Trait[someType].AssociatedType
+            //        to it's substituted type.
+            return
+        }
+        check(typeAnalyzer.isTypeAssignableTo(source = this, destination = destination)) {
+            "${this.prettyPrint()} is not assignable to ${destination.prettyPrint()}"
+        }
+    }
+
     fun HIRStatement.Alloca.mutPtr(location: SourceLocation = currentLocation): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(location, type.mutPtr(), name)
     }
@@ -254,6 +266,16 @@ fun HIRBuilder.emitCall(
         check(calleeType.to is Type.Function) {
             "Expected ${calleeType.prettyPrint()} to be a function pointer"
         }
+        val fnType = calleeType.to
+        check(fnType.from.size == args.size) {
+            "Wrong number of args to fn of type ${fnType.prettyPrint()}"
+        }
+
+        for ((expected, arg) in fnType.from.zip(args)) {
+            arg.type.verifyAssignableTo(expected)
+        }
+        resultType.verifyAssignableTo(fnType.to)
+
     }
     return emit(HIRStatement.Call(location, resultType, name, callee, args))
 }
