@@ -125,10 +125,10 @@ interface HIRBuilder {
         return fieldPtr(namingCtx.makeName(name))
     }
 
-    fun HIRExpression.ptrCast(toPointerOfType: Type): HIRExpression.LocalRef {
+    fun HIRExpression.ptrCast(toPointerOfType: Type, nameHint: String = ""): HIRExpression.LocalRef {
         val s = emit(HIRStatement.PointerCast(
             currentLocation,
-            namingCtx.makeUniqueName(),
+            namingCtx.makeUniqueName(nameHint),
             toPointerOfType,
             this
         ))
