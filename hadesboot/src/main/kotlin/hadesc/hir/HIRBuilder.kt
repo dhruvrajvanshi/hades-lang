@@ -25,7 +25,7 @@ interface HIRBuilder {
         val typeArgs = lhsType.typeArgs()
         val fieldType = structDef.fieldType(name).applyTypeArgs(structDef.typeParams, typeArgs)
         val s =
-            emit(HIRStatement.GetStructField(location, namingCtx.makeUniqueName(), fieldType, this, name, fieldIndex))
+            emit(HIRStatement.GetStructField(location, resultName, fieldType, this, name, fieldIndex))
         return HIRExpression.LocalRef(location, fieldType, s.name)
     }
 
