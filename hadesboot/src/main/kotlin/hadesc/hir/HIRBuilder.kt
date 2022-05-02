@@ -16,7 +16,7 @@ interface HIRBuilder {
     val currentModule: HIRModule
     val typeAnalyzer: TypeAnalyzer
 
-    fun HIRExpression.getStructField(name: Name): HIRExpression.LocalRef {
+    fun HIRExpression.getStructField(name: Name, resultName: Name = namingCtx.makeUniqueName()): HIRExpression.LocalRef {
         val lhsType = this.type
         check(lhsType !is Type.Ptr)
         val structName = lhsType.nominalName()
