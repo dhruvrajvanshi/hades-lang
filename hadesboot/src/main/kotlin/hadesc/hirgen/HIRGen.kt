@@ -496,15 +496,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun hasTerminator(body: Block): Boolean {
-        if (body.members.isEmpty()) {
-            return false
-        }
-        val last = body.members.last()
-
-        return last is Block.Member.Statement && last.statement is Statement.Return
-    }
-
     private val deferStack = Stack<MutableList<HIRStatement>>()
     override fun lowerBlock(
         body: Block,
@@ -1224,4 +1215,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
         return ctx.resolver.resolveGlobalName(binder)
     }
+}
+
+internal fun hasTerminator(body: Block): Boolean {
+    if (body.members.isEmpty()) {
+        return false
+    }
+    val last = body.members.last()
+
+    return last is Block.Member.Statement && last.statement is Statement.Return
 }
