@@ -245,7 +245,7 @@ sealed interface HIRStatement: HIRNode {
             "%${name.text}: ${type.prettyPrint()} = ${expression.prettyPrint()}$typeArgsStr"
         }
         is PointerCast ->
-            "%${name.text}: ${type.prettyPrint()} = pointer-cast[${toPointerOfType}] ${value.prettyPrint()}"
+            "%${name.text}: ${type.prettyPrint()} = pointer-cast[${toPointerOfType.prettyPrint()}] ${value.prettyPrint()}"
         is BinOp ->
             "%${name.text}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()}, ${rhs.prettyPrint()}"
     }
