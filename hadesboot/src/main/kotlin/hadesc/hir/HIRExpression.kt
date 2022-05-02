@@ -2,6 +2,7 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.analysis.ClosureCaptures
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -89,4 +90,23 @@ sealed interface HIRExpression: HIRNode {
         is LocalRef -> "%${name.text}"
         is HIRConstant.SizeOf -> "size_of[${type.prettyPrint()}]"
     }
+}
+fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
+    is HIRExpression.Closure -> copy(type = type)
+    is HIRExpression.GlobalRef -> copy(type = type)
+    is HIRConstant.BoolValue -> copy(type = type)
+    is HIRConstant.ByteString -> copy(type = type)
+    is HIRConstant.SizeOf -> copy(type = type)
+    is HIRExpression.LocalRef -> copy(type = type)
+    is HIRExpression.ParamRef -> copy(type = type)
+    is HIRExpression.TraitMethodRef -> copy(type = type)
+    is HIRExpression.ValRef -> copy(type = type)
+    is HIRExpression.InvokeClosure -> copy(type = type)
+    is HIRConstant.NullPtr -> {
+        require(type is Type.Ptr)
+        copy(type = type)
+    }
+    is HIRConstant.Void,
+    is HIRConstant.FloatValue,
+    is HIRConstant.IntValue -> requireUnreachable()
 }
