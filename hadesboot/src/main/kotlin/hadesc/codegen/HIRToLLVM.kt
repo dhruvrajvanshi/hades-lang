@@ -36,6 +36,7 @@ class HIRToLLVM(
 
     private val log = logger()
     private val i32Ty = intType(32, llvmCtx)
+    private val metadataTy = LLVM.LLVMMetadataTypeInContext(llvmCtx)
     private val errorStack = Stack<HIRStatement>()
 
     fun lower(): LLVMModuleRef {
@@ -759,6 +760,8 @@ class HIRToLLVM(
     private fun llvm.Type.alignment() =
         Alignment(LLVM.LLVMABIAlignmentOfType(dataLayout, this))
 
+    private fun Metadata.asValue(): llvm.Value =
+        this.asValue(llvmCtx)
 }
 
 @JvmInline
