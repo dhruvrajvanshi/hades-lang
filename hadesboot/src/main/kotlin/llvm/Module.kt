@@ -31,3 +31,12 @@ fun M.addFunction(name: String, type: Type): LLVMValueRef = LLVM.LLVMAddFunction
 
 fun M.prettyPrint(): String =
     LLVM.LLVMPrintModuleToString(this).string
+
+fun M.getIntrinsicDeclaration(name: String, paramTypes: List<Type>): LLVMValueRef {
+    return LLVM.LLVMGetIntrinsicDeclaration(
+        this,
+        LLVMUtils.lookupIntrinsicID(name),
+        paramTypes.asPointerPointer(),
+        paramTypes.size.toLong()
+    )
+}
