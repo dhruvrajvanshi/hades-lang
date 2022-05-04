@@ -13,9 +13,9 @@ val B.ref get() = this
 fun B.positionAtEnd(block: LLVMBasicBlockRef) =
     LLVM.LLVMPositionBuilderAtEnd(this, block)
 
-fun B.buildAlloca(type: LLVMTypeRef, name: String, alignment: Int): LLVMValueRef {
+fun B.buildAlloca(type: LLVMTypeRef, name: String, alignmentInBytes: Int): LLVMValueRef {
     val instr = LLVM.LLVMBuildAlloca(this, type, name)
-    LLVM.LLVMSetAlignment(instr, alignment)
+    LLVM.LLVMSetAlignment(instr, alignmentInBytes)
     return instr
 }
 

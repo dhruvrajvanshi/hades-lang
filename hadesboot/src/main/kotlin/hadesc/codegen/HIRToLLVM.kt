@@ -123,6 +123,23 @@ class HIRToLLVM(
 
     private var currentFunctionMetadata: LLVMMetadataRef? = null
 
+    private fun emitDebugSymbols(value: LLVMValueRef, statement: HIRStatement.Alloca) {
+        currentFunction
+        val meta = LLVM.LLVMDIBuilderCreateAutoVariable(
+            diBuilder,
+            currentFunctionMetadata,
+            statement.name.text,
+            statement.name.text.length.toLong(),
+            getFileScope(statement.location.file),
+            statement.location.start.line,
+            statement.type.debugInfo,
+            true.toLLVMBool(),
+            LLVM.LLVMDIFlagZero,
+            value.getType().alignment().bits
+        )
+
+        LLVM.LLVMSetMetadata(value, LLVM.LLVMDILocalVariableMetadataKind, LLVM.LLVMMetadataAsValue(llvmCtx, meta))
+    }
     private fun attachDebugInfo(definition: HIRFunctionSignature, fn: FunctionValue) {
         if (!shouldEmitDebugSymbols) {
             return
@@ -179,7 +196,7 @@ class HIRToLLVM(
         )
         is Type.Function -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
-        is Type.UntaggedUnion -> TODO()
+        is Type.UntaggedUnion -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.ParamRef,
         is Type.TypeFunction,
         is Type.GenericInstance,
@@ -343,11 +360,17 @@ class HIRToLLVM(
         if (statement.type is Type.Void) {
             return null
         }
-        return builder.buildAlloca(
-            lowerType(statement.type),
+        val loweredType = lowerType(statement.type)
+        val value = builder.buildAlloca(
+            loweredType,
             statement.name.text,
-            LLVM.LLVMABIAlignmentOfType(dataLayout, lowerType(statement.type))
+            alignmentInBytes = loweredType.alignment().bytes
         )
+
+        if (ctx.options.debugSymbols) {
+            emitDebugSymbols(value, statement)
+        }
+        return value
     }
 
     private fun lowerSwitchInt(statement: HIRStatement.SwitchInt) {
