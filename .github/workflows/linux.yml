@@ -24,6 +24,12 @@ jobs:
     - name: gradle build
       run: ./gradlew build -x test
 
+    - name: Archive Test Results
+      if: always() # Even on failures
+      uses: actions/upload-artifact@v1
+      with:
+        name: test-results
+        path: hadesboot/build/reports/tests/test
 
     - name: Create tar
       run: ./gradlew distTar
