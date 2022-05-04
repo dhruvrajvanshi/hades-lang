@@ -56,7 +56,6 @@ class HadesTestSuite {
                     "--module-path", directory.toString(),
                     "--main", file.toString(),
                     "--enable-hir-verifier",
-                    "--debug-symbols",
                 ).apply {
                     add("--c-source")
                     add(utilsCLib.toString())
