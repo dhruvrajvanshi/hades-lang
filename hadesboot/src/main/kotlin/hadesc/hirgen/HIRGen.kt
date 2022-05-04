@@ -76,6 +76,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val namingCtx: NamingContext get() = ctx
     override val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
+    private val enumPayloadFieldName = ctx.makeName("payload")
     override val currentModule = HIRModule(mutableListOf())
     override var valueSubstitution: ValueSubstitution = mutableMapOf()
     override var localAssignmentSubstitution: ValueSubstitution = mutableMapOf()
@@ -239,16 +240,28 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerEnumDef(declaration: Declaration.Enum): List<HIRDefinition> {
         val enumName = lowerGlobalName(declaration.name)
-        val caseStructs = declaration.cases.flatMapIndexed { index, case -> listOf(
+        val enumStructDef = emitDef(
             HIRDefinition.Struct(
+                declaration.location,
+                lowerGlobalName(declaration.name),
+                typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                fields = listOf(
+                    enumTagFieldName to ctx.enumTagType(),
+                    enumPayloadFieldName to ctx.analyzer.getEnumPayloadType(declaration)
+                )
+            )
+        )
+
+        declaration.cases.forEachIndexed { index, case ->
+            val enumCaseStructDef = emitDef(HIRDefinition.Struct(
                 case.name.location,
                 enumName.append(case.name.identifier.name),
                 typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
                 fields = (case.params?.mapIndexed { caseParamIndex, it ->
                     ctx.makeName("$caseParamIndex") to ctx.analyzer.annotationToType(requireNotNull(it.annotation))
                 } ?: emptyList())
-            ),
-            HIRDefinition.Const(
+            ))
+            val caseTagDef = emitDef(HIRDefinition.Const(
                 case.name.location,
                 caseTagName(enumName, case),
                 HIRConstant.IntValue(
@@ -256,21 +269,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     ctx.enumTagType(),
                     index
                 )
-            ),
-            sealedCaseConstructorOrConst(declaration, enumName, case)
-        )}.toTypedArray()
-        return listOf(
-            *caseStructs,
-            HIRDefinition.Struct(
-                declaration.location,
-                lowerGlobalName(declaration.name),
-                typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
-                fields = listOf(
-                    enumTagFieldName to ctx.enumTagType(),
-                    ctx.makeName("payload") to ctx.analyzer.getEnumPayloadType(declaration)
-                )
-            )
-        )
+            ))
+
+            emitDef(enumCaseConstructor(
+                enumStructDef, enumCaseStructDef, caseTagDef, case,
+            ))
+        }
+
+        return emptyList()
     }
 
     private fun caseTagName(enumName: QualifiedName, case: Declaration.Enum.Case): QualifiedName {
@@ -289,69 +295,42 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun sealedCaseConstructorOrConst(
-        declaration: Declaration.Enum,
-        enumName: QualifiedName,
+    private fun enumCaseConstructor(
+        enumStructDef: HIRDefinition.Struct,
+        enumCaseStructDef: HIRDefinition.Struct,
+        caseTagDef: HIRDefinition.Const,
         case: Declaration.Enum.Case,
     ): HIRDefinition.Function {
-        val caseStructName = enumName.append(case.name.name)
-        val fnName = caseStructName.append(ctx.makeName("constructor"))
-        val enumStructRefType = typeOfEnumConstructor(declaration)
-        val enumStructRef = HIRExpression.GlobalRef(case.name.location, enumStructRefType, enumName)
-        val caseStructRefType = enumCaseConstructorRefType(declaration, case)
-        val caseStructRef = HIRExpression.GlobalRef(case.name.location, caseStructRefType, caseStructName)
-        val payloadTypeUnion = ctx.analyzer.getEnumPayloadType(declaration)
-        val baseInstanceType = typeOfEnumInstance(declaration, declaration.typeParams?.map { Type.ParamRef(it.binder) })
-
-        val loc = case.name.location
-        val tag = HIRExpression.GlobalRef(loc, ctx.enumTagType(), caseTagName(enumName, case))
+        val constructorParams = case.params?.mapIndexed { index, param ->
+            HIRParam(
+                param.annotation.location,
+                Binder(Identifier(param.annotation.location, ctx.makeName("param_$index"))),
+                lowerTypeAnnotation(checkNotNull(param.annotation))) } ?: emptyList()
+        val fnName = enumCaseStructDef.name.append(ctx.makeName("constructor"))
+        val typeArgs = enumStructDef.typeParams?.map { Type.ParamRef(it.toBinder()) } ?: emptyList()
+        val instanceType = enumStructDef.instanceType(typeArgs)
+        val payloadType = enumCaseStructDef.instanceType(typeArgs)
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
-            val payloadRef = emitAlloca("payload", payloadTypeUnion)
-            val caseFn: HIROperand =
-                if (caseStructRefType !is Type.TypeFunction)
-                    caseStructRef
-                else
-                    emitTypeApplication(
-                        caseStructRef,
-                        declaration.typeParams?.map { Type.ParamRef(it.binder) } ?: emptyList()
-                    ).result()
-            if (case.params != null && case.params.isNotEmpty()) {
-                emitStore(
-                    payloadRef.mutPtr(),
-                    emitCall(
-                        payloadRef.type,
-                        caseFn,
-                        case.params.mapIndexed { index, it ->
-                            HIRExpression.ParamRef(it.annotation.location, lowerTypeAnnotation(checkNotNull(it.annotation)), ctx.makeName("param_$index"), Binder(Identifier(it.annotation.location, ctx.makeName("param_$index"))))
-                        },
-                        skipVerification = true // FIXME
-                    ).result()
-                )
+            currentLocation = case.name.location
+            val resultRef = emitAlloca("result", instanceType)
+            val resultPtr = resultRef.ptr()
+            emitStore(
+                resultPtr.fieldPtr(enumTagFieldName),
+                caseTagDef.ref()
+            )
+            val payloadPtr = resultPtr
+                .fieldPtr(enumPayloadFieldName, ctx.makeUniqueName("payload_union_ptr"))
+                .ptrCast(payloadType, "payload_ptr")
+
+            constructorParams.forEachIndexed { index, param ->
+                val paramPtr = payloadPtr.fieldPtr(index.toString())
+                val paramRef = param.ref()
+
+                emitStore(paramPtr, paramRef)
             }
-            val baseStructRefApplied =
-                if (declaration.typeParams == null)
-                    enumStructRef
-                else {
-                    check(enumStructRefType is Type.TypeFunction)
-                    check(enumStructRefType.params.size == declaration.typeParams.size)
-                    emitTypeApplication(
-                        enumStructRef,
-                        declaration.typeParams.map { Type.ParamRef(it.binder) }
-                    ).result()
-                }
-            val baseConstructorCall = emitCall(
-                baseInstanceType,
-                baseStructRefApplied,
-                listOf(
-                    tag,
-                    payloadRef.ptr().load()
-                )
-            ).result()
+
             emit(
-                HIRStatement.Return(
-                    case.name.location,
-                    baseConstructorCall
-                )
+                HIRStatement.Return(currentLocation, resultRef.ptr().load())
             )
         }
 
@@ -360,13 +339,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             HIRFunctionSignature(
                 case.name.location,
                 fnName,
-                declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.name) },
-                params = case.params?.mapIndexed { index, param ->
-                    HIRParam(
-                        param.annotation.location,
-                        Binder(Identifier(param.annotation.location, ctx.makeName("param_$index"))),
-                        lowerTypeAnnotation(checkNotNull(param.annotation))) } ?: emptyList(),
-                returnType = baseInstanceType
+                enumStructDef.typeParams,
+                params = constructorParams,
+                returnType = instanceType
             ),
             mutableListOf(body)
         )
