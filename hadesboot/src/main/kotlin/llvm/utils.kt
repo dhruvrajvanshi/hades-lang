@@ -2,6 +2,7 @@ package llvm
 
 import org.bytedeco.javacpp.Pointer
 import org.bytedeco.javacpp.PointerPointer
+import org.bytedeco.llvm.global.LLVM
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.experimental.ExperimentalTypeInference
@@ -26,4 +27,11 @@ inline fun <reified T> makeList(@BuilderInference builder: MutableList<T>.() -> 
     list.builder()
 
     return list
+}
+
+object LLVMUtils {
+    @JvmStatic
+    fun llvmLookupIntrinsic(name: String): Int  {
+        return LLVM.LLVMLookupIntrinsicID(name, name.length.toLong())
+    }
 }
