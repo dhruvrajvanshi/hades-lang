@@ -81,6 +81,14 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRDefinition.Const.ref(): HIRExpression {
+        return HIRExpression.GlobalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
     fun HIRExpression.fieldPtr(name: Name, resultName: Name = namingCtx.makeUniqueName()): HIRExpression.LocalRef {
         val lhsType = this.type
         check(lhsType is Type.Ptr)
