@@ -169,6 +169,11 @@ fun <T: HIRStatement> HIRBuilder.emit(statement: T): T {
     return statement
 }
 
+fun <T: HIRDefinition> HIRBuilder.emitDef(definition: T): T {
+    currentModule.addDefinition(definition)
+    return definition
+}
+
 fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
     requireNotNull(currentStatements).addAll(statements)
 }
