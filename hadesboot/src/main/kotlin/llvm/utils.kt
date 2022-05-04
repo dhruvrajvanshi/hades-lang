@@ -31,7 +31,7 @@ inline fun <reified T> makeList(@BuilderInference builder: MutableList<T>.() -> 
 
 object LLVMUtils {
     @JvmStatic
-    fun llvmLookupIntrinsic(name: String): Int  {
+    fun lookupIntrinsicID(name: String): Int  {
         return LLVM.LLVMLookupIntrinsicID(name, name.length.toLong())
     }
 }
