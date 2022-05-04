@@ -289,6 +289,9 @@ fun HIRBuilder.emitAlloca(namePrefix: String, type: Type, location: SourceLocati
     return emitAlloca(namingCtx.makeUniqueName(namePrefix), type, location)
 }
 
+fun HIRBuilder.emitReturn(value: HIRExpression): HIRStatement.Return =
+    emit(HIRStatement.Return(currentLocation, value))
+
 fun HIRBuilder.buildBlock(location: SourceLocation = currentLocation, name: Name? = null, builder: () -> Unit): HIRBlock {
     val statements = mutableListOf<HIRStatement>()
     intoStatementList(statements) { builder() }
