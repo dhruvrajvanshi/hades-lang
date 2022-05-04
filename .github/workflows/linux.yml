@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  Prepare:
+  Test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,10 +21,8 @@ jobs:
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
 
-    - name: gradle test
+    - name: Test
       run: ./gradlew test
-    - name: gradle build
-      run: ./gradlew build -x test
 
     - name: Archive Test Results
       if: always() # Even on failures
@@ -32,6 +30,3 @@ jobs:
       with:
         name: test-results
         path: hadesboot/build/reports/tests/test
-
-    - name: Create tar
-      run: ./gradlew distTar
