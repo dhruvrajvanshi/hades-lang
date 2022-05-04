@@ -90,6 +90,35 @@ fun LLVMDIBuilderRef.createBasicType(
         llvmDWARFEncoding,
         llvmDIFlags)
 
+fun LLVMDIBuilderRef.createUnionType(
+    name: String,
+    file: LLVMMetadataRef,
+    scope: LLVMMetadataRef = file,
+    line: Int,
+    sizeInBits: Long,
+    alignInBits: Int,
+    elements: List<LLVMMetadataRef>,
+    flags: Int = LLVM.LLVMDIFlagZero,
+    runTimeLang: Int = LLVM.LLVMDWARFSourceLanguageC11,
+    uniqueId: String = name
+): LLVMMetadataRef =
+    LLVM.LLVMDIBuilderCreateUnionType(
+        this,
+        scope,
+        name,
+        name.length.toLong(),
+        file,
+        line,
+        sizeInBits,
+        alignInBits,
+        flags,
+        elements.asPointerPointer(),
+        elements.size,
+        runTimeLang,
+        uniqueId,
+        uniqueId.length.toLong()
+    )
+
 fun LLVMDIBuilderRef.createFunction(
     scope: LLVMMetadataRef,
     name: String,
