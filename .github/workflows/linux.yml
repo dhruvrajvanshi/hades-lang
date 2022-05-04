@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  Prepare:
+  Test:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,13 +17,16 @@ jobs:
       with:
         distribution: adopt
         java-version: 11
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: gradle test
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+
+    - name: Test
       run: ./gradlew test
-    - name: gradle build
-      run: ./gradlew build -x test
 
-
-    - name: Create tar
-      run: ./gradlew distTar
+    - name: Archive Test Results
+      if: always() # Even on failures
+      uses: actions/upload-artifact@v1
+      with:
+        name: test-results
+        path: hadesboot/build/reports/tests/test
