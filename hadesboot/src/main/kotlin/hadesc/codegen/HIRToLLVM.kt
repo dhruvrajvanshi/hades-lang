@@ -15,6 +15,7 @@ import hadesc.unit
 import libhades.collections.Stack
 import llvm.*
 import org.bytedeco.javacpp.BytePointer
+import org.bytedeco.javacpp.LongPointer
 import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMModuleRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
@@ -139,8 +140,24 @@ class HIRToLLVM(
             value.getType().alignment().bits
         )
 
-        LLVM.LLVMSetMetadata(value, LLVM.LLVMDILocalVariableMetadataKind, LLVM.LLVMMetadataAsValue(llvmCtx, meta))
+        builder.buildCall(
+            llvmModule.getIntrinsicDeclaration(
+                "llvm.dbg.addr",
+                listOf()
+            ),
+            listOf(
+                value,
+                meta.asValue(),
+                LLVM.LLVMDIBuilderCreateExpression(
+                    diBuilder,
+                    null as LongPointer?,
+                    0
+                ).asValue()
+            ),
+            name = null
+        )
     }
+
     private fun attachDebugInfo(definition: HIRFunctionSignature, fn: FunctionValue) {
         if (!shouldEmitDebugSymbols) {
             return
@@ -365,7 +382,7 @@ class HIRToLLVM(
         val value = builder.buildAlloca(
             loweredType,
             statement.name.text,
-            alignmentInBytes = loweredType.alignment().bytes
+            LLVM.LLVMABIAlignmentOfType(dataLayout, loweredType)
         )
 
         if (ctx.options.debugSymbols) {
