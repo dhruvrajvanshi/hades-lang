@@ -584,9 +584,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
+    private val valAllocaStatements = mutableMapOf<Binder, HIRStatement.Alloca>()
     private fun lowerValStatement(statement: Statement.Val) {
+        check(valAllocaStatements[statement.binder] == null)
         val name = lowerLocalBinder(statement.binder)
-        allocaAssign(name, lowerExpression(statement.rhs))
+        valAllocaStatements[statement.binder] = allocaAssign(name, lowerExpression(statement.rhs))
     }
 
     override fun lowerLocalBinder(binder: Binder): Name {
