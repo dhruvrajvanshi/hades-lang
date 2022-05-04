@@ -732,5 +732,12 @@ class HIRToLLVM(
         return "_hadesboot_string_literal_$nextLiteralIndex"
     }
 
+    private fun Type.alignment() = lowerType(this).alignment()
+    private fun llvm.Type.alignment() = LLVM.LLVMABIAlignmentOfType(dataLayout, this)
 
+}
+
+@JvmInline
+value class Alignment(val bytes: Int) {
+    val bits get() = bytes * 8
 }
