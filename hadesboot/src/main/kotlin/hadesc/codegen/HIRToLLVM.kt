@@ -146,7 +146,7 @@ class HIRToLLVM(
                 listOf()
             ),
             listOf(
-                value,
+                value.asMetadata().asValue(),
                 meta.asValue(),
                 LLVM.LLVMDIBuilderCreateExpression(
                     diBuilder,
