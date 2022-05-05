@@ -1,0 +1,6 @@
+import hades.libhdc.{file_put_cstr, get_stdout}
+
+
+def main(): Void {
+  file_put_cstr(get_stdout(), b"file_put_cstr\n")
+}

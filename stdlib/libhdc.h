@@ -7,6 +7,7 @@
 
 #define HDC_NULLABLE_PTR(T) T*
 #define HDC_NULLABLE_CONST_PTR(T) const T*
+#define CStr = const char*
 
 extern FILE* _hdc_get_stderr() {
     return stderr;
@@ -27,6 +28,10 @@ extern void _hdc_panic(const char* message) {
 
 extern HDC_NULLABLE_PTR(FILE) _hdc_file_open(const char* filename, const char* mode) {
     return fopen(filename, mode);
+}
+
+extern void _hdc_file_put_cstr(FILE* stream, const char* cstr) {
+    fputs(cstr, stream);
 }
 
 #define DEFINE_FILE_PUT(name, ctype, formatstr)\

@@ -1,0 +1,18 @@
+/// Compiler provided runtime library, used to wrap low level
+/// functions provided by the platform's libc, or the OS itself.
+
+/// Opaque file handle returned by libc
+struct FILE {}
+
+extern def get_stderr(): *mut FILE = _hdc_get_stderr
+extern def get_stdout(): *mut FILE = _hdc_get_stdout
+extern def get_stdin(): *mut FILE = _hdc_get_stdin
+
+/// A null terminated string, commonly used by libc
+/// apis
+type CStr = *u8
+
+/// Mutable version of `MutCStr`
+type MutCStr = *mut u8
+
+extern def file_put_cstr(*mut FILE, CStr): Void = _hdc_file_put_cstr
