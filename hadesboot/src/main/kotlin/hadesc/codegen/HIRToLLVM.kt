@@ -2,6 +2,7 @@ package hadesc.codegen
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
+import hadesc.clampToPowerOfTwo
 import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.hir.*
@@ -241,6 +242,8 @@ class HIRToLLVM(
         for (basicBlock in definition.basicBlocks) {
             lowerBlock(basicBlock)
         }
+
+        LLVM.LLVMVerifyFunction(fn, LLVM.LLVMPrintMessageAction)
 
         currentHIRFunction = null
         currentFunction = null
@@ -748,10 +751,13 @@ class HIRToLLVM(
         is Type.Application -> requireUnreachable()
         is Type.Size -> sizeTy
         is Type.UntaggedUnion -> {
-            val maxSizedType = type.members
+            val loweredMembers = type.members
                 .map { lowerType(it) }
-                .maxByOrNull { sizeOfType(it) }
-            checkNotNull(maxSizedType)
+            val maxSize = sizeOfType(checkNotNull(loweredMembers.maxByOrNull { sizeOfType(it) }))
+            arrayType(
+                intType(8),
+                clampToPowerOfTwo(maxSize.toInt())
+            )
         }
         is Type.Integral -> intType(type.size, llvmCtx)
         is Type.FloatingPoint -> floatType(type.size, llvmCtx)

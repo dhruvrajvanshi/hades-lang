@@ -37,3 +37,11 @@ fun Scoped.defer(block: () -> Unit) {
 val unit = Unit
 
 inline fun <reified T> T.ignore(): Unit {}
+
+fun clampToPowerOfTwo(value: Int): Int {
+    var currentValue = 1
+    while (currentValue < value) {
+        currentValue = currentValue shl 1
+    }
+    return currentValue
+}
