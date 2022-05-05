@@ -4,6 +4,7 @@ import hadesc.Name
 import hadesc.analysis.TypeAnalyzer
 import hadesc.context.NamingContext
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.mutPtr
 import hadesc.types.ptr
@@ -319,4 +320,8 @@ fun HIRBuilder.trueValue(location: SourceLocation = currentLocation): HIRConstan
 
 fun HIRBuilder.falseValue(location: SourceLocation = currentLocation): HIRConstant.BoolValue {
     return HIRConstant.BoolValue(location, Type.Bool, false)
+}
+
+internal fun HIRBuilder.qn(vararg names: String): QualifiedName {
+    return QualifiedName(names.toList().map { namingCtx.makeName(it) })
 }
