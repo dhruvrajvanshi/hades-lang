@@ -111,7 +111,7 @@ interface HIRBuilder {
     fun HIRDefinition.Function.ref(): HIRExpression.GlobalRef {
         return HIRExpression.GlobalRef(
             currentLocation,
-            type,
+            fnPtrType,
             name
         )
     }
