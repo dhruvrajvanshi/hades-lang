@@ -8,6 +8,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import hadesc.types.ptr
 
 sealed class HIRDefinition: HasLocation {
     data class Function(
@@ -29,6 +30,22 @@ sealed class HIRDefinition: HasLocation {
                 Type.TypeFunction(
                         params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
                         body = functionType
+                )
+            } else {
+                functionType
+            }
+        }
+
+        val fnPtrType get(): Type {
+            val functionType = Type.Function(
+                from = params.map { it.type },
+                to = returnType,
+                traitRequirements = null
+            ).ptr()
+            return if (typeParams != null) {
+                Type.TypeFunction(
+                    params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
+                    body = functionType
                 )
             } else {
                 functionType
