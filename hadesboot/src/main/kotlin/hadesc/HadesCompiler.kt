@@ -6,7 +6,6 @@ import com.github.ajalt.clikt.parameters.types.path
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
-import jdk.jshell.Diag
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
@@ -59,7 +58,10 @@ class HadesCompiler: CliktCommand(name = "hades") {
             runtime = Path.of(hadesHome, "stdlib", "runtime.c"),
             cFlags = cFlags,
             debugSymbols = debugSymbols,
-            cSources = cSources + cSourcesSplit + listOf(Path.of(hadesHome, "stdlib", "libc.c")),
+            cSources = cSources + cSourcesSplit + listOf(
+                Path.of(hadesHome, "stdlib", "libc.c"),
+                Path.of(hadesHome, "stdlib", "libhdc.c")
+            ),
             dumpLLVMModule = dumpLLVMModule,
             libs = libs,
             enableHIRVerifier = enableHIRVerifier,
