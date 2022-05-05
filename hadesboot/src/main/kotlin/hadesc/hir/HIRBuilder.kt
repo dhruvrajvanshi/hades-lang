@@ -116,6 +116,26 @@ interface HIRBuilder {
         )
     }
 
+    fun debugDump(value: HIROperand) {
+        val stderrVal = emitCall(Type.Void, libhdcFn("get_stderr").ref(), emptyList()).result()
+        when (value.type) {
+            is Type.Ptr -> {
+                emitCall(Type.Void,
+                    libhdcFn("file_put_void_ptr").ref(),
+                    listOf(
+                        stderrVal,
+                        value.ptrCast(Type.Void)
+                    )
+                )
+            }
+            else -> TODO("Debug dump not implemented for ${value.type.prettyPrint()}")
+        }
+    }
+
+    private fun libhdcFn(name: String): HIRDefinition.Function {
+        return currentModule.findGlobalFunction(qn("hades", "libhdc", "get_stderr"))
+    }
+
     fun HIROperand.typeApplication(args: List<Type>): HIROperand {
         val ty = type
         check(ty is Type.TypeFunction)
