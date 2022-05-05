@@ -87,11 +87,26 @@ class HadesTestSuite {
                     assert(process.exitValue() == 0) {
                         "Test program exited with non-zero exit code"
                     }
-                    val expectedLines = expectedStdoutFile.readLines()
+                    val expectedLines = expectedStdoutFile.readLines().map {
+                        if (it.startsWith("#re/")) {
+                            check(it.endsWith("/"))
+                            val pattern = it.removePrefix("#re/").removeSuffix("/")
+                            it to Regex(pattern)
+                        } else {
+                            it to Regex(Regex.escape(it))
+                        }
+                    }
                     val actualLines = actualStdoutFile.readLines()
+
+                    expectedLines.zip(actualLines).forEach { (expectation, actualText) ->
+                        val (patternText, expectedPattern) = expectation
+                        assert(expectedPattern.matches(actualText)) {
+                            "$actualText doesn't match pattern $patternText"
+                        }
+                    }
                     assertEquals(
-                        expectedLines, actualLines,
-                        "Contents of $expectedStdoutFile and $actualStdoutFile don't match"
+                        expectedLines.size, actualLines.size,
+                        "Expected ${expectedLines.size} lines, found ${actualLines.size}"
                     )
                 } else {
                     assert(expectedErrorsFile.exists())
