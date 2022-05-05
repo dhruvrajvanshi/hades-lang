@@ -147,6 +147,10 @@ sealed class Expression : HasLocation {
         }
     }
 
+    data class Uninitialized(
+        override val location: SourceLocation
+    ): Expression()
+
     data class FloatLiteral(override val location: SourceLocation, val value: Double) : Expression()
 }
 

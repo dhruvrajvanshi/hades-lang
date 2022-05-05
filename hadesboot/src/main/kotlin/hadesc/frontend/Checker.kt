@@ -580,6 +580,7 @@ class Checker(val ctx: Context) {
             is Expression.UnaryMinus -> checkUnaryMinusExpression(expression)
             is Expression.ByteCharLiteral -> unit
             is Expression.Match -> checkMatchExpression(expression)
+            is Expression.Uninitialized -> unit
         })
     }
 

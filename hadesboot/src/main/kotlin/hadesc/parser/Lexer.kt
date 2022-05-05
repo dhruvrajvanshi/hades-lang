@@ -99,6 +99,13 @@ class Lexer(private val file: SourcePath) {
             c.isIdentifierStarter() -> {
                 identifierOrKeyword()
             }
+            c == '#' -> {
+                advance()
+                while (currentChar.isIdentifierChar()) {
+                    advance()
+                }
+                makeToken(tt.PRAGMA)
+            }
             c == '=' -> {
                 advance()
                 if (currentChar == '=') {

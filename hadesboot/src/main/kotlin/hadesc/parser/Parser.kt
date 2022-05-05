@@ -754,6 +754,16 @@ class Parser(
 
     private fun parsePrimaryExpression(withTail: Boolean = true, allowCalls: Boolean = true): Expression {
         val head = when (currentToken.kind) {
+            tt.PRAGMA -> {
+                val tok = advance()
+
+                when (val text = tok.text.removePrefix("#")) {
+                    "uninitialized" -> Expression.Uninitialized(tok.location)
+                    else -> {
+                        syntaxError(tok.location, Diagnostic.Kind.InvalidPragma(text))
+                    }
+                }
+            }
             tt.LPAREN -> {
                 advance()
                 val result = parseExpression()

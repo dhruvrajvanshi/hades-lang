@@ -81,6 +81,7 @@ data class Token(
         RSQB,
         AT_SYMBOL,
         AT_INTRINSIC,
+        PRAGMA,
         VBAR,
 
         EQ,

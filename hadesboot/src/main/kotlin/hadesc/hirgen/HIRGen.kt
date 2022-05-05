@@ -588,7 +588,18 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerValStatement(statement: Statement.Val) {
         check(valAllocaStatements[statement.binder] == null)
         val name = lowerLocalBinder(statement.binder)
-        valAllocaStatements[statement.binder] = allocaAssign(name, lowerExpression(statement.rhs))
+        valAllocaStatements[statement.binder] =
+            // this condition isn't necessary,
+            // it's just to create cleaner HIR for val x: Type = #uninitialized
+            if (statement.rhs is Expression.Uninitialized) {
+                emitAlloca(name, statement.rhs.type)
+                // the other branch would generate this code
+                // __generated__: Type = alloca Type
+                // x: *mut Type = alloca Type
+                // store x = *__generated__
+            } else {
+                allocaAssign(name, lowerExpression(statement.rhs))
+            }
     }
 
     override fun lowerLocalBinder(binder: Binder): Name {
@@ -659,6 +670,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.ByteCharLiteral -> lowerByteCharExpression(expression)
             is Expression.Match -> lowerMatchExpression(expression)
             is Expression.FloatLiteral -> lowerFloatLiteral(expression)
+            is Expression.Uninitialized -> lowerUninitialized(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -692,6 +704,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerUninitialized(expression: Expression.Uninitialized): HIROperand {
+        val ofType = typeOfExpression(expression)
+        return emitAlloca(ctx.makeUniqueName(), ofType).ptr().load()
     }
 
     private fun lowerFloatLiteral(expression: Expression.FloatLiteral): HIROperand {

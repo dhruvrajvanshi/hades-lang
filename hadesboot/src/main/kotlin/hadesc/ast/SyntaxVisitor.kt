@@ -80,7 +80,10 @@ interface SyntaxVisitor {
         is Expression.ByteCharLiteral -> visitByteCharExpression(expression)
         is Expression.Match -> visitMatchExpression(expression)
         is Expression.FloatLiteral -> visitFloatLiteral(expression)
+        is Expression.Uninitialized -> visitUninitializedLiteral(expression)
     }
+
+    fun visitUninitializedLiteral(expression: Expression.Uninitialized) = unit
 
     fun visitFloatLiteral(expression: Expression.FloatLiteral) = unit
 

@@ -101,7 +101,7 @@ class HadesTestSuite {
                     expectedLines.zip(actualLines).forEach { (expectation, actualText) ->
                         val (patternText, expectedPattern) = expectation
                         assert(expectedPattern.matches(actualText)) {
-                            "$actualText doesn't match pattern $patternText"
+                            "$actualText doesn't match pattern $expectedPattern ($patternText)"
                         }
                     }
                     assertEquals(

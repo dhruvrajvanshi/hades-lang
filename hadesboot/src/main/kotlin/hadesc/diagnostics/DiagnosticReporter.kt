@@ -114,6 +114,7 @@ data class Diagnostic(
         data class NotAMatchableType(val type: Type) : Kind(Severity.ERROR)
         data class NotAnEnumType(val type: Type) : Kind(Severity.ERROR)
         data class NoSuchCase(val declaration: Declaration.Enum, val name: Name) : Kind(Severity.ERROR)
+        class InvalidPragma(val name: String) : Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -197,6 +198,7 @@ data class Diagnostic(
             is NotAMatchableType -> "Not a matchable type: ${type.prettyPrint()}"
             is NotAnEnumType -> "Not an enum type: ${type.prettyPrint()}"
             is NoSuchCase -> "No such case. Allowed cases: ${declaration.cases.map { it.name.name }}"
+            is InvalidPragma -> "Invalid pragma $name"
         }
 
     }

@@ -633,6 +633,7 @@ class Analyzer(
                     checkAssignability(expression, source = type, destination = expectedType)
                     type
                 }
+                is Expression.Uninitialized -> expectedType
                 is Expression.FloatLiteral -> {
                     if (expectedType is Type.FloatingPoint) {
                         expectedType
@@ -790,6 +791,7 @@ class Analyzer(
             is Expression.ByteCharLiteral -> Type.Integral(8, isSigned = false)
             is Expression.Match -> inferMatchExpression(expression)
             is Expression.FloatLiteral -> Type.f64
+            is Expression.Uninitialized -> Type.Error(expression.location) // uninitialized expression must be checked, not inferred
         })
     }
 
