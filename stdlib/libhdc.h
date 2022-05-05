@@ -50,6 +50,7 @@ DEFINE_FILE_PUT(u64, uint32_t, "%u")
 DEFINE_FILE_PUT(i64, int32_t, "%d")
 DEFINE_FILE_PUT(f32, float, "%f")
 DEFINE_FILE_PUT(f64, double, "%f")
+DEFINE_FILE_PUT(void_ptr, void*, "%x")
 
 #undef DEFINE_FILE_PUT
 
