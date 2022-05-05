@@ -140,6 +140,9 @@ class Context(
         visitSourceFile(resolveSourceFile(QualifiedName(listOf(
                 makeName("hades"),
                 makeName("marker")))))
+        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
+            makeName("hades"),
+            makeName("libhdc")))))
         collectedFiles.values.forEach(action)
     }
 
