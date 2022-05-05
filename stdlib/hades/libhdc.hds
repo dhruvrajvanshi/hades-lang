@@ -17,4 +17,5 @@ type MutCStr = *mut u8
 
 extern def file_put_cstr(*mut FILE, CStr): Void = _hdc_file_put_cstr
 extern def file_put_void_ptr(*mut FILE, *Void): Void = _hdc_file_put_void_ptr
-
+extern def file_put_usize(*mut FILE, usize): Void = _hdc_file_put_usize
+extern def file_put_u8(*mut FILE, u8): Void = _hdc_file_put_u8

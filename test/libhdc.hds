@@ -1,6 +1,11 @@
-import hades.libhdc.{file_put_cstr, get_stdout}
+import hades.libhdc.{file_put_cstr, get_stdout, file_put_usize, file_put_u8}
 
 
 def main(): Void {
-  file_put_cstr(get_stdout(), b"file_put_cstr\n")
+  val stdout = get_stdout()
+  file_put_cstr(stdout, b"file_put_cstr\n")
+
+  file_put_usize(stdout, 10)
+  file_put_cstr(stdout, b"\n")
+  file_put_u8(stdout, 20)
 }
