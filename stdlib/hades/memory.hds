@@ -1,4 +1,5 @@
 import libc as libc;
+import hades.libhdc as hdc
 
 def free[T](ptr: *mut T): Void {
     libc.free(pointer_cast[Void](ptr));
@@ -35,5 +36,10 @@ def copy[T](destination: *mut T, source: *T, count: Size): Void {
 
 def allocate[T](count: Size): *mut T {
     return pointer_cast[T](libc.malloc(count * size_of[T]));
+}
+
+/// Set all bits of the given pointer to zero
+def fill_with_zeros[T](ptr: *mut T): Void {
+   hdc.memset(pointer_cast[Void](ptr), 0, size_of[T])
 }
 
