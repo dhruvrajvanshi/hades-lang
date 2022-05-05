@@ -52,4 +52,12 @@ data class HIRModule(
                 it
             }
     }
+
+    fun findGlobalFunction(name: QualifiedName): HIRDefinition.Function {
+        return findDefinition(name)
+            .let {
+                check(it is HIRDefinition.Function)
+                it
+            }
+    }
 }
