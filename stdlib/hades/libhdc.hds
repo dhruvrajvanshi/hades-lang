@@ -4,6 +4,9 @@
 /// Opaque file handle returned by libc
 struct FILE {}
 
+/// FIXME: NON_PORTABLE
+type CInt = i64
+
 extern def get_stderr(): *mut FILE = _hdc_get_stderr
 extern def get_stdout(): *mut FILE = _hdc_get_stdout
 extern def get_stdin(): *mut FILE = _hdc_get_stdin
@@ -19,3 +22,5 @@ extern def file_put_cstr(*mut FILE, CStr): Void = _hdc_file_put_cstr
 extern def file_put_void_ptr(*mut FILE, *Void): Void = _hdc_file_put_void_ptr
 extern def file_put_usize(*mut FILE, usize): Void = _hdc_file_put_usize
 extern def file_put_u8(*mut FILE, u8): Void = _hdc_file_put_u8
+
+extern def memset(*mut Void, u8, usize): Void = _hdc_memset

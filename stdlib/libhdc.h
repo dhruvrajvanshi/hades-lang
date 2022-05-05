@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <memory.h>
 
 #define HDC_NULLABLE_PTR(T) T*
 #define HDC_NULLABLE_CONST_PTR(T) const T*
@@ -53,5 +54,13 @@ DEFINE_FILE_PUT(f64, double, "%f")
 DEFINE_FILE_PUT(void_ptr, void*, "%x")
 
 #undef DEFINE_FILE_PUT
+
+void _hdc_memset(
+    void* dest,
+    int value,
+    size_t size
+) {
+    memset(dest, value, size);
+}
 
 #endif
