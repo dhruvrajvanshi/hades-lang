@@ -1,0 +1,10 @@
+extern def puts(*u8): Void = puts
+
+def main(): Void {
+    defer print_first(b"2", print_first(b"1", 0))
+}
+
+def print_first(message: *u8, i: usize): usize {
+    puts(message)
+    return i
+}
