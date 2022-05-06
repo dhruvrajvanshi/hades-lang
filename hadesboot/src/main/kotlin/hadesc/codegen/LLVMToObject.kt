@@ -10,6 +10,7 @@ import org.bytedeco.llvm.LLVM.LLVMModuleRef
 import org.bytedeco.llvm.LLVM.LLVMTargetRef
 import org.bytedeco.llvm.global.LLVM
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteExisting
 
 class LLVMToObject(private val options: BuildOptions, private val llvmModule: LLVMModuleRef) {
@@ -87,6 +88,7 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
 
 
     private fun writeModuleToFile() {
+        makeParentDirectory(options.output)
         log.debug("Writing object file")
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()
@@ -139,4 +141,9 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
 
         LLVM.LLVMDisposeTargetMachine(targetMachine)
     }
+}
+
+
+private fun makeParentDirectory(output: Path) {
+    output.parent.createDirectories()
 }
