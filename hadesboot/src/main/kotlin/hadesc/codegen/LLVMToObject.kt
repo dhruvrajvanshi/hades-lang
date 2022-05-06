@@ -61,8 +61,13 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
             commandParts.add("__HDC_CHKSTK_UNAVAILABLE")
         }
 
-        commandParts.add("-o")
-        commandParts.add(options.output.toString())
+        if (shouldUseMicrosoftCL) {
+            commandParts.add("/Fe\"${options.output}\"")
+        } else {
+            commandParts.add("-o")
+            commandParts.add(options.output.toString())
+        }
+
 
         commandParts.addAll(options.cSources.map { it.toString() })
         commandParts.add(options.runtime.toString())
