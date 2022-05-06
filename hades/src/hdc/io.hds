@@ -1,0 +1,16 @@
+import hades.libhdc.{ get_stderr, get_stdout, FILE, file_put_cstr }
+
+def stdout(): *mut FILE {
+  return get_stdout()
+}
+
+def stderr(): *mut FILE {
+  return get_stderr()
+}
+
+extension FILEExtensions for FILE {
+  def put_cstr(*mut this, message: *u8): *mut FILE {
+    file_put_cstr(this, message)
+    return this
+  }
+}
