@@ -1,0 +1,19 @@
+import hdc.io.{ stderr }
+import hdc.hir.builder.{ new_hir_builder }
+
+def main(): Void {
+  test(b"Hello world") || {
+    val builder = new_hir_builder()
+    defer builder.free()
+  }
+}
+
+def test(name: *u8, fn: || -> Void): Void {
+  stderr()
+    .put_cstr(b"# ")
+    .put_cstr(name)
+    .put_cstr(b" #")
+    .put_cstr(b"\n")
+
+  fn()
+}

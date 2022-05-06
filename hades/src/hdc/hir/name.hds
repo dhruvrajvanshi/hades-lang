@@ -1,0 +1,8 @@
+import hdc.hir.module.{ HIRModule }
+
+/// This is a slice into a string.
+/// The buffer is owned by the correspoinding HIRModule
+struct HIRName {
+  val _buffer: *u8
+  val _length: usize
+}

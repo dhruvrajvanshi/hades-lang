@@ -1,0 +1,7 @@
+
+struct HIRStatement {
+  val _kind: HIRStatementKind
+}
+enum HIRStatementKind {
+  Empty,
+}
