@@ -1,0 +1,14 @@
+import hades.memory as Mem
+struct HIRBuilder {
+}
+
+def new_hir_builder(): *mut HIRBuilder {
+  val mut ptr = Mem.allocate[HIRBuilder](1)
+  return ptr
+}
+
+extension HIRBuilderExtensions for HIRBuilder {
+  def free(*mut this): Void {
+    Mem.free(this)
+  }
+}
