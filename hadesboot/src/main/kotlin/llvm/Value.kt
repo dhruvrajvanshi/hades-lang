@@ -27,8 +27,8 @@ fun V.asMetadata(): LLVMMetadataRef =
 fun constantArray(itemType: Type, items: List<V>, length: Int): V =
     LLVM.LLVMConstArray(itemType, items.asPointerPointer(), length)
 
-fun constantString(text: String, nullTerminate: Boolean = false, context: LLVMContextRef = LLVM.LLVMGetGlobalContext()): LLVMValueRef =
-    LLVM.LLVMConstStringInContext(context, text, text.length, nullTerminate.toLLVMBool())
+fun constantString(text: String, dontNullTerminate: Boolean = false, context: LLVMContextRef = LLVM.LLVMGetGlobalContext()): LLVMValueRef =
+    LLVM.LLVMConstStringInContext(context, text, text.length, dontNullTerminate.toLLVMBool())
 
 
 fun V.getInitializer(): LLVMValueRef? = LLVM.LLVMGetInitializer(this)

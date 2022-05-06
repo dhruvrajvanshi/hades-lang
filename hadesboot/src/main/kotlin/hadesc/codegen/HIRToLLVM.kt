@@ -674,7 +674,7 @@ class HIRToLLVM(
 
     private fun lowerByteString(constant: HIRConstant.ByteString): Value {
         val text = constant.bytes.decodeToString()
-        val constStringRef = constantString(text, nullTerminate = false, context = llvmCtx)
+        val constStringRef = constantString(text, dontNullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
             pointerType(intType(8, llvmCtx))
