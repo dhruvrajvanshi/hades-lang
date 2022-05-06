@@ -677,7 +677,7 @@ class HIRToLLVM(
         val constStringRef = constantString(text, nullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
-            constStringRef.getType()
+            pointerType(intType(8, llvmCtx))
         )
         globalRef.setInitializer(constStringRef)
         return globalRef
