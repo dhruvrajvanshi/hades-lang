@@ -1,11 +1,12 @@
 .idea
 .gradle
 test_build
-build
+/build
+/hadesboot/build
 /hades-server
 /hades-server.object
-hdc.object
-hdc
+/hdc.object
+/hdc
 .vscode
 /run_suite
 /run_suite.object
