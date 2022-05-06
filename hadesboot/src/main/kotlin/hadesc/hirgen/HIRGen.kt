@@ -20,7 +20,6 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
 import hadesc.types.Type
-import hadesc.types.toSubstitution
 import libhades.collections.Stack
 import hadesc.hir.*
 import hadesc.ignore
@@ -283,18 +282,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return enumName.append(case.name.identifier.name).append(ctx.makeName("tag"))
     }
 
-    private fun enumInstanceType(declaration: Declaration.Enum): Type {
-        val typeConstructor = Type.Constructor(name = ctx.resolver.qualifiedName(declaration.name))
-        return if (declaration.typeParams != null) {
-            Type.Application(
-                typeConstructor,
-                declaration.typeParams.map { Type.ParamRef(it.binder) }
-            )
-        } else {
-            typeConstructor
-        }
-    }
-
     private fun enumCaseConstructor(
         enumStructDef: HIRDefinition.Struct,
         enumCaseStructDef: HIRDefinition.Struct,
@@ -345,59 +332,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             ),
             mutableListOf(body)
         )
-    }
-
-    private fun typeOfEnumConstructor(declaration: Declaration.Enum): Type {
-        val instanceType = typeOfEnumInstance(declaration, declaration.typeParams?.map { Type.ParamRef(it.binder) })
-        val paramTypes = listOf(
-            ctx.enumTagType(),
-            ctx.analyzer.getEnumPayloadType(declaration)
-        )
-
-        val fnType = Type.Function(
-            from = paramTypes,
-            to = instanceType,
-            traitRequirements = null
-        )
-
-        val fnPtrType = Type.Ptr(fnType, isMutable = false)
-
-        return if (declaration.typeParams != null) {
-            Type.TypeFunction(
-                params = declaration.typeParams.map { Type.Param(it.binder) },
-                body = fnPtrType
-            )
-        } else {
-            fnPtrType
-        }
-    }
-
-    private fun typeOfEnumInstance(declaration: Declaration.Enum, typeArgs: List<Type>?): Type {
-        val instanceTypeConstructor = Type.Constructor(lowerGlobalName(declaration.name))
-        return if (typeArgs != null) {
-            Type.Application(instanceTypeConstructor, typeArgs)
-        } else {
-            instanceTypeConstructor
-        }
-    }
-
-    private fun enumCaseConstructorRefType(
-        declaration: Declaration.Enum,
-        case: Declaration.Enum.Case
-    ): Type {
-        val instanceType = enumInstanceType(declaration)
-        val from = case.params?.map { lowerTypeAnnotation(checkNotNull(it.annotation)) } ?: emptyList()
-        val functionType = Type.Function(
-            from,
-            instanceType
-        )
-
-        return if (declaration.typeParams != null) {
-            Type.TypeFunction(
-                declaration.typeParams.map { Type.Param(it.binder) },
-                functionType
-            )
-        } else functionType
     }
 
     private var currentFunctionDef: Declaration.FunctionDef? = null
@@ -1054,8 +988,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerPropertyExpression(expression: Expression.Property): HIROperand = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
         is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
-        is PropertyBinding.StructField -> lowerStructFieldBinding(expression, binding)
-        is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression, binding)
+        is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
+        is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression)
         is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
@@ -1119,7 +1053,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerStructPointerFieldLoad(
         expression: Expression.Property,
-        binding: PropertyBinding.StructPointerFieldLoad
     ): HIROperand {
         val structPtrType = expression.lhs.type
         require(structPtrType is Type.Ptr)
@@ -1130,7 +1063,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerStructFieldBinding(
             expression: Expression.Property,
-            binding: PropertyBinding.StructField
     ): HIROperand {
         return lowerExpression(expression.lhs)
             .getStructField(expression.property.name)
@@ -1174,16 +1106,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             null -> {}
             else -> ctx.diagnosticReporter.report(node.location, Diagnostic.Kind.UninferrableTypeParam(instance.originalName, instance.location))
         }
-    }
-
-
-    private fun applyType(type: Type.TypeFunction, args: List<Type>): Type {
-        require(type.params.size == args.size)
-        return type.body.applySubstitution(
-            type.params.zip(args).associate {
-                it.first.binder.location to ctx.analyzer.reduceGenericInstances(it.second)
-            }.toSubstitution()
-        )
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
