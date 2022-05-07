@@ -11,7 +11,8 @@ def main():
     
     for test_source in test_sources:
         print(f'Compiling {test_source}')
-        output = compile_hades_source(test_source, output=str(Path('build').joinpath(test_source)))
+        test_source_name, _ = os.path.splitext(test_source)
+        output = compile_hades_source(test_source, output=str(Path('build').joinpath(test_source_name)))
         
         if output == None:
             print(f'Could not compile {test_source}')
