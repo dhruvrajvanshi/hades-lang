@@ -33,10 +33,13 @@ def compile_hades_source(test_source:str, output:str) -> Optional[str]:
             '--module-path', 'src'
     ]
     print(' '.join(command))
+    env = os.environ.copy()
+    env['HADES_HOME'] = str(HADES_HOME)
     status = subprocess.call(
         command,
         stdout=sys.stdout,
         stderr=sys.stderr,
+        env=env
     )
     if status != 0:
         return None
