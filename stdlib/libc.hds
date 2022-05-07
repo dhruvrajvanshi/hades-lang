@@ -11,6 +11,7 @@ type double = Double
 
 extern def puts(*char): void = puts;
 extern def exit(int): void = exit;
+extern def abort(): void = abort
 extern def malloc(size_t): *mut void = malloc;
 extern def free(*mut void): void = free;
 extern def strlen(*char): usize = strlen;
