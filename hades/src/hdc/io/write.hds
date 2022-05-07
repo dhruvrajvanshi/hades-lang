@@ -1,0 +1,16 @@
+
+/// Trait for things that can accept consume bytes
+trait Write[T] {
+  def write_all(self: *mut T, bytes: *u8, bytes_length: usize): Void
+  def flush(self: *mut T): Void
+}
+
+extension WriteExtensions[T] for T where Write[T] {
+  def write_all(*mut this, bytes: *u8, bytes_length: usize): Void {
+    Write[T].write_all(this, bytes, bytes_length)
+  }
+
+  def flush(*mut this): Void {
+    Write[T].flush(this)
+  }
+}
