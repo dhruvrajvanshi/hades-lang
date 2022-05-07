@@ -405,7 +405,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private val deferStack = Stack<MutableList<HIRStatement>>()
+    private var deferStack = Stack<MutableList<HIRStatement>>()
     override fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean,
@@ -599,7 +599,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.If -> lowerIfExpression(expression)
             is Expression.TypeApplication -> lowerTypeApplication(expression)
             is Expression.This -> lowerThisExpression(expression)
-            is Expression.Closure -> closureGen.lowerClosure(expression)
+            is Expression.Closure -> {
+                val oldDeferStack = deferStack
+                deferStack = Stack()
+                val result = closureGen.lowerClosure(expression)
+                deferStack = oldDeferStack
+                result
+            }
             is Expression.As -> lowerAsExpression(expression)
             is Expression.BlockExpression -> lowerBlockExpression(expression)
             is Expression.Intrinsic -> requireUnreachable()
