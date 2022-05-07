@@ -1,0 +1,12 @@
+import libc.{ abort }
+import hdc.io.{ stderr }
+
+def panic[T](message: *u8): T {
+  val result: T = #uninitialized
+  stderr()
+    .put_cstr(b"PANIC: ")
+    .put_cstr(message)
+    .put_cstr(b"\n")
+  abort()
+  return result
+}
