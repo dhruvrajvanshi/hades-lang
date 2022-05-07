@@ -1,0 +1,5 @@
+
+/// Marker type alias to indicate
+/// that this pointer is owned by the holder
+/// and it must be cleaned up.
+type Own[T] = *mut T
