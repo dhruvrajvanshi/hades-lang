@@ -1,10 +1,13 @@
+import hades.memory as Mem
 struct HIRModule {
 }
 
 def new_hir_module(): *mut HIRModule {
+  return Mem.allocate(1)
 }
 
 extension HIRModuleExtensions for HIRModule {
   def free(*mut this): Void {
+    Mem.free(this)
   }
 }

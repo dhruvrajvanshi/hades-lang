@@ -1,14 +1,20 @@
 import hades.memory as Mem
+import hdc.hir.module.{ HIRModule, new_hir_module }
+import hdc.own.{ Own }
+
 struct HIRBuilder {
+  val _module: Own[HIRModule]
 }
 
 def new_hir_builder(): *mut HIRBuilder {
   val mut ptr = Mem.allocate[HIRBuilder](1)
+  ptr._module = new_hir_module()
   return ptr
 }
 
 extension HIRBuilderExtensions for HIRBuilder {
   def free(*mut this): Void {
+    this._module.free()
     Mem.free(this)
   }
 }
