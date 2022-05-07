@@ -57,6 +57,10 @@ class Context(
         if (this.diagnosticReporter.hasErrors) {
             return
         }
+        if (options.dumpHIRGen) {
+            print("HIRGen output")
+            print(hirModule.prettyPrint())
+        }
         if (options.enableHIRVerifier) {
             HIRVerifier(hirModule).verify()
         }

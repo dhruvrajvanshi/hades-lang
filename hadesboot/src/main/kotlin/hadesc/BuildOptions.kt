@@ -14,4 +14,6 @@ data class BuildOptions(
     val dumpLLVMModule: Boolean,
     val libs: List<String>,
     val enableHIRVerifier: Boolean,
+    val dumpHIRGen: Boolean,
+    val enableLLVMVerifier: Boolean,
 ) : Options

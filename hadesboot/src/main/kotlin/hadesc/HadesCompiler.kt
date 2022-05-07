@@ -28,8 +28,10 @@ class HadesCompiler: CliktCommand(name = "hades") {
         help = "Add multiple space separated C source files",
     ).path().split(" ").default(emptyList())
     private val dumpLLVMModule by option("--dump-llvm-module").flag(default = false)
+    private val dumpHIRGen by option("--dump-hirgen").flag(default = false)
     private val libs by option("-l").multiple()
     private val enableHIRVerifier by option("--enable-hir-verifier").flag(default = false)
+    private val enableLLVMVerifier by option("--enable-llvm-verifier").flag(default = false)
 
     override fun run() {
         val hadesHome = System.getenv("HADES_HOME")
@@ -51,6 +53,8 @@ class HadesCompiler: CliktCommand(name = "hades") {
             dumpLLVMModule = dumpLLVMModule,
             libs = libs,
             enableHIRVerifier = enableHIRVerifier,
+            dumpHIRGen = dumpHIRGen,
+            enableLLVMVerifier = enableLLVMVerifier,
         )
     }
 

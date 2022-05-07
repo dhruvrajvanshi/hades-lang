@@ -17,6 +17,7 @@ import libhades.collections.Stack
 import llvm.*
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.LongPointer
+import org.bytedeco.javacpp.PointerPointer
 import org.bytedeco.llvm.LLVM.LLVMMetadataRef
 import org.bytedeco.llvm.LLVM.LLVMModuleRef
 import org.bytedeco.llvm.LLVM.LLVMValueRef
@@ -50,7 +51,14 @@ class HIRToLLVM(
         for (definition in hir.definitions) {
             lowerDefinition(definition)
         }
-        log.debug("LLVM module: \n" + llvmModule.prettyPrint())
+        if (ctx.options.dumpLLVMModule) {
+            print("LLVM module")
+            print(llvmModule.prettyPrint())
+        }
+
+        if (ctx.options.enableLLVMVerifier) {
+            LLVM.LLVMVerifyModule(llvmModule, LLVM.LLVMAbortProcessAction, null as PointerPointer<*>?)
+        }
         return llvmModule
     }
 
