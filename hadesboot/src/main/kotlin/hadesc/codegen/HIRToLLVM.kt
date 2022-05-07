@@ -47,7 +47,6 @@ class HIRToLLVM(
             llvmModule.addModuleFlag("Dwarf Version", constantInt(i32Ty, 4).asMetadata())
         }
 
-
         for (definition in hir.definitions) {
             lowerDefinition(definition)
         }
@@ -242,8 +241,6 @@ class HIRToLLVM(
         for (basicBlock in definition.basicBlocks) {
             lowerBlock(basicBlock)
         }
-
-        LLVM.LLVMVerifyFunction(fn, LLVM.LLVMPrintMessageAction)
 
         currentHIRFunction = null
         currentFunction = null
