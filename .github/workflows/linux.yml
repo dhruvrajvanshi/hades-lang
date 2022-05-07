@@ -33,6 +33,12 @@ jobs:
     - name: Run stdlib tests
       run: python ./run_stdlib_tests.py
 
+    - name: Install LLVM
+      run: sudo apt install -y llvm-13-dev
+
+    - name: Test Stage 1
+      run: python3 test.py
+      working-directory: ./hades
 
     - name: Archive Test Results
       if: always() # Even on failures
