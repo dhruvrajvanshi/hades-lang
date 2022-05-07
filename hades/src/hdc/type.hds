@@ -1,0 +1,16 @@
+import hdc.collections.vec.{Vec}
+enum Type {
+  Void,
+  Ptr(*Type, Mutability),
+  Function(FnType),
+}
+
+struct FnType {
+  val from: Vec[Type],
+  val to: Type,
+}
+
+enum Mutability {
+  Mut,
+  NotMut,
+}
