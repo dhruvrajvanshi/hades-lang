@@ -9,20 +9,6 @@ import hadesc.logging.logger
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
-sealed interface Options
-data class BuildOptions(
-    val directories: List<Path>,
-    val output: Path,
-    val main: Path,
-    val runtime: Path,
-    val cFlags: List<String>,
-    val debugSymbols: Boolean,
-    val cSources: List<Path>,
-    val dumpLLVMModule: Boolean,
-    val libs: List<String>,
-    val enableHIRVerifier: Boolean,
-) : Options
-
 class HadesCompiler: CliktCommand(name = "hades") {
     private val log = logger()
 
