@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 import os
 import sys
+from typing import List, Optional
 
 HADES_HOME=Path('..').joinpath('hadesboot', 'build', 'install', 'hades')
 
@@ -23,7 +24,7 @@ def main():
         )
     
 
-def compile_hades_source(test_source:str, output:str) -> str | None:
+def compile_hades_source(test_source:str, output:str) -> Optional[str]:
     hades = str(HADES_HOME.joinpath('bin', 'hades.bat' if os.name == 'nt' else 'hades'))
     command = [
         hades,
@@ -42,7 +43,7 @@ def compile_hades_source(test_source:str, output:str) -> str | None:
     return output
     
 
-def collect_test_sources() -> list[str]:
+def collect_test_sources() -> List[str]:
     test_sources = []
     for entry in os.walk(Path('test')):
         dir, _, files = entry
