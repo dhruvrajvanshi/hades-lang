@@ -32,6 +32,7 @@ def compile_hades_source(test_source:str, output:str) -> Optional[str]:
             '--main', test_source,
             '--output', output,
             '--module-path', 'src',
+            '--debug-symbols',
             '-lLLVM-13'
     ]
     print(' '.join(command))
