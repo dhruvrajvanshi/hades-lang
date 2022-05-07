@@ -2,7 +2,7 @@ name: Linux
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, bootstrap-compiler ]
   pull_request:
     branches: [ master ]
 
