@@ -1,0 +1,10 @@
+import hdctest.{ test }
+import hdc.collections.vec.{ new_vec }
+
+def main(): Void {
+
+  test(b"Vector new and free") || {
+    val mut v = new_vec[usize]()
+    v.free()
+  }
+}

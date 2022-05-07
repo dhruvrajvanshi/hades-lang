@@ -1,0 +1,27 @@
+import hades.memory as Mem
+struct Vec[T] {
+  val _buffer: *mut T
+  val _length: usize
+  val _capacity: usize
+}
+
+def new_vec[T](): *mut Vec[T] {
+  val mut ptr = Mem.allocate[Vec[T]](1)
+
+  ptr._buffer = nullptr
+  ptr._length = 0
+  ptr._capacity = 0
+
+  return ptr
+}
+
+extension VecExtensions[T] for Vec[T] {
+  def free(*mut this): Void {
+    if (this._buffer != nullptr) {
+      Mem.free(this._buffer)
+    }
+
+    Mem.free(this)
+  }
+}
+
