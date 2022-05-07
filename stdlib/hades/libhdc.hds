@@ -3,7 +3,7 @@
 import libc.{ FILE }
 
 /// FIXME: NON_PORTABLE
-type CInt = i64
+type CInt = i32
 
 extern def get_stderr(): *mut FILE = _hdc_get_stderr
 extern def get_stdout(): *mut FILE = _hdc_get_stdout
