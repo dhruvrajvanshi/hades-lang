@@ -24,6 +24,13 @@ jobs:
     - name: Test
       run: ./gradlew test
 
+    - name: Build bootstrap compiler
+      run: ./gradlew installDist
+
+    - name: Test Stage 1
+      run: python3 test.py
+      working-directory: ./test
+
     - name: Archive Test Results
       if: always() # Even on failures
       uses: actions/upload-artifact@v1
