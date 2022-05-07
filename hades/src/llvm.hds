@@ -5,5 +5,5 @@
 struct LLVMOpaqueContext {}
 type LLVMContextRef = *mut LLVMOpaqueContext
 
-extern def LLVMContextCreate(): LLVMContextRef
-extern def LLVMContextDispose(): LLVMContextDispose
+extern def LLVMContextCreate(): LLVMContextRef = LLVMContextCreate
+extern def LLVMContextDispose(LLVMContextRef): Void = LLVMContextDispose
