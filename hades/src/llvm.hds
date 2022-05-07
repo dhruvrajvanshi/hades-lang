@@ -1,0 +1,9 @@
+/// Raw bindings for LLVM
+/// Keep this as close to LLVM-C api as possible
+
+
+struct LLVMOpaqueContext {}
+type LLVMContextRef = *mut LLVMOpaqueContext
+
+extern def LLVMContextCreate(): LLVMContextRef
+extern def LLVMContextDispose(): LLVMContextDispose
