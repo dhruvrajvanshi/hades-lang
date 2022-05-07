@@ -1,0 +1,11 @@
+import hdc.io.{ stderr }
+
+def test(name: *u8, fn: || -> Void): Void {
+  stderr()
+    .put_cstr(b"# ")
+    .put_cstr(name)
+    .put_cstr(b" #")
+    .put_cstr(b"\n")
+
+  fn()
+}
