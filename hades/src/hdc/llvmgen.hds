@@ -1,0 +1,19 @@
+import hades.memory as Mem
+import llvm.{ LLVMContextCreate, LLVMContextDispose, LLVMContextRef }
+
+struct LLVMGen {
+  val _llvm_ctx: LLVMContextRef
+}
+
+type LLVMGenRef = *mut LLVMGen
+
+def new_llvm_gen(): LLVMGenRef {
+  return Mem.allocate(1)
+}
+
+extension LLVMGenExtensions for LLVMGen {
+  def free(*mut this): Void {
+    LLVMContextDispose(this._llvm_ctx)
+    Mem.free(this)
+  }
+}
