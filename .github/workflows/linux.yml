@@ -29,7 +29,7 @@ jobs:
 
     - name: Test Stage 1
       run: python3 test.py
-      working-directory: ./test
+      working-directory: ./hades
 
     - name: Archive Test Results
       if: always() # Even on failures
