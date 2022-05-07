@@ -30,7 +30,8 @@ def compile_hades_source(test_source:str, output:str) -> Optional[str]:
         hades,
             '--main', test_source,
             '--output', output,
-            '--module-path', 'src'
+            '--module-path', 'src',
+            '-lLLVM-13'
     ]
     print(' '.join(command))
     env = os.environ.copy()

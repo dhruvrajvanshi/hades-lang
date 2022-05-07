@@ -1,10 +1,14 @@
 import hdc.io.{ stderr }
 import hdc.hir.builder.{ new_hir_builder }
+import hdc.llvmgen.{ new_llvm_gen }
 
 def main(): Void {
   test(b"Hello world") || {
     val builder = new_hir_builder()
     defer builder.free()
+
+    val llvm_gen = new_llvm_gen()
+    defer llvm_gen.free()
   }
 }
 
