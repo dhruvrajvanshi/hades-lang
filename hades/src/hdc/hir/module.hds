@@ -1,0 +1,10 @@
+struct HIRModule {
+}
+
+def new_hir_module(): *mut HIRModule {
+}
+
+extension HIRModuleExtensions for HIRModule {
+  def free(*mut this): Void {
+  }
+}
