@@ -13,7 +13,10 @@ interface HIRCFGVisitor: HIRBlockVisitor {
     var functionDef: HIRDefinition.Function
     var implementationDef: HIRDefinition.Implementation?
     val visitedBlockSet: MutableSet<Name>
+
+    fun beforeRun() {}
     fun run() {
+        beforeRun()
         module.definitions.forEach { def ->
             visitDefinition(def)
         }

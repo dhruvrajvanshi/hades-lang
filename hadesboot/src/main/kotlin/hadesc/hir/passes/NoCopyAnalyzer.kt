@@ -5,6 +5,7 @@ import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.Binder
+import hadesc.ast.Expression
 import hadesc.ast.Identifier
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
@@ -25,6 +26,33 @@ class NoCopyAnalyzer(
     module: HIRModule,
     private val diagnosticReporter: DiagnosticReporter
 ): AbstractHIRCFGVisitor(module) {
+    override fun beforeRun() {
+        for (structDef in module.definitions.filterIsInstance<HIRDefinition.Struct>()) {
+            generateImplicityCopyImpl(structDef)
+        }
+    }
+
+    /**
+     * Implicitly generate copy implementation if all members are copy
+     */
+    private fun generateImplicityCopyImpl(structDef: HIRDefinition.Struct) {
+        if (structDef.typeParams == null) {
+            if (structDef.fields.all { (_, ty) -> isTypeCopyable(ty) }) {
+                module.definitions.add(
+                    HIRDefinition.Implementation(
+                        structDef.location,
+                        traitRequirements = emptyList(),
+                        typeParams = null,
+                        traitName = ctx.qn("hades", "marker", "Copy"),
+                        traitArgs = listOf(structDef.instanceType()),
+                        functions = emptyList(),
+                        typeAliases = emptyMap()
+                    )
+                )
+            }
+        }
+    }
+
     override fun visitStore(statement: HIRStatement.Store) {
         val rhsType = statement.value.type
         verifyIsCopyable(statement.value, rhsType)
@@ -35,6 +63,18 @@ class NoCopyAnalyzer(
         val rhsType = statement.value.type
         verifyIsCopyable(statement.value, rhsType)
         super.visitAssignmentStatement(statement)
+    }
+
+    private fun isTypeCopyable(type: Type): Boolean {
+        return when (type) {
+            is Type.Ptr,
+            is Type.Integral,
+            is Type.Bool,
+            is Type.Size,
+            is Type.FloatingPoint,
+            is Type.Void -> true
+            else -> false
+        }
     }
 
     private fun verifyIsCopyable(node: HasLocation, type: Type) {
