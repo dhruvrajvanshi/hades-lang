@@ -190,10 +190,27 @@ sealed class HIRDefinition: HasLocation {
                     "\n}"
         }
         is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
-        is Implementation -> "implementation ${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
+        is Implementation -> "implementation" +
+                ppTypeParams(typeParams)  +
+             "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
+                ppTraitRequirements(traitRequirements) +
                 "{\n" +
                 functions.joinToString("\n") { it.prettyPrint() }.prependIndent("  ") +
                 "\n}"
         is ExternConst -> "extern const ${name.mangle()}: ${type.prettyPrint()} = $externName"
+    }
+
+}
+private fun ppTraitRequirements(traitRequirements: List<TraitRequirement>): String {
+    if (traitRequirements.isEmpty()) {
+        return ""
+    }
+    return "where " + traitRequirements.joinToString(", ") { it.prettyPrint() }
+}
+private fun ppTypeParams(typeParams: List<HIRTypeParam>?): String {
+    return if (typeParams == null) {
+        " "
+    } else {
+        "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "] "
     }
 }
