@@ -1,0 +1,5 @@
+test/nocopy.hds:6: CanNotCopyNoCopyType
+test/nocopy.hds:7: CanNotCopyNoCopyType
+test/nocopy.hds:10: CanNotCopyNoCopyType
+test/nocopy.hds:12: CanNotCopyNoCopyType
+test/nocopy.hds:13: CanNotCopyNoCopyType

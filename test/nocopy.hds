@@ -1,0 +1,40 @@
+import hades.marker.{ NoCopy }
+
+def main(): Void {
+  val own_ptr = OwnPtr[usize](nullptr)
+
+  val copy = own_ptr // Should show error
+  foo(own_ptr)  // Should show error
+
+  val mut b = Box(OwnPtr[usize](nullptr)) // Should NOT show error
+  b._t = own_ptr // Should show error
+
+  val x = b._t // Should show error
+  foo(b._t)  // Should show error
+
+  val c = Box(returns_own_ptr())
+
+  match ContainsOwnPtr.C(OwnPtr[usize](nullptr)) {
+    C(val o_ptr) -> { // Should show error
+    }
+  }
+}
+def foo(p: OwnPtr[usize]): Void {
+}
+
+def returns_own_ptr(): OwnPtr[usize] {
+    return OwnPtr(nullptr) // should be fine
+}
+
+struct OwnPtr[T] {
+  val _ptr: *mut T
+}
+implementation NoCopy[T] {}
+
+struct Box[T] {
+  val _t: T
+}
+
+enum ContainsOwnPtr[T] {
+    C(OwnPtr[T])
+}
