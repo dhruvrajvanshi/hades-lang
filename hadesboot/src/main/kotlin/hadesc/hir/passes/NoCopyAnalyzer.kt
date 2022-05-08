@@ -5,7 +5,6 @@ import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.Binder
-import hadesc.ast.Expression
 import hadesc.ast.Identifier
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
