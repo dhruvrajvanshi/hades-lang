@@ -1,0 +1,15 @@
+
+/// Empty marker trait that indicates that a given type
+/// can not be copied. This includes storing it in a local
+/// variable (apart from the first assignment) or a struct field, or
+/// passing it to a function as an argument. For non owning uses,
+/// these can be passed by pointer.
+/// These variables can be moved, using the `move` keyword, which
+/// removes them from scope, and the compiler will issue
+/// an error if there is an attempt to use the value after move.
+///
+/// NOTE: There's no alias checking, so the compiler doesn't prevent
+/// you from taking an address of this value, which is the primary
+/// way of passing these values to a function that doesn't need ownership
+/// of this type.
+trait NoCopy[Self] {}
