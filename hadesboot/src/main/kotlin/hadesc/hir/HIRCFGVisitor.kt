@@ -2,15 +2,53 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
+import hadesc.unit
 
 private const val CFG_NOT_ALLOWED_ON_UNLOWERED_DEF = "HIRCFGVisitor cannot be called before lowering to basic blocks"
 /**
  * Visits a HIRFunction definition in control flow order
  */
 interface HIRCFGVisitor: HIRBlockVisitor {
-    val functionDef: HIRDefinition.Function
+    val module: HIRModule
+    var functionDef: HIRDefinition.Function
+    var implementationDef: HIRDefinition.Implementation?
     val visitedBlockSet: MutableSet<Name>
     fun run() {
+        module.definitions.forEach { def ->
+            visitDefinition(def)
+        }
+    }
+
+    fun visitDefinition(definition: HIRDefinition) =
+        when (definition) {
+            is HIRDefinition.Const -> visitConstDefinition(definition)
+            is HIRDefinition.ExternConst -> visitExternConstDefinition(definition)
+            is HIRDefinition.ExternFunction -> visitExternFunctionDefinition(definition)
+            is HIRDefinition.Function -> visitFunctionDefinition(definition)
+            is HIRDefinition.Implementation -> visitImplementationDefinition(definition)
+            is HIRDefinition.Struct -> visitStructDefinition(definition)
+        }
+
+    fun visitStructDefinition(definition: HIRDefinition.Struct) = unit
+
+    fun visitImplementationDefinition(definition: HIRDefinition.Implementation) {
+        implementationDef = definition
+        for (function in definition.functions) {
+            visitFunctionDefinition(function)
+        }
+        implementationDef = null
+    }
+
+    fun visitExternFunctionDefinition(definition: HIRDefinition.ExternFunction) = unit
+
+    fun visitExternConstDefinition(definition: HIRDefinition.ExternConst) = unit
+
+    fun visitConstDefinition(definition: HIRDefinition.Const) {
+        visitExpression(definition.initializer)
+    }
+
+    fun visitFunctionDefinition(definition: HIRDefinition.Function) {
+        functionDef = definition
         functionDef.basicBlocks.firstOrNull()?.let { entryBlock -> visitBlock(entryBlock) }
     }
 
@@ -69,8 +107,9 @@ interface HIRCFGVisitor: HIRBlockVisitor {
     }
 }
 
-class AbstractHIRCFGVisitor(
-    override val functionDef: HIRDefinition.Function
+abstract class AbstractHIRCFGVisitor(
+    override val module: HIRModule
 ): HIRCFGVisitor {
+    override lateinit var functionDef: HIRDefinition.Function
     override val visitedBlockSet: MutableSet<Name> = mutableSetOf()
 }
