@@ -78,7 +78,10 @@ class Checker(val ctx: Context) {
                 error(implDef.traitRef, Diagnostic.Kind.TooManyTypeArgs)
             }
         }
-        implDef.traitArguments.forEach { it.type }
+        implDef.traitArguments.forEach {
+            checkTypeAnnotation(it)
+            it.type
+        }
         implDef.whereClause?.let { checkWhereClause(it) }
 
         val expectedMethods = if (traitDef is Declaration.TraitDef) {
