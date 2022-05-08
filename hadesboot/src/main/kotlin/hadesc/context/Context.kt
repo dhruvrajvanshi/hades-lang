@@ -68,11 +68,11 @@ class Context(
         hirModule = DesugarClosures(this).transformModule(hirModule)
         logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
-        hirModule = Monomorphization(this).transformModule(hirModule)
-        logger().debug("Monomorphization:\n${hirModule.prettyPrint()}")
-
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
         logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
+
+        hirModule = Monomorphization(this).transformModule(hirModule)
+        logger().debug("Monomorphization:\n${hirModule.prettyPrint()}")
 
 
         val llvmModule = HIRToLLVM(this, hirModule).lower()

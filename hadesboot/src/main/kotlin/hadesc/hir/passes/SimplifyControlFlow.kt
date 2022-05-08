@@ -34,15 +34,25 @@ class SimplifyControlFlow(private val ctx: Context) {
 
     private fun visitDefinition(definition: HIRDefinition) =
         when (definition) {
-            is HIRDefinition.Function -> visitFunctionDef(definition)
-            is HIRDefinition.Implementation -> requireUnreachable()
+            is HIRDefinition.Function -> {
+                outputModule.addDefinition(
+                    transformFunctionDef(definition)
+                )
+            }
+            is HIRDefinition.Implementation -> visitImplementationDef(definition)
             is HIRDefinition.ExternConst,
             is HIRDefinition.Const,
             is HIRDefinition.ExternFunction,
             is HIRDefinition.Struct -> outputModule.addDefinition(definition)
         }
 
-    private fun visitFunctionDef(definition: HIRDefinition.Function) {
+    private fun visitImplementationDef(definition: HIRDefinition.Implementation) {
+        outputModule.addDefinition(definition.copy(
+            functions = definition.functions.map { transformFunctionDef(it) }
+        ))
+    }
+
+    private fun transformFunctionDef(definition: HIRDefinition.Function): HIRDefinition.Function {
         val oldFn = currentFunction
         val fn = HIRDefinition.Function(
             definition.location,
@@ -57,8 +67,8 @@ class SimplifyControlFlow(private val ctx: Context) {
                 lowerBlock(block)
             }
         }
-        outputModule.addDefinition(fn)
         currentFunction = oldFn
+        return fn
     }
 
     private fun withinBlock(block: HIRBlock, f: () -> Unit) {
