@@ -29,6 +29,8 @@ class NoCopyAnalyzer(
         for (structDef in module.definitions.filterIsInstance<HIRDefinition.Struct>()) {
             generateImplicityCopyImpl(structDef)
         }
+        print("After auto derivation of Copy")
+        print(module.prettyPrint())
     }
 
     /**
@@ -49,7 +51,35 @@ class NoCopyAnalyzer(
                     )
                 )
             }
+        } else {
+            val requirements = mutableListOf<TraitRequirement>()
+            structDef.fields.forEach { (_, ty) ->
+                if (isTypeCopyable(ty)) {
+                    return@forEach
+                } else {
+                    requirements.add(
+                        TraitRequirement(
+                            traitRef = ctx.qn("hades", "marker", "Copy"),
+                            arguments = listOf(ty)
+                        )
+                    )
+                }
+            }
+            if (requirements.isNotEmpty()) {
+                module.definitions.add(
+                    HIRDefinition.Implementation(
+                        structDef.location,
+                        traitRequirements = requirements,
+                        typeParams = structDef.typeParams,
+                        traitName = ctx.qn("hades", "marker", "Copy"),
+                        traitArgs = listOf(structDef.instanceType(structDef.typeParams.map { Type.ParamRef(it.toBinder()) })),
+                        functions = emptyList(),
+                        typeAliases = emptyMap(),
+                    )
+                )
+            }
         }
+
     }
 
     override fun visitStore(statement: HIRStatement.Store) {
