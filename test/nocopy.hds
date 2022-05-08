@@ -29,7 +29,7 @@ def returns_own_ptr(): OwnPtr[usize] {
 struct OwnPtr[T] {
   val _ptr: *mut T
 }
-implementation NoCopy[T] {}
+implementation[T] NoCopy[OwnPtr[T]] {}
 
 struct Box[T] {
   val _t: T

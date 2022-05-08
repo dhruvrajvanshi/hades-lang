@@ -71,6 +71,13 @@ class Context(
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
         logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
 
+        NoCopyAnalyzer(this, hirModule, diagnosticReporter).run()
+        // NoCopyAnalysis pass can emit new diagnostics that are not detected
+        // at syntax level
+        if (diagnosticReporter.hasErrors) {
+            return
+        }
+
         hirModule = Monomorphization(this).transformModule(hirModule)
         logger().debug("Monomorphization:\n${hirModule.prettyPrint()}")
 
@@ -160,4 +167,8 @@ class Context(
     }
 
     fun enumTagType(): Type = enumTagType
+
+    fun qn(vararg names: String): QualifiedName {
+        return QualifiedName(names.toList().map { makeName(it) })
+    }
 }
