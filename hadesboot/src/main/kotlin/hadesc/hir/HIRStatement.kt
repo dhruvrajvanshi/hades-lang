@@ -2,7 +2,6 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.location.SourceLocation
-import hadesc.parser.op
 import hadesc.types.Type
 import hadesc.types.ptr
 
@@ -17,10 +16,38 @@ sealed interface HIRStatement: HIRNode {
     }
     sealed interface Terminator
 
+    /**
+     * Instructions that can contain nested blocks.
+     * Should not be present after lowering to a Basic block
+     * (SimplifyControlFlow).
+     * After lowering, these statements should be converted to
+     * instructions that jump to block labels, instead of
+     * owning a block themselves.
+     * e.g. jump .some_label,
+     * instead of
+     *  jump {
+     *    ...nested block
+     *  }
+     */
+    sealed interface NestedControlFlow
+
+    /**
+     * Instructions that can do basic block control flow,
+     * i.e. jump to block labels (can never hold blocks themselves).
+     * This and NestedControlFlow combined are the only instructions
+     * that can jump within a function.
+     */
+    sealed interface BasicBlockControlFlow: Terminator
+
+    /**
+     * Simple instructions that can't branch
+     */
+    sealed interface StraightLineInstruction
+
     data class Not(
         override val name: Name,
         val expression: HIRExpression
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         override val location get() = expression.location
     }
 
@@ -34,7 +61,7 @@ sealed interface HIRStatement: HIRNode {
             override val name: Name,
             val isMutable: Boolean,
             val type: Type
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         val pointerType get(): Type =
             type.ptr(isMutable)
     }
@@ -45,13 +72,13 @@ sealed interface HIRStatement: HIRNode {
         override val name: Name,
         val callee: HIROperand,
         val args: List<HIRExpression>
-    ) : HIRStatement, NameBinder
+    ) : HIRStatement, NameBinder, StraightLineInstruction
 
     data class Load(
         override val location: SourceLocation,
         override val name: Name,
         val ptr: HIROperand
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
             require(ptr.type is Type.Ptr)
         }
@@ -69,7 +96,7 @@ sealed interface HIRStatement: HIRNode {
         override val name: Name,
         val toPointerOfType: Type,
         val value: HIRExpression
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         val type: Type
             get() = Type.Ptr(toPointerOfType, isMutable = true)
     }
@@ -80,13 +107,13 @@ sealed interface HIRStatement: HIRNode {
             override val location: SourceLocation,
             val name: Name,
             val value: HIRExpression
-    ) : HIRStatement
+    ) : HIRStatement, StraightLineInstruction
 
     data class Store(
             override val location: SourceLocation,
             val ptr: HIROperand,
             val value: HIRExpression
-    ) : HIRStatement
+    ) : HIRStatement, StraightLineInstruction
 
     @Deprecated("Use basic block structured instructions")
     data class MatchInt(
@@ -94,7 +121,7 @@ sealed interface HIRStatement: HIRNode {
         val value: HIRExpression,
         val arms: List<MatchIntArm>,
         val otherwise: HIRBlock
-    ) : HIRStatement
+    ) : HIRStatement, NestedControlFlow
 
 
     data class GetStructField(
@@ -104,7 +131,7 @@ sealed interface HIRStatement: HIRNode {
         val lhs: HIRExpression,
         val fieldName: Name,
         val index: Int
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
             require(lhs.type !is Type.Ptr) {
                 TODO()
@@ -119,7 +146,7 @@ sealed interface HIRStatement: HIRNode {
         val lhs: HIRExpression,
         val memberName: Name,
         val memberIndex: Int
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
             require(lhs.type is Type.Ptr)
         }
@@ -130,7 +157,7 @@ sealed interface HIRStatement: HIRNode {
         override val name: Name,
         val type: Type,
         val value: HIRExpression,
-    ) : HIRStatement, NameBinder
+    ) : HIRStatement, NameBinder, StraightLineInstruction
 
     /**
      * The basic structure of a while statement is this
@@ -177,7 +204,7 @@ sealed interface HIRStatement: HIRNode {
          */
         val conditionBlock: HIRBlock,
         val body: HIRBlock
-    ) : HIRStatement
+    ) : HIRStatement, NestedControlFlow
 
 
     data class BinOp(
@@ -187,23 +214,19 @@ sealed interface HIRStatement: HIRNode {
         val lhs: HIRExpression,
         val operator: BinaryOperator,
         val rhs: HIRExpression
-    ) : HIRStatement, NameBinder
-
-    override fun prettyPrint(): String {
-        return "${prettyPrintInternal()} // $location"
-    }
+    ) : HIRStatement, NameBinder, StraightLineInstruction
 
     data class SwitchInt(
         override val location: SourceLocation,
         val condition: HIRExpression,
         val cases: List<SwitchIntCase>,
         val otherwise: Name
-    ) : HIRStatement, Terminator
+    ) : HIRStatement, Terminator, BasicBlockControlFlow
 
     data class Jump(
         override val location: SourceLocation,
         val to: Name
-    ): HIRStatement, Terminator
+    ): HIRStatement, Terminator, BasicBlockControlFlow
 
     data class TypeApplication(
         override val location: SourceLocation,
@@ -211,7 +234,7 @@ sealed interface HIRStatement: HIRNode {
         val type: Type,
         val expression: HIROperand,
         val args: List<Type>
-    ) : HIRStatement, NameBinder {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
             require(expression.type is Type.TypeFunction || expression.type is Type.Constructor)
         }
@@ -275,6 +298,11 @@ sealed interface HIRStatement: HIRNode {
             )
         }
     }
+
+    override fun prettyPrint(): String {
+        return "${prettyPrintInternal()} // $location"
+    }
+
 }
 
 data class SwitchIntCase(
