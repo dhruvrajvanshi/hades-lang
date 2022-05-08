@@ -34,6 +34,8 @@ implementation[T] NoCopy[OwnPtr[T]] {}
 struct Box[T] {
   val _t: T
 }
+/// implicit impl should be generated
+/// implementation[T] Copy[Box[T]] where Copy[T]
 
 enum ContainsOwnPtr[T] {
     C(OwnPtr[T])

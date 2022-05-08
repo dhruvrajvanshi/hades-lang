@@ -51,8 +51,8 @@ class NoCopyAnalyzer(
         )
         val traitResolver = TraitResolver(env, TypeAnalyzer())
 
-        if (traitResolver.isTraitImplemented(
-             ctx.qn("hades", "marker", "NoCopy"),
+        if (!traitResolver.isTraitImplemented(
+             ctx.qn("hades", "marker", "Copy"),
             listOf(type)
         )) {
             diagnosticReporter.report(node.location, Diagnostic.Kind.CanNotCopyNoCopyType(type))

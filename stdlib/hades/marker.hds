@@ -27,6 +27,7 @@ implementation Copy[i64] {}
 implementation Copy[usize] {}
 implementation Copy[isize] {}
 implementation Copy[Bool] {}
+implementation Copy[Void] {}
 implementation[T] Copy[*T] {}
 
 /// Marker trait to make a type non copyable
