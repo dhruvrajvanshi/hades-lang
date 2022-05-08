@@ -103,7 +103,7 @@ interface HIRCFGVisitor: HIRBlockVisitor {
         }
 
     fun visitBlockWithLabel(label: Name) {
-        functionDef.findBlock(label)
+        visitBlock(checkNotNull(functionDef.findBlock(label)))
     }
 }
 
@@ -111,5 +111,6 @@ abstract class AbstractHIRCFGVisitor(
     override val module: HIRModule
 ): HIRCFGVisitor {
     override lateinit var functionDef: HIRDefinition.Function
+    override var implementationDef: HIRDefinition.Implementation? = null
     override val visitedBlockSet: MutableSet<Name> = mutableSetOf()
 }
