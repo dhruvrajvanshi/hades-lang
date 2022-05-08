@@ -16,6 +16,10 @@ sealed class HIRDefinition: HasLocation {
         val signature: HIRFunctionSignature,
         val basicBlocks: MutableList<HIRBlock> = mutableListOf(),
     ): HIRDefinition() {
+        fun findBlock(label: Name): HIRBlock? {
+            return basicBlocks.find { it.name == label }
+        }
+
         val params get() = signature.params
         val returnType get() = signature.returnType
         val name get() = signature.name
