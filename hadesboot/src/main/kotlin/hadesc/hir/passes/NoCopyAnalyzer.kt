@@ -1,5 +1,6 @@
 package hadesc.hir.passes
 
+import hadesc.Name
 import hadesc.analysis.TraitClause
 import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
@@ -9,11 +10,7 @@ import hadesc.ast.Identifier
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.diagnostics.DiagnosticReporter
-import hadesc.hir.AbstractHIRCFGVisitor
-import hadesc.hir.HIRDefinition
-import hadesc.hir.HIRModule
-import hadesc.hir.HIRStatement
-import hadesc.location.HasLocation
+import hadesc.hir.*
 import hadesc.types.Type
 
 /**
@@ -25,6 +22,7 @@ class NoCopyAnalyzer(
     module: HIRModule,
     private val diagnosticReporter: DiagnosticReporter
 ): AbstractHIRCFGVisitor(module) {
+    private val isMoved = mutableSetOf<Name>()
     override fun beforeRun() {
         for (structDef in module.definitions.filterIsInstance<HIRDefinition.Struct>()) {
             generateImplicityCopyImpl(structDef)
@@ -38,7 +36,7 @@ class NoCopyAnalyzer(
      */
     private fun generateImplicityCopyImpl(structDef: HIRDefinition.Struct) {
         if (structDef.typeParams == null) {
-            if (structDef.fields.all { (_, ty) -> isTypeCopyable(ty) }) {
+            if (structDef.fields.all { (_, ty) -> isTypeTriviallyCopyable(ty) }) {
                 module.definitions.add(
                     HIRDefinition.Implementation(
                         structDef.location,
@@ -54,7 +52,7 @@ class NoCopyAnalyzer(
         } else {
             val requirements = mutableListOf<TraitRequirement>()
             structDef.fields.forEach { (_, ty) ->
-                if (isTypeCopyable(ty)) {
+                if (isTypeTriviallyCopyable(ty)) {
                     return@forEach
                 } else {
                     requirements.add(
@@ -83,18 +81,20 @@ class NoCopyAnalyzer(
     }
 
     override fun visitStore(statement: HIRStatement.Store) {
-        val rhsType = statement.value.type
-        verifyIsCopyable(statement.value, rhsType)
+        verifyIsCopyable(statement.value)
         super.visitStore(statement)
     }
 
     override fun visitAssignmentStatement(statement: HIRStatement.Assignment) {
-        val rhsType = statement.value.type
-        verifyIsCopyable(statement.value, rhsType)
+        verifyIsCopyable(statement.value)
         super.visitAssignmentStatement(statement)
     }
 
-    private fun isTypeCopyable(type: Type): Boolean {
+    /**
+     * This method returns true for builtin or non-aggregate
+     * types.
+     */
+    private fun isTypeTriviallyCopyable(type: Type): Boolean {
         return when (type) {
             is Type.Ptr,
             is Type.Integral,
@@ -106,7 +106,25 @@ class NoCopyAnalyzer(
         }
     }
 
-    private fun verifyIsCopyable(node: HasLocation, type: Type) {
+    private fun verifyIsCopyable(expr: HIRExpression) {
+        if (expr !is HIRExpression.LocalName) {
+            return
+        }
+        val type = expr.type
+
+        if (!isTypeCopyable(type)) {
+            diagnosticReporter.report(expr.location, Diagnostic.Kind.CanNotCopyNoCopyType(type))
+        }
+    }
+
+    private fun isTypeCopyable(type: Type): Boolean {
+        return makeTraitResolver().isTraitImplemented(
+            ctx.qn("hades", "marker", "Copy"),
+            listOf(type)
+        )
+    }
+
+    private fun makeTraitResolver(): TraitResolver<HIRDefinition.Implementation> {
         val allImpls = module.definitions.filterIsInstance<HIRDefinition.Implementation>()
         // FIXME: HIRFunction doesn't store trait requirements right now.
         //        Pass them in HIRGen and add them to the env
@@ -118,14 +136,7 @@ class NoCopyAnalyzer(
         val env = TraitResolver.Env(
             currentImplClauses + allImplsClauses
         )
-        val traitResolver = TraitResolver(env, TypeAnalyzer())
-
-        if (!traitResolver.isTraitImplemented(
-             ctx.qn("hades", "marker", "Copy"),
-            listOf(type)
-        )) {
-            diagnosticReporter.report(node.location, Diagnostic.Kind.CanNotCopyNoCopyType(type))
-        }
+        return TraitResolver(env, TypeAnalyzer())
     }
 
     private fun TraitRequirement.toClause(): TraitClause<HIRDefinition.Implementation> {
