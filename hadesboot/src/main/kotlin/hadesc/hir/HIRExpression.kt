@@ -15,6 +15,9 @@ import hadesc.types.ptr
 sealed interface HIROperand: HIRExpression
 sealed interface HIRExpression: HIRNode {
     val type: Type
+    sealed interface LocalName {
+        val name: Name
+    }
 
     data class GlobalRef(
             override val location: SourceLocation,
@@ -25,15 +28,15 @@ sealed interface HIRExpression: HIRNode {
     data class ParamRef(
             override val location: SourceLocation,
             override val type: Type,
-            val name: Name,
+            override val name: Name,
             val binder: Binder,
-    ) : HIRExpression, HIROperand
+    ) : HIRExpression, HIROperand, LocalName
 
     data class ValRef(
             override val location: SourceLocation,
             override val type: Type,
-            val name: Name
-    ) : HIRExpression, HIROperand {
+            override val name: Name
+    ) : HIRExpression, HIROperand, LocalName {
         @Deprecated("Temporary method added for refactoring")
         fun asPtr(): LocalRef {
             return HIRExpression.LocalRef(location, type.ptr(), name)
@@ -43,8 +46,8 @@ sealed interface HIRExpression: HIRNode {
     data class LocalRef(
         override val location: SourceLocation,
         override val type: Type,
-        val name: Name
-    ) : HIRExpression, HIROperand
+        override val name: Name
+    ) : HIRExpression, HIROperand, LocalName
 
 
     data class TraitMethodRef(
