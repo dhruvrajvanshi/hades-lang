@@ -131,7 +131,7 @@ internal class HIRGenExpression(
                 check(expression.type is Type.Size)
                 check(expression.args.size == 1)
                 return emitIntegerConvert(
-                    lowerExpression(expression.args[0].expression),
+                    lowerExpression(expression.args[0].expression).asOperand(),
                     expression.type
                 )
             }
@@ -139,7 +139,7 @@ internal class HIRGenExpression(
                 check(expression.type is Type.Ptr)
                 check(expression.args.size == 1)
                 return emitIntegerConvert(
-                    lowerExpression(expression.args[0].expression),
+                    lowerExpression(expression.args[0].expression).asOperand(),
                     expression.type,
                 )
             }

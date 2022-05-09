@@ -48,6 +48,7 @@ internal interface HIRGenFunctionContext: HIRBuilder {
     val scopeStack: HIRGenScopeStack
     val paramToLocal: ParamToLocal
     fun lowerExpression(expression: Expression): HIRExpression
+    fun HIRExpression.asOperand(): HIROperand
     fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean = false,
@@ -796,8 +797,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerAsExpression(expression: Expression.As): HIROperand {
         val type = expression.type
         require(type is Type.Integral || type is Type.Size)
+        return emitIntegerConvert(lowerExpression(expression.lhs).asOperand(), type)
+    }
 
-        return emitIntegerConvert(lowerExpression(expression.lhs), type)
+    override fun HIRExpression.asOperand(): HIROperand {
+        check(this is HIROperand)
+        return this
     }
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {

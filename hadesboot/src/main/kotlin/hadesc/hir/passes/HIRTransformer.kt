@@ -290,7 +290,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             statement.location,
             statement.name,
             type,
-            transformExpression(statement.value)
+            transformOperand(statement.value)
         )
     }
 

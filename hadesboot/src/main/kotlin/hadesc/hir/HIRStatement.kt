@@ -156,7 +156,7 @@ sealed interface HIRStatement: HIRNode {
         override val location: SourceLocation,
         override val name: Name,
         val type: Type,
-        val value: HIRExpression,
+        val value: HIROperand
     ) : HIRStatement, NameBinder, StraightLineInstruction
 
     /**

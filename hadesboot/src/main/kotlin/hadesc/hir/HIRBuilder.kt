@@ -207,7 +207,7 @@ fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
     requireNotNull(currentStatements).addAll(statements)
 }
 
-fun HIRBuilder.emitIntegerConvert(expression: HIRExpression, to: Type): HIROperand {
+fun HIRBuilder.emitIntegerConvert(expression: HIROperand, to: Type): HIROperand {
     val s = emit(HIRStatement.IntegerConvert(
         expression.location,
         namingCtx.makeUniqueName(),
