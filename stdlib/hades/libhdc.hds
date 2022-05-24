@@ -1,8 +1,8 @@
 /// Compiler provided runtime library, used to wrap low level
 /// functions provided by the platform's libc, or the OS itself.
-
+import libc.{ File }
 /// Opaque file handle returned by libc
-struct FILE {}
+type FILE = File
 
 /// FIXME: NON_PORTABLE
 type CInt = i64
