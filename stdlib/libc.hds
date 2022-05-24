@@ -76,5 +76,6 @@ extern def rewind(*File): Void = rewind
 extern def feof(*File): int = feof
 extern def ferror(*File): int = ferror
 extern def fileno(*File): int = fileno
+extern def abort(): Void = abort
 
 
