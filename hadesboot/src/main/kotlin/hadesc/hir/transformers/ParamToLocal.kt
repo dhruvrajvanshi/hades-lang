@@ -36,7 +36,8 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
 
     fun declareParamCopies(params: List<HIRParam>): List<HIRStatement> =
         makeList {
-            params.forEach { addAll(declareParamCopy(it)) }
+            currentStatements = this
+            params.forEach { declareParamCopy(it) }
         }
 
     fun fixBinder(it: Binder): Binder =
@@ -57,11 +58,11 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
                 checkNotNull(paramCopies[expression.binder.taggedLocation()])
             )
 
-    private fun declareParamCopy(param: HIRParam) = makeList<HIRStatement> {
+    private fun declareParamCopy(param: HIRParam) {
         val copyName = namingCtx.makeName("${param.name.text}\$copy")
         check(paramCopies[param.binder.taggedLocation()] == null) {"${param.location}: Duplicate param: ${param.name.text}"}
         paramCopies[param.binder.taggedLocation()] = copyName
-        add(
+        emit(
             HIRStatement.Alloca(
                 param.location,
                 name = copyName,
@@ -69,7 +70,7 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
                 type = param.type
             )
         )
-        add(
+        emit(
             HIRStatement.Assignment(
                 param.location,
                 name = copyName,
