@@ -2,11 +2,8 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.Name
-import hadesc.ast.Declaration
-import hadesc.ast.QualifiedPath
-import hadesc.ast.SourceFile
 import hadesc.analysis.Analyzer
-import hadesc.ast.Expression
+import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
@@ -91,6 +88,14 @@ class Context(
             Parser(this, moduleName, path).parseSourceFile()
         }
 
+    fun program(): Program {
+        val sourceFiles = buildList {
+            forEachSourceFile {
+                add(it)
+            }
+        }
+        return Program(sourceFiles)
+    }
 
     fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
         return resolveSourceFile(qualifiedPathToName(modulePath))
