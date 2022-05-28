@@ -3,10 +3,7 @@ package hadesc.hir.transformers
 import hadesc.Name
 import hadesc.ast.Binder
 import hadesc.context.Context
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIROperand
-import hadesc.hir.HIRParam
-import hadesc.hir.HIRStatement
+import hadesc.hir.*
 import hadesc.hir.passes.AbstractHIRTransformer
 import hadesc.location.TaggedLocation
 import hadesc.location.taggedLocation
@@ -37,7 +34,10 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
     fun declareParamCopies(params: List<HIRParam>): List<HIRStatement> =
         makeList {
             currentStatements = this
-            params.forEach { declareParamCopy(it) }
+            params.forEach {
+                currentLocation = it.location
+                declareParamCopy(it)
+            }
         }
 
     fun fixBinder(it: Binder): Binder =
@@ -62,24 +62,18 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
         val copyName = namingCtx.makeName("${param.name.text}\$copy")
         check(paramCopies[param.binder.taggedLocation()] == null) {"${param.location}: Duplicate param: ${param.name.text}"}
         paramCopies[param.binder.taggedLocation()] = copyName
-        emit(
-            HIRStatement.Alloca(
-                param.location,
-                name = copyName,
-                isMutable = false,
-                type = param.type
-            )
+        val alloca = emitAlloca(
+            name = copyName,
+            type = param.type
         )
-        emit(
-            HIRStatement.Assignment(
+
+        emitStore(
+            alloca.mutPtr(),
+            HIRExpression.ParamRef(
                 param.location,
-                name = copyName,
-                value = HIRExpression.ParamRef(
-                    param.location,
-                    param.type,
-                    param.name,
-                    param.binder,
-                )
+                param.type,
+                param.name,
+                param.binder,
             )
         )
     }
