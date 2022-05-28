@@ -37,7 +37,7 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(15))
+        languageVersion.set(JavaLanguageVersion.of(18))
     }
 }
 
@@ -48,7 +48,7 @@ tasks.test {
 }
 
 tasks.compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "18"
     kotlinOptions {
         freeCompilerArgs = listOf("-Xinline-classes")
     }
