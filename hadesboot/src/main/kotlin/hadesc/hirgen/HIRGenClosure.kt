@@ -38,9 +38,13 @@ internal class HIRGenClosure(
 
         lowerClosureNew(expression)
 
-        val header = paramToLocal.declareParamCopies(params)
         val body = when (expression.body) {
-            is ClosureBody.Block -> lowerBlock(expression.body.block, header = header)
+            is ClosureBody.Block -> lowerBlock(
+                expression.body.block,
+                before = {
+                    emitAll(paramToLocal.declareParamCopies(params))
+                }
+            )
             is ClosureBody.Expression -> lowerBlock(
                 Block(expression.body.location, null,  listOf(
                 Block.Member.Statement(
@@ -49,7 +53,10 @@ internal class HIRGenClosure(
                         expression.body.expression
                     )
                 )
-            )), header = header)
+            )), before = {
+
+                emitAll(paramToLocal.declareParamCopies(params))
+            })
         }
         val captureData = ctx.analyzer.getClosureCaptures(expression)
         val captures = captureData
