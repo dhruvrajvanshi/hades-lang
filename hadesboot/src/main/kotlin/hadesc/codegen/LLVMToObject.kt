@@ -14,7 +14,7 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteExisting
 
 class LLVMToObject(private val options: BuildOptions, private val llvmModule: LLVMModuleRef) {
-    private val log = logger()
+    private val log = logger(LLVMToObject::class.java)
     private val objectFilePath get() = options.output.toString() + if (shouldUseMicrosoftCL) ".obj" else ".o"
 
     private val cc = when {

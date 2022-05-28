@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 
 class HadesTestSuite {
+    private val log = logger(HadesTestSuite::class.java)
 
     @TestFactory
     fun `should run test suite`(): List<DynamicNode> {
@@ -41,7 +42,7 @@ class HadesTestSuite {
                     file.nameWithoutExtension + ".c"
                 ).toFile()
 
-                logger().debug("Running suite file {}", file)
+                log.debug("Running suite file {}", file)
 
                 val outputPath = Paths.get(
                     outputDirectory.toString(),

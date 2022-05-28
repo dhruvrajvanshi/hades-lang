@@ -37,7 +37,7 @@ class HIRToLLVM(
     private val localValues = mutableMapOf<Name, Value>()
     private val params = mutableMapOf<Name, Value>()
 
-    private val log = logger()
+    private val log = logger(HIRToLLVM::class.java)
     private val i32Ty = intType(32, llvmCtx)
     private val metadataTy = LLVM.LLVMMetadataTypeInContext(llvmCtx)
     private val errorStack = Stack<HIRStatement>()

@@ -12,7 +12,6 @@ inline fun <reified Ctx, T> Ctx.profile(message: String, block: () -> T): T {
     val start = System.currentTimeMillis()
     val result = block()
     val miliseconds = System.currentTimeMillis() - start
-    logger().debug("$message took $miliseconds ms")
     return result
 }
 

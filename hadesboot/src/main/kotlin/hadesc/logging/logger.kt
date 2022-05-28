@@ -5,4 +5,4 @@ import org.slf4j.LoggerFactory
 
 
 @Suppress("unused") // Receiver T isn't actually unused
-inline fun <reified T> T.logger(): Logger = LoggerFactory.getLogger(T::class.java)
+fun <T> T.logger(klass: Class<T>): Logger = LoggerFactory.getLogger(klass)

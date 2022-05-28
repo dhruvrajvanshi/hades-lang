@@ -10,7 +10,7 @@ import java.nio.file.Path
 import kotlin.system.exitProcess
 
 class HadesCompiler: CliktCommand(name = "hades") {
-    private val log = logger()
+    private val log = logger(HadesCompiler::class.java)
 
     private lateinit var options: Options
     private val directories by option("--module-path",

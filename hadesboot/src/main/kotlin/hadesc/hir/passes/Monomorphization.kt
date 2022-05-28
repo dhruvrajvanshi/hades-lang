@@ -18,6 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue
 class Monomorphization(
         override val namingCtx: NamingContext
 ): AbstractHIRTransformer() {
+    private val log = logger(Monomorphization::class.java)
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Substitution? = null
@@ -33,7 +34,7 @@ class Monomorphization(
             addSpecialization(newModule, specializationQueue.take())
         }
         newModule.definitions.addAll(newDefinitions)
-        logger().debug("HIR after monomorphization:\n${newModule.prettyPrint()}")
+        log.debug("HIR after monomorphization:\n${newModule.prettyPrint()}")
         return newModule
     }
 

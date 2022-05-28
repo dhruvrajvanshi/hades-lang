@@ -72,6 +72,7 @@ class HIRGenScopeStack {
     }
 }
 class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
+    private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()
     override val namingCtx: NamingContext get() = ctx
     override val paramToLocal = ParamToLocal(ctx)
@@ -121,13 +122,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             }
             declarations.addAll(externDefs.values)
             val result = HIRModule(declarations)
-            logger().debug("HIRGen output")
-            logger().debug(result.prettyPrint())
+            log.debug("HIRGen output")
+            log.debug(result.prettyPrint())
             return result
         } catch (e: Error) {
-            logger().error("Error while compiling module", e)
-            logger().debug("Generated sources:\n${declarations.joinToString("\n\n") { it.prettyPrint() }}")
-            logger().debug("current statements:\n${currentStatements?.joinToString("\n") { it.prettyPrint() }}")
+            log.error("Error while compiling module", e)
+            log.debug("Generated sources:\n${declarations.joinToString("\n\n") { it.prettyPrint() }}")
+            log.debug("current statements:\n${currentStatements?.joinToString("\n") { it.prettyPrint() }}")
             throw e
         }
     }

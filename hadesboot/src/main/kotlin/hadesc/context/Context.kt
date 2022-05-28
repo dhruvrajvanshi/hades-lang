@@ -37,6 +37,7 @@ interface GlobalConstantContext {
 class Context(
     val options: BuildOptions
 ): ASTContext, NamingContext, GlobalConstantContext {
+    private val log = logger(Context::class.java)
     val analyzer = Analyzer(this)
     val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
@@ -66,13 +67,13 @@ class Context(
         }
 
         hirModule = DesugarClosures(this).transformModule(hirModule)
-        logger().debug("Desugar closures:\n${hirModule.prettyPrint()}")
+        log.debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
-        logger().debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
+        log.debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
 
         hirModule = Monomorphization(this).transformModule(hirModule)
-        logger().debug("Monomorphization:\n${hirModule.prettyPrint()}")
+        log.debug("Monomorphization:\n${hirModule.prettyPrint()}")
 
 
         val llvmModule = HIRToLLVM(this, hirModule).lower()

@@ -19,6 +19,7 @@ import libhades.collections.Stack
 import java.nio.file.Path
 
 class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransformer() {
+    private val log = logger(DesugarClosures::class.java)
     private val definitions = currentModule.definitions
 
     private val closureCtxFieldName = namingCtx.makeName("ctx")
@@ -77,7 +78,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
     }
 
     override fun transformModule(oldModule: HIRModule): HIRModule {
-        logger().debug("Before closure desugaring: ${oldModule.prettyPrint()}")
+        log.debug("Before closure desugaring: ${oldModule.prettyPrint()}")
         for (definition in oldModule.definitions) {
             definitions.addAll(transformDefinition(definition))
         }
