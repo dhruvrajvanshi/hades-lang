@@ -4,7 +4,7 @@ import hadesc.Name
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
-sealed class Declaration : HasLocation {
+sealed interface Declaration : HasLocation {
     /**
      * Location of the first few tokens for error reporting
      * Useful for larger declarations where we wan't to report
@@ -15,11 +15,11 @@ sealed class Declaration : HasLocation {
      */
     open val startLoc get() = location
 
-    data class Error(override val location: SourceLocation) : Declaration()
+    data class Error(override val location: SourceLocation) : Declaration
     data class ImportAs(
         val modulePath: QualifiedPath,
         val asName: Binder
-    ) : Declaration() {
+    ) : Declaration {
         override val location: SourceLocation
             get() = SourceLocation.between(modulePath, asName)
 
@@ -30,14 +30,14 @@ sealed class Declaration : HasLocation {
         override val location: SourceLocation,
         val modulePath: QualifiedPath,
         val names: List<Binder>,
-    ) : Declaration()
+    ) : Declaration
 
     data class FunctionDef(
         override val location: SourceLocation,
         val externName: Identifier?,
         val signature: FunctionSignature,
         val body: Block
-    ) : Declaration(), ScopeTree {
+    ) : Declaration, ScopeTree {
         val name get() = signature.name
         val typeParams get() = signature.typeParams
         val params get() = signature.params
@@ -50,7 +50,7 @@ sealed class Declaration : HasLocation {
         val name: Binder,
         val annotation: TypeAnnotation?,
         val initializer: Expression
-    ) : Declaration() {
+    ) : Declaration {
         override val startLoc: SourceLocation
             get() = name.location
     }
@@ -61,7 +61,7 @@ sealed class Declaration : HasLocation {
         val paramTypes: List<TypeAnnotation>,
         val returnType: TypeAnnotation,
         val externName: Identifier
-    ) : Declaration() {
+    ) : Declaration {
         override val startLoc: SourceLocation
             get() = binder.location
     }
@@ -71,7 +71,7 @@ sealed class Declaration : HasLocation {
         val name: Binder,
         val type: TypeAnnotation,
         val externName: Identifier,
-    ) : Declaration()
+    ) : Declaration
 
     data class Struct(
         override val location: SourceLocation,
@@ -79,7 +79,7 @@ sealed class Declaration : HasLocation {
         val binder: Binder,
         val typeParams: List<TypeParam>? = null,
         val members: List<Member>
-    ) : Declaration(), ScopeTree {
+    ) : Declaration, ScopeTree {
         override val startLoc: SourceLocation
             get() = binder.location
 
@@ -97,7 +97,7 @@ sealed class Declaration : HasLocation {
             val name: Binder,
             val typeParams: List<TypeParam>?,
             val rhs: TypeAnnotation
-    ) : Declaration(), ScopeTree
+    ) : Declaration, ScopeTree
 
     data class ExtensionDef(
         override val location: SourceLocation,
@@ -106,7 +106,7 @@ sealed class Declaration : HasLocation {
         val forType: TypeAnnotation,
         val whereClause: WhereClause?,
         val declarations: List<Declaration>,
-    ) : Declaration(), ScopeTree {
+    ) : Declaration, ScopeTree {
         val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
     }
 
@@ -115,7 +115,7 @@ sealed class Declaration : HasLocation {
             val name: Binder,
             val params: List<TypeParam>,
             val members: List<TraitMember>
-    ) : Declaration(), ScopeTree {
+    ) : Declaration, ScopeTree {
 
         val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
 
@@ -146,7 +146,7 @@ sealed class Declaration : HasLocation {
             val traitArguments: List<TypeAnnotation>,
             val whereClause: WhereClause?,
             val body: List<Declaration>,
-    ) : Declaration(), ScopeTree
+    ) : Declaration, ScopeTree
 
     data class Enum(
         override val location: SourceLocation,
@@ -154,7 +154,7 @@ sealed class Declaration : HasLocation {
         val name: Binder,
         val typeParams: List<TypeParam>?,
         val cases: List<Case>,
-    ): Declaration(), ScopeTree {
+    ): Declaration, ScopeTree {
         fun getCase(name: Name): Pair<Case, Int>? {
             var result: Pair<Case, Int>? = null
             cases.forEachIndexed { index, case ->
