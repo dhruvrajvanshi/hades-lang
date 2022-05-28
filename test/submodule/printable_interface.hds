@@ -9,3 +9,7 @@ implementation Printable[Int] {
 trait Printable[Self] {
     def print(self: Self): Void;
 }
+
+def print[T](self: T): Void where Printable[Self] {
+  Printable[T].print(self);
+}

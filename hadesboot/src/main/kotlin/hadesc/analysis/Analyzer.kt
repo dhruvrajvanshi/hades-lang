@@ -1768,9 +1768,11 @@ class Analyzer(
 
 
             override fun visitExpression(expression: Expression) {
-                val type = reduceGenericInstances(typeOfExpression(expression))
-
                 super.visitExpression(expression)
+                if (!isTypedExpression(expression)) {
+                    return
+                }
+                val type = reduceGenericInstances(typeOfExpression(expression))
                 val typeArgs = getTypeArgs(expression)
                 if (type is Type.TypeFunction && typeArgs != null) {
                     val subst = type.params.zip(typeArgs).toSubstitution()
@@ -1818,6 +1820,84 @@ class Analyzer(
             types
         )
     }
+
+    /**
+     * Returns true if the given expression has a type.
+     * Not every syntactic expression has an actual type,
+     * some of them need a property access to become a real expression
+     * For example,
+     *
+     * enum E { X }
+     * here, `E` is not a typed expression, even though it can occur at the LHS
+     * of a property expression to become a typed expression (E.X)
+     */
+    private fun isTypedExpression(expression: Expression): Boolean {
+        return when (expression) {
+            is Expression.Var -> {
+                when (ctx.resolver.resolve(expression.name)) {
+                    is Binding.Enum -> false
+                    null -> false
+                    else -> true
+                }
+            }
+            else -> {
+                !(isModuleRef(expression) || isTraitRef(expression) || isTraitImplRef(expression))
+            }
+        }
+    }
+
+    /**
+     * Returns true if the given expression refers to a trait implementation
+     * (note that trait implementation method reference returns false)
+     * For example, isTraitRef(SomeTrait[usizse]) -> true, isTraitRef(SomeTrait[usize].foo) -> false
+     */
+    private fun isTraitImplRef(expression: Expression): Boolean {
+        return when (expression) {
+            is Expression.TypeApplication -> {
+                isTraitRef(expression.lhs)
+            }
+            else -> false
+        }
+    }
+
+    /**
+     * Returns true if given expression refers to a trait
+     * e.g.
+     * // module Foo
+     * trait SomeTrait[Self] { ... }
+     *
+     * isTraitRef(SomeTrait) -> true
+     * isTraitRef(Foo.SomeTrait) -> true
+     */
+    private fun isTraitRef(expression: Expression): Boolean {
+        return when (expression) {
+            is Expression.Var -> {
+                ctx.resolver.resolveTraitDef(expression.name) != null
+            }
+            is Expression.Property -> {
+                // if lhs is a module ref, then
+                // it lhs.SomeTrait can be a trait ref.
+                // Otherwise, it can't be
+                val moduleSourceFile = resolveModuleRef(expression.lhs) ?: return false
+                moduleSourceFile.declarations.any {
+                    it is Declaration.TraitDef
+                            && it.name.name == expression.property.name
+                }
+            }
+            else -> false
+        }
+    }
+
+    private fun isModuleRef(expression: Expression): Boolean =
+        resolveModuleRef(expression) != null
+
+    private fun resolveModuleRef(expression: Expression): SourceFile? = when (expression) {
+        is Expression.Var -> {
+            ctx.resolver.resolveModuleAlias(expression.name)
+        }
+        else -> null
+    }
+
 
     fun asTraitRequirement(type: TypeAnnotation): TraitRequirement? = when(type) {
         is TypeAnnotation.Application -> {
