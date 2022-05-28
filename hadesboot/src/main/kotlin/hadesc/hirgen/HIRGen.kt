@@ -52,7 +52,6 @@ internal interface HIRGenFunctionContext: HIRBuilder {
     fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean = false,
-        header: List<HIRStatement> = emptyList(),
         before: HIRBuilder.() -> Unit = {},
         after: HIRBuilder.() -> Unit = {}
     ): HIRBlock
@@ -354,11 +353,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val returnType = lowerTypeAnnotation(declaration.signature.returnType)
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
-        val header = paramToLocal.declareParamCopies(signature.params)
         val body = lowerBlock(
             declaration.body,
             addReturnVoid,
-            header,
+            before = {
+                 emitAll(paramToLocal.declareParamCopies(signature.params))
+            },
         ).copy(name = ctx.makeName("entry"))
         HIRDefinition.Function(
                 location = declaration.location,
@@ -411,7 +411,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean,
-        header: List<HIRStatement>,
         before: HIRBuilder.() -> Unit,
         after: HIRBuilder.() -> Unit,
     ): HIRBlock = scoped {
@@ -420,7 +419,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         buildBlock(body.location) {
             deferStack.push(mutableListOf())
             before()
-            header.forEach { emit(it) }
             for (member in body.members) {
                 lowerBlockMember(member)
             }
