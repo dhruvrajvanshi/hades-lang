@@ -48,7 +48,7 @@ tasks.test {
 }
 
 tasks.compileKotlin {
-    kotlinOptions.jvmTarget = "18"
+    kotlinOptions.jvmTarget = "17"
     kotlinOptions {
         freeCompilerArgs = listOf("-Xinline-classes")
     }
