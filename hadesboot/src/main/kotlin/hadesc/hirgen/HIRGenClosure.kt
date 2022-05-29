@@ -264,9 +264,9 @@ internal class HIRGenClosure(
     private val closureFunctionPtrName = ctx.makeName("fn")
     private val closureStruct by lazy {
         val location = SourceLocation(
-            file = SourcePath(Path.of("builtin.Closure")),
-            start = Position(0, 0),
-            stop = Position(0, 0)
+            SourcePath(Path.of("builtin.Closure")),
+            Position(0, 0),
+            Position(0, 0)
         )
         val structName = namingCtx.makeName("\$builtin.Closure")
         val typeParamName = namingCtx.makeName("T")

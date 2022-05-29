@@ -30,9 +30,9 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
     private val structDefForClosureWithResult by lazy {
         val location = SourceLocation(
-            file = SourcePath(Path.of("builtin.ClosureWithResult")),
-            start = Position(0, 0),
-            stop = Position(0, 0)
+            SourcePath(Path.of("builtin.ClosureWithResult")),
+            Position(0, 0),
+            Position(0, 0)
         )
         val structName = namingCtx.makeName("\$builtin.ClosureWithResult")
         val typeParamName = namingCtx.makeName("T")
@@ -56,9 +56,9 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
     }
     private val structDefForClosureWithoutResult by lazy {
         val location = SourceLocation(
-            file = SourcePath(Path.of("builtin.ClosureWithoutResult")),
-            start = Position(0, 0),
-            stop = Position(0, 0)
+            SourcePath(Path.of("builtin.ClosureWithoutResult")),
+            Position(0, 0),
+            Position(0, 0)
         )
         val structName = namingCtx.makeName("\$builtin.ClosureWithoutResult")
         val def = HIRDefinition.Struct(

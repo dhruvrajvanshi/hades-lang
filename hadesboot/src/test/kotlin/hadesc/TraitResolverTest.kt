@@ -86,9 +86,9 @@ class TraitResolverTest {
         currentColumn++
         return Type.Param(Binder(
                 Identifier(SourceLocation(
-                        file = SourcePath(Path.of("test.hds")),
-                        start = Position(line, column),
-                        stop = Position(line, column)
+                        SourcePath(Path.of("test.hds")),
+                        Position(line, column),
+                        Position(line, column)
                 ),  Name(name))
         ))
     }

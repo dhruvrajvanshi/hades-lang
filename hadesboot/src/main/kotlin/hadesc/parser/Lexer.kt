@@ -282,8 +282,8 @@ class Lexer(private val file: SourcePath) {
             kind,
             location = SourceLocation(
                 file,
-                start = state.startPosition(),
-                stop = state.stopPosition()
+                state.startPosition(),
+                state.stopPosition()
             ),
             text = lexeme()
         )

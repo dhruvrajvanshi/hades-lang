@@ -366,7 +366,7 @@ class Resolver(private val ctx: Context) {
         val scopes = sourceFileScopes
             .getOrDefault(node.location.file, emptyList())
             .sortedByDescending { it.location }
-            .filter { it.location contains node }
+            .filter { it.location.contains(node) }
 
         return ScopeStack(scopes)
     }
