@@ -8,20 +8,20 @@ import hadesc.hir.HIRTypeParam
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
-sealed class Type {
-    data class Error(val location: SourceLocation) : Type()
-    object Void : Type()
-    object Bool : Type()
-    data class Integral(val size: Int, val isSigned: Boolean) : Type()
-    data class FloatingPoint(val size: Int) : Type() {
+sealed interface Type {
+    data class Error(val location: SourceLocation) : Type
+    object Void : Type
+    object Bool : Type
+    data class Integral(val size: Int, val isSigned: Boolean) : Type
+    data class FloatingPoint(val size: Int) : Type {
         init {
             require(size == 16 || size == 32 || size == 64) {
                 "Floating type of $size is not allowed"
             }
         }
     }
-    data class Size(val isSigned: Boolean) : Type()
-    data class Ptr(val to: Type, val isMutable: Boolean) : Type()
+    data class Size(val isSigned: Boolean) : Type
+    data class Ptr(val to: Type, val isMutable: Boolean) : Type
     data class Param(val binder: Binder) {
         fun prettyPrint(): String {
             return binder.identifier.name.text
@@ -34,26 +34,26 @@ sealed class Type {
             val from: List<Type>,
             val to: Type,
             val traitRequirements: List<TraitRequirement>? = null,
-    ) : Type()
+    ) : Type
 
-    data class Constructor(val name: QualifiedName) : Type()
+    data class Constructor(val name: QualifiedName) : Type
 
-    data class ParamRef(val name: Binder) : Type()
+    data class ParamRef(val name: Binder) : Type
 
-    data class TypeFunction(val params: List<Param>, val body: Type): Type()
+    data class TypeFunction(val params: List<Param>, val body: Type): Type
 
     data class GenericInstance(
         val originalName: Name,
         val location: SourceLocation,
         val id: Long
-    ) : Type()
+    ) : Type
 
-    data class Application(val callee: Type, val args: List<Type>) : Type()
-    data class UntaggedUnion(val members: List<Type>) : Type()
+    data class Application(val callee: Type, val args: List<Type>) : Type
+    data class UntaggedUnion(val members: List<Type>) : Type
 
-    data class AssociatedTypeRef(val binder: Binder) : Type()
+    data class AssociatedTypeRef(val binder: Binder) : Type
 
-    data class Select(val traitName: QualifiedName, val traitArgs: List<Type>, val associatedTypeName: Name) : Type()
+    data class Select(val traitName: QualifiedName, val traitArgs: List<Type>, val associatedTypeName: Name) : Type
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
@@ -127,10 +127,6 @@ sealed class Type {
                 traitArgs = traitArgs.map { it.recurse() }
             )
         }
-    }
-
-    override fun toString(): String {
-        return prettyPrint()
     }
 
     fun typeArgs(): List<Type> = when(this) {
