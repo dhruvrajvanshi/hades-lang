@@ -37,7 +37,7 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(18))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
@@ -54,7 +54,7 @@ tasks.compileKotlin {
     }
 }
 tasks.compileTestKotlin {
-    kotlinOptions.jvmTarget = "15"
+    kotlinOptions.jvmTarget = "17"
 }
 
 
