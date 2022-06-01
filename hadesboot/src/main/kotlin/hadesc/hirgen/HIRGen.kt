@@ -52,8 +52,9 @@ internal interface HIRGenFunctionContext: HIRBuilder {
     fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean = false,
+        into: HIRBlock = HIRBlock(currentLocation, namingCtx.makeUniqueName(), mutableListOf()),
         before: HIRBuilder.() -> Unit = {},
-        after: HIRBuilder.() -> Unit = {}
+        after: HIRBuilder.() -> Unit = {},
     ): HIRBlock
 }
 
@@ -411,12 +412,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override fun lowerBlock(
         body: Block,
         addReturnVoid: Boolean,
+        into: HIRBlock,
         before: HIRBuilder.() -> Unit,
         after: HIRBuilder.() -> Unit,
     ): HIRBlock = scoped {
         scopeStack.push(body)
         defer { check(scopeStack.pop() === body) }
-        buildBlock(body.location) {
+        buildBlock(body.location, into = into) {
             deferStack.push(mutableListOf())
             before()
             for (member in body.members) {
