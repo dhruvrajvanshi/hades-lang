@@ -330,6 +330,7 @@ class HIRToLLVM(
             is HIRStatement.PointerCast -> lowerPointerCast(statement)
             is HIRStatement.TypeApplication -> requireUnreachable()
             is HIRStatement.BinOp -> lowerBinOp(statement)
+            is HIRStatement.AllocateClosure -> requireUnreachable()
         }
 
         if (value != null) {
