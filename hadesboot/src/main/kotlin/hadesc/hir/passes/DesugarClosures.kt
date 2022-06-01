@@ -94,7 +94,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return super.transformLocalRef(expression)
     }
 
-    override fun transformInvokeClosure(expression: InvokeClosure): HIRExpression {
+    override fun transformInvokeClosure(expression: HIRExpression.InvokeClosure): HIRExpression {
         val closureRef = transformExpression(expression.closure)
         return emitCall(
             expression.type,

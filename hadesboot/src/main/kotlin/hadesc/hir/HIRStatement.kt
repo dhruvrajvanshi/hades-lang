@@ -164,8 +164,16 @@ sealed interface HIRStatement: HIRNode {
     data class AllocateClosure(
         override val location: SourceLocation,
         override val name: Name,
-        val captures: List<Name>,
-        val function: QualifiedName,
+        val captures: List<HIROperand>,
+        val function: HIROperand,
+    ): HIRStatement, NameBinder, StraightLineInstruction
+
+    data class InvokeClosure(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val closureRef: HIROperand,
+        val args: List<HIROperand>,
     ): HIRStatement, NameBinder, StraightLineInstruction
 
     /**
@@ -282,8 +290,10 @@ sealed interface HIRStatement: HIRNode {
             "%${name.text}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()}, ${rhs.prettyPrint()}"
         is AllocateClosure ->
             "%${name.text} = allocate closure " +
-                    captures.joinToString(", ") { it.text } +
-                    ", ${function.mangle()}"
+                    captures.joinToString(", ") { it.prettyPrint() } +
+                    ", ${function.prettyPrint()}"
+        is InvokeClosure -> "%${name.text}: ${type.prettyPrint()} = invoke closure " +
+                "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
     }
 
     companion object {
