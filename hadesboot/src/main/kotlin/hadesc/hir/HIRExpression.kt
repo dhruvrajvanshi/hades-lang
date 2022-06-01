@@ -80,7 +80,7 @@ sealed interface HIRExpression: HIRNode {
         is ValRef -> "%${name.text}"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
-        is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint()}"
+        is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint().prependIndent("  ")}"
         is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
         is HIRConstant.ByteString -> "b\"" + String(bytes)
             .replace("\"", "\"\"")
