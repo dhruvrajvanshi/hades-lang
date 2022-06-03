@@ -808,10 +808,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
-        return when (expression) {
-            is HIRExpression.ParamRef -> paramToLocal.fixParamRef(expression)
-            else -> expression
-        }
+        return expression
     }
 
     private fun lowerAsExpression(expression: Expression.As): HIROperand {
