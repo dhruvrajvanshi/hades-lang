@@ -164,8 +164,9 @@ sealed interface HIRStatement: HIRNode {
     data class AllocateClosure(
         override val location: SourceLocation,
         override val name: Name,
-        val captures: List<HIROperand>,
+        val type: Type.Function,
         val function: HIROperand,
+        val captures: List<HIROperand>,
     ): HIRStatement, NameBinder, StraightLineInstruction
 
     data class InvokeClosure(

@@ -66,6 +66,14 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRStatement.AllocateClosure.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
     fun HIRStatement.TypeApplication.result(): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(
             currentLocation,
@@ -273,7 +281,9 @@ fun HIRBuilder.emitStore(ptr: HIROperand, value: HIRExpression) {
             source = value.type,
             destination = ptrType.to
         )
-    )
+    ) {
+        "${value.type.prettyPrint()} is not assignable to ${ptrType.to.prettyPrint()}"
+    }
     emit(HIRStatement.Store(value.location, ptr, value))
 }
 

@@ -26,137 +26,44 @@ internal class HIRGenClosure(
     ASTContext by ctx {
     override val currentModule: HIRModule
         get() = moduleContext.currentModule
-    internal fun lowerClosure(expression: Expression.Closure): HIRExpression = scoped {
+    internal fun lowerClosure(expression: Expression.Closure): HIROperand = scoped {
         scopeStack.push(expression)
         defer { check(scopeStack.pop() === expression) }
-        val params = expression.params.map {
-            HIRParam(
-                it.location,
-                it.binder,
-                ctx.analyzer.getParamType(it))
-        }
 
-        lowerClosureNew(expression)
-
-        val body = when (expression.body) {
-            is ClosureBody.Block -> lowerBlock(
-                expression.body.block,
-                before = {
-                    emitAll(paramToLocal.declareParamCopies(params))
-                }
-            )
-            is ClosureBody.Expression -> lowerBlock(
-                Block(expression.body.location, null,  listOf(
-                Block.Member.Statement(
-                    Statement.Return(
-                        expression.body.location,
-                        expression.body.expression
-                    )
-                )
-            )), before = {
-
-                emitAll(paramToLocal.declareParamCopies(params))
-            })
-        }
-        val captureData = ctx.analyzer.getClosureCaptures(expression)
-        val captures = captureData
-            .copy(
-                values = captureData.values.mapKeys {
-                    paramToLocal.fixBinder(it.key)
-                }
-            )
-        HIRExpression.Closure(
-            expression.location,
-            ctx.analyzer.reduceGenericInstances(expression.type),
-            captures,
-            params,
-            ctx.analyzer.getReturnType(expression),
-            body
-        )
+        return@scoped lowerClosureHelper(expression)
     }
 
-    private val enableNewClosureGen = false
-    private fun lowerClosureNew(expression: Expression.Closure) {
-        if (!enableNewClosureGen) return
+    private fun lowerClosureHelper(expression: Expression.Closure): HIROperand {
         val captureInfo = ctx.analyzer.getClosureCaptures(expression)
-        val ctxStruct = addCaptureStruct(expression.location, captureInfo)
-        val ctxTypeArgs = captureInfo.types.map { Type.ParamRef(it) }
-        val ctxRef = emitAlloca(ctx.makeUniqueName("closure_ctx"), ctxStruct.instanceType(ctxTypeArgs))
-        emitCaptureFieldInitializers(captureInfo, ctxRef)
 
-        val closureFn = emitClosureFn(expression, captureInfo, ctxStruct)
-        val returnType = ctx.analyzer.getReturnType(expression)
+        val closureFn = emitClosureFn(expression, captureInfo)
+        val closureRef = emit(HIRStatement.AllocateClosure(
+            currentLocation,
+            ctx.makeUniqueName("closure"),
+            expression.type as Type.Function,
+            closureFn.ref(),
+            emptyList()
+        ))
+        return closureRef.result()
     }
 
     private fun emitClosureFn(
         expression: Expression.Closure,
         captureInfo: ClosureCaptures,
-        captureStructDef: HIRDefinition.Struct,
     ): HIRDefinition.Function = scoped {
         val fnName = ctx.makeUniqueName("closure_fn")
         val captureParam = HIRParam(
             expression.location,
             Binder(Identifier(currentLocation, closureCtxParamName)),
-            captureStructDef.instanceType(
-                captureInfo.types.map { Type.ParamRef(it) }
-            ).ptr()
+            Type.Void.ptr(),
         )
-
-        val oldSubstitution = valueSubstitution
-        val oldAssignmentSubstitution = localAssignmentSubstitution
-        val newSubstitution: ValueSubstitution = mutableMapOf()
-        val newAssignmentSubstitution: ValueSubstitution = mutableMapOf()
-        captureInfo.values.entries.forEachIndexed { index, (binder, capture) ->
-            val type = capture.second
-            val binding = capture.first
-            val isCapturedByPointer = binding is Binding.ValBinding
-            if (isCapturedByPointer) {
-                newSubstitution[binder] = {
-                    HIRExpression.LocalRef(
-                        currentLocation,
-                        type.mutPtr(),
-                        binder.name
-                    ).load()
-                }
-                newAssignmentSubstitution[binder] = {
-                    HIRExpression.LocalRef(
-                        currentLocation,
-                        type.mutPtr(),
-                        binder.name
-                    )
-                }
-            } else {
-                newSubstitution[binder] = {
-                    HIRExpression.LocalRef(
-                        currentLocation,
-                        type,
-                        binder.name
-                    )
-                }
-            }
-        }
-        valueSubstitution = newSubstitution
-        defer {
-            check(valueSubstitution === newSubstitution)
-            valueSubstitution = oldSubstitution
-        }
-
-        localAssignmentSubstitution = newAssignmentSubstitution
-        defer {
-            check(localAssignmentSubstitution === newAssignmentSubstitution)
-            localAssignmentSubstitution = oldAssignmentSubstitution
-        }
-
 
         val body = when (expression.body) {
             is ClosureBody.Block -> {
-                lowerBlock(expression.body.block, before = {
-                    emitClosureFnHeader(captureInfo, captureParam)
-                })
+                lowerBlock(expression.body.block)
             }
             is ClosureBody.Expression -> {
                 buildBlock {
-                    emitClosureFnHeader(captureInfo, captureParam)
                     emit(
                         HIRStatement.Return(
                             currentLocation,
@@ -186,53 +93,7 @@ internal class HIRGenClosure(
         currentModule.addDefinition(fn)
         fn
     }
-
-    private fun emitClosureFnHeader(captures: ClosureCaptures, capturePtrParam: HIRParam) {
-        captures.values.entries.forEach { (binder, capture) ->
-            val binding = capture.first
-            val capturePtr = capturePtrParam.ref()
-            val isCapturedByPointer = binding is Binding.ValBinding
-
-            if (isCapturedByPointer) {
-                capturePtr
-                    .fieldPtr(binder.name)
-                    .load(binder.name)
-            } else {
-                capturePtr
-                    .fieldPtr(binder.name) // * capture.type
-                    .load(binder.name)
-            }
-        }
-    }
-
     private val closureCtxParamName = ctx.makeName("\$ctx")
-
-    private fun emitCaptureFieldInitializers(captureInfo: ClosureCaptures, captureRef: HIRStatement.Alloca) {
-        captureInfo.values.entries.forEachIndexed { index, (binder, capture) ->
-            val type = capturedFieldType(capture)
-            val fieldPtr = captureRef.mutPtr().fieldPtr(binder.name)
-
-            val value = when (capture.first) {
-                is Binding.ValBinding -> {
-                    HIRExpression.LocalRef(
-                        currentLocation,
-                        type,
-                        binder.name
-                    ).load()
-                }
-                is Binding.FunctionParam -> {
-                    HIRExpression.ParamRef(
-                        currentLocation,
-                        type,
-                        binder.name,
-                        binder,
-                    )
-                }
-                is Binding.ClosureParam -> requireUnreachable()
-            }
-            emitStore(fieldPtr, value)
-        }
-    }
 
     private fun addCaptureStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
         val typeParams = captures.types.map { HIRTypeParam(it.location, it.name) }
