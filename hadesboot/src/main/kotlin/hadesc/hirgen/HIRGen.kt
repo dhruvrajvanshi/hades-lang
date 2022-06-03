@@ -376,9 +376,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val body = lowerBlock(
             declaration.body,
             addReturnVoid,
-            before = {
-                 emitAll(paramToLocal.declareParamCopies(signature.params))
-            },
         ).copy(name = ctx.makeName("entry"))
         HIRDefinition.Function(
                 location = declaration.location,
