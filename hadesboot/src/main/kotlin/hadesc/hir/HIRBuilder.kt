@@ -331,9 +331,9 @@ fun HIRBuilder.emitCall(
      *       in HIRGen in a hacky way. Once that is fixed,
      *       this flag won't be required.
      */
-    skipVerification: Boolean = false
+    skipVerification: Boolean = false,
+    name: Name = namingCtx.makeUniqueName()
 ): HIRStatement.Call {
-    val name = namingCtx.makeUniqueName()
     val calleeType = callee.type
     if (!skipVerification) {
         check(calleeType is Type.Ptr) {
