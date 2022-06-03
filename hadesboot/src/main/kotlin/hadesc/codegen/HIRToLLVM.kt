@@ -332,6 +332,8 @@ class HIRToLLVM(
             is HIRStatement.BinOp -> lowerBinOp(statement)
             is HIRStatement.AllocateClosure -> requireUnreachable()
             is HIRStatement.InvokeClosure -> requireUnreachable()
+            is HIRStatement.GetCapturePointer -> requireUnreachable()
+            is HIRStatement.GetCaptureValue -> requireUnreachable()
         }
 
         if (value != null) {

@@ -162,6 +162,30 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.BinOp -> transformBinOp(statement)
         is HIRStatement.AllocateClosure -> transformAllocateClosure(statement)
         is HIRStatement.InvokeClosure -> transformInvokeClosureStatement(statement)
+        is HIRStatement.GetCapturePointer -> transformGetCapturePointer(statement)
+        is HIRStatement.GetCaptureValue -> transformGetCaptureValue(statement)
+    }
+
+    fun transformGetCaptureValue(statement: HIRStatement.GetCaptureValue): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.GetCaptureValue(
+                location = statement.location,
+                name = statement.name,
+                type = lowerType(statement.type),
+                captureName = statement.captureName
+            )
+        )
+    }
+
+    fun transformGetCapturePointer(statement: HIRStatement.GetCapturePointer): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.GetCapturePointer(
+                location = statement.location,
+                name = statement.name,
+                captureName = statement.captureName,
+                type = lowerType(statement.type) as Type.Ptr
+            )
+        )
     }
 
     fun transformInvokeClosureStatement(statement: HIRStatement.InvokeClosure): Collection<HIRStatement> {

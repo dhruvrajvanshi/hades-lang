@@ -177,6 +177,20 @@ sealed interface HIRStatement: HIRNode {
         val args: List<HIROperand>,
     ): HIRStatement, NameBinder, StraightLineInstruction
 
+    data class GetCapturePointer(
+        override val location: SourceLocation,
+        val type: Type.Ptr,
+        val captureName: Name,
+        override val name: Name
+    ): HIRStatement, NameBinder, StraightLineInstruction
+
+    data class GetCaptureValue(
+        override val location: SourceLocation,
+        val type: Type,
+        val captureName: Name,
+        override val name: Name,
+    ): HIRStatement, NameBinder, StraightLineInstruction
+
     /**
      * The basic structure of a while statement is this
      *
@@ -295,6 +309,8 @@ sealed interface HIRStatement: HIRNode {
                     ", ${function.prettyPrint()}"
         is InvokeClosure -> "%${name.text}: ${type.prettyPrint()} = invoke closure " +
                 "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
+        is GetCapturePointer -> "%${name.text}: ${type.prettyPrint()} = get capture ptr ${captureName.text}"
+        is GetCaptureValue -> "%${name.text}: ${type.prettyPrint()} = get capture value ${captureName.text}"
     }
 
     companion object {

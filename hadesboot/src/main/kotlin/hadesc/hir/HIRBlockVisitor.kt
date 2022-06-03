@@ -31,7 +31,17 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.BinOp -> visitBinOp(statement)
             is HIRStatement.AllocateClosure -> visitAllocateClosure(statement)
             is HIRStatement.InvokeClosure -> visitInvokeClosureStatement(statement)
+            is HIRStatement.GetCapturePointer -> visitGetCapturePointer(statement)
+            is HIRStatement.GetCaptureValue -> visitGetCaptureValue(statement)
         }
+    }
+
+    fun visitGetCaptureValue(statement: HIRStatement.GetCaptureValue) {
+        visitType(statement.type)
+    }
+
+    fun visitGetCapturePointer(statement: HIRStatement.GetCapturePointer) {
+        visitType(statement.type)
     }
 
     fun visitInvokeClosureStatement(statement: HIRStatement.InvokeClosure) {
