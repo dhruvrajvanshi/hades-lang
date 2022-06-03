@@ -1,11 +1,11 @@
-package hadesc.location;
-import java.nio.file.Path;
+package hadesc.location
 
-public record SourcePath(
-        Path path
+import java.nio.file.Path
+
+data class SourcePath(
+    val path: Path
 ) {
-    @Override
-    public String toString() {
-        return path.toString();
+    override fun toString(): String {
+        return path.toString()
     }
 }
