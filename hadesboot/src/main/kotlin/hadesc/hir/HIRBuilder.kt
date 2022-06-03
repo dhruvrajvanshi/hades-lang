@@ -90,6 +90,22 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRStatement.GetCaptureValue.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
+            name,
+        )
+    }
+
+    fun HIRStatement.GetCapturePointer.ptr(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
     fun addressOf(valRef: HIRExpression.ValRef): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(
             currentLocation,

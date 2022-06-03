@@ -42,16 +42,21 @@ internal class HIRGenExpression(
             if (substitute != null) {
                 substitute()
             } else {
-                when (binding) {
-                    is Binding.FunctionParam ->
-                        lowerParamRef(expression, binding.param)
-                    is Binding.ClosureParam ->
-                        lowerParamRef(expression, binding.param)
-                    is Binding.ValBinding -> HIRExpression.ValRef(
-                        expression.location,
-                        typeOfExpression(expression),
-                        lowerLocalBinder(binding.statement.binder)
-                    )
+                check(expression is Expression.Var)
+                if (ctx.analyzer.isClosureCapture(expression.name)) {
+                    lowerCaptureBinding(expression, binding)
+                } else {
+                    when (binding) {
+                        is Binding.FunctionParam ->
+                            lowerParamRef(expression, binding.param)
+                        is Binding.ClosureParam ->
+                            lowerParamRef(expression, binding.param)
+                        is Binding.ValBinding -> HIRExpression.ValRef(
+                            expression.location,
+                            typeOfExpression(expression),
+                            lowerLocalBinder(binding.statement.binder)
+                        )
+                    }
                 }
             }
         }
@@ -91,6 +96,31 @@ internal class HIRGenExpression(
         )
     }
 
+    private fun lowerCaptureBinding(expression: Expression.Var, binding: Binding.Local): HIROperand {
+        return when (binding) {
+            // Function and Closure params are captured by value
+            // ValBindings are captured by ptr (because they can be mutated)
+            is Binding.ClosureParam,
+            is Binding.FunctionParam ->
+                emit(
+                    HIRStatement.GetCaptureValue(
+                        location = currentLocation,
+                        type = expression.type,
+                        captureName = expression.name.name,
+                        name = namingCtx.makeUniqueName()
+                    )
+                ).result()
+            is Binding.ValBinding ->
+                emit(
+                    HIRStatement.GetCapturePointer(
+                        location = currentLocation,
+                        type = expression.type.ptr(),
+                        captureName = expression.name.name,
+                        name = namingCtx.makeUniqueName()
+                    )
+                ).ptr().load()
+        }
+    }
 
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {
         val substitute = valueSubstitution[param.binder]

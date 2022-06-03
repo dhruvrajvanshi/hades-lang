@@ -1951,8 +1951,8 @@ class Analyzer(
      * of binding.enclosingClosureOrFunction
      */
 
-    fun isClosureCapture(expression: Expression.Var): Boolean {
-        val binding = checkNotNull(ctx.resolver.resolve(expression.name))
+    fun isClosureCapture(expression: Identifier): Boolean {
+        val binding = checkNotNull(ctx.resolver.resolve(expression))
         val expressionEnclosingScope = expression.enclosingClosureOrFunction()
         val bindingEnclosingScope = binding.binder.enclosingClosureOrFunction()
 

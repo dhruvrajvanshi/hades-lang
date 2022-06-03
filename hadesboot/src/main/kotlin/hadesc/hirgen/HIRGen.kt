@@ -516,6 +516,18 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
         val binding = ctx.resolver.resolve(statement.name)
         require(binding is Binding.ValBinding)
+        if (ctx.analyzer.isClosureCapture(statement.name)) {
+            val ptr = emit(
+                HIRStatement.GetCapturePointer(
+                    currentLocation,
+                    type = statement.value.type.mutPtr(),
+                    name = ctx.makeUniqueName(),
+                    captureName = statement.name.name
+                )
+            ).ptr()
+
+            emitStore(ptr, lowerExpression(statement.value))
+        }
         val substitutionPtr = localAssignmentSubstitution[binding.binder]
         if (substitutionPtr != null) {
             emitStore(substitutionPtr(), lowerExpression(statement.value))
