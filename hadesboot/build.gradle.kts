@@ -48,13 +48,13 @@ tasks.test {
 }
 
 tasks.compileKotlin {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = "15"
     kotlinOptions {
         freeCompilerArgs = listOf("-Xinline-classes")
     }
 }
 tasks.compileTestKotlin {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = "15"
 }
 
 
