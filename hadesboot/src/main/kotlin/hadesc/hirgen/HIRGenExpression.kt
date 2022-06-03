@@ -153,12 +153,13 @@ internal class HIRGenExpression(
         }
         val callee = lowerExpression(expression.callee)
         if (callee.type is Type.Function) {
-            return HIRExpression.InvokeClosure(
+            return emit(HIRStatement.InvokeClosure(
                 location = expression.location,
+                name = namingCtx.makeUniqueName(),
                 type = expression.type,
-                closure = lowerExpression(expression.callee) as HIROperand,
-                args = expression.args.map { lowerExpression(it.expression)}
-            )
+                closureRef = lowerExpression(expression.callee) as HIROperand,
+                args = expression.args.map { lowerExpression(it.expression) as HIROperand }
+            )).result()
         } else {
             val calleeType = callee.type
             check(calleeType is Type.Ptr && calleeType.to is Type.Function)

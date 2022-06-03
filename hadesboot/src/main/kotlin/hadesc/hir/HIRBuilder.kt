@@ -66,6 +66,14 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRStatement.InvokeClosure.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
     fun HIRStatement.AllocateClosure.result(): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(
             currentLocation,
