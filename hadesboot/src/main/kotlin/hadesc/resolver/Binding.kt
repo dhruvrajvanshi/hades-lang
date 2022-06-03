@@ -5,7 +5,8 @@ import hadesc.location.HasLocation
 
 sealed interface Binding {
     abstract val binder: Binder
-    sealed interface Local
+    sealed interface Local: Binding
+
     data class GlobalFunction(
         val declaration: Declaration.FunctionDef
     ) : Binding {
