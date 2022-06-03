@@ -57,10 +57,12 @@ internal class HIRGenClosure(
             Binder(Identifier(currentLocation, closureCtxParamName)),
             Type.Void.ptr(),
         )
+        val returnType = ctx.analyzer.getReturnType(expression)
 
         val body = when (expression.body) {
             is ClosureBody.Block -> {
-                lowerBlock(expression.body.block)
+                val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
+                lowerBlock(expression.body.block, addReturnVoid = addReturnVoid)
             }
             is ClosureBody.Expression -> {
                 buildBlock {
@@ -83,7 +85,7 @@ internal class HIRGenClosure(
             } + listOf(
                 captureParam
             ),
-            returnType = ctx.analyzer.getReturnType(expression)
+            returnType = returnType
         )
         val fn = HIRDefinition.Function(
             currentLocation,
