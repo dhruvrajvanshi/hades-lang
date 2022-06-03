@@ -1944,6 +1944,28 @@ class Analyzer(
 
     fun isEnumType(type: Type): Boolean = getEnumTypeDeclaration(type) != null
 
+    /**
+     * Expression will be a capture if `expression`'s enclosing function/closure
+     * is different from binding's enclosing function/closure.
+     * Moreover, expression.enclosingClosureOrFunction should be a child scope
+     * of binding.enclosingClosureOrFunction
+     */
+
+    fun isClosureCapture(expression: Expression.Var): Boolean {
+        val binding = checkNotNull(ctx.resolver.resolve(expression.name))
+        val expressionEnclosingScope = expression.enclosingClosureOrFunction()
+        val bindingEnclosingScope = binding.binder.enclosingClosureOrFunction()
+
+        check(expressionEnclosingScope.location.isWithin(bindingEnclosingScope.location))
+
+        return expressionEnclosingScope !== bindingEnclosingScope
+    }
+
+    private fun HasLocation.enclosingClosureOrFunction(): ScopeTree {
+        return ctx.resolver.getEnclosingClosure(this)
+            ?: checkNotNull(ctx.resolver.getEnclosingFunction(this))
+    }
+
 }
 
 data class ClosureCaptures(
