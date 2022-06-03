@@ -1,45 +1,38 @@
-package hadesc.location;
+package hadesc.location
 
-import org.jetbrains.annotations.NotNull;
-
-public record Position(
-        int line,
-        int column
-) implements Comparable<Position> {
-    @Override
-    public String toString() {
-        return "(Line: $line, Column: $column)";
+data class Position(
+    val line: Int,
+    val column: Int,
+) : Comparable<Position> {
+    override fun toString(): String {
+        return "(Line: $line, Column: $column)"
     }
 
-    @Override
-    public int compareTo(@NotNull Position other) {
-        if (this.gte(other)) {
-            return 1;
-        } else if (this.lte(other)) {
-            return -1;
+    override fun compareTo(other: Position): Int {
+        return if (gte(other)) {
+            1
+        } else if (lte(other)) {
+            -1
         } else {
-            return 0;
+            0
         }
     }
 
-    boolean gte(Position other) {
-        if (other.equals(this)) {
-            return true;
+    fun gte(other: Position): Boolean {
+        if (other == this) {
+            return true
         }
-        if (line == other.line) {
-            return column > other.column;
-        }
-        return line > other.line;
+        return if (line == other.line) {
+            column > other.column
+        } else line > other.line
     }
 
-    boolean lte(Position other) {
-        if (other.equals(this)) {
-            return true;
+    fun lte(other: Position): Boolean {
+        if (other == this) {
+            return true
         }
-        if (line == other.line) {
-            return column < other.column;
-        }
-
-        return line < other.line;
+        return if (line == other.line) {
+            column < other.column
+        } else line < other.line
     }
 }
