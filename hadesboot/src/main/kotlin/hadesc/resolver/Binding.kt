@@ -3,32 +3,32 @@ package hadesc.resolver
 import hadesc.ast.*
 import hadesc.location.HasLocation
 
-sealed class Binding {
+sealed interface Binding {
     abstract val binder: Binder
     sealed interface Local
     data class GlobalFunction(
         val declaration: Declaration.FunctionDef
-    ) : Binding() {
+    ) : Binding {
         override val binder: Binder
             get() = declaration.name
     }
 
     data class ExternFunction(
             val declaration: Declaration.ExternFunctionDef
-    ) : Binding() {
+    ) : Binding {
         override val binder: Binder get() = declaration.binder
     }
 
     data class ExternConst(
         val declaration: Declaration.ExternConst
-    ) : Binding() {
+    ) : Binding {
         override val binder: Binder get() = declaration.name
     }
 
     data class FunctionParam(
             val index: Int,
             val declaration: Declaration.FunctionDef
-    ) : Binding(), Local {
+    ) : Binding, Local {
         val param get() = declaration.params[index]
         override val binder: Binder
             get() = param.binder
@@ -36,33 +36,33 @@ sealed class Binding {
 
     data class ValBinding(
             val statement: Statement.Val
-    ) : Binding(), Local {
+    ) : Binding, Local {
         override val binder get() = statement.binder
     }
 
     data class Struct(
             val declaration: Declaration.Struct
-    ) : Binding() {
+    ) : Binding {
         override val binder get() = declaration.binder
     }
 
     data class GlobalConst(
             val declaration: Declaration.ConstDefinition
-    ) : Binding() {
+    ) : Binding {
         override val binder get() = declaration.name
     }
 
-    data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding(), Local {
+    data class ClosureParam(val index: Int, val closure: Expression.Closure) : Binding, Local {
         val param get() = closure.params[index]
 
         override val binder get() = param.binder
     }
 
-    data class Enum(val declaration: Declaration.Enum) : Binding() {
+    data class Enum(val declaration: Declaration.Enum) : Binding {
         override val binder: Binder get() = declaration.name
     }
 
-    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding() {
+    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding {
         init {
             requireNotNull(topLevelPattern.args)
             require(argIndex < topLevelPattern.args.size)
