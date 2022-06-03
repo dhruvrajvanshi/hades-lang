@@ -6,7 +6,7 @@ data class SourceLocation(
     val stop: Position,
 ) : Comparable<SourceLocation>, HasLocation {
     override fun toString(): String {
-        return "(" + file + ":" + start.line() + ")"
+        return "(" + file + ":" + start.line + ")"
     }
 
     override val location: SourceLocation
