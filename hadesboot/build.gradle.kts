@@ -5,8 +5,8 @@ plugins {
     jacoco
 }
 
-val logbackVersion = "1.2.10"
-val slf4jVersion = "1.7.32"
+val logbackVersion = "1.2.11"
+val slf4jVersion = "1.7.36"
 val junitVersion = "5.8.2"
 
 application {
@@ -25,8 +25,8 @@ dependencies {
     implementation("ch.qos.logback:logback-core:$logbackVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("org.apache.commons:commons-lang3:3.12.0")
-    implementation("com.diogonunes:JColor:5.2.0")
-    implementation("com.github.ajalt.clikt:clikt:3.3.0")
+    implementation("com.diogonunes:JColor:5.4.1")
+    implementation("com.github.ajalt.clikt:clikt:3.4.2")
     implementation("org.bytedeco:llvm-platform:12.0.1-1.5.6")
 
     testImplementation(kotlin("test"))
