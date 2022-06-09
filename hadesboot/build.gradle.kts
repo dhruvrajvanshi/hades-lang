@@ -27,7 +27,7 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.12.0")
     implementation("com.diogonunes:JColor:5.4.1")
     implementation("com.github.ajalt.clikt:clikt:3.4.2")
-    implementation("org.bytedeco:llvm-platform:12.0.1-1.5.6")
+    implementation("org.bytedeco:llvm-platform:13.0.1-1.5.7")
 
     testImplementation(kotlin("test"))
 
