@@ -17,6 +17,7 @@ internal class HIRGenExpression(
     private val ctx: Context,
     private val moduleContext: HIRGenModuleContext,
     private val functionContext: HIRGenFunctionContext,
+    private val closureGen: HIRGenClosure
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
     ASTContext by ctx
@@ -44,7 +45,7 @@ internal class HIRGenExpression(
             } else {
                 check(expression is Expression.Var)
                 if (ctx.analyzer.isClosureCapture(expression.name)) {
-                    lowerCaptureBinding(expression, binding)
+                    closureGen.lowerCaptureBinding(expression, binding)
                 } else {
                     when (binding) {
                         is Binding.FunctionParam ->
@@ -94,32 +95,6 @@ internal class HIRGenExpression(
             typeOfExpression(expression),
             lowerLocalBinder(binding.arg.binder)
         )
-    }
-
-    private fun lowerCaptureBinding(expression: Expression.Var, binding: Binding.Local): HIROperand {
-        return when (binding) {
-            // Function and Closure params are captured by value
-            // ValBindings are captured by ptr (because they can be mutated)
-            is Binding.ClosureParam,
-            is Binding.FunctionParam ->
-                emit(
-                    HIRStatement.GetCaptureValue(
-                        location = currentLocation,
-                        type = expression.type,
-                        captureName = expression.name.name,
-                        name = namingCtx.makeUniqueName()
-                    )
-                ).result()
-            is Binding.ValBinding ->
-                emit(
-                    HIRStatement.GetCapturePointer(
-                        location = currentLocation,
-                        type = expression.type.ptr(),
-                        captureName = expression.name.name,
-                        name = namingCtx.makeUniqueName()
-                    )
-                ).ptr().load()
-        }
     }
 
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {

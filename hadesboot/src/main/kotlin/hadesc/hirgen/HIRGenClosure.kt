@@ -185,4 +185,29 @@ internal class HIRGenClosure(
             to = returns
         )
     }
+    internal fun lowerCaptureBinding(expression: Expression.Var, binding: Binding.Local): HIROperand {
+        return when (binding) {
+            // Function and Closure params are captured by value
+            // ValBindings are captured by ptr (because they can be mutated)
+            is Binding.ClosureParam,
+            is Binding.FunctionParam ->
+                emit(
+                    HIRStatement.GetCaptureValue(
+                        location = currentLocation,
+                        type = expression.type,
+                        captureName = expression.name.name,
+                        name = namingCtx.makeUniqueName()
+                    )
+                ).result()
+            is Binding.ValBinding ->
+                emit(
+                    HIRStatement.GetCapturePointer(
+                        location = currentLocation,
+                        type = expression.type.ptr(),
+                        captureName = expression.name.name,
+                        name = namingCtx.makeUniqueName()
+                    )
+                ).ptr().load()
+        }
+    }
 }

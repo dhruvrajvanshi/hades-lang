@@ -85,16 +85,17 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val currentModule = HIRModule(mutableListOf())
     override var valueSubstitution: ValueSubstitution = mutableMapOf()
     override var localAssignmentSubstitution: ValueSubstitution = mutableMapOf()
-
-    private val exprGen = HIRGenExpression(
-        ctx,
-        moduleContext = this,
-        functionContext = this
-    )
     private val closureGen = HIRGenClosure(
         ctx,
         moduleContext = this,
         functionContext = this
+    )
+
+    private val exprGen = HIRGenExpression(
+        ctx,
+        moduleContext = this,
+        functionContext = this,
+        closureGen = closureGen
     )
     override lateinit var currentLocation: SourceLocation
     override var currentStatements: MutableList<HIRStatement>? = null
