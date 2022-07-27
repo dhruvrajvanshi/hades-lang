@@ -35,6 +35,7 @@ internal class HIRGenClosure(
 
     private fun lowerClosureHelper(expression: Expression.Closure): HIROperand {
         val captureInfo = ctx.analyzer.getClosureCaptures(expression)
+        val captureStruct = emitCaptureStruct(expression.location, captureInfo)
 
         val closureFn = emitClosureFn(expression, captureInfo)
         val closureRef = emit(HIRStatement.AllocateClosure(
@@ -45,6 +46,34 @@ internal class HIRGenClosure(
             emptyList()
         ))
         return closureRef.result()
+    }
+
+    private fun emitCaptureStruct(location: SourceLocation, captureInfo: ClosureCaptures): HIRDefinition.Struct {
+        return emitDef(
+            HIRDefinition.Struct(
+                location = location,
+                name = namingCtx.makeUniqueName("ClosureCaptures").toQualifiedName(),
+                typeParams = assert(captureInfo.types.isEmpty()).let { null },
+                fields = captureInfo.values.map {
+                    val captureTy = it.value.second
+                    val capturedBinding = it.value.first
+                    val fieldTy =
+                        if (isCapturedByValue(capturedBinding))
+                            captureTy
+                        else
+                            captureTy.mutPtr()
+                    it.key.name to fieldTy
+                }
+            )
+        )
+    }
+
+    private fun isCapturedByValue(capturedBinding: Binding.Local): Boolean {
+        return when (capturedBinding) {
+            is Binding.ClosureParam,
+            is Binding.FunctionParam -> true
+            is Binding.ValBinding -> false
+        }
     }
 
     private fun emitClosureFn(
