@@ -37,7 +37,7 @@ internal class HIRGenClosure(
         val captureInfo = ctx.analyzer.getClosureCaptures(expression)
         val captureStruct = emitCaptureStruct(expression.location, captureInfo)
 
-        val closureFn = emitClosureFn(expression, captureInfo)
+        val closureFn = emitClosureFn(expression, captureInfo, captureStruct)
         val closureRef = emit(HIRStatement.AllocateClosure(
             currentLocation,
             ctx.makeUniqueName("closure"),
@@ -79,12 +79,14 @@ internal class HIRGenClosure(
     private fun emitClosureFn(
         expression: Expression.Closure,
         captureInfo: ClosureCaptures,
+        captureStruct: HIRDefinition.Struct
     ): HIRDefinition.Function = scoped {
         val fnName = ctx.makeUniqueName("closure_fn")
+        check(captureStruct.typeParams == null)
         val captureParam = HIRParam(
             expression.location,
             Binder(Identifier(currentLocation, closureCtxParamName)),
-            Type.Void.ptr(),
+            captureStruct.instanceType().ptr(),
         )
         val returnType = ctx.analyzer.getReturnType(expression)
 
