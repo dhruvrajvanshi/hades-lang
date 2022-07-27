@@ -1,5 +1,6 @@
 package hadesc.hirgen
 
+import hadesc.Name
 import hadesc.analysis.ClosureCaptures
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -15,6 +16,7 @@ import hadesc.scoped
 import hadesc.types.Type
 import hadesc.types.mutPtr
 import hadesc.types.ptr
+import libhades.collections.Stack
 import java.nio.file.Path
 
 internal class HIRGenClosure(
@@ -76,6 +78,7 @@ internal class HIRGenClosure(
         }
     }
 
+    private val captureParamStack = Stack<HIRParam>()
     private fun emitClosureFn(
         expression: Expression.Closure,
         captureInfo: ClosureCaptures,
@@ -89,23 +92,30 @@ internal class HIRGenClosure(
             captureStruct.instanceType().ptr(),
         )
         val returnType = ctx.analyzer.getReturnType(expression)
-
-        val body = when (expression.body) {
-            is ClosureBody.Block -> {
-                val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
-                lowerBlock(expression.body.block, addReturnVoid = addReturnVoid)
-            }
-            is ClosureBody.Expression -> {
-                buildBlock {
-                    emit(
-                        HIRStatement.Return(
-                            currentLocation,
-                            lowerExpression(expression.body.expression)
+        check(captureParamStack.items().isEmpty()) {
+            "Nested closures not supported yet"
+        }
+        val body = scoped {
+            captureParamStack.push(captureParam)
+            defer { captureParamStack.pop() }
+            when (expression.body) {
+                is ClosureBody.Block -> {
+                    val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
+                    lowerBlock(expression.body.block, addReturnVoid = addReturnVoid)
+                }
+                is ClosureBody.Expression -> {
+                    buildBlock {
+                        emit(
+                            HIRStatement.Return(
+                                currentLocation,
+                                lowerExpression(expression.body.expression)
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
+
 
         val signature = HIRFunctionSignature(
             currentLocation,
@@ -185,29 +195,39 @@ internal class HIRGenClosure(
             to = returns
         )
     }
+
+    private fun Expression.Var.uniqueNameWithSuffix(suffix: String): Name {
+        return namingCtx.makeUniqueName(name.name.text + suffix)
+    }
     internal fun lowerCaptureBinding(expression: Expression.Var, binding: Binding.Local): HIROperand {
+        val captureParam = captureParamStack.peek()
+        check(captureParam != null)
         return when (binding) {
             // Function and Closure params are captured by value
             // ValBindings are captured by ptr (because they can be mutated)
             is Binding.ClosureParam,
             is Binding.FunctionParam ->
-                emit(
-                    HIRStatement.GetCaptureValue(
-                        location = currentLocation,
-                        type = expression.type,
-                        captureName = expression.name.name,
-                        name = namingCtx.makeUniqueName()
-                    )
-                ).result()
+                captureParam.ref() // *Ctx
+                    .fieldPtr(
+                        expression.name.name,
+                        expression.uniqueNameWithSuffix("_ptr")
+                    ) // *FieldType
+                    .load(expression.uniqueNameWithSuffix("_val")) // FieldType
             is Binding.ValBinding ->
-                emit(
-                    HIRStatement.GetCapturePointer(
-                        location = currentLocation,
-                        type = expression.type.ptr(),
-                        captureName = expression.name.name,
-                        name = namingCtx.makeUniqueName()
-                    )
-                ).ptr().load()
+                captureParam.ref() // *Ctx
+                    .fieldPtr(expression.name.name, expression.uniqueNameWithSuffix("_ptr_ptr")) // **mut FieldType
+                    .load(expression.uniqueNameWithSuffix("_ptr")) // *FieldType
+                    .load(expression.uniqueNameWithSuffix("_val")) // FieldType
         }
+    }
+
+    internal fun lowerCaptureAssignment(statement: Statement.LocalAssignment) {
+        val captureParam = captureParamStack.peek()
+        check(captureParam != null)
+        val ptr =
+            captureParam.ref() // *Ctx
+                .fieldPtr(statement.name.name) // **mut FieldType
+                .load() // *mut FieldType
+        emitStore(ptr, lowerExpression(statement.value))
     }
 }
