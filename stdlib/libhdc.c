@@ -64,3 +64,9 @@ void _hdc_memset(
     memset(dest, value, size);
 }
 
+void _hdc_puts(
+    char* str
+) {
+    puts(str);
+}
+

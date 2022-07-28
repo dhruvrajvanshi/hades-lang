@@ -23,7 +23,11 @@ import hadesc.types.Type
 import libhades.collections.Stack
 import hadesc.hir.*
 import hadesc.ignore
+import hadesc.location.Position
+import hadesc.location.SourcePath
 import hadesc.types.mutPtr
+import hadesc.types.ptr
+import java.nio.file.Path
 
 internal typealias ValueSubstitution =
         MutableMap<Binder, HIRBuilder.() -> HIROperand>
@@ -98,6 +102,21 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     fun lowerSourceFiles(sourceFiles: Collection<SourceFile>): HIRModule {
         val declarations = currentModule.definitions
+        val builtinLoc = SourceLocation(
+            SourcePath(Path.of("hades_prelude.hds")),
+            Position(0, 0),
+            Position(0, 0)
+        )
+        currentModule.definitions.add(
+            HIRDefinition.ExternFunction(
+                builtinLoc,
+                externName = ctx.makeName("_hdc_puts"),
+                name = qn("_hdc_puts"),
+                returnType = Type.Void,
+                params = listOf(Type.u8.ptr())
+            ),
+
+        )
         val inputDeclarations = mutableListOf<Declaration>()
         try {
             for (sourceFile in sourceFiles) scoped {

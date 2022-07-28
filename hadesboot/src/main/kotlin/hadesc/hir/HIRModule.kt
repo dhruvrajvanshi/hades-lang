@@ -1,6 +1,10 @@
 package hadesc.hir
 
+import hadesc.location.Position
+import hadesc.location.SourceLocation
+import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import java.nio.file.Path
 
 data class HIRModule(
     val definitions: MutableList<HIRDefinition>
