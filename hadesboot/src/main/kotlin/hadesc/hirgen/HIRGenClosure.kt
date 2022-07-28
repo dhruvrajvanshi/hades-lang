@@ -75,16 +75,15 @@ internal class HIRGenClosure(
                     )
                 }
                 is Binding.ValBinding -> {
+                    val capturePtr = HIRExpression.LocalRef(
+                        currentLocation,
+                        type.mutPtr(),
+                        binder.name
+                    )
                     emitStore(
-                        contextRef
-                            .ptr()
-                            .fieldPtr(binder.name)
-                            .load(),
-                        HIRExpression.LocalRef(
-                            currentLocation,
-                            type,
-                            binder.name
-                        )
+                        contextRef.ptr()
+                            .fieldPtr(binder.name, ctx.makeUniqueName(binder.name.text + "_ptr_ptr")),
+                        capturePtr
                     )
                 }
             }
