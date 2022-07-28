@@ -40,14 +40,55 @@ internal class HIRGenClosure(
         val captureStruct = emitCaptureStruct(expression.location, captureInfo)
 
         val closureFn = emitClosureFn(expression, captureInfo, captureStruct)
+
+        check(captureStruct.typeParams == null)
+        val contextRef = emitAlloca("closureCtxPtr", captureStruct.instanceType())
+
+        emitCaptureInitializers(contextRef, captureInfo)
+
         val closureRef = emit(HIRStatement.AllocateClosure(
             currentLocation,
             ctx.makeUniqueName("closure"),
             expression.type as Type.Function,
             closureFn.ref(),
-            emptyList()
+            contextRef.ptr()
         ))
         return closureRef.result()
+    }
+
+    private fun emitCaptureInitializers(contextRef: HIRStatement.Alloca, captureInfo: ClosureCaptures) {
+        check(captureInfo.types.isEmpty())
+        for ((binder, pair) in captureInfo.values) {
+            val (binding, type) = pair
+
+            when (binding) {
+                is Binding.ClosureParam,
+                is Binding.FunctionParam -> {
+                    emitStore(
+                        contextRef.ptr().fieldPtr(binder.name),
+                        HIRExpression.ParamRef(
+                            currentLocation,
+                            type,
+                            binding.binder.name,
+                            binding.binder
+                        )
+                    )
+                }
+                is Binding.ValBinding -> {
+                    emitStore(
+                        contextRef
+                            .ptr()
+                            .fieldPtr(binder.name)
+                            .load(),
+                        HIRExpression.LocalRef(
+                            currentLocation,
+                            type,
+                            binder.name
+                        )
+                    )
+                }
+            }
+        }
     }
 
     private fun emitCaptureStruct(location: SourceLocation, captureInfo: ClosureCaptures): HIRDefinition.Struct {

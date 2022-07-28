@@ -207,7 +207,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 statement.name,
                 lowerType(statement.type) as Type.Function,
                 statement.function,
-                statement.captures,
+                transformOperand(statement.ctxPtr),
             )
         )
     }

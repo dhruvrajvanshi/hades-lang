@@ -166,8 +166,12 @@ sealed interface HIRStatement: HIRNode {
         override val name: Name,
         val type: Type.Function,
         val function: HIROperand,
-        val captures: List<HIROperand>,
-    ): HIRStatement, NameBinder, StraightLineInstruction
+        val ctxPtr: HIROperand
+    ): HIRStatement, NameBinder, StraightLineInstruction {
+        init {
+            require(ctxPtr.type is Type.Ptr)
+        }
+    }
 
     data class InvokeClosure(
         override val location: SourceLocation,
@@ -304,9 +308,7 @@ sealed interface HIRStatement: HIRNode {
         is BinOp ->
             "%${name.text}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()}, ${rhs.prettyPrint()}"
         is AllocateClosure ->
-            "%${name.text} = allocate closure " +
-                    captures.joinToString(", ") { it.prettyPrint() } +
-                    ", ${function.prettyPrint()}"
+            "%${name.text} = allocate-closure ${function.prettyPrint()}, ${ctxPtr.prettyPrint()}"
         is InvokeClosure -> "%${name.text}: ${type.prettyPrint()} = invoke closure " +
                 "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
         is GetCapturePointer -> "%${name.text}: ${type.prettyPrint()} = get capture ptr ${captureName.text}"
