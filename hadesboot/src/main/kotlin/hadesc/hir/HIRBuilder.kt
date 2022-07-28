@@ -369,5 +369,20 @@ fun HIRBuilder.emitDumpCStr(operand: HIROperand) {
         puts.ref(),
         listOf(operand)
     )
+}
 
+fun HIRBuilder.emitDumpText(string: String) {
+    val puts = currentModule.findDefinition(qn("_hdc_puts"))
+    check(puts is HIRDefinition.ExternFunction)
+    emitCall(
+        Type.Void,
+        puts.ref(),
+        listOf(
+            HIRConstant.ByteString(
+                currentLocation,
+                Type.u8.ptr(),
+                string.toByteArray()
+            )
+        )
+    )
 }
