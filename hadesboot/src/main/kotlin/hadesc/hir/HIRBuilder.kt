@@ -358,3 +358,16 @@ fun HIRBuilder.falseValue(location: SourceLocation = currentLocation): HIRConsta
 internal fun HIRBuilder.qn(vararg names: String): QualifiedName {
     return QualifiedName(names.toList().map { namingCtx.makeName(it) })
 }
+
+fun HIRBuilder.emitDumpCStr(operand: HIROperand) {
+    val puts = currentModule.findDefinition(qn("_hdc_puts"))
+    check(puts is HIRDefinition.ExternFunction)
+
+    check(operand.type == Type.u8.ptr() || operand.type == Type.u8.mutPtr())
+    emitCall(
+        Type.Void,
+        puts.ref(),
+        listOf(operand)
+    )
+
+}
