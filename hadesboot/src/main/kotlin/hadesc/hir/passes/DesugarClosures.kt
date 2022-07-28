@@ -24,6 +24,10 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
                 fnTypeThatReturns(statement.type.to)
             )
         )
+        emitStore(
+            closureRef.mutPtr().fieldPtr(closureCtxFieldName),
+            transformOperand(statement.ctxPtr).ptrCast(Type.Void)
+        )
         return emptyList()
     }
 
