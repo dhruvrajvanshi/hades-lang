@@ -116,6 +116,14 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRDefinition.ExternFunction.ref(): HIRExpression.GlobalRef {
+        return HIRExpression.GlobalRef(
+            currentLocation,
+            type.ptr(),
+            name
+        )
+    }
+
     fun debugDump(value: HIROperand) {
         val stderrVal = emitCall(Type.Void, libhdcFn("get_stderr").ref(), emptyList()).result()
         when (value.type) {
