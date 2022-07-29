@@ -2,7 +2,6 @@ package hadesc.hirgen
 
 import hadesc.Name
 import hadesc.analysis.ClosureCaptures
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
@@ -118,7 +117,7 @@ internal class HIRGenClosure(
         }
     }
 
-    private val captureParamStack = Stack<HIRParam>()
+    private val closureGenStack = Stack<ClosureGenContext>()
     private fun emitClosureFn(
         expression: Expression.Closure,
         captureInfo: ClosureCaptures,
@@ -132,12 +131,12 @@ internal class HIRGenClosure(
             captureStruct.instanceType().ptr(),
         )
         val returnType = ctx.analyzer.getReturnType(expression)
-        check(captureParamStack.items().isEmpty()) {
+        check(closureGenStack.items().isEmpty()) {
             "Nested closures not supported yet"
         }
         val body = scoped {
-            captureParamStack.push(captureParam)
-            defer { captureParamStack.pop() }
+            closureGenStack.push(ClosureGenContext(captureParam))
+            defer { closureGenStack.pop() }
             when (expression.body) {
                 is ClosureBody.Block -> {
                     val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
@@ -240,8 +239,9 @@ internal class HIRGenClosure(
         return namingCtx.makeUniqueName(name.name.text + suffix)
     }
     internal fun lowerCaptureBinding(expression: Expression.Var, binding: Binding.Local): HIROperand {
-        val captureParam = captureParamStack.peek()
-        check(captureParam != null)
+        val closureCtx = closureGenStack.peek()
+        check(closureCtx != null)
+        val captureParam = closureCtx.captureParam
         return when (binding) {
             // Function and Closure params are captured by value
             // ValBindings are captured by ptr (because they can be mutated)
@@ -262,12 +262,16 @@ internal class HIRGenClosure(
     }
 
     internal fun lowerCaptureAssignment(statement: Statement.LocalAssignment) {
-        val captureParam = captureParamStack.peek()
-        check(captureParam != null)
+        val closureCtx = closureGenStack.peek()
+        check(closureCtx != null)
         val ptr =
-            captureParam.ref() // *Ctx
+            closureCtx.captureParam.ref() // *Ctx
                 .fieldPtr(statement.name.name) // **mut FieldType
                 .load() // *mut FieldType
         emitStore(ptr, lowerExpression(statement.value))
     }
 }
+
+data class ClosureGenContext(
+    val captureParam: HIRParam
+)
