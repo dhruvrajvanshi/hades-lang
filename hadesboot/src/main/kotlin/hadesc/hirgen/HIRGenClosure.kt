@@ -247,9 +247,7 @@ internal class HIRGenClosure(
                     ) // *FieldType
                     .load(expression.uniqueNameWithSuffix("_val")) // FieldType
             is Binding.ValBinding ->
-                captureParam.ref() // *Ctx
-                    .fieldPtr(expression.name.name, expression.uniqueNameWithSuffix("_ptr_ptr")) // **mut FieldType
-                    .load(expression.uniqueNameWithSuffix("_ptr")) // *FieldType
+                getCapturePointer(binding)
                     .load(expression.uniqueNameWithSuffix("_val")) // FieldType
         }
     }
