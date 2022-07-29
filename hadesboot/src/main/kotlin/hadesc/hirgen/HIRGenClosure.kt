@@ -40,8 +40,12 @@ internal class HIRGenClosure(
 
         val closureFn = emitClosureFn(expression, captureInfo, captureStruct)
 
-        check(captureStruct.typeParams == null)
-        val contextRef = emitAlloca("closureCtxPtr", captureStruct.instanceType())
+        val captureTypeArgs =
+            if (captureStruct.typeParams == null)
+                emptyList()
+            else
+                captureInfo.types.map { Type.ParamRef(it) }
+        val contextRef = emitAlloca("closureCtxPtr", captureStruct.instanceType(captureTypeArgs))
 
         emitCaptureInitializers(contextRef, captureInfo)
 
@@ -56,7 +60,6 @@ internal class HIRGenClosure(
     }
 
     private fun emitCaptureInitializers(contextRef: HIRStatement.Alloca, captureInfo: ClosureCaptures) {
-        check(captureInfo.types.isEmpty())
         for ((binder, pair) in captureInfo.values) {
             val (binding, type) = pair
 
@@ -90,7 +93,7 @@ internal class HIRGenClosure(
             HIRDefinition.Struct(
                 location = location,
                 name = namingCtx.makeUniqueName("ClosureCaptures").toQualifiedName(),
-                typeParams = assert(captureInfo.types.isEmpty()).let { null },
+                typeParams = captureInfo.types.map { HIRTypeParam(it.location, it.name) },
                 fields = captureInfo.values.map {
                     val captureTy = it.value.second
                     val capturedBinding = it.value.first
@@ -120,11 +123,16 @@ internal class HIRGenClosure(
         captureStruct: HIRDefinition.Struct
     ): HIRDefinition.Function = scoped {
         val fnName = ctx.makeUniqueName("closure_fn")
-        check(captureStruct.typeParams == null)
+        val captureTypeArgs =
+            if (captureStruct.typeParams == null)
+                emptyList()
+            else
+                captureInfo.types.map { Type.ParamRef(it) }
+
         val captureParam = HIRParam(
             expression.location,
             Binder(Identifier(currentLocation, closureCtxParamName)),
-            captureStruct.instanceType().ptr(),
+            captureStruct.instanceType(captureTypeArgs).ptr(),
         )
         val returnType = ctx.analyzer.getReturnType(expression)
         val body = scoped {
