@@ -74,11 +74,7 @@ internal class HIRGenClosure(
                     )
                 }
                 is Binding.ValBinding -> {
-                    val capturePtr = HIRExpression.LocalRef(
-                        currentLocation,
-                        type.mutPtr(),
-                        binder.name
-                    )
+                    val capturePtr = getCapturePointer(binding)
                     emitStore(
                         contextRef.ptr()
                             .fieldPtr(binder.name, ctx.makeUniqueName(binder.name.text + "_ptr_ptr")),
@@ -131,11 +127,8 @@ internal class HIRGenClosure(
             captureStruct.instanceType().ptr(),
         )
         val returnType = ctx.analyzer.getReturnType(expression)
-        check(closureGenStack.items().isEmpty()) {
-            "Nested closures not supported yet"
-        }
         val body = scoped {
-            closureGenStack.push(ClosureGenContext(captureParam))
+            closureGenStack.push(ClosureGenContext(captureParam, captureStruct))
             defer { closureGenStack.pop() }
             when (expression.body) {
                 is ClosureBody.Block -> {
@@ -270,8 +263,27 @@ internal class HIRGenClosure(
                 .load() // *mut FieldType
         emitStore(ptr, lowerExpression(statement.value))
     }
+
+    private fun getCapturePointer(binding: Binding.ValBinding): HIROperand {
+        for (closureGenCtx in closureGenStack.items().reversed()) {
+            closureGenCtx.getCapture(binding.binder.name) ?: continue
+            val ctxPtr = closureGenCtx.captureParam.ref()
+            return ctxPtr.fieldPtr(binding.binder.name)
+                .load()
+        }
+        return HIRExpression.LocalRef(
+            currentLocation,
+            ctx.analyzer.typeOfBinder(binding.binder).mutPtr(),
+            binding.binder.name
+        )
+    }
 }
 
 data class ClosureGenContext(
-    val captureParam: HIRParam
-)
+    val captureParam: HIRParam,
+    val captureStruct: HIRDefinition.Struct,
+) {
+    fun getCapture(name: Name): Type? {
+        return captureStruct.fields.find { it.first == name }?.second
+    }
+}

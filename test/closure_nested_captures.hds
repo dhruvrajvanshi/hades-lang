@@ -1,11 +1,13 @@
 
 def main(): Void {
-    val x = b"1"
+    val mut x = b"1"
     apply || {
         puts(x)
         val y = b"2"
         apply || {
             puts(y)
+            x = b"3"
+            puts(x)
         }
     }
 }
