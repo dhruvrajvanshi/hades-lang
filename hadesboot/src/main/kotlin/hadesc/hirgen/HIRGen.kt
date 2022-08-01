@@ -519,7 +519,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         if (substitutionPtr != null) {
             emitStore(substitutionPtr(), lowerExpression(statement.value))
         } else {
-            emitAssign(lowerLocalBinder(binding.statement.binder), lowerExpression(statement.value))
+            emitStore(
+                HIRExpression.LocalRef(
+                    currentLocation,
+                    typeOfExpression(statement.value).mutPtr(),
+                    binding.statement.binder.name
+                ),
+                lowerExpression(statement.value)
+            )
         }
     }
 

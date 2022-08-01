@@ -258,17 +258,6 @@ fun HIRBuilder.allocaAssign(name: Name, rhs: HIRExpression, location: SourceLoca
     return alloca
 }
 
-@Deprecated(replaceWith = ReplaceWith("emitStore"), message = "Refactor to store instructions")
-fun HIRBuilder.emitAssign(name: Name, rhs: HIRExpression, location: SourceLocation = rhs.location) {
-    emit(
-        HIRStatement.Assignment(
-            location,
-            name,
-            rhs
-        )
-    )
-}
-
 fun HIRBuilder.emitStore(ptr: HIROperand, value: HIRExpression) {
     val ptrType = ptr.type
     check(ptrType is Type.Ptr && ptrType.isMutable)

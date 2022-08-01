@@ -104,13 +104,6 @@ sealed interface HIRStatement: HIRNode {
     }
 
 
-    @Deprecated("Use Store")
-    data class Assignment(
-            override val location: SourceLocation,
-            val name: Name,
-            val value: HIRExpression
-    ) : HIRStatement, StraightLineInstruction
-
     data class Store(
             override val location: SourceLocation,
             val ptr: HIROperand,
@@ -268,7 +261,6 @@ sealed interface HIRStatement: HIRNode {
         }
         is Return -> "return ${expression.prettyPrint()}"
         is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
-        is Assignment -> "%${name.text} = ${value.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +
                 arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +
                 "\n    otherwise -> ${otherwise.prettyPrint().prependIndent("    ").trimStart()}\n" +

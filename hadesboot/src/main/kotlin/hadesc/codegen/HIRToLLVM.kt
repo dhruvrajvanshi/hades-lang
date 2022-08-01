@@ -303,7 +303,6 @@ class HIRToLLVM(
         }
         exhaustive(when (statement) {
             is HIRStatement.NameBinder -> lowerNameBinder(statement)
-            is HIRStatement.Assignment -> lowerAssignment(statement)
             is HIRStatement.Return -> lowerReturnStatement(statement)
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
@@ -364,24 +363,6 @@ class HIRToLLVM(
             builder.buildStore(ptr, rhs)
         }
 
-    }
-
-    private fun lowerAssignment(statement: HIRStatement.Assignment) {
-        log.debug("${statement.name.text} = ${statement.value.prettyPrint()}")
-        if (statement.value is HIROperand && statement.value.type is Type.Void) {
-            return
-        }
-        val value = lowerExpression(statement.value)
-
-        if (statement.value.type !is Type.Void) {
-            val pointer = checkNotNull(localValues[statement.name]) {
-                TODO()
-            }
-            builder.buildStore(
-                value = value,
-                toPointer = pointer,
-            )
-        }
     }
 
     private fun lowerAlloca(statement: HIRStatement.Alloca): Value? {

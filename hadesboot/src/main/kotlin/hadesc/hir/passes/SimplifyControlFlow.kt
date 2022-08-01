@@ -235,7 +235,6 @@ class SimplifyControlFlow(private val ctx: Context) {
         val last = statements.lastOrNull() ?: return false
 
         return when (last) {
-            is HIRStatement.Assignment,
             is HIRStatement.Store,
             is HIRStatement.Alloca,
             is HIRStatement.Call,

@@ -12,7 +12,6 @@ interface HIRBlockVisitor : TypeVisitor {
 
     fun visitStatement(statement: HIRStatement) {
         return when (statement) {
-            is HIRStatement.Assignment -> visitAssignmentStatement(statement)
             is HIRStatement.MatchInt -> visitMatchInt(statement)
             is HIRStatement.Return -> visitReturnStatement(statement)
             is HIRStatement.Store -> visitStore(statement)
@@ -83,10 +82,6 @@ interface HIRBlockVisitor : TypeVisitor {
             visitBlock(arm.block)
         }
         visitBlock(statement.otherwise)
-    }
-
-    fun visitAssignmentStatement(statement: HIRStatement.Assignment) {
-        visitExpression(statement.value)
     }
 
     fun visitExpression(expression: HIRExpression) {
