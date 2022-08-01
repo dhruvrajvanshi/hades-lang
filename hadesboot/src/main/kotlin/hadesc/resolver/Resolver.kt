@@ -574,6 +574,10 @@ class Resolver(private val ctx: Context) {
         return getEnclosingScopeTree(node)
     }
 
+    fun getEnclosingClosure(node: HasLocation): Closure? {
+        return getEnclosingScopeTree(node)
+    }
+
     fun getEnclosingMatchExpression(node: HasLocation): Match? {
         return getEnclosingScopeTree(node)
     }

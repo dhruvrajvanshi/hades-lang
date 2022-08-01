@@ -66,6 +66,22 @@ interface HIRBuilder {
         )
     }
 
+    fun HIRStatement.InvokeClosure.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
+    fun HIRStatement.AllocateClosure.result(): HIRExpression.LocalRef {
+        return HIRExpression.LocalRef(
+            currentLocation,
+            type,
+            name
+        )
+    }
+
     fun HIRStatement.TypeApplication.result(): HIRExpression.LocalRef {
         return HIRExpression.LocalRef(
             currentLocation,
@@ -273,7 +289,9 @@ fun HIRBuilder.emitStore(ptr: HIROperand, value: HIRExpression) {
             source = value.type,
             destination = ptrType.to
         )
-    )
+    ) {
+        "${value.type.prettyPrint()} is not assignable to ${ptrType.to.prettyPrint()}"
+    }
     emit(HIRStatement.Store(value.location, ptr, value))
 }
 
@@ -297,9 +315,9 @@ fun HIRBuilder.emitCall(
      *       in HIRGen in a hacky way. Once that is fixed,
      *       this flag won't be required.
      */
-    skipVerification: Boolean = false
+    skipVerification: Boolean = false,
+    name: Name = namingCtx.makeUniqueName()
 ): HIRStatement.Call {
-    val name = namingCtx.makeUniqueName()
     val calleeType = callee.type
     if (!skipVerification) {
         check(calleeType is Type.Ptr) {

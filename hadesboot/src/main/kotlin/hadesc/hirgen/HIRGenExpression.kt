@@ -17,6 +17,7 @@ internal class HIRGenExpression(
     private val ctx: Context,
     private val moduleContext: HIRGenModuleContext,
     private val functionContext: HIRGenFunctionContext,
+    private val closureGen: HIRGenClosure
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
     ASTContext by ctx
@@ -42,16 +43,21 @@ internal class HIRGenExpression(
             if (substitute != null) {
                 substitute()
             } else {
-                when (binding) {
-                    is Binding.FunctionParam ->
-                        lowerParamRef(expression, binding.param)
-                    is Binding.ClosureParam ->
-                        lowerParamRef(expression, binding.param)
-                    is Binding.ValBinding -> HIRExpression.ValRef(
-                        expression.location,
-                        typeOfExpression(expression),
-                        lowerLocalBinder(binding.statement.binder)
-                    )
+                check(expression is Expression.Var)
+                if (ctx.analyzer.isClosureCapture(expression.name)) {
+                    closureGen.lowerCaptureBinding(expression, binding)
+                } else {
+                    when (binding) {
+                        is Binding.FunctionParam ->
+                            lowerParamRef(expression, binding.param)
+                        is Binding.ClosureParam ->
+                            lowerParamRef(expression, binding.param)
+                        is Binding.ValBinding -> HIRExpression.ValRef(
+                            expression.location,
+                            typeOfExpression(expression),
+                            lowerLocalBinder(binding.statement.binder)
+                        )
+                    }
                 }
             }
         }
@@ -90,7 +96,6 @@ internal class HIRGenExpression(
             lowerLocalBinder(binding.arg.binder)
         )
     }
-
 
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {
         val substitute = valueSubstitution[param.binder]
@@ -153,12 +158,13 @@ internal class HIRGenExpression(
         }
         val callee = lowerExpression(expression.callee)
         if (callee.type is Type.Function) {
-            return HIRExpression.InvokeClosure(
+            return emit(HIRStatement.InvokeClosure(
                 location = expression.location,
+                name = namingCtx.makeUniqueName(),
                 type = expression.type,
-                closure = lowerExpression(expression.callee) as HIROperand,
-                args = expression.args.map { lowerExpression(it.expression)}
-            )
+                closureRef = lowerExpression(expression.callee) as HIROperand,
+                args = expression.args.map { lowerExpression(it.expression) as HIROperand }
+            )).result()
         } else {
             val calleeType = callee.type
             check(calleeType is Type.Ptr && calleeType.to is Type.Function)

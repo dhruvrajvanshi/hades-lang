@@ -2,6 +2,8 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
+import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.types.ptr
 
@@ -159,6 +161,26 @@ sealed interface HIRStatement: HIRNode {
         val value: HIROperand
     ) : HIRStatement, NameBinder, StraightLineInstruction
 
+    data class AllocateClosure(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type.Function,
+        val function: HIROperand,
+        val ctxPtr: HIROperand
+    ): HIRStatement, NameBinder, StraightLineInstruction {
+        init {
+            require(ctxPtr.type is Type.Ptr)
+        }
+    }
+
+    data class InvokeClosure(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val closureRef: HIROperand,
+        val args: List<HIROperand>,
+    ): HIRStatement, NameBinder, StraightLineInstruction
+
     /**
      * The basic structure of a while statement is this
      *
@@ -271,6 +293,10 @@ sealed interface HIRStatement: HIRNode {
             "%${name.text}: ${type.prettyPrint()} = pointer-cast[${toPointerOfType.prettyPrint()}] ${value.prettyPrint()}"
         is BinOp ->
             "%${name.text}: ${type.prettyPrint()} = ${operator.prettyPrint()} ${lhs.prettyPrint()}, ${rhs.prettyPrint()}"
+        is AllocateClosure ->
+            "%${name.text} = allocate-closure ${function.prettyPrint()}, ${ctxPtr.prettyPrint()}"
+        is InvokeClosure -> "%${name.text}: ${type.prettyPrint()} = invoke closure " +
+                "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
     }
 
     companion object {

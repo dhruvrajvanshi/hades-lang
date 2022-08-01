@@ -2,8 +2,9 @@
 def main(): Void {
     apply(b"1") |param| {
         puts(param)
-        apply(param) |other| {
+        apply(b"2") |other| {
             puts(other)
+            puts(param)
         }
     }
 }

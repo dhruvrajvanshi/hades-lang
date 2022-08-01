@@ -1,6 +1,7 @@
 package hadesc.hir.transformers
 
 import hadesc.Name
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.context.Context
 import hadesc.hir.*
@@ -32,13 +33,7 @@ class ParamToLocal(override val namingCtx: Context): AbstractHIRTransformer() {
     private val paramCopies = mutableMapOf<TaggedLocation<Binder>, Name>()
 
     fun declareParamCopies(params: List<HIRParam>): List<HIRStatement> =
-        makeList {
-            currentStatements = this
-            params.forEach {
-                currentLocation = it.location
-                declareParamCopy(it)
-            }
-        }
+        requireUnreachable()
 
     fun fixBinder(it: Binder): Binder =
         Binder(

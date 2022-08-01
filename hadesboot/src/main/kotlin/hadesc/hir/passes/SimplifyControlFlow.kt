@@ -247,6 +247,8 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.TypeApplication,
             is HIRStatement.PointerCast,
             is HIRStatement.BinOp,
+            is HIRStatement.AllocateClosure,
+            is HIRStatement.InvokeClosure,
             -> false
 
             is HIRStatement.Return,

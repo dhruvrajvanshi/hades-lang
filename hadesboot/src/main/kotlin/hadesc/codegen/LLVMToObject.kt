@@ -95,6 +95,8 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
     private fun writeModuleToFile() {
         makeParentDirectory(options.output)
         log.debug("Writing object file")
+        log.debug(LLVM.LLVMPrintModuleToString(llvmModule).string)
+        LLVM.LLVMVerifyModule(llvmModule, LLVM.LLVMPrintMessageAction, ByteArray(1000))
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()
         LLVM.LLVMInitializeAllTargetMCs()

@@ -160,6 +160,32 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.TypeApplication -> transformTypeApplication(statement)
         is HIRStatement.PointerCast -> transformPointerCast(statement)
         is HIRStatement.BinOp -> transformBinOp(statement)
+        is HIRStatement.AllocateClosure -> transformAllocateClosure(statement)
+        is HIRStatement.InvokeClosure -> transformInvokeClosureStatement(statement)
+    }
+
+    fun transformInvokeClosureStatement(statement: HIRStatement.InvokeClosure): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.InvokeClosure(
+                statement.location,
+                statement.name,
+                lowerType(statement.type),
+                transformOperand(statement.closureRef),
+                statement.args.map { transformOperand(it) }
+            )
+        )
+    }
+
+    fun transformAllocateClosure(statement: HIRStatement.AllocateClosure): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.AllocateClosure(
+                statement.location,
+                statement.name,
+                lowerType(statement.type) as Type.Function,
+                statement.function,
+                transformOperand(statement.ctxPtr),
+            )
+        )
     }
 
     fun transformJump(statement: HIRStatement.Jump): Collection<HIRStatement> {

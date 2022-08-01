@@ -85,16 +85,17 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val currentModule = HIRModule(mutableListOf())
     override var valueSubstitution: ValueSubstitution = mutableMapOf()
     override var localAssignmentSubstitution: ValueSubstitution = mutableMapOf()
-
-    private val exprGen = HIRGenExpression(
-        ctx,
-        moduleContext = this,
-        functionContext = this
-    )
     private val closureGen = HIRGenClosure(
         ctx,
         moduleContext = this,
         functionContext = this
+    )
+
+    private val exprGen = HIRGenExpression(
+        ctx,
+        moduleContext = this,
+        functionContext = this,
+        closureGen = closureGen
     )
     override lateinit var currentLocation: SourceLocation
     override var currentStatements: MutableList<HIRStatement>? = null
@@ -376,9 +377,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val body = lowerBlock(
             declaration.body,
             addReturnVoid,
-            before = {
-                 emitAll(paramToLocal.declareParamCopies(signature.params))
-            },
         ).copy(name = ctx.makeName("entry"))
         HIRDefinition.Function(
                 location = declaration.location,
@@ -516,6 +514,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerLocalAssignment(statement: Statement.LocalAssignment) {
         val binding = ctx.resolver.resolve(statement.name)
         require(binding is Binding.ValBinding)
+        if (ctx.analyzer.isClosureCapture(statement.name)) {
+            closureGen.lowerCaptureAssignment(statement)
+            return
+        }
         val substitutionPtr = localAssignmentSubstitution[binding.binder]
         if (substitutionPtr != null) {
             emitStore(substitutionPtr(), lowerExpression(statement.value))
@@ -808,10 +810,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun postLowerExpression(expression: HIRExpression): HIRExpression {
-        return when (expression) {
-            is HIRExpression.ParamRef -> paramToLocal.fixParamRef(expression)
-            else -> expression
-        }
+        return expression
     }
 
     private fun lowerAsExpression(expression: Expression.As): HIROperand {
