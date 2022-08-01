@@ -57,14 +57,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return emptyList()
     }
 
-    override fun transformGetCapturePointer(statement: GetCapturePointer): Collection<HIRStatement> {
-        TODO()
-    }
-
-    override fun transformGetCaptureValue(statement: GetCaptureValue): Collection<HIRStatement> {
-        TODO()
-    }
-
     override fun lowerType(type: Type): Type {
         return when (type) {
             is Type.Ptr ->

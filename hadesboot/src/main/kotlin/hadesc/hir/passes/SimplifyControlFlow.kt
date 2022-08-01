@@ -249,8 +249,6 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.BinOp,
             is HIRStatement.AllocateClosure,
             is HIRStatement.InvokeClosure,
-            is HIRStatement.GetCapturePointer,
-            is HIRStatement.GetCaptureValue,
             -> false
 
             is HIRStatement.Return,
