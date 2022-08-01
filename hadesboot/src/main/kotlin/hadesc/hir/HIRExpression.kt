@@ -32,17 +32,6 @@ sealed interface HIRExpression: HIRNode {
             val binder: Binder,
     ) : HIRExpression, HIROperand, LocalName
 
-    data class ValRef(
-            override val location: SourceLocation,
-            override val type: Type,
-            override val name: Name
-    ) : HIRExpression, HIROperand, LocalName {
-        @Deprecated("Temporary method added for refactoring")
-        fun asPtr(): LocalRef {
-            return HIRExpression.LocalRef(location, type.ptr(), name)
-        }
-    }
-
     data class LocalRef(
         override val location: SourceLocation,
         override val type: Type,
@@ -77,7 +66,6 @@ sealed interface HIRExpression: HIRNode {
     override fun prettyPrint(): String = when(this) {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
-        is ValRef -> "%${name.text}"
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
         is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint().prependIndent("  ")}"
@@ -103,7 +91,6 @@ fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
     is HIRExpression.LocalRef -> copy(type = type)
     is HIRExpression.ParamRef -> copy(type = type)
     is HIRExpression.TraitMethodRef -> copy(type = type)
-    is HIRExpression.ValRef -> copy(type = type)
     is HIRExpression.InvokeClosure -> copy(type = type)
     is HIRConstant.NullPtr -> {
         require(type is Type.Ptr)

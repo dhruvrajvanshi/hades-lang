@@ -461,7 +461,6 @@ class HIRToLLVM(
 
     private fun lowerOperand(expression: HIROperand): Value = when (expression) {
         is HIRExpression.ParamRef -> lowerParamRef(expression)
-        is HIRExpression.ValRef -> lowerValRef(expression)
         is HIRExpression.TraitMethodRef -> requireUnreachable()
         is HIRExpression.GlobalRef -> lowerGlobalRef(expression)
         is HIRConstant -> lowerConstant(expression)
@@ -621,16 +620,6 @@ class HIRToLLVM(
 
     private fun lowerNotStatement(statement: HIRStatement.Not): Value {
         return builder.buildNot(lowerExpression(statement.expression), statement.name.text)
-    }
-
-    private fun lowerValRef(expression: HIRExpression.ValRef): Value {
-        if (expression.type == Type.Void) {
-            // Doesn't matter what we return here. This normally would be unreachable but
-            // because of the design right now, it's not. FIXME
-            return constantInt(voidTy, 0)
-        }
-        val ptr = checkNotNull(localValues[expression.name])
-        return builder.buildLoad(ptr, ctx.makeUniqueName().text)
     }
 
     private fun lowerLocalRef(expression: HIRExpression.LocalRef): Value {

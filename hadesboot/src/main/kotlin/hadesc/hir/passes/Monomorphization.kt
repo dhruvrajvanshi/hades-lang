@@ -171,14 +171,6 @@ class Monomorphization(
         return emptyList()
     }
 
-    override fun transformValRef(expression: HIRExpression.ValRef): HIROperand {
-        val specialized = specializedFnRef[expression.name]
-        if (specialized != null) {
-            return specialized
-        }
-        return super.transformValRef(expression)
-    }
-
     override fun transformLocalRef(expression: HIRExpression.LocalRef): HIROperand {
         val specialized = specializedFnRef[expression.name]
         if (specialized != null) {

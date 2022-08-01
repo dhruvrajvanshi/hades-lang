@@ -295,7 +295,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     fun transformOperand(expression: HIROperand): HIROperand = when(expression) {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
-        is HIRExpression.ValRef -> transformValRef(expression)
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
         is HIRConstant -> transformConstant(expression)
         is HIRExpression.LocalRef -> transformLocalRef(expression)
@@ -417,14 +416,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             fieldName = expression.fieldName,
             lhs = transformExpression(expression.lhs)
         ))
-    }
-
-    fun transformValRef(expression: HIRExpression.ValRef): HIROperand {
-        return HIRExpression.ValRef(
-                expression.location,
-                lowerType(expression.type),
-                transformValName(expression.name)
-        )
     }
 
     fun transformValName(name: Name): Name {

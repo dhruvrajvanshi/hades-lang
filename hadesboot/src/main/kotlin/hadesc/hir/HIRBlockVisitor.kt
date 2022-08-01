@@ -97,7 +97,6 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRExpression.InvokeClosure -> visitInvokeClosure(expression)
             is HIRExpression.ParamRef -> visitParamRef(expression)
             is HIRExpression.TraitMethodRef -> visitTraitMethodRef(expression)
-            is HIRExpression.ValRef -> visitValRef(expression)
             is HIRConstant -> visitConstant(expression)
             is HIRExpression.LocalRef -> visitLocalRef(expression)
         }
@@ -168,8 +167,5 @@ interface HIRBlockVisitor : TypeVisitor {
     fun visitTypeApplication(statement: HIRStatement.TypeApplication) {
         visitExpression(statement.expression)
         statement.args.forEach { visitType(it) }
-    }
-
-    fun visitValRef(expression: HIRExpression.ValRef) {
     }
 }
