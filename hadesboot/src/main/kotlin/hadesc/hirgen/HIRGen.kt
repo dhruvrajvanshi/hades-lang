@@ -13,7 +13,6 @@ import hadesc.scoped
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.HIRStatement.Companion.ifStatement
-import hadesc.hir.transformers.ParamToLocal
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.logging.logger
@@ -50,7 +49,6 @@ internal interface HIRGenModuleContext {
 
 internal interface HIRGenFunctionContext: HIRBuilder {
     val scopeStack: HIRGenScopeStack
-    val paramToLocal: ParamToLocal
     fun lowerExpression(expression: Expression): HIRExpression
     fun HIRExpression.asOperand(): HIROperand
     fun lowerBlock(
@@ -79,7 +77,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()
     override val namingCtx: NamingContext get() = ctx
-    override val paramToLocal = ParamToLocal(ctx)
     override val enumTagFieldName = ctx.makeName("\$tag")
     private val enumPayloadFieldName = ctx.makeName("payload")
     override val currentModule = HIRModule(mutableListOf())
