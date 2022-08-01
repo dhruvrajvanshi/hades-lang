@@ -49,11 +49,16 @@ internal class HIRGenClosure(
 
         emitCaptureInitializers(contextRef, captureInfo)
 
+        val fnRef = if (captureInfo.types.isEmpty())
+                        closureFn.ref()
+                    else
+                        emitTypeApplication(closureFn.ref(), captureTypeArgs).result()
+
         val closureRef = emit(HIRStatement.AllocateClosure(
             currentLocation,
             ctx.makeUniqueName("closure"),
             ctx.analyzer.reduceGenericInstances(expression.type) as Type.Function,
-            closureFn.ref(),
+            fnRef,
             contextRef.ptr()
         ))
         return closureRef.result()
