@@ -149,7 +149,7 @@ interface HIRBuilder {
     }
 
     private fun libhdcFn(name: String): HIRDefinition.Function {
-        return currentModule.findGlobalFunction(qn("hades", "libhdc", "get_stderr"))
+        return currentModule.findGlobalFunction(qn("hades", "libhdc", name))
     }
 
     fun HIROperand.typeApplication(args: List<Type>): HIROperand {
@@ -187,15 +187,8 @@ interface HIRBuilder {
     fun HIRExpression.load(name: Name = namingCtx.makeUniqueName()): HIRExpression.LocalRef {
         val ptrTy = type
         check(ptrTy is Type.Ptr)
-
-        return if (this is HIROperand) {
-            emit(HIRStatement.Load(currentLocation, name, this))
-            HIRExpression.LocalRef(currentLocation, ptrTy.to, name)
-        } else {
-            val ptrRef = allocaAssign(name, this)
-            ptrRef.ptr().load().load()
-        }
-
+        emit(HIRStatement.Load(currentLocation, name, this))
+        return HIRExpression.LocalRef(currentLocation, ptrTy.to, name)
     }
 
     fun HIRParam.ref(): HIRExpression.ParamRef {
