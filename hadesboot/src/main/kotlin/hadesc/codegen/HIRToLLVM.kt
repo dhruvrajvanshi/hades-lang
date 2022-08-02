@@ -354,7 +354,7 @@ class HIRToLLVM(
     }
 
     private fun lowerStore(statement: HIRStatement.Store) {
-        if (statement.value is HIROperand && statement.value.type is Type.Void) {
+        if (statement.value.type is Type.Void) {
             return
         }
         val rhs = lowerExpression(statement.value)
@@ -431,9 +431,7 @@ class HIRToLLVM(
             LLVM.LLVMSetCurrentDebugLocation2(builder, location)
         }
 
-        return when (expression) {
-            is HIROperand -> lowerOperand(expression)
-        }
+        return lowerOperand(expression)
     }
 
     private fun lowerOperand(expression: HIROperand): Value = when (expression) {
@@ -756,7 +754,7 @@ class HIRToLLVM(
     private fun llvm.Type.alignment() =
         Alignment(LLVM.LLVMABIAlignmentOfType(dataLayout, this))
 
-    private fun Metadata.asValue(): llvm.Value =
+    private fun Metadata.asValue(): Value =
         this.asValue(llvmCtx)
 }
 
