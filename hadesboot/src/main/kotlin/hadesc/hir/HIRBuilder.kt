@@ -335,10 +335,12 @@ fun HIRBuilder.intoStatementList(statements: MutableList<HIRStatement>, builder:
     currentStatements = oldStatements
 }
 
+@Suppress("unused")
 fun HIRBuilder.trueValue(location: SourceLocation = currentLocation): HIRConstant.BoolValue {
     return HIRConstant.BoolValue(location, Type.Bool, true)
 }
 
+@Suppress("unused")
 fun HIRBuilder.falseValue(location: SourceLocation = currentLocation): HIRConstant.BoolValue {
     return HIRConstant.BoolValue(location, Type.Bool, false)
 }
@@ -347,6 +349,7 @@ internal fun HIRBuilder.qn(vararg names: String): QualifiedName {
     return QualifiedName(names.toList().map { namingCtx.makeName(it) })
 }
 
+@Suppress("unused")
 fun HIRBuilder.emitDumpCStr(operand: HIROperand) {
     val puts = currentModule.findDefinition(qn("_hdc_puts"))
     check(puts is HIRDefinition.ExternFunction)

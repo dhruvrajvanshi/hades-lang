@@ -335,9 +335,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 emitStore(paramPtr, paramRef)
             }
 
-            emit(
-                HIRStatement.Return(currentLocation, resultRef.ptr().load())
-            )
+            emitReturn(resultRef.ptr().load())
         }
 
         return HIRDefinition.Function(
@@ -441,7 +439,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             after()
             if (addReturnVoid) {
                 terminateScope()
-                emit(HIRStatement.Return(body.location, HIRConstant.Void(body.location)))
+                emitReturn(HIRConstant.Void(body.location))
             } else {
                 for (statement in requireNotNull(deferStack.peek())) {
                     emit(statement)
@@ -498,7 +496,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
         val ptr = lowerExpression(statement.lhs.expression)
-        check(ptr is HIROperand)
         emit(
                 HIRStatement.Store(
                         statement.location,
@@ -586,14 +583,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         terminateScope()
         requireNotNull(deferStack.peek()).removeIf { true }
         if (statement.value == null) {
-            emit(HIRStatement.Return(statement.location, HIRConstant.Void(statement.location)))
+            emitReturn(HIRConstant.Void(statement.location))
         } else {
-            emit(
-                HIRStatement.Return(
-                    statement.location,
-                    lowerExpression(statement.value)
-                )
-            )
+            emitReturn(lowerExpression(statement.value))
         }
     }
 
@@ -648,7 +640,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val withAppliedTypes = if (typeArgs != null) {
             check(exprType is Type.TypeFunction)
             check(exprType.params.size == typeArgs.size)
-            check(lowered is HIROperand)
             emitTypeApplication(
                 lowered,
                 typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
@@ -662,7 +653,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
         val enumConstructorBinding = ctx.analyzer.getEnumConstructorBinding(expression)
         return if (enumConstructorBinding != null && expression !is Expression.TypeApplication) {
-            check(withAppliedTypes is HIROperand)
             if (enumConstructorBinding.case.params == null) {
                 emitCall(
                     withAppliedTypes.type,
@@ -824,7 +814,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     override fun HIRExpression.asOperand(): HIROperand {
-        check(this is HIROperand)
         return this
     }
 
@@ -997,8 +986,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerIntLiteral(expression: Expression.IntLiteral): HIROperand {
-        if (expression.type.isIntegral()) {
-            return HIRConstant.IntValue(
+        return if (expression.type.isIntegral()) {
+            HIRConstant.IntValue(
                 expression.location,
                 typeOfExpression(expression),
                 expression.value
@@ -1006,7 +995,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         } else {
             val exprType = expression.type
             check(exprType is Type.FloatingPoint)
-            return HIRConstant.FloatValue(
+            HIRConstant.FloatValue(
                 expression.location,
                 exprType,
                 expression.value.toDouble()
