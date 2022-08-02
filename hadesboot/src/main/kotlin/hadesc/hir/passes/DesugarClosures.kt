@@ -1,12 +1,11 @@
 package hadesc.hir.passes
 
-import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
 import hadesc.context.NamingContext
 import hadesc.hir.*
-import hadesc.hir.HIRStatement.*
+import hadesc.hir.HIRStatement.AllocateClosure
+import hadesc.hir.HIRStatement.InvokeClosure
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
