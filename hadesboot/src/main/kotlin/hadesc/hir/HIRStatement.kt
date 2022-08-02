@@ -110,7 +110,6 @@ sealed interface HIRStatement: HIRNode {
             val value: HIRExpression
     ) : HIRStatement, StraightLineInstruction
 
-    @Deprecated("Use basic block structured instructions")
     data class MatchInt(
         override val location: SourceLocation,
         val value: HIRExpression,
@@ -206,7 +205,6 @@ sealed interface HIRStatement: HIRNode {
      * was run. Ideally, [hadesc.hir.passes.SimplifyShortCircuitingOperators] should be
      * more careful, but this was simpler to implement and reason about.
      */
-    @Deprecated("Use basic block structured instructions")
     data class While(
         override val location: SourceLocation,
         /**
