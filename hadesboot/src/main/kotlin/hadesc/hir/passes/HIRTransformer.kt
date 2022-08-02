@@ -275,10 +275,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
     private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = when(expression) {
         is HIROperand -> transformOperand(expression)
-
-        is HIRExpression.Closure -> transformClosure(expression)
-        is HIRExpression.InvokeClosure -> transformInvokeClosure(expression)
-
     }
 
     fun transformOperand(expression: HIROperand): HIROperand = when(expression) {
@@ -305,29 +301,6 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             statement.name,
             type,
             transformOperand(statement.value)
-        )
-    }
-
-    fun transformInvokeClosure(expression: HIRExpression.InvokeClosure): HIRExpression {
-        return HIRExpression.InvokeClosure(
-            location = expression.location,
-            type = expression.type,
-            closure = transformOperand(expression.closure),
-            args = expression.args.map { transformExpression(it) },
-        )
-    }
-
-    fun transformClosure(expression: HIRExpression.Closure): HIRExpression {
-        return HIRExpression.Closure(
-            expression.location,
-            lowerType(expression.type),
-            expression.captures.copy(
-                values = expression.captures.values.mapValues { it.value.first to lowerType(it.value.second) },
-                types = expression.captures.types
-            ),
-            expression.params.map { transformParam(it) },
-            lowerType(expression.returnType),
-            transformBlock(expression.body)
         )
     }
 

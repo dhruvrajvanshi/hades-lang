@@ -31,10 +31,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         return emptyList()
     }
 
-    override fun transformInvokeClosure(expression: HIRExpression.InvokeClosure): HIRExpression {
-        requireUnreachable()
-    }
-
     override fun transformInvokeClosureStatement(statement: InvokeClosure): Collection<HIRStatement> {
         val closureRef = transformExpression(statement.closureRef)
         check(closureRef.type is Type.Ptr)
@@ -109,10 +105,3 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         )
     }
 }
-
-private data class CaptureInfo(
-    val contextName: Name,
-    val contextType: Type,
-    val declarationLocation: SourceLocation,
-    val index: Int,
-)

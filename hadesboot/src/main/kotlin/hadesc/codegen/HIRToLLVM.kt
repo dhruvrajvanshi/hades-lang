@@ -433,10 +433,6 @@ class HIRToLLVM(
 
         return when (expression) {
             is HIROperand -> lowerOperand(expression)
-            is HIRExpression.InvokeClosure -> requireUnreachable()
-
-            is HIRExpression.Closure -> requireUnreachable()
-
         }
     }
 

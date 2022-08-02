@@ -47,29 +47,11 @@ sealed interface HIRExpression: HIRNode {
             val methodName: Name,
     ) : HIRExpression, HIROperand
 
-    data class Closure(
-        override val location: SourceLocation,
-        override val type: Type,
-        val captures: ClosureCaptures,
-        val params: List<HIRParam>,
-        val returnType: Type,
-        val body: HIRBlock
-    ) : HIRExpression
-
-    data class InvokeClosure(
-        override val location: SourceLocation,
-        override val type: Type,
-        val closure: HIROperand,
-        val args: List<HIRExpression>,
-    ) : HIRExpression
-
     override fun prettyPrint(): String = when(this) {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
                 methodName.text
-        is Closure -> "|${params.joinToString { it.name.text + ": " + it.type.prettyPrint() }}|: ${returnType.prettyPrint()} ${body.prettyPrint().prependIndent("  ")}"
-        is InvokeClosure -> "invoke_closure ${closure.prettyPrint()}(${args.joinToString { it.prettyPrint() }})"
         is HIRConstant.ByteString -> "b\"" + String(bytes)
             .replace("\"", "\"\"")
             .replace("\\", "\\\\") + "\""
@@ -83,7 +65,6 @@ sealed interface HIRExpression: HIRNode {
     }
 }
 fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
-    is HIRExpression.Closure -> copy(type = type)
     is HIRExpression.GlobalRef -> copy(type = type)
     is HIRConstant.BoolValue -> copy(type = type)
     is HIRConstant.ByteString -> copy(type = type)
@@ -91,7 +72,6 @@ fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
     is HIRExpression.LocalRef -> copy(type = type)
     is HIRExpression.ParamRef -> copy(type = type)
     is HIRExpression.TraitMethodRef -> copy(type = type)
-    is HIRExpression.InvokeClosure -> copy(type = type)
     is HIRConstant.NullPtr -> {
         require(type is Type.Ptr)
         copy(type = type)

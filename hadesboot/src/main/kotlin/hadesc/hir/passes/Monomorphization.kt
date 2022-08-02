@@ -342,10 +342,6 @@ class Monomorphization(
         return result
     }
 
-    override fun transformClosure(expression: HIRExpression.Closure): HIRExpression {
-        requireUnreachable()
-    }
-
     private fun generateImplAssociatedTypeMap(candidate: HIRDefinition.Implementation, subst: Substitution): Map<Name, Type> {
         return candidate.typeAliases.mapValues { it.value.applySubstitution(subst) }
     }
