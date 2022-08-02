@@ -12,7 +12,7 @@ import hadesc.types.ptr
 /**
  * Subset of HIRExpressions that don't nest.
  */
-sealed interface HIROperand: HIRExpression
+typealias HIROperand = HIRExpression
 sealed interface HIRExpression: HIRNode {
     val type: Type
     sealed interface LocalName {
@@ -23,20 +23,20 @@ sealed interface HIRExpression: HIRNode {
             override val location: SourceLocation,
             override val type: Type,
             val name: QualifiedName
-    ) : HIRExpression, HIROperand
+    ) : HIRExpression
 
     data class ParamRef(
             override val location: SourceLocation,
             override val type: Type,
             override val name: Name,
             val binder: Binder,
-    ) : HIRExpression, HIROperand, LocalName
+    ) : HIRExpression, LocalName
 
     data class LocalRef(
         override val location: SourceLocation,
         override val type: Type,
         override val name: Name
-    ) : HIRExpression, HIROperand, LocalName
+    ) : HIRExpression, LocalName
 
 
     data class TraitMethodRef(
@@ -45,7 +45,7 @@ sealed interface HIRExpression: HIRNode {
             val traitName: QualifiedName,
             val traitArgs: List<Type>,
             val methodName: Name,
-    ) : HIRExpression, HIROperand
+    ) : HIRExpression
 
     override fun prettyPrint(): String = when(this) {
         is GlobalRef -> name.mangle()
