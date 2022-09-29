@@ -153,15 +153,14 @@ internal class HIRGenExpression(
                 location = expression.location,
                 name = namingCtx.makeUniqueName(),
                 type = expression.type,
-                closureRef = lowerExpression(expression.callee) as HIROperand,
-                args = expression.args.map { lowerExpression(it.expression) as HIROperand }
+                closureRef = lowerExpression(expression.callee),
+                args = expression.args.map { lowerExpression(it.expression) }
             )).result()
         } else {
             val calleeType = callee.type
             check(calleeType is Type.Ptr && calleeType.to is Type.Function)
         }
         val receiver = ctx.analyzer.getCallReceiver(expression)?.let { lowerExpression(it) }
-        check(callee is HIROperand)
         val args =
             if (receiver != null) {
                 listOf(receiver) + expression.args.map { lowerExpression(it.expression) }
