@@ -116,6 +116,8 @@ data class Diagnostic(
         data class NoSuchCase(val declaration: Declaration.Enum, val name: Name) : Kind(Severity.ERROR)
         class InvalidPragma(val name: String) : Kind(Severity.ERROR)
 
+        object CantMoveNonLocal: Kind(Severity.ERROR)
+
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
             TypeAnnotationExpected -> "Type expected"
@@ -199,6 +201,7 @@ data class Diagnostic(
             is NotAnEnumType -> "Not an enum type: ${type.prettyPrint()}"
             is NoSuchCase -> "No such case. Allowed cases: ${declaration.cases.map { it.name.name }}"
             is InvalidPragma -> "Invalid pragma $name"
+            CantMoveNonLocal -> "Only local variables can be moved."
         }
 
     }

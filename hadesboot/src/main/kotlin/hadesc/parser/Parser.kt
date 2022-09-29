@@ -866,6 +866,7 @@ class Parser(
             tt.MINUS -> parseUnaryMinusExpression()
             tt.BYTE_CHAR_LITERAL -> parseByteCharLiteral()
             tt.MATCH -> parseMatchExpression()
+            tt.MOVE -> parseMoveExpression()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -873,6 +874,16 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseMoveExpression(): Expression {
+        val start = expect(tt.MOVE)
+        val name = parseIdentifier()
+
+        return Expression.Move(
+            location = SourceLocation.between(start, name),
+            name = name
+        )
     }
 
     private fun parseMatchExpression(): Expression {

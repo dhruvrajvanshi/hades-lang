@@ -622,6 +622,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.Match -> lowerMatchExpression(expression)
             is Expression.FloatLiteral -> lowerFloatLiteral(expression)
             is Expression.Uninitialized -> lowerUninitialized(expression)
+            is Expression.Move -> lowerMoveExpression(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -653,6 +654,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerMoveExpression(expression: Expression.Move): HIROperand {
+        val binding = ctx.resolver.resolve(expression.name)
+        check(binding != null)
+
+        return exprGen.lowerBinding(expression, binding)
     }
 
     private fun lowerUninitialized(expression: Expression.Uninitialized): HIROperand {

@@ -14,6 +14,7 @@ import hadesc.types.Type
 import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import hadesc.unit
+import jdk.jshell.Diag
 import libhades.collections.Stack
 
 class Checker(val ctx: Context) {
@@ -581,7 +582,23 @@ class Checker(val ctx: Context) {
             is Expression.ByteCharLiteral -> unit
             is Expression.Match -> checkMatchExpression(expression)
             is Expression.Uninitialized -> unit
+            is Expression.Move -> checkMoveExpression(expression)
         })
+    }
+
+    private fun checkMoveExpression(expression: Expression.Move) {
+
+        when (val binding = ctx.resolver.resolve(expression.name)) {
+            is Binding.Local -> {
+
+            }
+            null -> {
+                error(expression, Diagnostic.Kind.UnboundVariable(expression.name.name))
+            }
+            else -> {
+                error(expression.name, Diagnostic.Kind.CantMoveNonLocal)
+            }
+        }
     }
 
     private fun checkMatchExpression(expression: Expression.Match) {

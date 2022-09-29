@@ -81,7 +81,10 @@ interface SyntaxVisitor {
         is Expression.Match -> visitMatchExpression(expression)
         is Expression.FloatLiteral -> visitFloatLiteral(expression)
         is Expression.Uninitialized -> visitUninitializedLiteral(expression)
+        is Expression.Move -> visitMoveExpression(expression)
     }
+
+    fun visitMoveExpression(expression: Expression.Move) = unit
 
     fun visitUninitializedLiteral(expression: Expression.Uninitialized) = unit
 

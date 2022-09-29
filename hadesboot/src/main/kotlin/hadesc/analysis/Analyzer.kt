@@ -792,6 +792,7 @@ class Analyzer(
             is Expression.Match -> inferMatchExpression(expression)
             is Expression.FloatLiteral -> Type.f64
             is Expression.Uninitialized -> Type.Error(expression.location) // uninitialized expression must be checked, not inferred
+            is Expression.Move -> inferIdentifier(expression.name)
         })
     }
 
@@ -1031,9 +1032,13 @@ class Analyzer(
     }
 
     private fun inferVarExpresion(expression: Expression.Var): Type {
-        return when (val binding = ctx.resolver.resolve(expression.name)) {
+        return inferIdentifier(expression.name)
+    }
+
+    private fun inferIdentifier(name: Identifier): Type {
+        return when (val binding = ctx.resolver.resolve(name)) {
             null -> {
-                Type.Error(expression.location)
+                Type.Error(name.location)
             }
             else -> typeOfBinding(binding)
         }
