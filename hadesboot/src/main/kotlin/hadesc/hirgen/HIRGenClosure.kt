@@ -7,16 +7,13 @@ import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.defer
 import hadesc.hir.*
-import hadesc.location.Position
 import hadesc.location.SourceLocation
-import hadesc.location.SourcePath
 import hadesc.resolver.Binding
 import hadesc.scoped
 import hadesc.types.Type
 import hadesc.types.mutPtr
 import hadesc.types.ptr
 import libhades.collections.Stack
-import java.nio.file.Path
 
 internal class HIRGenClosure(
     private val ctx: Context,
@@ -191,65 +188,6 @@ internal class HIRGenClosure(
         fn
     }
     private val closureCtxParamName = ctx.makeName("\$ctx")
-
-    private fun addCaptureStruct(location: SourceLocation, captures: ClosureCaptures): HIRDefinition.Struct {
-        val typeParams = captures.types.map { HIRTypeParam(it.location, it.name) }
-        val fields = captures.values.entries.map { (name, capture) ->
-            val type = capturedFieldType(capture)
-            name.name to type
-        }
-        val structDef = HIRDefinition.Struct(
-            name = ctx.makeUniqueName("ClosureContext").toQualifiedName(),
-            location = location,
-            typeParams = typeParams.ifEmpty { null },
-            fields = fields
-        )
-        currentModule.addDefinition(structDef)
-        return structDef
-    }
-
-    private fun capturedFieldType(capture: Pair<Binding.Local, Type>): Type {
-        return when (capture.first) {
-            is Binding.ClosureParam -> capture.second
-            is Binding.FunctionParam -> capture.second
-            // Local variables are captured by pointer because
-            // they can be mutated within the capturing context
-            is Binding.MatchArmEnumCaseArg,
-            is Binding.ValBinding -> capture.second.mutPtr()
-        }
-    }
-
-    private val closureCtxFieldName = ctx.makeName("ctx")
-    private val closureFunctionPtrName = ctx.makeName("fn")
-    private val closureStruct by lazy {
-        val location = SourceLocation(
-            SourcePath(Path.of("builtin.Closure")),
-            Position(0, 0),
-            Position(0, 0)
-        )
-        val structName = namingCtx.makeName("\$builtin.Closure")
-        val typeParamName = namingCtx.makeName("T")
-        val typeParam = Binder(Identifier(location, typeParamName))
-        val def = HIRDefinition.Struct(
-            location = location,
-            typeParams = listOf(HIRTypeParam(location, typeParamName)),
-            fields = listOf(
-                closureCtxFieldName to Type.Void.ptr(),
-                closureFunctionPtrName to fnTypeThatReturns(Type.ParamRef(typeParam)).ptr(),
-            ),
-            name = structName.toQualifiedName()
-        )
-        currentModule.addDefinition(def)
-        def
-
-    }
-
-    private fun fnTypeThatReturns(returns: Type): Type.Function {
-        return Type.Function(
-            from = listOf(),
-            to = returns
-        )
-    }
 
     private fun Expression.Var.uniqueNameWithSuffix(suffix: String): Name {
         return namingCtx.makeUniqueName(name.name.text + suffix)
