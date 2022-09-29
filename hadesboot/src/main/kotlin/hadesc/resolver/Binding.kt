@@ -63,7 +63,7 @@ sealed interface Binding {
         override val binder: Binder get() = declaration.name
     }
 
-    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding {
+    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding, Local {
         init {
             requireNotNull(topLevelPattern.args)
             require(argIndex < topLevelPattern.args.size)

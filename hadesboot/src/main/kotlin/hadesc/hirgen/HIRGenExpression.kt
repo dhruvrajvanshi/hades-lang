@@ -53,6 +53,12 @@ internal class HIRGenExpression(
                         typeOfExpression(expression).ptr(),
                         lowerLocalBinder(binding.statement.binder)
                     ).load()
+                    is Binding.MatchArmEnumCaseArg ->
+                        HIRExpression.LocalRef(
+                            expression.location,
+                            typeOfExpression(expression).ptr(),
+                            lowerLocalBinder(binding.arg.binder)
+                        ).load()
                 }
             }
         }
@@ -85,11 +91,6 @@ internal class HIRGenExpression(
             typeOfExpression(expression),
             lowerGlobalName(binding.declaration.name)
         )
-        is Binding.MatchArmEnumCaseArg -> HIRExpression.LocalRef(
-            expression.location,
-            typeOfExpression(expression).ptr(),
-            lowerLocalBinder(binding.arg.binder)
-        ).load()
     }
 
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {

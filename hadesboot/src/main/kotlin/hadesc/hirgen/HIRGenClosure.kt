@@ -89,6 +89,14 @@ internal class HIRGenClosure(
                         capturePtr
                     )
                 }
+                is Binding.MatchArmEnumCaseArg -> {
+                    val capturePtr = getCapturePointer(binding)
+                    emitStore(
+                        contextRef.ptr()
+                            .fieldPtr(binder.name, ctx.makeUniqueName(binder.name.text + "_ptr_ptr")),
+                        capturePtr
+                    )
+                }
             }
         }
     }
@@ -118,6 +126,7 @@ internal class HIRGenClosure(
             is Binding.ClosureParam,
             is Binding.FunctionParam -> true
             is Binding.ValBinding -> false
+            is Binding.MatchArmEnumCaseArg -> false
         }
     }
 
@@ -205,6 +214,7 @@ internal class HIRGenClosure(
             is Binding.FunctionParam -> capture.second
             // Local variables are captured by pointer because
             // they can be mutated within the capturing context
+            is Binding.MatchArmEnumCaseArg,
             is Binding.ValBinding -> capture.second.mutPtr()
         }
     }
@@ -262,6 +272,9 @@ internal class HIRGenClosure(
             is Binding.ValBinding ->
                 getCapturePointer(binding)
                     .load(expression.uniqueNameWithSuffix("_val")) // FieldType
+            is Binding.MatchArmEnumCaseArg ->
+                getCapturePointer(binding)
+                    .load(expression.uniqueNameWithSuffix("_val")) // FieldType
         }
     }
 
@@ -275,17 +288,22 @@ internal class HIRGenClosure(
         emitStore(ptr, lowerExpression(statement.value))
     }
 
-    private fun getCapturePointer(binding: Binding.ValBinding): HIROperand {
+    private fun getCapturePointer(binding: Binding.ValBinding): HIROperand =
+        getCapturePointer(binding.binder)
+    private fun getCapturePointer(binding: Binding.MatchArmEnumCaseArg): HIROperand =
+        getCapturePointer(binding.binder)
+
+    private fun getCapturePointer(binder: Binder): HIROperand {
         for (closureGenCtx in closureGenStack.items().reversed()) {
-            closureGenCtx.getCapture(binding.binder.name) ?: continue
+            closureGenCtx.getCapture(binder.name) ?: continue
             val ctxPtr = closureGenCtx.captureParam.ref()
-            return ctxPtr.fieldPtr(binding.binder.name)
+            return ctxPtr.fieldPtr(binder.name)
                 .load()
         }
         return HIRExpression.LocalRef(
             currentLocation,
-            ctx.analyzer.typeOfBinder(binding.binder).mutPtr(),
-            binding.binder.name
+            ctx.analyzer.typeOfBinder(binder).mutPtr(),
+            binder.name
         )
     }
 }

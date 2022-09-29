@@ -1,0 +1,19 @@
+
+def main(): Void {
+    match X.Y(b"PASS") {
+        Y(val message) -> {
+            apply || {
+                puts(message)
+            }
+        }
+    }
+}
+
+def apply(f: || -> Void): Void {
+    f()
+}
+
+enum X {
+    Y(*u8)
+}
+extern def puts(*u8): Void = puts
