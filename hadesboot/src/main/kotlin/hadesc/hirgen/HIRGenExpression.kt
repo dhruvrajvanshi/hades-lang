@@ -39,25 +39,20 @@ internal class HIRGenExpression(
         binding: Binding
     ): HIROperand = when(binding) {
         is Binding.Local -> {
-            val substitute = valueSubstitution[binding.binder]
-            if (substitute != null) {
-                substitute()
+            check(expression is Expression.Var)
+            if (ctx.analyzer.isClosureCapture(expression.name)) {
+                closureGen.lowerCaptureBinding(expression, binding)
             } else {
-                check(expression is Expression.Var)
-                if (ctx.analyzer.isClosureCapture(expression.name)) {
-                    closureGen.lowerCaptureBinding(expression, binding)
-                } else {
-                    when (binding) {
-                        is Binding.FunctionParam ->
-                            lowerParamRef(expression, binding.param)
-                        is Binding.ClosureParam ->
-                            lowerParamRef(expression, binding.param)
-                        is Binding.ValBinding -> HIRExpression.LocalRef(
-                            expression.location,
-                            typeOfExpression(expression).ptr(),
-                            lowerLocalBinder(binding.statement.binder)
-                        ).load()
-                    }
+                when (binding) {
+                    is Binding.FunctionParam ->
+                        lowerParamRef(expression, binding.param)
+                    is Binding.ClosureParam ->
+                        lowerParamRef(expression, binding.param)
+                    is Binding.ValBinding -> HIRExpression.LocalRef(
+                        expression.location,
+                        typeOfExpression(expression).ptr(),
+                        lowerLocalBinder(binding.statement.binder)
+                    ).load()
                 }
             }
         }
@@ -98,10 +93,6 @@ internal class HIRGenExpression(
     }
 
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {
-        val substitute = valueSubstitution[param.binder]
-        if (substitute != null) {
-            return substitute()
-        }
         return HIRExpression.ParamRef(
             expression.location,
             typeOfExpression(expression),

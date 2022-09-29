@@ -28,14 +28,10 @@ import hadesc.types.mutPtr
 import hadesc.types.ptr
 import java.nio.file.Path
 
-internal typealias ValueSubstitution =
-        MutableMap<Binder, HIRBuilder.() -> HIROperand>
-
 internal interface HIRGenModuleContext {
     val enumTagFieldName: Name
     val currentModule: HIRModule
-    var valueSubstitution: ValueSubstitution
-    var localAssignmentSubstitution: ValueSubstitution
+
     fun lowerGlobalName(binder: Binder): QualifiedName
     fun typeOfExpression(expression: Expression): Type
     fun lowerLocalBinder(binder: Binder): Name
@@ -80,8 +76,6 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     override val enumTagFieldName = ctx.makeName("\$tag")
     private val enumPayloadFieldName = ctx.makeName("payload")
     override val currentModule = HIRModule(mutableListOf())
-    override var valueSubstitution: ValueSubstitution = mutableMapOf()
-    override var localAssignmentSubstitution: ValueSubstitution = mutableMapOf()
     private val closureGen = HIRGenClosure(
         ctx,
         moduleContext = this,
@@ -512,19 +506,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             closureGen.lowerCaptureAssignment(statement)
             return
         }
-        val substitutionPtr = localAssignmentSubstitution[binding.binder]
-        if (substitutionPtr != null) {
-            emitStore(substitutionPtr(), lowerExpression(statement.value))
-        } else {
-            emitStore(
-                HIRExpression.LocalRef(
-                    currentLocation,
-                    typeOfExpression(statement.value).mutPtr(),
-                    binding.statement.binder.name
-                ),
-                lowerExpression(statement.value)
-            )
-        }
+        emitStore(
+            HIRExpression.LocalRef(
+                currentLocation,
+                typeOfExpression(statement.value).mutPtr(),
+                binding.statement.binder.name
+            ),
+            lowerExpression(statement.value)
+        )
     }
 
     private fun lowerWhileStatement(statement: Statement.While) {
