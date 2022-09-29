@@ -4,7 +4,7 @@ import hadesc.ast.*
 import hadesc.location.HasLocation
 
 sealed interface Binding {
-    abstract val binder: Binder
+    val binder: Binder
     sealed interface Local: Binding
 
     data class GlobalFunction(
