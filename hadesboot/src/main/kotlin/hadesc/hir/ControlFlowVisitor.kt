@@ -17,8 +17,8 @@ abstract class ControlFlowVisitor: HIRModuleVisitor {
 
         check(currentFunction == null)
         currentFunction = definition
-        defer { check(currentFunction === definition) }
         defer { currentFunction = null }
+        defer { check(currentFunction === definition) }
 
         check(visitedBlockSet == null)
         visitedBlockSet = mutableSetOf()
