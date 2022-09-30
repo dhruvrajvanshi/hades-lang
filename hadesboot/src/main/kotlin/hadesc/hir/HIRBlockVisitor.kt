@@ -2,7 +2,6 @@ package hadesc.hir
 
 import hadesc.unit
 
-@Suppress("unused")
 interface HIRBlockVisitor : TypeVisitor {
     fun visitBlock(block: HIRBlock) {
         block.statements.forEach {
