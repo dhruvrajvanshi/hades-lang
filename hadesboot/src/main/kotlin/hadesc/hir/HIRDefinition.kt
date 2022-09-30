@@ -20,6 +20,12 @@ sealed class HIRDefinition: HasLocation {
             return basicBlocks.find { it.name == label }
         }
 
+        fun findBlockOrThrow(label: Name): HIRBlock {
+            return checkNotNull(findBlock(label)) {
+                "Block with label: ${label.text} was not found in this function"
+            }
+        }
+
         val params get() = signature.params
         val returnType get() = signature.returnType
         val name get() = signature.name

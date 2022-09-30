@@ -44,3 +44,5 @@ fun clampToPowerOfTwo(value: Int): Int {
     }
     return currentValue
 }
+
+fun <T> Collection<T>.dropLast() = asSequence().take(size - 1)
