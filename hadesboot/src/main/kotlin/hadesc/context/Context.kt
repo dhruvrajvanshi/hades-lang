@@ -8,6 +8,7 @@ import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
+import hadesc.hir.analysis.UseAfterMoveAnalyzer
 import hadesc.hirgen.HIRGen
 import hadesc.hir.passes.*
 import hadesc.hir.verifier.HIRVerifier
@@ -68,6 +69,11 @@ class Context(
 
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
         log.debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
+
+        UseAfterMoveAnalyzer(this).visitModule(hirModule)
+        if (diagnosticReporter.hasErrors) {
+            return
+        }
 
         hirModule = Monomorphization(this).transformModule(hirModule)
         log.debug("Monomorphization:\n${hirModule.prettyPrint()}")
