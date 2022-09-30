@@ -14,7 +14,6 @@ import hadesc.types.Type
 import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import hadesc.unit
-import jdk.jshell.Diag
 import libhades.collections.Stack
 
 class Checker(val ctx: Context) {
@@ -54,9 +53,7 @@ class Checker(val ctx: Context) {
         val caseNames = mutableSetOf<Name>()
         declaration.cases.forEach { case ->
             case.params?.forEach {
-                if (it.annotation != null) {
-                    checkTypeAnnotation(it.annotation)
-                }
+                checkTypeAnnotation(it.annotation)
             }
             if (case.name.name in caseNames) {
                 error(case.name, Diagnostic.Kind.DuplicateVariantName)
@@ -357,7 +354,7 @@ class Checker(val ctx: Context) {
                         .asSequence()
                         .mapNotNull { it.params }
                         .flatten()
-                        .mapNotNull { it.annotation }
+                        .map { it.annotation }
                         .map { it.type }
                         .map { it.applySubstitution(substitution) }
                     memberTypes.forEach { checkReturnTypeWorker(node, it) }
@@ -588,7 +585,7 @@ class Checker(val ctx: Context) {
 
     private fun checkMoveExpression(expression: Expression.Move) {
 
-        when (val binding = ctx.resolver.resolve(expression.name)) {
+        when (ctx.resolver.resolve(expression.name)) {
             is Binding.Local -> {
 
             }

@@ -12,7 +12,6 @@ import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.types.ptr
 import hadesc.types.toSubstitution
-import kotlin.math.exp
 
 internal class HIRGenExpression(
     private val ctx: Context,

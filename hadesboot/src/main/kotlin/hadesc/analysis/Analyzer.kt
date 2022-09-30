@@ -103,12 +103,6 @@ class Analyzer(
         return PropertyBinding.EnumTypeCaseConstructor(binding.declaration, case, type)
     }
 
-    private fun typeDeclarationOf(type: Type): Declaration? = when (type) {
-        is Type.Constructor -> ctx.resolver.resolveDeclaration(type.name)
-        is Type.Application -> typeDeclarationOf(type.callee)
-        else -> null
-    }
-
     private fun typeOfEnumCase(
         declaration: Declaration.Enum,
         case: Declaration.Enum.Case
