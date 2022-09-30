@@ -12,6 +12,7 @@ import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.types.ptr
 import hadesc.types.toSubstitution
+import kotlin.math.exp
 
 internal class HIRGenExpression(
     private val ctx: Context,
@@ -39,9 +40,13 @@ internal class HIRGenExpression(
         binding: Binding
     ): HIROperand = when(binding) {
         is Binding.Local -> {
-            check(expression is Expression.Var)
-            if (ctx.analyzer.isClosureCapture(expression.name)) {
-                closureGen.lowerCaptureBinding(expression, binding)
+            val name = when (expression) {
+                is Expression.Move -> expression.name
+                is Expression.Var -> expression.name
+                else -> requireUnreachable()
+            }
+            if (ctx.analyzer.isClosureCapture(name)) {
+                closureGen.lowerCaptureBinding(name, binding)
             } else {
                 when (binding) {
                     is Binding.FunctionParam ->

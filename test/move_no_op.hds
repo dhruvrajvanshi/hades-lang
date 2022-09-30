@@ -1,0 +1,8 @@
+
+def main(): Void {
+    val x = b"PASS"
+    val y = move x
+    puts(y)
+}
+
+extern def puts(*u8): Void = puts

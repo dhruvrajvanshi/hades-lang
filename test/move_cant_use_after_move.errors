@@ -1,0 +1,5 @@
+test/move_cant_use_after_move.hds:8: UseAfterMove
+test/move_cant_use_after_move.hds:12: UseAfterMove
+test/move_cant_use_after_move.hds:15: UseAfterMove
+test/move_cant_use_after_move.hds:17: UseAfterMove
+test/move_cant_use_after_move.hds:24: UseAfterMove

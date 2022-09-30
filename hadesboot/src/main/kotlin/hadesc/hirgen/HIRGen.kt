@@ -622,6 +622,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             is Expression.Match -> lowerMatchExpression(expression)
             is Expression.FloatLiteral -> lowerFloatLiteral(expression)
             is Expression.Uninitialized -> lowerUninitialized(expression)
+            is Expression.Move -> lowerMoveExpression(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type
@@ -653,6 +654,35 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 withAppliedTypes
             }
         } else withAppliedTypes
+    }
+
+    private fun lowerMoveExpression(expression: Expression.Move): HIROperand {
+        val binding = ctx.resolver.resolve(expression.name)
+        check(binding != null)
+
+        // the basic idea here is this.
+        // This is the last time we should allow the use of this name
+        // Emitting a move instruction directly here doesn't work because
+        // that will flag this use as well.
+        // so we just create a new variable for this use, copy the original variable into
+        // the new one and then emit a move instruction
+
+        /// foo(move x, x)
+        /// This should emit the following:
+        ///
+        /// moveFrom = alloca typeof x
+        /// store moveFrom = x
+        /// move x
+        /// foo(
+        //      moveFrom, // this is fine
+        //      x,  // this is a move after use
+        //      )
+        val moveFrom = exprGen.lowerBinding(expression, binding)
+        val alloca = emitAlloca(namePrefix = expression.name.name.text + "_moved", expression.type)
+        emitStore(alloca.mutPtr(), moveFrom)
+        emit(HIRStatement.Move(currentLocation, binding.binder.name))
+
+        return alloca.ptr().load()
     }
 
     private fun lowerUninitialized(expression: Expression.Uninitialized): HIROperand {

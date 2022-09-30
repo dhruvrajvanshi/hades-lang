@@ -37,6 +37,7 @@ data class Token(
         THIS,
         EXTENSION,
         MATCH,
+        MOVE,
 
         NOT,
         AND,

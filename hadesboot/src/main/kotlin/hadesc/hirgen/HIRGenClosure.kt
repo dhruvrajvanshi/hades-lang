@@ -189,10 +189,10 @@ internal class HIRGenClosure(
     }
     private val closureCtxParamName = ctx.makeName("\$ctx")
 
-    private fun Expression.Var.uniqueNameWithSuffix(suffix: String): Name {
-        return namingCtx.makeUniqueName(name.name.text + suffix)
+    private fun Identifier.uniqueNameWithSuffix(suffix: String): Name {
+        return namingCtx.makeUniqueName(name.text + suffix)
     }
-    internal fun lowerCaptureBinding(expression: Expression.Var, binding: Binding.Local): HIROperand {
+    internal fun lowerCaptureBinding(name: Identifier, binding: Binding.Local): HIROperand {
         val closureCtx = closureGenStack.peek()
         check(closureCtx != null)
         val captureParam = closureCtx.captureParam
@@ -203,16 +203,16 @@ internal class HIRGenClosure(
             is Binding.FunctionParam ->
                 captureParam.ref() // *Ctx
                     .fieldPtr(
-                        expression.name.name,
-                        expression.uniqueNameWithSuffix("_ptr")
+                        name.name,
+                        name.uniqueNameWithSuffix("_ptr")
                     ) // *FieldType
-                    .load(expression.uniqueNameWithSuffix("_val")) // FieldType
+                    .load(name.uniqueNameWithSuffix("_val")) // FieldType
             is Binding.ValBinding ->
                 getCapturePointer(binding)
-                    .load(expression.uniqueNameWithSuffix("_val")) // FieldType
+                    .load(name.uniqueNameWithSuffix("_val")) // FieldType
             is Binding.MatchArmEnumCaseArg ->
                 getCapturePointer(binding)
-                    .load(expression.uniqueNameWithSuffix("_val")) // FieldType
+                    .load(name.uniqueNameWithSuffix("_val")) // FieldType
         }
     }
 

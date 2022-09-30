@@ -1,0 +1,2 @@
+test/move_can_only_move_locals_or_parameters.hds:5: CantMoveNonLocal
+test/move_can_only_move_locals_or_parameters.hds:6: CantMoveNonLocal
