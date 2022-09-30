@@ -8,6 +8,7 @@ import hadesc.ignore
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 import hadesc.types.ptr
+import hadesc.unit
 import llvm.makeList
 
 /**
@@ -80,15 +81,26 @@ class SimplifyControlFlow(private val ctx: Context) {
 
     private fun lowerBlock(block: HIRBlock) {
         for (statement in block.statements) {
-            lowerStatement(statement)
+            when (lowerStatement(statement)) {
+                StatementControlFlow.EarlyReturn -> break
+                StatementControlFlow.NoEarlyReturn -> unit
+            }
         }
     }
 
-    private fun lowerStatement(statement: HIRStatement): Unit =
+    sealed interface StatementControlFlow {
+        object EarlyReturn: StatementControlFlow
+        object NoEarlyReturn: StatementControlFlow
+    }
+    private fun lowerStatement(statement: HIRStatement): StatementControlFlow =
         when(statement) {
-            is HIRStatement.MatchInt -> lowerMatchInt(statement)
-            is HIRStatement.While -> lowerWhileStatement(statement)
-            else -> appendStatement(statement).ignore()
+            is HIRStatement.MatchInt -> lowerMatchInt(statement).let { StatementControlFlow.NoEarlyReturn }
+            is HIRStatement.While -> lowerWhileStatement(statement).let { StatementControlFlow.NoEarlyReturn }
+            is HIRStatement.Return -> {
+                appendStatement(statement)
+                StatementControlFlow.EarlyReturn
+            }
+            else -> appendStatement(statement).let { StatementControlFlow.NoEarlyReturn }
         }
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {
@@ -100,7 +112,10 @@ class SimplifyControlFlow(private val ctx: Context) {
         appendStatement(goto(statement.conditionBlock.location, whileEntry.name))
         withinBlock(whileEntry) {
             for (s in statement.conditionBlock.statements) {
-                lowerStatement(s)
+                when(lowerStatement(s)) {
+                    StatementControlFlow.EarlyReturn -> break
+                    StatementControlFlow.NoEarlyReturn -> unit
+                }
             }
             lowerBlock(statement.conditionBlock)
             val conditionPtr = HIRExpression.LocalRef(statement.conditionBlock.location, Type.Bool.ptr(), statement.conditionName)
@@ -116,12 +131,21 @@ class SimplifyControlFlow(private val ctx: Context) {
         }
 
         withinBlock(whileBody) {
+            var earlyReturn = false
             for (s in statement.body.statements) {
-                lowerStatement(s)
+                when(lowerStatement(s)) {
+                    StatementControlFlow.EarlyReturn -> {
+                        earlyReturn = true
+                        break
+                    }
+                    StatementControlFlow.NoEarlyReturn -> unit
+                }
             }
-            appendStatement(
-                goto(statement.body.location, whileEntry.name)
-            )
+            if (!earlyReturn) {
+                appendStatement(
+                    goto(statement.body.location, whileEntry.name)
+                )
+            }
         }
 
 
