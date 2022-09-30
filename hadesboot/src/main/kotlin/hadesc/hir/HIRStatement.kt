@@ -173,6 +173,11 @@ sealed interface HIRStatement: HIRNode {
         val args: List<HIROperand>,
     ): HIRStatement, NameBinder, StraightLineInstruction
 
+    data class Move(
+        override val location: SourceLocation,
+        val name: Name
+    ): HIRStatement, StraightLineInstruction
+
     /**
      * The basic structure of a while statement is this
      *
@@ -287,6 +292,8 @@ sealed interface HIRStatement: HIRNode {
             "%${name.text} = allocate-closure ${function.prettyPrint()}, ${ctxPtr.prettyPrint()}"
         is InvokeClosure -> "%${name.text}: ${type.prettyPrint()} = invoke closure " +
                 "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
+
+        is Move -> "move %${name.text}"
     }
 
     companion object {

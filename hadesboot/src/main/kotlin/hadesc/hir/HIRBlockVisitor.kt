@@ -30,8 +30,12 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.BinOp -> visitBinOp(statement)
             is HIRStatement.AllocateClosure -> visitAllocateClosure(statement)
             is HIRStatement.InvokeClosure -> visitInvokeClosureStatement(statement)
+            is HIRStatement.Move -> visitMoveStatement(statement)
         }
     }
+
+    fun visitMoveStatement(statement: HIRStatement.Move) = unit
+
     fun visitInvokeClosureStatement(statement: HIRStatement.InvokeClosure) {
         visitExpression(statement.closureRef)
         statement.args.forEach { visitExpression(it) }

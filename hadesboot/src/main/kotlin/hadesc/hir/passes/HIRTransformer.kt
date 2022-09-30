@@ -161,7 +161,10 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.BinOp -> transformBinOp(statement)
         is HIRStatement.AllocateClosure -> transformAllocateClosure(statement)
         is HIRStatement.InvokeClosure -> transformInvokeClosureStatement(statement)
+        is HIRStatement.Move -> transformMoveStatement(statement)
     }
+
+    fun transformMoveStatement(statement: HIRStatement.Move): Collection<HIRStatement> = listOf(statement)
 
     fun transformInvokeClosureStatement(statement: HIRStatement.InvokeClosure): Collection<HIRStatement> {
         return listOf(

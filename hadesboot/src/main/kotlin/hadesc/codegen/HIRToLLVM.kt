@@ -306,6 +306,9 @@ class HIRToLLVM(
             is HIRStatement.Return -> lowerReturnStatement(statement)
             is HIRStatement.Store -> lowerStore(statement)
             is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
+            is HIRStatement.Move -> {
+                // Move is  a no-op
+            }
             is HIRStatement.MatchInt,
             is HIRStatement.While -> requireUnreachable {
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
