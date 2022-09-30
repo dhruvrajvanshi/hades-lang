@@ -1,7 +1,7 @@
 plugins {
     java
     application
-    kotlin("jvm") version "1.7.10"
+    kotlin("jvm") version "1.7.20"
     jacoco
 }
 
