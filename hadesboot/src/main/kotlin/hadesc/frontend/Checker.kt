@@ -585,8 +585,30 @@ class Checker(val ctx: Context) {
 
     private fun checkMoveExpression(expression: Expression.Move) {
 
-        when (ctx.resolver.resolve(expression.name)) {
+        when (val binding = ctx.resolver.resolve(expression.name)) {
             is Binding.Local -> {
+                val enclosingClosure = ctx.resolver.getEnclosingClosure(expression)
+                if (enclosingClosure != null && !binding.isLocalTo(enclosingClosure)) {
+                    error(
+                        expression.name,
+                        Diagnostic.Kind.UseAfterMove(
+                            expression.name.location,
+                            hint="Since closures might be called multiple times, we have to " +
+                                    "assume that it might already be moved on subsequent invocations."
+                        )
+                    )
+                }
+
+                val enclosingWhile = ctx.resolver.getEnclosingWhileLoop(expression)
+                if (enclosingWhile != null && !binding.isLocalTo(enclosingWhile)) {
+                    error(
+                        expression.name,
+                        Diagnostic.Kind.UseAfterMove(
+                            expression.name.location,
+                            hint="Moved in the previous iteration of the loop."
+                        )
+                    )
+                }
 
             }
             null -> {
