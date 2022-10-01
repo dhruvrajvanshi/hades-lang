@@ -6,29 +6,29 @@ import hadesc.diagnostics.Diagnostic
 import hadesc.hir.ControlFlowVisitor
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
+import hadesc.location.SourceLocation
 
 class UseAfterMoveAnalyzer(private val ctx: Context): ControlFlowVisitor() {
-    private val movedVarSet = mutableSetOf<Name>()
+    private val movedVars = mutableMapOf<Name, SourceLocation>()
     override fun visitMoveStatement(statement: HIRStatement.Move) {
-        if (isMoved(statement.name)) {
-            ctx.diagnosticReporter.report(statement.location, Diagnostic.Kind.UseAfterMove)
+        val moveLocation = movedVars[statement.name]
+        if (moveLocation != null) {
+            ctx.diagnosticReporter.report(statement.location, Diagnostic.Kind.UseAfterMove(moveLocation))
             return
         }
-        movedVarSet.add(statement.name)
+        movedVars[statement.name] = statement.location
     }
 
     override fun visitExpression(expression: HIRExpression) {
         when (expression) {
             is HIRExpression.LocalName -> {
-                if (isMoved(expression.name)) {
-                    ctx.diagnosticReporter.report(expression.location, Diagnostic.Kind.UseAfterMove)
+                val moveLocation = movedVars[expression.name]
+
+                if (moveLocation != null) {
+                    ctx.diagnosticReporter.report(expression.location, Diagnostic.Kind.UseAfterMove(moveLocation))
                 }
             }
             else -> super.visitExpression(expression)
         }
-    }
-
-    private fun isMoved(name: Name): Boolean {
-        return name in movedVarSet
     }
 }

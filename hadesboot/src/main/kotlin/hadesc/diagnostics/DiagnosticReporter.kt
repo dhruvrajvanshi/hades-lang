@@ -100,7 +100,7 @@ data class Diagnostic(
         data class DuplicateValueBinding(val existing: Binder) : Kind(Severity.ERROR)
         object TakingAddressOfClosureDisallowed: Kind(Severity.ERROR)
         object ReturnTypeMustNotContainClosuresOrRefs : Kind(Severity.ERROR)
-        object UseAfterMove : Kind(Severity.ERROR)
+        data class UseAfterMove(val movedAt: SourceLocation) : Kind(Severity.ERROR)
         object NotAnIntegralValue : Kind(Severity.ERROR)
         object BlockExpressionMustEndWithExpression : Kind(Severity.ERROR)
         object InvalidIntrinsic : Kind(Severity.ERROR)
@@ -188,7 +188,7 @@ data class Diagnostic(
             TakingAddressOfClosureDisallowed -> "Taking the address of a closure is disallowed."
             ReturnTypeMustNotContainClosuresOrRefs -> "Return types cannot contain closures or refs"
 //            is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"
-            UseAfterMove -> "Use after move"
+            is UseAfterMove -> "Use after move"
             NotAnIntegralValue -> "Not an integral value"
             is NoSuchAssociatedType -> "No such associated type ${name.text}"
             is MissingAssociatedType -> "Missing associated type: ${name.text}"
@@ -244,6 +244,14 @@ class DiagnosticReporter {
             }
 
         }
+
+        if (kind is Diagnostic.Kind.UseAfterMove) {
+            System.err.println()
+            System.err.print("${path}:(${kind.movedAt.start.line}:${kind.movedAt.start.column}): ")
+            System.err.print(colorize("Moved here", Attribute.BRIGHT_YELLOW_TEXT()))
+            System.err.println()
+            printLocationLine(kind.movedAt, Attribute.BRIGHT_YELLOW_TEXT())
+        }
         System.err.println()
         System.err.println()
     }
@@ -254,14 +262,14 @@ class DiagnosticReporter {
         }
         return Ansi.colorize(text, *attribute)
     }
-    private fun printLocationLine(location: SourceLocation) {
+    private fun printLocationLine(location: SourceLocation, vararg attribute: Attribute) {
         val lines = fileLines.computeIfAbsent(location.file) {
             it.path.toFile().readLines()
         }
         val startLine = lines[location.start.line - 1]
         val lineno = colorize(location.start.line.toString(), Attribute.DIM())
-        printErrLn(" $lineno\t| $startLine")
-        System.err.print(" ${location.start.line.toString().chars().toList().joinToString(" ") { "" }  }\t|")
+        printErrLn(" $lineno\t${colorize("| $startLine", *attribute)}")
+        System.err.print(colorize(" ${location.start.line.toString().chars().toList().joinToString(" ") { "" }  }\t|", *attribute))
     }
 
     private fun printErrLn(string: String) {
