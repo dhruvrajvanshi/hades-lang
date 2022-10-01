@@ -674,11 +674,13 @@ class Parser(
         val start = expect(tt.WHILE)
         val condition = parseExpression()
         val block = parseBlock()
-        return Statement.While(
+        val result = Statement.While(
                 makeLocation(start, block),
                 condition,
                 block
         )
+        ctx.resolver.onParseScopeNode(result)
+        return result
     }
 
     private fun parseReturnStatement(): Statement {

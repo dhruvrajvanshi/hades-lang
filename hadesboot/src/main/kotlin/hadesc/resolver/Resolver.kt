@@ -161,6 +161,7 @@ class Resolver(private val ctx: Context) {
         is Closure -> null
         is Match -> null
         is Match.Arm -> null
+        is Statement.While -> null
     }
 
     private fun findTypeInFunctionDef(ident: Identifier, declaration: FunctionDef): TypeBinding? {
@@ -214,6 +215,7 @@ class Resolver(private val ctx: Context) {
         is Declaration.Enum -> null
         is Match -> null
         is Match.Arm -> findInMatchArm(ident, scope)
+        is Statement.While -> findInBlock(ident, scope.body)
     }
 
     private fun findInMatchArm(ident: Identifier, scope: Match.Arm): Binding? {
@@ -407,6 +409,10 @@ class Resolver(private val ctx: Context) {
             .add(scopeNode)
     }
 
+    fun onParseScopeNode(scopeNode: ScopeTree) {
+        addScopeNode(scopeNode.location.file, scopeNode)
+    }
+
     fun resolveModuleProperty(expression: Property): Binding? {
         val scopeStack = getScopeStack(expression.lhs)
         // TODO: Handle chained property calls
@@ -575,6 +581,10 @@ class Resolver(private val ctx: Context) {
     }
 
     fun getEnclosingClosure(node: HasLocation): Closure? {
+        return getEnclosingScopeTree(node)
+    }
+
+    fun getEnclosingWhileLoop(node: HasLocation): Statement.While? {
         return getEnclosingScopeTree(node)
     }
 

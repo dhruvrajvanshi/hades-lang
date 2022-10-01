@@ -21,7 +21,7 @@ sealed class Statement : HasLocation {
         override val location: SourceLocation,
         val condition: Expression,
         val body: Block
-    ) : Statement()
+    ) : Statement(), ScopeTree
 
     data class If(
         override val location: SourceLocation,
