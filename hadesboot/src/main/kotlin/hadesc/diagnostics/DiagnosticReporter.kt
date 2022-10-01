@@ -100,7 +100,10 @@ data class Diagnostic(
         data class DuplicateValueBinding(val existing: Binder) : Kind(Severity.ERROR)
         object TakingAddressOfClosureDisallowed: Kind(Severity.ERROR)
         object ReturnTypeMustNotContainClosuresOrRefs : Kind(Severity.ERROR)
-        data class UseAfterMove(val movedAt: SourceLocation) : Kind(Severity.ERROR)
+        data class UseAfterMove(
+            val movedAt: SourceLocation,
+            val hint: String? = null
+        ) : Kind(Severity.ERROR)
         object NotAnIntegralValue : Kind(Severity.ERROR)
         object BlockExpressionMustEndWithExpression : Kind(Severity.ERROR)
         object InvalidIntrinsic : Kind(Severity.ERROR)
@@ -247,10 +250,18 @@ class DiagnosticReporter {
 
         if (kind is Diagnostic.Kind.UseAfterMove) {
             System.err.println()
-            System.err.print("${path}:(${kind.movedAt.start.line}:${kind.movedAt.start.column}): ")
+            System.err.print(colorize("${path}:(${kind.movedAt.start.line}:${kind.movedAt.start.column}): ", Attribute.BOLD()))
             System.err.print(colorize("Moved here", Attribute.BRIGHT_YELLOW_TEXT()))
             System.err.println()
             printLocationLine(kind.movedAt, Attribute.BRIGHT_YELLOW_TEXT())
+            if (kind.hint != null) {
+                System.err.println()
+                System.err.print(colorize("HINT", Attribute.BLUE_BACK(), Attribute.BLACK_TEXT(), Attribute.BOLD()))
+                System.err.print(colorize(": ", Attribute.BOLD(), Attribute.WHITE_TEXT()))
+                System.err.print(colorize(" ${kind.hint}", Attribute.BRIGHT_BLUE_TEXT()))
+                System.err.println()
+            }
+            System.err.println()
         }
         System.err.println()
         System.err.println()
