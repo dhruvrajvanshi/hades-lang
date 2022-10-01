@@ -23,6 +23,7 @@ data class Token(
         IF,
         ELSE,
         SIZE_OF,
+        ALIGN_OF,
         POINTER_CAST,
         MUT,
         TRAIT,

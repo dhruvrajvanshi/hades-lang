@@ -629,7 +629,12 @@ class HIRToLLVM(
             is HIRConstant.NullPtr -> lowerNullPtr(constant)
             is HIRConstant.SizeOf -> lowerSizeOf(constant)
             is HIRConstant.Void -> requireUnreachable()
+            is HIRConstant.AlignOf -> lowerAlignOf(constant)
         }
+
+    private fun lowerAlignOf(constant: HIRConstant.AlignOf): Value {
+        return Value(LLVM.LLVMAlignOf(lowerType(constant.type)))
+    }
 
     private fun lowerFloatLiteral(constant: HIRConstant.FloatValue): Value {
         return constantFloat(

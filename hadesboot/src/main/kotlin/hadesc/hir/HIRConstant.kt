@@ -40,6 +40,12 @@ sealed interface HIRConstant: HIROperand {
         val ofType: Type
     ) : HIRConstant
 
+    data class AlignOf(
+        override val location: SourceLocation,
+        override val type: Type,
+        val ofType: Type
+    ): HIRConstant
+
     data class NullPtr(
         override val location: SourceLocation,
         override val type: Type.Ptr
