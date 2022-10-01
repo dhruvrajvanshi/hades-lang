@@ -82,6 +82,11 @@ interface SyntaxVisitor {
         is Expression.FloatLiteral -> visitFloatLiteral(expression)
         is Expression.Uninitialized -> visitUninitializedLiteral(expression)
         is Expression.Move -> visitMoveExpression(expression)
+        is Expression.AlignOf -> visitAlignOfExpression(expression)
+    }
+
+    fun visitAlignOfExpression(expression: Expression.AlignOf) {
+        visitType(expression.type)
     }
 
     fun visitMoveExpression(expression: Expression.Move) = unit

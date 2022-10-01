@@ -67,6 +67,11 @@ sealed interface Expression : HasLocation {
         val type: TypeAnnotation
     ) : Expression
 
+    data class AlignOf(
+        override val location: SourceLocation,
+        val type: TypeAnnotation
+    ): Expression
+
     data class AddressOf(
         override val location: SourceLocation,
         val expression: Expression

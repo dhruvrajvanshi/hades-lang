@@ -424,6 +424,13 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRConstant.Void -> expression
         is HIRConstant.NullPtr -> expression.copy(type = Type.Ptr(lowerType(expression.type.to), expression.type.isMutable))
         is HIRConstant.SizeOf -> transformSizeOfExpression(expression)
+        is HIRConstant.AlignOf -> transformAlignOfExpression(expression)
+    }
+
+    fun transformAlignOfExpression(expression: HIRConstant.AlignOf): HIRConstant {
+        return expression.copy(
+            ofType = lowerType(expression.ofType)
+        )
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {

@@ -27,6 +27,7 @@ val KEYWORDS = mapOf(
     "else" to tt.ELSE,
     "const" to tt.CONST,
     "size_of" to tt.SIZE_OF,
+    "align_of" to tt.ALIGN_OF,
     "pointer_cast" to tt.POINTER_CAST,
     "mut" to tt.MUT,
     "trait" to tt.TRAIT,

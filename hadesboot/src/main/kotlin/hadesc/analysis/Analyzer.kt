@@ -767,6 +767,7 @@ class Analyzer(
             is Expression.Not -> inferNotExpression(expression)
             is Expression.BinaryOperation -> inferBinaryOperation(expression)
             is Expression.SizeOf -> inferSizeOfExpression(expression)
+            is Expression.AlignOf -> inferAlignOfExpression(expression)
             is Expression.AddressOf -> inferAddressOf(expression)
             is Expression.AddressOfMut -> inferAddressOfMut(expression)
             is Expression.Deref -> inferDerefExpression(expression)
@@ -934,6 +935,10 @@ class Analyzer(
     private fun inferSizeOfExpression(expression: Expression.SizeOf): Type {
         annotationToType(expression.type)
         return Type.Size(isSigned = false)
+    }
+    private fun inferAlignOfExpression(expression: Expression.AlignOf): Type {
+        annotationToType(expression.type)
+        return Type.usize
     }
 
     private fun inferBinaryOperation(expression: Expression.BinaryOperation): Type {

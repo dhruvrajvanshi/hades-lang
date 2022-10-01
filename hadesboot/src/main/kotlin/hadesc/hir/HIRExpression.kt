@@ -62,6 +62,7 @@ sealed interface HIRExpression: HIRNode {
         is HIRConstant.NullPtr -> "null : ${type.prettyPrint()}"
         is LocalRef -> "%${name.text}"
         is HIRConstant.SizeOf -> "size_of[${type.prettyPrint()}]"
+        is HIRConstant.AlignOf -> "align_of[${type.prettyPrint()}]"
     }
 }
 fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
@@ -72,6 +73,7 @@ fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
     is HIRExpression.LocalRef -> copy(type = type)
     is HIRExpression.ParamRef -> copy(type = type)
     is HIRExpression.TraitMethodRef -> copy(type = type)
+    is HIRConstant.AlignOf -> copy(type = type)
     is HIRConstant.NullPtr -> {
         require(type is Type.Ptr)
         copy(type = type)
@@ -79,4 +81,5 @@ fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
     is HIRConstant.Void,
     is HIRConstant.FloatValue,
     is HIRConstant.IntValue -> requireUnreachable()
+
 }

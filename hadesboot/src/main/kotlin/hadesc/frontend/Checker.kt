@@ -564,6 +564,7 @@ class Checker(val ctx: Context) {
             is Expression.Not -> checkNotExpression(expression)
             is Expression.BinaryOperation -> checkBinaryOperation(expression)
             is Expression.SizeOf -> checkSizeOf(expression)
+            is Expression.AlignOf -> checkAlignOf(expression)
             is Expression.AddressOf -> checkAddressOf(expression)
             is Expression.AddressOfMut -> checkAddressOfMut(expression)
             is Expression.Deref -> checkDeref(expression)
@@ -832,6 +833,9 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkSizeOf(expression: Expression.SizeOf) {
+        checkTypeAnnotation(expression.type)
+    }
+    private fun checkAlignOf(expression: Expression.AlignOf) {
         checkTypeAnnotation(expression.type)
     }
 

@@ -808,6 +808,13 @@ class Parser(
                 val stop = expect(tt.RSQB)
                 Expression.SizeOf(makeLocation(start, stop), type)
             }
+            tt.ALIGN_OF -> {
+                val start = advance()
+                expect(tt.LSQB)
+                val type = parseTypeAnnotation()
+                val stop = expect(tt.RSQB)
+                Expression.AlignOf(makeLocation(start, stop), type)
+            }
             tt.AMPERSAND -> {
                 val start = advance()
                 val isMut = if (at(tt.MUT)) {
