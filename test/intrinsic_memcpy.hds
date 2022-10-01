@@ -1,0 +1,36 @@
+
+
+def main(): Void {
+    val pass = b"PASS"
+    val mut pass_ = b""
+
+     copy(&mut pass_, &pass)
+
+     puts(pass_)
+
+     val f = false
+     val mut f_ = true
+
+     copy(&mut f_, &f)
+
+     if f_ {
+        puts(b"FAIL")
+     }
+
+     val one = 1
+     val mut _one = 2
+
+     copy(&mut _one, &one)
+
+     if _one != 1 {
+        puts(b"FAIL")
+     }
+
+}
+
+def copy[T](destination: *mut T, source: *T): Void {
+    @intrinsic.memcpy(pointer_cast[Void](destination), pointer_cast[Void](source), size_of[T])
+}
+
+
+extern def puts(*u8): Void = puts
