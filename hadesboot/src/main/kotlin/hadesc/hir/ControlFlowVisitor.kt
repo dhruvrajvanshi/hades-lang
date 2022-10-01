@@ -24,7 +24,7 @@ abstract class ControlFlowVisitor: HIRModuleVisitor {
         visitedBlockSet = mutableSetOf()
         defer { visitedBlockSet = null }
 
-        workList.add(definition.basicBlocks.first())
+        workList.add(definition.findBlockOrThrow(Name("entry")))
         while (workList.isNotEmpty()) {
             val block = workList.removeFirst()
             val visitedSet = checkNotNull(visitedBlockSet)
