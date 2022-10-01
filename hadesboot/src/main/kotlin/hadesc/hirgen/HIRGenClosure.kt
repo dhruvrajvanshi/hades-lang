@@ -149,13 +149,14 @@ internal class HIRGenClosure(
         val body = scoped {
             closureGenStack.push(ClosureGenContext(captureParam, captureStruct))
             defer { closureGenStack.pop() }
+            val intoBlock = HIRBlock(expression.body.location, ctx.makeName("entry"))
             when (expression.body) {
                 is ClosureBody.Block -> {
                     val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
-                    lowerBlock(expression.body.block, addReturnVoid = addReturnVoid)
+                    lowerBlock(expression.body.block, addReturnVoid = addReturnVoid, into=intoBlock)
                 }
                 is ClosureBody.Expression -> {
-                    buildBlock {
+                    buildBlock(into=intoBlock) {
                         emit(
                             HIRStatement.Return(
                                 currentLocation,
