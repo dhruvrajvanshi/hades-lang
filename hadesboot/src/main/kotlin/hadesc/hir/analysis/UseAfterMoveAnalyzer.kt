@@ -4,12 +4,18 @@ import hadesc.Name
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.hir.ControlFlowVisitor
+import hadesc.hir.HIRDefinition
 import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
 import hadesc.location.SourceLocation
 
 class UseAfterMoveAnalyzer(private val ctx: Context): ControlFlowVisitor() {
     private val movedVars = mutableMapOf<Name, SourceLocation>()
+    override fun visitFunctionDef(definition: HIRDefinition.Function) {
+        movedVars.clear()
+        super.visitFunctionDef(definition)
+        movedVars.clear()
+    }
     override fun visitMoveStatement(statement: HIRStatement.Move) {
         val moveLocation = movedVars[statement.name]
         if (moveLocation != null) {
