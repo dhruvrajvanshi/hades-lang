@@ -1,0 +1,145 @@
+import hades.memory as M
+
+trait Copy[T] {
+    def copy(from: *T, to: *mut T): Void
+}
+
+implementation Copy[usize] {
+    def copy(from: *usize, to: *mut usize): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u8] {
+    def copy(to: *mut u8, from: *u8): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i8] {
+    def copy(to: *mut i8, from: *i8): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u16] {
+    def copy(to: *mut u16, from: *u16): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i16] {
+    def copy(to: *mut i16, from: *i16): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u32] {
+    def copy(to: *mut u32, from: *u32): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i32] {
+    def copy(to: *mut i32, from: *i32): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u64] {
+    def copy(to: *mut u64, from: *u64): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i64] {
+    def copy(to: *mut i64, from: *i64): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[usize] {
+    def copy(to: *mut usize, from: *usize): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[isize] {
+    def copy(to: *mut isize, from: *isize): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u8] {
+    def copy(to: *mut u8, from: *u8): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i8] {
+    def copy(to: *mut i8, from: *i8): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u16] {
+    def copy(to: *mut u16, from: *u16): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i16] {
+    def copy(to: *mut i16, from: *i16): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u32] {
+    def copy(to: *mut u32, from: *u32): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i32] {
+    def copy(to: *mut i32, from: *i32): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[u64] {
+    def copy(to: *mut u64, from: *u64): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[i64] {
+    def copy(to: *mut i64, from: *i64): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[usize] {
+    def copy(to: *mut usize, from: *usize): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[isize] {
+    def copy(to: *mut isize, from: *isize): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+implementation Copy[Bool] {
+    def copy(to: *mut Bool, from: *Bool): Void {
+        M.copy(to, from, 1)
+    }
+}
+
+
+implementation[T] for *T {
+    def copy(to: *mut *T, from: * *T): Void {
+        M.copy(to, from, 1)
+    }
+}
+
