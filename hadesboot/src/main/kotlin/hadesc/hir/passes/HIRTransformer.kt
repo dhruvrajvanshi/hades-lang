@@ -162,6 +162,18 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.AllocateClosure -> transformAllocateClosure(statement)
         is HIRStatement.InvokeClosure -> transformInvokeClosureStatement(statement)
         is HIRStatement.Move -> transformMoveStatement(statement)
+        is HIRStatement.Memcpy -> transformMemcpyStatement(statement)
+    }
+
+    fun transformMemcpyStatement(statement: HIRStatement.Memcpy): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.Memcpy(
+                location = statement.location,
+                destination = transformExpression(statement.destination),
+                source =  transformExpression(statement.source),
+                bytes = transformExpression(statement.bytes)
+            )
+        )
     }
 
     fun transformMoveStatement(statement: HIRStatement.Move): Collection<HIRStatement> = listOf(statement)
@@ -276,9 +288,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         currentLocation = expression.location
         return transformExpressionWorker(expression)
     }
-    private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = when(expression) {
-        is HIROperand -> transformOperand(expression)
-    }
+    private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = transformOperand(expression)
 
     fun transformOperand(expression: HIROperand): HIROperand = when(expression) {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)

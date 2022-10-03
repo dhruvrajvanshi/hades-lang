@@ -314,8 +314,20 @@ class HIRToLLVM(
                 "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
             }
             is HIRStatement.Jump -> TODO()
+            is HIRStatement.Memcpy -> lowerMemcpy(statement)
         })
         errorStack.pop()
+    }
+
+    private fun lowerMemcpy(statement: HIRStatement.Memcpy) {
+        LLVM.LLVMBuildMemCpy(
+            builder,
+            lowerExpression(statement.destination),
+            statement.destinationType.alignment().bytes,
+            lowerExpression(statement.source),
+            statement.sourceType.alignment().bytes,
+            lowerExpression(statement.bytes)
+        )
     }
 
     private fun lowerNameBinder(statement: HIRStatement.NameBinder) {
@@ -750,6 +762,7 @@ class HIRToLLVM(
     }
 
     private val Type.sizeInBits get() = LLVM.LLVMSizeOfTypeInBits(dataLayout, lowerType(this))
+    private val Type.sizeInBytes get() = LLVM.LLVMABISizeOfType(dataLayout, lowerType(this))
 
 
     private var nextLiteralIndex = 0

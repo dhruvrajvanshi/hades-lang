@@ -30,7 +30,14 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.AllocateClosure -> visitAllocateClosure(statement)
             is HIRStatement.InvokeClosure -> visitInvokeClosureStatement(statement)
             is HIRStatement.Move -> visitMoveStatement(statement)
+            is HIRStatement.Memcpy -> visitMemcpyStatement(statement)
         }
+    }
+
+    fun visitMemcpyStatement(statement: HIRStatement.Memcpy) {
+        visitExpression(statement.source)
+        visitExpression(statement.destination)
+        visitExpression(statement.bytes)
     }
 
     fun visitMoveStatement(statement: HIRStatement.Move) = unit

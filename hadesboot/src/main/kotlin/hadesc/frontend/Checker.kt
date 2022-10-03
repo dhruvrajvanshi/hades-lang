@@ -741,6 +741,7 @@ class Checker(val ctx: Context) {
                 }
                 unit
             }
+            IntrinsicType.MEMCPY -> unit
             IntrinsicType.ERROR -> unit
         }
     }

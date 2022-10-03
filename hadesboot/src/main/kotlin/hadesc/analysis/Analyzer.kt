@@ -13,10 +13,7 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
 import hadesc.resolver.TypeBinding
-import hadesc.types.Substitution
-import hadesc.types.Type
-import hadesc.types.emptySubstitution
-import hadesc.types.toSubstitution
+import hadesc.types.*
 import hadesc.unit
 import java.util.*
 import java.util.Collections.singletonList
@@ -863,6 +860,22 @@ class Analyzer(
                             traitRequirements = null
                         )
                     )
+                )
+            }
+            IntrinsicType.MEMCPY -> {
+                val l1 = expression.location
+                val t1 = Type.Param(Binder(Identifier(l1, ctx.makeName("T1"))))
+
+                Type.TypeFunction(
+                    listOf(t1),
+                    Type.Function(
+                        from = listOf(
+                            Type.ParamRef(t1.binder).mutPtr(), // destination
+                            Type.ParamRef(t1.binder).ptr(), // source
+                            Type.usize, // number of items to copy
+                        ),
+                        to = Type.Void
+                    ).ptr()
                 )
             }
             IntrinsicType.ERROR -> Type.Error(expression.location)

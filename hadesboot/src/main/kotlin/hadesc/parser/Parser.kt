@@ -73,6 +73,7 @@ private val INTRINSIC_TYPE = mapOf(
 
     "int_to_ptr" to IntrinsicType.INT_TO_PTR,
     "ptr_to_int" to IntrinsicType.PTR_TO_INT,
+    "memcpy" to IntrinsicType.MEMCPY,
 )
 
 object SyntaxError : Error()

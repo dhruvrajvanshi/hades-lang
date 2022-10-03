@@ -1,0 +1,26 @@
+import hades.memory as M
+def main(): Void {
+    val pass = b"PASS"
+    val mut _pass = b"FAIL"
+    M.copy(&mut _pass, &pass, 1)
+    puts(_pass)
+
+    val f = false
+    val mut _f = true
+    M.copy(&mut _f, &f, 1)
+
+    if _f {
+        puts(b"FAIL")
+    }
+
+    val one: usize = 1
+    val mut _one: usize = 2
+
+    M.copy(&mut _one, &one, 1)
+
+    if _one != 1 {
+        puts(b"FAIL")
+    }
+}
+
+extern def puts(*u8): Void = puts
