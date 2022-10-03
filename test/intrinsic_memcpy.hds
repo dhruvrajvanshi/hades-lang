@@ -29,7 +29,7 @@ def main(): Void {
 }
 
 def copy[T](destination: *mut T, source: *T): Void {
-    @intrinsic.memcpy(pointer_cast[Void](destination), pointer_cast[Void](source), size_of[T])
+    @intrinsic.memcpy(destination, source, size_of[T])
 }
 
 

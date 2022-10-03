@@ -2,8 +2,6 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.location.SourceLocation
-import hadesc.qualifiedname.QualifiedName
-import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.types.ptr
 
@@ -153,6 +151,30 @@ sealed interface HIRStatement: HIRNode {
         val value: HIROperand
     ) : HIRStatement, NameBinder, StraightLineInstruction
 
+    data class Memcpy(
+        override val location: SourceLocation,
+        val destination: HIROperand,
+        val source: HIROperand,
+        val bytes: HIROperand
+    ): HIRStatement, StraightLineInstruction {
+        init {
+            check(destination.type is Type.Ptr)
+            check(source.type is Type.Ptr)
+            check(bytes.type == Type.usize)
+        }
+
+        val destinationType get(): Type {
+            val destPtrType = destination.type
+            check(destPtrType is Type.Ptr)
+            return destPtrType.to
+        }
+        val sourceType get(): Type {
+            val sourcePtrType = source.type
+            check(sourcePtrType is Type.Ptr)
+            return sourcePtrType.to
+        }
+    }
+
     data class AllocateClosure(
         override val location: SourceLocation,
         override val name: Name,
@@ -294,6 +316,10 @@ sealed interface HIRStatement: HIRNode {
                 "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
 
         is Move -> "move %${name.text}"
+        is Memcpy ->
+            "memcpy source = ${source.prettyPrint()}," +
+                    "destination = ${destination.prettyPrint()}, " +
+                    "bytes = ${bytes.prettyPrint()}"
     }
 
     companion object {

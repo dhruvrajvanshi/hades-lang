@@ -169,6 +169,8 @@ enum class IntrinsicType {
     PTR_TO_INT,
     INT_TO_PTR,
 
+    MEMCPY,
+
     ERROR,
 }
 

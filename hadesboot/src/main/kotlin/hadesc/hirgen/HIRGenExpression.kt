@@ -144,6 +144,19 @@ internal class HIRGenExpression(
                     expression.type,
                 )
             }
+            IntrinsicType.MEMCPY -> {
+                val typeArgs = ctx.analyzer.getTypeArgs(expression.callee)
+                check(typeArgs != null)
+                check(typeArgs.size == 1)
+                check(expression.args.size == 3)
+                emit(HIRStatement.Memcpy(
+                    expression.location,
+                    lowerExpression(expression.args[0].expression),
+                    lowerExpression(expression.args[1].expression),
+                    lowerExpression(expression.args[2].expression),
+                ))
+                HIRConstant.Void(expression.location)
+            }
             IntrinsicType.ERROR -> requireUnreachable()
         }
     }

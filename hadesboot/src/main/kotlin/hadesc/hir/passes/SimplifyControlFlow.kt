@@ -273,6 +273,7 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.AllocateClosure,
             is HIRStatement.InvokeClosure,
             is HIRStatement.Move,
+            is HIRStatement.Memcpy,
             -> false
 
             is HIRStatement.Return,
