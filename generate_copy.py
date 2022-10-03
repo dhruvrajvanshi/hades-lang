@@ -37,13 +37,19 @@ def main():
         impl(ty)
 
     impl('Bool')
+    impl('f32')
+    impl('f64')
 
     append("""
 
-implementation[T] for *T {
+implementation[T] Copy[T] {
     def copy(to: *mut *T, from: * *T): Void {
         M.copy(to, from, 1)
     }
+}
+
+implementation Copy[Void] {
+    def copy(to: *mut Void, from: *Void): Void {}
 }
 
 """)
