@@ -288,9 +288,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         currentLocation = expression.location
         return transformExpressionWorker(expression)
     }
-    private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = when(expression) {
-        is HIROperand -> transformOperand(expression)
-    }
+    private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = transformOperand(expression)
 
     fun transformOperand(expression: HIROperand): HIROperand = when(expression) {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)

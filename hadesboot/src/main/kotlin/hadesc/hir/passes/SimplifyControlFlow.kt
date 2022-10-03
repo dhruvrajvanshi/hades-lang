@@ -4,7 +4,6 @@ import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
 import hadesc.hir.*
-import hadesc.ignore
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 import hadesc.types.ptr
@@ -104,7 +103,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         }
 
     private fun lowerWhileStatement(statement: HIRStatement.While) {
-        val startingBlock = checkNotNull(currentBlock)
+        checkNotNull(currentBlock)
         val whileEntry = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName("while_entry")))
         val whileBody = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName("while_body")))
         val whileExit = appendBasicBlock(HIRBlock(statement.location, ctx.makeUniqueName("while_exit")))
