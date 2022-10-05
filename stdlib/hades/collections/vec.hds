@@ -1,0 +1,31 @@
+import hades.memory as Mem
+struct Vec[T] {
+    val mut _buffer: *mut T
+    val mut _capacity: usize
+    val mut _size: usize
+}
+
+def empty[T](): Vec[T] {
+    val capacity: usize = 4
+    val buffer = Mem.allocate[T](capacity) // default capacity
+    val size: usize = 0
+    return Vec(
+        buffer,
+        capacity,
+        size
+    )
+}
+extension VecExtensions[T] for Vec[T] {
+    def size(*this): usize {
+        return this._size
+    }
+
+    def for_each(*this, f: |*T| -> Void): Void {
+
+    }
+
+    def push(*mut this, value: T): *mut Vec[T] {
+        return this
+    }
+}
+

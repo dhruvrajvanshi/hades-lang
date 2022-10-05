@@ -1,0 +1,24 @@
+import hades.collections.vec.{Vec}
+import hades.collections.vec as VecM
+
+def main(): Void {
+    val mut _v = VecM.empty[usize]()
+    val mut v = &mut _v
+    v.push(1).push(2).push(3)
+
+    val mut index: usize = 0
+    v.for_each |item| {
+        index = index + 1
+
+        if item != index {
+            puts(b"FAIL")
+        }
+    }
+
+    if v.size() != 3 {
+        puts(b"FAIL")
+    }
+    puts(b"PASS")
+}
+
+extern def puts(*u8): Void = puts
