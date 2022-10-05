@@ -744,7 +744,7 @@ class Analyzer(
         else -> expectedType
     }
 
-    private fun isIntLiteralAssignable(type: Type): Boolean = when(type) {
+    private fun isIntLiteralAssignable(type: Type): Boolean = when(reduceGenericInstances(type)) {
         is Type.Size,
         is Type.Integral -> true
         is Type.FloatingPoint -> true

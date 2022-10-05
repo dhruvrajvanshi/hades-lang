@@ -1014,14 +1014,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerIntLiteral(expression: Expression.IntLiteral): HIROperand {
-        return if (expression.type.isIntegral()) {
+        val exprType = ctx.analyzer.reduceGenericInstances(expression.type)
+        return if (exprType.isIntegral()) {
             HIRConstant.IntValue(
                 expression.location,
                 typeOfExpression(expression),
                 expression.value
             )
         } else {
-            val exprType = expression.type
             check(exprType is Type.FloatingPoint)
             HIRConstant.FloatValue(
                 expression.location,
