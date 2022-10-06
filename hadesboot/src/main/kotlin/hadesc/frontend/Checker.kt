@@ -432,6 +432,7 @@ class Checker(val ctx: Context) {
     private fun checkMemberAssignment(statement: Statement.MemberAssignment) {
         checkExpression(statement.lhs)
         checkExpression(statement.value)
+        checkNoCopy(statement.value)
 
         checkExpressionHasType(statement.value, statement.lhs.type)
 
@@ -462,6 +463,7 @@ class Checker(val ctx: Context) {
     private fun checkPointerAssignment(statement: Statement.PointerAssignment) {
         checkExpression(statement.lhs)
         checkExpression(statement.value)
+        checkNoCopy(statement.value)
 
         when (val lhsType = statement.lhs.expression.type) {
             is Type.Ptr -> {
@@ -488,6 +490,7 @@ class Checker(val ctx: Context) {
                 ?: ctx.analyzer.typeOfExpression(binding.statement.rhs)
             checkExpressionHasType(statement.value, expectedType)
         }
+        checkNoCopy(statement.value)
     }
 
     private fun checkWhileStatement(statement: Statement.While) {
@@ -539,10 +542,17 @@ class Checker(val ctx: Context) {
             checkTypeAnnotation(it)
         }
         checkExpression(statement.rhs)
+        checkNoCopy(statement.rhs)
 
         if (statement.typeAnnotation != null) {
             val annotatedType = ctx.analyzer.annotationToType(statement.typeAnnotation)
             checkExpressionHasType(statement.rhs, annotatedType)
+        }
+    }
+
+    private fun checkNoCopy(expr: Expression) {
+        if (!ctx.analyzer.isCopyAllowed(expr, expr.type) && !ctx.analyzer.isRValue(expr)) {
+            error(expr, Diagnostic.Kind.CopyOfNoCopyTypeNotAllowed)
         }
     }
 
@@ -974,6 +984,7 @@ class Checker(val ctx: Context) {
         checkExpression(callee)
         args.forEach {
             checkExpression(it)
+            checkNoCopy(it)
         }
 
         val calleeType = ctx.analyzer.getCalleeType(callExpression)
