@@ -56,7 +56,7 @@
 					}
 				},
 				{
-					"match": "\\b(if|else|while|return|match|defer)\\b",
+					"match": "\\b(if|else|while|return|match|defer|move)\\b",
 					"captures": {
 						"0": { "name": "keyword.control" }
 					}

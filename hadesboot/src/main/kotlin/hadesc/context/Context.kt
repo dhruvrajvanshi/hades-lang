@@ -162,6 +162,8 @@ class Context(
         collectedFiles.values.forEach(action)
     }
 
+    fun qn(vararg names: String) = QualifiedName(names.map { makeName(it) })
+
     private var _nameIndex = 0
     override fun makeUniqueName(prefix: String): Name {
         _nameIndex++

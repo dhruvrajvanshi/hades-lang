@@ -1279,6 +1279,27 @@ class Analyzer(
         return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
     }
 
+    fun isCopyAllowed(callNode: HasLocation, type: Type): Boolean {
+        val reducedType = ctx.analyzer.reduceGenericInstances(type)
+        val isNoCopy = isTraitRequirementSatisfied(
+            callNode,
+            TraitRequirement(
+                ctx.qn("hadesx", "NoCopy", "NoCopy"),
+                listOf(reducedType)
+            )
+        )
+        return !isNoCopy
+    }
+
+    fun isRValue(expr: Expression) = when(expr) {
+        is Expression.Var -> false
+        is Expression.Property -> {
+            val binding = resolvePropertyBinding(expr)
+            binding !is PropertyBinding.StructField
+        }
+        else -> true
+    }
+
     private fun makeTraitResolver(callNode: HasLocation): TraitResolver<Declaration.ImplementationDef> {
         val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
         val enclosingExtensionDef = ctx.resolver.getEnclosingExtensionDef(callNode)
