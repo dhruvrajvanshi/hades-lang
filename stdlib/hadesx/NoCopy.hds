@@ -1,0 +1,11 @@
+
+/// Marker trait to tell the compiler that
+/// this type can not be copied.
+/// For a type that implements this, the compiler
+/// disables all operations that would copy this
+/// This includes assigning to a local variable,
+/// struct field assignment, storing into a pointer
+/// and passing to a function.
+/// They can still be done by moving, or simply
+/// using an r-value.
+trait NoCopy[T] {}
