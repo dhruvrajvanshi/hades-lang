@@ -1,16 +1,25 @@
 package hadesc
 
+import com.charleskorn.kaml.Yaml
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.path
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
+import java.io.File
 import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.system.exitProcess
 
 class HadesCompiler: CliktCommand(name = "hades") {
     private val log = logger(HadesCompiler::class.java)
+    private val fromProjectYML = if (File("hades.yml").exists()) {
+        val text = File("hades.yml").readText()
+        Yaml.default.decodeFromString(AllOptions.serializer(), text).build
+    } else {
+        null
+    }
 
     private lateinit var options: Options
     private val directories by option("--module-path",
@@ -39,19 +48,23 @@ class HadesCompiler: CliktCommand(name = "hades") {
             System.err.println("Environment HADES_HOME must be set to a valid hades install location")
             exitProcess(1)
         }
+        val yamlDirectories = fromProjectYML?.directories?.map { Path(it) } ?: emptyList()
+        val yamlCFlags = fromProjectYML?.cFlags ?: emptyList()
+        val yamlCSources = fromProjectYML?.cSources?.map { Path(it) } ?: emptyList()
+        val yamlLibs = fromProjectYML?.libs ?: emptyList()
         options = BuildOptions(
-            directories = directories + listOf(Path.of(hadesHome, "stdlib")),
+            directories = yamlDirectories + directories + listOf(Path.of(hadesHome, "stdlib")),
             output = output,
             main = main,
             runtime = Path.of(hadesHome, "stdlib", "runtime.c"),
-            cFlags = cFlags,
+            cFlags = yamlCFlags + cFlags,
             debugSymbols = debugSymbols,
-            cSources = cSources + cSourcesSplit + listOf(
+            cSources = yamlCSources + cSources + cSourcesSplit + listOf(
                 Path.of(hadesHome, "stdlib", "libc.c"),
                 Path.of(hadesHome, "stdlib", "libhdc.c")
             ),
             dumpLLVMModule = dumpLLVMModule,
-            libs = libs,
+            libs = yamlLibs + libs,
             enableHIRVerifier = enableHIRVerifier,
             dumpHIRGen = dumpHIRGen,
             enableLLVMVerifier = enableLLVMVerifier,
