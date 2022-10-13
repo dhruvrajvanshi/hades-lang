@@ -191,7 +191,7 @@ def main(): Void {
 ```
 
 ## Traits
-Hades has a trait system similar to Rust (We don't have assosicated types yet but they'll come soon). traits allow us to define operations on generic
+Hades has a trait system similar to Rust. Traits allow us to define operations on generic
 type parameters. This has the advantage of better error messages than C++ while still
 being more powerful than simpler systems like Java interfaces.
 
