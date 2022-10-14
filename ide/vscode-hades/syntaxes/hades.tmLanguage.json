@@ -38,7 +38,7 @@
 					}
 				},
 				{
-					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for|where)\\b",
+					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for|where|test)\\b",
 					"captures": {
 						"0": { "name": "keyword" }
 					}
@@ -92,6 +92,34 @@
 					"beginCaptures": {
 						"1": { "name": "emphasis" },
 						"2": { "name": "string" }
+					},
+					"endCaptures": {
+						"0": { "name": "string" }
+					},
+					"patterns": [
+						{
+							"match": "\\\\[\"nbr]",
+							"captures": {
+								"0": {
+									"name": "constant.character.escape"
+								}
+							}
+						},
+						{
+							"match": "[^\"]",
+							"captures": {
+								"0": {
+									"name": "string"
+								}
+							}
+						}
+					]
+				},
+				{
+					"begin": "(\")",
+					"end": "\"",
+					"beginCaptures": {
+						"1": { "name": "string" }
 					},
 					"endCaptures": {
 						"0": { "name": "string" }
