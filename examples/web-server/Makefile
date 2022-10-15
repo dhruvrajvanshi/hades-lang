@@ -21,7 +21,7 @@ HADESC_FLAGS=-g \
 		--c-sources "$(C_SOURCES)"
 
 web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
-	CC=$(CC) HADES_HOME=$(HADES_HOME) $(HDC) \
+	CC=$(CC) HADES_HOME=$(HADES_HOME) $(HDC) build \
 		--main main.hds \
 		--output web-server \
 		$(HADESC_FLAGS)

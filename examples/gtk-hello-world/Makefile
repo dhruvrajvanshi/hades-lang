@@ -22,7 +22,7 @@ C_SOURCES=$(shell find . -name '*.c')
 LIBS=$(shell pkg-config --libs gtk+-3.0)
 
 web-server: $(HADES_SOURCES) $(C_SOURCES) $(STDLIB_C_SOURCES)
-	CC=$(CC) HADES_HOME=$(HADES_HOME) $(HDC) \
+	CC=$(CC) HADES_HOME=$(HADES_HOME) $(HDC) build \
 		--main main.hds \
 		--output $(OUTPUT_NAME) \
 		-g \
