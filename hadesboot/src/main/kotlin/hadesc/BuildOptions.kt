@@ -20,8 +20,6 @@ data class YamlBuildOptions(
 
 data class BuildOptions(
     val directories: List<Path>,
-    val output: Path,
-    val main: Path,
     val runtime: Path,
     val cFlags: List<String>,
     val debugSymbols: Boolean,

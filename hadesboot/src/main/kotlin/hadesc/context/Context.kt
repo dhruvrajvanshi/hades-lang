@@ -32,8 +32,21 @@ interface NamingContext {
 interface GlobalConstantContext {
     val enumTagType: Type
 }
+
+sealed interface BuildTarget {
+
+    val mainSourcePath: Path?
+    val output: Path?
+    data class Executable(
+        override val mainSourcePath: Path,
+        override val output: Path
+    ): BuildTarget
+
+}
+
 class Context(
-    val options: BuildOptions
+    val options: BuildOptions,
+    val target: BuildTarget
 ): ASTContext, NamingContext, GlobalConstantContext {
     private val log = logger(Context::class.java)
     val analyzer = Analyzer(this)
@@ -80,11 +93,9 @@ class Context(
 
 
         val llvmModule = HIRToLLVM(this, hirModule).lower()
-        LLVMToObject(options, llvmModule).execute()
+        LLVMToObject(options, target, llvmModule).execute()
         unit
     }
-
-    private fun mainPath() = makeSourcePath(options.main)
 
     private fun makeSourcePath(path: Path) = SourcePath(path)
 
@@ -113,7 +124,9 @@ class Context(
 
     fun resolveSourceFile(moduleName: QualifiedName): SourceFile? {
         if (moduleName.size == 0) {
-            return sourceFile(moduleName, SourcePath(options.main))
+            val path = target.mainSourcePath
+            check(path != null)
+            return sourceFile(moduleName, SourcePath(path))
         }
         val parts = moduleName.names.joinToString("/") { it.text }
         val paths = mutableListOf<Path>()
@@ -151,7 +164,10 @@ class Context(
             }
         }
 
-        visitSourceFile(sourceFile(QualifiedName(), mainPath()))
+        when (target) {
+            is BuildTarget.Executable ->
+                visitSourceFile(sourceFile(QualifiedName(), makeSourcePath(target.mainSourcePath)))
+        }
 
         visitSourceFile(resolveSourceFile(QualifiedName(listOf(
                 makeName("hades"),

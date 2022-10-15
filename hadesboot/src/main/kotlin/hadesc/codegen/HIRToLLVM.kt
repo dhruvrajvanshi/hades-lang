@@ -28,7 +28,7 @@ class HIRToLLVM(
     private val hir: HIRModule
 ) {
     private val llvmCtx = LLVM.LLVMContextCreate()
-    private val llvmModule = LLVM.LLVMModuleCreateWithNameInContext(ctx.options.main.toString(), llvmCtx)
+    private val llvmModule = LLVM.LLVMModuleCreateWithNameInContext(ctx.target.output.toString(), llvmCtx)
     private val builder = LLVM.LLVMCreateBuilderInContext(llvmCtx)
     private val dataLayout = LLVM.LLVMGetModuleDataLayout(llvmModule.ref)
     private val diBuilder = LLVM.LLVMCreateDIBuilder(llvmModule)

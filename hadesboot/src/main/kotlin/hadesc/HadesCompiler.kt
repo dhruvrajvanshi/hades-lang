@@ -4,6 +4,7 @@ import com.charleskorn.kaml.Yaml
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.path
+import hadesc.context.BuildTarget
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
@@ -54,8 +55,6 @@ class HadesCompiler: CliktCommand(name = "hades") {
         val yamlLibs = fromProjectYML?.libs ?: emptyList()
         options = BuildOptions(
             directories = yamlDirectories + directories + listOf(Path.of(hadesHome, "stdlib")),
-            output = output,
-            main = main,
             runtime = Path.of(hadesHome, "stdlib", "runtime.c"),
             cFlags = yamlCFlags + cFlags,
             debugSymbols = debugSymbols,
@@ -74,7 +73,10 @@ class HadesCompiler: CliktCommand(name = "hades") {
     fun execute(): List<Diagnostic> {
         val options = this.options
         check(options is BuildOptions)
-        val ctx = Context(options)
+        val ctx = Context(options, BuildTarget.Executable(
+            mainSourcePath = main,
+            output = output
+        ))
         log.debug("Building")
         ctx.build()
         return ctx.diagnosticReporter.errors

@@ -1,6 +1,7 @@
 package hadesc.codegen
 
 import hadesc.BuildOptions
+import hadesc.context.BuildTarget
 import hadesc.logging.logger
 import hadesc.profile
 import llvm.ref
@@ -13,9 +14,9 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteExisting
 
-class LLVMToObject(private val options: BuildOptions, private val llvmModule: LLVMModuleRef) {
+class LLVMToObject(private val options: BuildOptions, private val target: BuildTarget, private val llvmModule: LLVMModuleRef) {
     private val log = logger(LLVMToObject::class.java)
-    private val objectFilePath get() = options.output.toString() + if (shouldUseMicrosoftCL) ".obj" else ".o"
+    private val objectFilePath get() = target.output.toString() + if (shouldUseMicrosoftCL) ".obj" else ".o"
 
     private val cc = when {
         SystemUtils.IS_OS_WINDOWS -> System.getenv()["CC"] ?: "cl"
@@ -62,10 +63,10 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
         }
 
         if (shouldUseMicrosoftCL) {
-            commandParts.add("/Fe\"${options.output}\"")
+            commandParts.add("/Fe\"${target.output}\"")
         } else {
             commandParts.add("-o")
-            commandParts.add(options.output.toString())
+            commandParts.add(target.output.toString())
         }
 
 
@@ -75,7 +76,8 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
         commandParts.addAll(options.cFlags)
         commandParts.addAll(options.libs.map {"-l$it" })
 
-        val outputFile = options.output.toFile()
+        val outputFile = target.output?.toFile()
+        check(outputFile != null)
         if (outputFile.exists()) {
             outputFile.delete()
         }
@@ -93,7 +95,9 @@ class LLVMToObject(private val options: BuildOptions, private val llvmModule: LL
 
 
     private fun writeModuleToFile() {
-        makeParentDirectory(options.output)
+        val output = target.output
+        check(output != null)
+        makeParentDirectory(output)
         log.debug("Writing object file")
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule).string)
         LLVM.LLVMVerifyModule(llvmModule, LLVM.LLVMPrintMessageAction, ByteArray(1000))
