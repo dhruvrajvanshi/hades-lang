@@ -9,8 +9,8 @@ import hadesc.context.BuildTarget
 import hadesc.BuildCLIOptions
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
+import hadesc.ignore
 import hadesc.logging.logger
-import hadesc.unit
 
 class BuildCommand: CliktCommand(invokeWithoutSubcommand = true) {
     private val log = logger(BuildCommand::class.java)
@@ -18,8 +18,7 @@ class BuildCommand: CliktCommand(invokeWithoutSubcommand = true) {
     private val output by option("--output", "-o").path().required()
     private val main by option("--main").path().required()
 
-    // just parse options. Run execute separately to actually run
-    override fun run() = unit
+    override fun run() = execute().ignore()
 
     fun execute(): List<Diagnostic> {
         val options = buildOptions.toBuildOptions()
