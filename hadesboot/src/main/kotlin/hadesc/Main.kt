@@ -1,10 +1,10 @@
 package hadesc
 
-import hadesc.cli.Build
+import hadesc.cli.BuildCommand
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    val compiler = Build()
+    val compiler = BuildCommand()
     compiler.main(args)
     val diagnostics = compiler.execute()
     if (diagnostics.isNotEmpty()) {

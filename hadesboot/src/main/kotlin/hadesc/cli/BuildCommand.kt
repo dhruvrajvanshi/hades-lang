@@ -12,8 +12,8 @@ import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import hadesc.unit
 
-class Build: CliktCommand(invokeWithoutSubcommand = true) {
-    private val log = logger(Build::class.java)
+class BuildCommand: CliktCommand(invokeWithoutSubcommand = true) {
+    private val log = logger(BuildCommand::class.java)
     private val buildOptions by BuildCLIOptions()
     private val output by option("--output", "-o").path().required()
     private val main by option("--main").path().required()
