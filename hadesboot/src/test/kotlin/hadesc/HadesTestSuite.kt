@@ -1,6 +1,6 @@
 package hadesc
 
-import hadesc.cli.Build
+import hadesc.cli.BuildCommand
 import hadesc.logging.logger
 import org.apache.commons.lang3.SystemUtils
 import org.junit.jupiter.api.*
@@ -52,7 +52,7 @@ class HadesTestSuite {
                     else
                         file.nameWithoutExtension
                 )
-                val compiler = Build()
+                val compiler = BuildCommand()
                 val flags = mutableListOf(
                     "--output", outputPath.toString(),
                     "--module-path", directory.toString(),
