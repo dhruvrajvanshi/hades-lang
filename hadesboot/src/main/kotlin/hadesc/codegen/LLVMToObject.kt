@@ -156,5 +156,5 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
 
 
 private fun makeParentDirectory(output: Path) {
-    output.parent.createDirectories()
+    output.toAbsolutePath().parent.createDirectories()
 }
