@@ -203,7 +203,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         require(traitDef is Declaration.TraitDef)
         return TraitRequirement(
             ctx.resolver.qualifiedName(traitDef.name),
-            requirement.typeArgs?.map { lowerTypeAnnotation(it) } ?: emptyList()
+            requirement.typeArgs?.map { lowerTypeAnnotation(it) } ?: emptyList(),
+            requirement.negated
         )
     }
 

@@ -457,7 +457,7 @@ class Analyzer(
         if (declaration !is Declaration.TraitDef) {
             null
         } else {
-            TraitRequirement(ctx.resolver.qualifiedName(declaration.name), args ?: listOf())
+            TraitRequirement(ctx.resolver.qualifiedName(declaration.name), args ?: listOf(), negated = requirement.negated)
         }
 
     }
@@ -1285,7 +1285,8 @@ class Analyzer(
             callNode,
             TraitRequirement(
                 ctx.qn("hadesx", "NoCopy", "NoCopy"),
-                listOf(reducedType)
+                listOf(reducedType),
+                negated = false
             )
         )
         return !isNoCopy
@@ -1949,9 +1950,11 @@ class Analyzer(
         is TypeAnnotation.Var -> {
             val traitDef = ctx.resolver.resolveTraitDef(type.name)
             if (traitDef != null) {
+                // TODO: Investigate if we're hitting this code path
                 TraitRequirement(
                     ctx.resolver.qualifiedName(traitDef.name),
-                    emptyList()
+                    emptyList(),
+                    negated = false
                 )
             } else
                 null
@@ -1961,7 +1964,8 @@ class Analyzer(
                 if (it is Declaration.TraitDef) {
                     TraitRequirement(
                         ctx.resolver.qualifiedName(it.name),
-                        arguments = emptyList()
+                        arguments = emptyList(),
+                        negated = false
                     )
                 } else {
                     null

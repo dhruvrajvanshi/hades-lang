@@ -258,7 +258,7 @@ class Monomorphization(
                 params = impl.typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
                 traitRef = impl.traitName,
                 arguments = impl.traitArgs,
-                requirements = impl.traitRequirements.map { TraitRequirement(it.traitRef, it.arguments) }
+                requirements = impl.traitRequirements.map { TraitRequirement(it.traitRef, it.arguments, it.negated) }
 
             )
         }
