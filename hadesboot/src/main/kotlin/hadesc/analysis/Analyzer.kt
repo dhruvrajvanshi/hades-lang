@@ -19,6 +19,12 @@ import java.util.*
 import java.util.Collections.singletonList
 import kotlin.math.min
 
+val ARITHMETIC_OPERATORS = setOf(
+    BinaryOperator.MINUS,
+    BinaryOperator.PLUS,
+    BinaryOperator.TIMES,
+    BinaryOperator.DIV,
+)
 class Analyzer(
         private val ctx: Context
 ) {
@@ -966,7 +972,7 @@ class Analyzer(
             ) {
                 checkExpression(expression.rhs, if (lhsType is Type.Ptr) lhsType.copy(isMutable = false) else lhsType)
                 Type.Bool
-            } else if (lhsType.isIntegral() && (expression.operator == BinaryOperator.MINUS || expression.operator == BinaryOperator.PLUS)) {
+            } else if (lhsType.isIntegral() && expression.operator in ARITHMETIC_OPERATORS) {
                 checkExpression(expression.rhs, lhsType)
                 lhsType
             } else {
