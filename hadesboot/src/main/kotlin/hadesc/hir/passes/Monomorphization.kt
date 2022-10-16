@@ -317,9 +317,11 @@ class Monomorphization(
             )
 
             if (!candidate.traitRequirements.all { requirement ->
-                    traitResolver.isTraitImplemented(
-                        requirement.traitRef,
-                        requirement.arguments.map { it.applySubstitution(substitution) }) })
+                    traitResolver.isSatisfied(
+                        requirement.copy(
+                            arguments = requirement.arguments.map { it.applySubstitution(substitution) })
+                        )
+            })
                 continue
             val subst = (substitutionMap.mapValues {
                 requireNotNull(typeAnalyzer.getInstantiatedType(it.value)) })
