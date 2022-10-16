@@ -1,0 +1,2 @@
+test/bug_check_where_clause_in_extension.hds:2: NotATrait
+test/bug_check_where_clause_in_extension.hds:2: UnboundType
