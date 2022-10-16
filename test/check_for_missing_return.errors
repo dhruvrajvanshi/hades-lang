@@ -1,0 +1,4 @@
+test/check_for_missing_return.hds:2: MissingReturnValue
+test/check_for_missing_return.hds:5: MissingReturnValue
+test/check_for_missing_return.hds:11: MissingReturnValue
+test/check_for_missing_return.hds:27: MissingReturnValue

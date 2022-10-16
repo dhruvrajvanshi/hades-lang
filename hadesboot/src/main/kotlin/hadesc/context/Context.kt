@@ -8,6 +8,7 @@ import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
+import hadesc.hir.analysis.MissingReturnAnalyzer
 import hadesc.hir.analysis.UseAfterMoveAnalyzer
 import hadesc.hirgen.HIRGen
 import hadesc.hir.passes.*
@@ -84,6 +85,7 @@ class Context(
         log.debug("SimplifyControlFlow:\n${hirModule.prettyPrint()}")
 
         UseAfterMoveAnalyzer(this).visitModule(hirModule)
+        MissingReturnAnalyzer(this).visitModule(hirModule)
         if (diagnosticReporter.hasErrors) {
             return
         }
