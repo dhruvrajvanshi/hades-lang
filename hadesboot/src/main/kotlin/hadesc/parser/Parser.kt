@@ -319,7 +319,7 @@ class Parser(
             parseTypeAnnotation()
         }
         expect(tt.RSQB)
-        return TraitRequirementAnnotation(path, args)
+        return TraitRequirementAnnotation(path, args, negated = false)
     }
 
     private fun parseFunctionSignature(): FunctionSignature {

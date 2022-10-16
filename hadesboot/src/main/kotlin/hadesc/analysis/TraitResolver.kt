@@ -96,19 +96,22 @@ sealed class TraitClause<Def> {
 
 data class TraitRequirement(
         val traitRef: QualifiedName,
-        val arguments: List<Type>
+        val arguments: List<Type>,
+        val negated: Boolean
 ) {
     override fun toString(): String {
         if (arguments.isEmpty()) {
             return traitRef.mangle()
         }
-        return "${traitRef.mangle()}[${arguments.joinToString(", ") { it.prettyPrint() } }]"
+        val notPrefix = if (negated) "not " else ""
+        return "$notPrefix${traitRef.mangle()}[${arguments.joinToString(", ") { it.prettyPrint() } }]"
     }
 
     fun applySubstitution(substitution: Substitution): TraitRequirement {
         return TraitRequirement(
                 traitRef,
-                arguments.map { it.applySubstitution(substitution) }
+                arguments.map { it.applySubstitution(substitution) },
+                negated = negated
         )
     }
 

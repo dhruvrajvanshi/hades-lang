@@ -970,7 +970,8 @@ class Checker(val ctx: Context) {
             if (propertyBinding is PropertyBinding.TraitFunctionRef) {
                 val requirement = TraitRequirement(
                     propertyBinding.traitName,
-                    propertyBinding.args
+                    propertyBinding.args,
+                    negated = false,
                 )
                 val traitDef = ctx.resolver.resolveDeclaration(requirement.traitRef)
                 require(traitDef is Declaration.TraitDef)

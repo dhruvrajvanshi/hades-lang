@@ -102,7 +102,7 @@ sealed interface Type {
             is Function -> Function(
                 from = this.from.map { it.recurse() },
                 traitRequirements = this.traitRequirements?.map {
-                    TraitRequirement(it.traitRef, it.arguments.map { t -> t.recurse() })
+                    TraitRequirement(it.traitRef, it.arguments.map { t -> t.recurse() }, it.negated)
                 },
                 to = this.to.recurse()
             )

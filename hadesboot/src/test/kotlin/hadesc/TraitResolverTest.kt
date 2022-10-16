@@ -64,7 +64,7 @@ class TraitResolverTest {
     }
 
     private fun requirement(traitRef: QualifiedName, vararg args: Type): TraitRequirement {
-        return TraitRequirement(traitRef, listOf(*args))
+        return TraitRequirement(traitRef, listOf(*args), negated = false)
     }
 
     private fun tycon(name: String): Type.Constructor {

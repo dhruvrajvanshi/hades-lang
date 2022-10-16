@@ -68,7 +68,7 @@ interface TypeTransformer {
     )
 
     fun lowerTraitRequirement(requirement: TraitRequirement): TraitRequirement {
-        return TraitRequirement(requirement.traitRef, requirement.arguments.map { lowerType(it) })
+        return TraitRequirement(requirement.traitRef, requirement.arguments.map { lowerType(it) }, negated = requirement.negated)
     }
 
     fun lowerSizeType(type: Type): Type = type
