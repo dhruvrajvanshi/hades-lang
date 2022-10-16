@@ -63,6 +63,34 @@ class TraitResolverTest {
                 forType(tycon("Box").ap(tycon("NonPrintable")))))
     }
 
+    @Test
+    fun `should check negated instances`() {
+        // trait Foo[T]
+        // trait Bar[T]
+        // impl Foo[Bool]
+        // impl[T] Bar[T] where not Foo[T]
+        // isTraitImplemented(Bar[Bool]) == false
+        // isTraitImplemented(Bar[isize]) == true
+
+        val t = param("T")
+        val resolver = makeResolver(
+            impl(params(), qn("Foo"), forType(Type.Bool)),
+            impl(
+                params(t),
+                qn("Bar"), forType(t.ref),
+                requires(
+                    TraitRequirement(
+                        qn("Foo"),
+                        listOf(t.ref),
+                        negated = true
+                    )
+                )
+            )
+        )
+        assert(resolver.isTraitImplemented(qn("Bar"), forType(Type.isize)))
+        assert(!resolver.isTraitImplemented(qn("Bar"), forType(Type.Bool)))
+    }
+
     private fun requirement(traitRef: QualifiedName, vararg args: Type): TraitRequirement {
         return TraitRequirement(traitRef, listOf(*args), negated = false)
     }
@@ -97,7 +125,7 @@ class TraitResolverTest {
         return listOf(*params)
     }
 
-    private fun impl(params: List<Type.Param>, traitRef: QualifiedName, arguments: List<Type>, requirements: List<TraitRequirement>): TraitClause.Implementation<Unit> {
+    private fun impl(params: List<Type.Param>, traitRef: QualifiedName, arguments: List<Type>, requirements: List<TraitRequirement> = emptyList()): TraitClause.Implementation<Unit> {
         return TraitClause.Implementation(params, traitRef, arguments, requirements, def = unit)
     }
 
