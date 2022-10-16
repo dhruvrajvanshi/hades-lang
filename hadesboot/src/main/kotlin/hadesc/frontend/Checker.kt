@@ -509,7 +509,9 @@ class Checker(val ctx: Context) {
         checkExpression(expression)
         val exprType = ctx.analyzer.typeOfExpression(expression)
         if (!exprType.isAssignableTo(expression, type)) {
-            error(expression, Diagnostic.Kind.TypeNotAssignable(source = exprType, destination = type))
+            error(expression, Diagnostic.Kind.TypeNotAssignable(
+                source = ctx.analyzer.reduceGenericInstances(ctx.analyzer.reduceAssociatedType(exprType, expression)),
+                destination = type))
         }
     }
 

@@ -404,6 +404,10 @@ class Analyzer(
         )
     }
 
+    fun reduceAssociatedType(type: Type, at: HasLocation): Type {
+        return type.reduceSelectTypes(at)
+    }
+
     private fun Type.reduceSelectTypes(at: HasLocation): Type {
         return object : TypeTransformer {
             override fun lowerSelectType(type: Type.Select): Type {
