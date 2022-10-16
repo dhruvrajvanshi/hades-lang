@@ -313,13 +313,18 @@ class Parser(
     }
 
     private fun parseTraitRef(): TraitRequirementAnnotation {
+        val negated =
+            if (currentToken.kind == TokenKind.NOT)
+                advance().let { true }
+            else
+                false
         val path = parseQualifiedPath()
         expect(tt.LSQB)
         val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
             parseTypeAnnotation()
         }
         expect(tt.RSQB)
-        return TraitRequirementAnnotation(path, args, negated = false)
+        return TraitRequirementAnnotation(path, args, negated = negated)
     }
 
     private fun parseFunctionSignature(): FunctionSignature {
