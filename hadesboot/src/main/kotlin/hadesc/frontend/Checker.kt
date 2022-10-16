@@ -218,6 +218,7 @@ class Checker(val ctx: Context) {
 
     private fun checkExtensionDef(declaration: Declaration.ExtensionDef) {
         checkTypeAnnotation(declaration.forType)
+        declaration.whereClause?.let { checkWhereClause(it) }
         for (decl in declaration.declarations) {
             if (decl !is Declaration.FunctionDef) {
                 error(decl.startLoc, Diagnostic.Kind.OnlyFunctionDefsAllowedInsideExtensionDefs)
