@@ -14,6 +14,10 @@ A systems level programming language that compiles to LLVM
       - Once we have proper destructor semantics, I'll implement heap allocated closures that get cleaned up according to their lifetime.
 - [ ] Named function arguments
 - [x] Traits
+- [x] Use after move checking:
+      - Unlike Rust, move is explicit. Types can be made Move only by implementing a builtin NoCopy trait.
+      - This is like C++ except the compiler prevents you from using a reference after moving it.
+- [ ] Rust style destructors using `Drop` trait (Not implemented)
 - [x] Associated trait types
 - [x] Algebraic data types (enums)
 - [x] Windows support
