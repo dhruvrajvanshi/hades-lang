@@ -1276,7 +1276,7 @@ class Analyzer(
 
     fun isTraitRequirementSatisfied(callNode: HasLocation, requiredInstance: TraitRequirement): Boolean {
         val traitResolver = makeTraitResolver(callNode)
-        return traitResolver.isTraitImplemented(requiredInstance.traitRef, requiredInstance.arguments)
+        return traitResolver.isSatisfied(requiredInstance)
     }
 
     fun isCopyAllowed(callNode: HasLocation, type: Type): Boolean {

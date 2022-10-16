@@ -23,6 +23,10 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
     fun isTraitImplemented(traitRef: QualifiedName, arguments: List<Type>): Boolean {
         return getImplementationClauseAndSubstitution(traitRef, arguments) != null
     }
+    fun isSatisfied(requirement: TraitRequirement): Boolean {
+        val isImplemented = isTraitImplemented(requirement.traitRef, requirement.arguments)
+        return if (requirement.negated) !isImplemented else isImplemented
+    }
 
 
     private fun getImplementationSubstitution(traitRef: QualifiedName, arguments: List<Type>, clause: TraitClause<Def>): Substitution? {
@@ -59,6 +63,9 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
                     if (!(clauseArg isAssignableTo arg)) {
                         return null
                     }
+                }
+                if (clause.requirement.negated) {
+                    return null
                 }
                 emptySubstitution()
             }
