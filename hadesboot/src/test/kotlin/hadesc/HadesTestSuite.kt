@@ -58,6 +58,7 @@ class HadesTestSuite {
                     "--module-path", directory.toString(),
                     "--main", file.toString(),
                     "--enable-hir-verifier",
+                    "--internal-skip-exec"
                 ).apply {
                     add("--c-source")
                     add(utilsCLib.toString())
