@@ -33,7 +33,7 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
     }
 
     private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
-        log.info("Linking using $cc")
+        log.debug("Linking using $cc")
         val commandParts = mutableListOf(cc)
         if (options.debugSymbols) {
             if (!shouldUseMicrosoftCL) {
@@ -81,7 +81,7 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         if (outputFile.exists()) {
             outputFile.delete()
         }
-        log.info(commandParts.joinToString(" "))
+        log.debug(commandParts.joinToString(" "))
         val builder = ProcessBuilder(commandParts)
 
         val process = builder

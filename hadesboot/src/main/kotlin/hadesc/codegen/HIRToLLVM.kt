@@ -52,7 +52,6 @@ class HIRToLLVM(
             lowerDefinition(definition)
         }
         if (ctx.options.dumpLLVMModule) {
-            print("LLVM module")
             print(llvmModule.prettyPrint())
         }
 
