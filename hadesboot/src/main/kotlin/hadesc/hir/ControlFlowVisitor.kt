@@ -34,8 +34,9 @@ abstract class ControlFlowVisitor: HIRModuleVisitor {
 
             checkNotNull(visitedBlockSet).add(block.name)
             visitBlock(block)
-
-            check(block.statements.isNotEmpty())
+            if (block.statements.isEmpty()) {
+                continue
+            }
             val terminator = block.statements.last()
             check(terminator is HIRStatement.Terminator) {
                 "Unterminated block found(${block.name.text}): ${block.location}"
@@ -59,7 +60,9 @@ abstract class ControlFlowVisitor: HIRModuleVisitor {
     }
 
     override fun visitBlock(block: HIRBlock) {
-
+        if (block.statements.isEmpty()) {
+            return
+        }
         val isBasicBlock = block.statements.dropLast().all {
             it is HIRStatement.StraightLineInstruction
         }
