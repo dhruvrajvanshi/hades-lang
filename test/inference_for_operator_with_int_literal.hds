@@ -1,0 +1,6 @@
+
+def main(): Void {
+    val x: usize = 3
+
+    val y = x * 4
+}
