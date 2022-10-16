@@ -1,0 +1,13 @@
+
+def main(): Void {
+    not_foo(b"123")
+    not_foo(true) // expected error because Bool is not Foo
+}
+trait Foo[T] {}
+
+implementation Foo[Bool] {}
+
+def not_foo[T](t: T): Void where not Foo[T] {
+    not_foo(t) // allowed because of the clause on this method
+}
+
