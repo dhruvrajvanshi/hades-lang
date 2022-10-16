@@ -667,10 +667,10 @@ class HIRToLLVM(
         val constStringRef = constantString(text, dontNullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
-            intType(8, llvmCtx) // pointer is always added to global references, so globalRef becomes *u8
+            constStringRef.getType(),
         )
         globalRef.setInitializer(constStringRef)
-        return globalRef
+        return builder.buildPointerCast(globalRef, pointerType(byteTy), ctx.makeUniqueName().text)
     }
 
     private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): Value {
@@ -701,6 +701,7 @@ class HIRToLLVM(
     private val trueValue = constantInt(boolTy, 1, false)
     private val falseValue = constantInt(boolTy, 0, false)
     private val sizeTy = intType(64, llvmCtx) // FIXME: This isn't portable
+    private val byteTy = intType(8, llvmCtx)
 
     private fun ptrTy(to: llvm.Type): llvm.Type {
         return pointerType(to)
