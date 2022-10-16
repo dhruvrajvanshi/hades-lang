@@ -66,7 +66,8 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
     }
 
     private fun TraitRequirement.isSatisfied(substitution: Substitution): Boolean {
-        return isTraitImplemented(traitRef, arguments.map { it.applySubstitution(substitution) })
+        val isImplemented = isTraitImplemented(traitRef, arguments.map { it.applySubstitution(substitution) })
+        return if (negated) !isImplemented else isImplemented
     }
 
     private infix fun Type.isAssignableTo(destination: Type): Boolean {
