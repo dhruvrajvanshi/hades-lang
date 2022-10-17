@@ -594,7 +594,7 @@ class Parser(
     }
 
     private fun isPropertyAssignmentPredicted(): Boolean {
-        return currentToken.kind == TokenKind.ID &&
+        return (currentToken.kind == TokenKind.ID || currentToken.kind == TokenKind.THIS) &&
                 tokenBuffer.peek(1).kind == TokenKind.DOT &&
                 tokenBuffer.peek(2).kind == TokenKind.ID &&
                 tokenBuffer.peek(3).kind == TokenKind.EQ
@@ -612,6 +612,9 @@ class Parser(
                 } else {
                     parseLocalAssignment()
                 }
+            }
+            tt.THIS -> {
+                parseMemberAssignment()
             }
             tt.DEFER -> parseDeferStatement()
             else -> {

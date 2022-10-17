@@ -121,6 +121,7 @@ data class Diagnostic(
 
         object CantMoveNonLocal: Kind(Severity.ERROR)
         object CopyOfNoCopyTypeNotAllowed: Kind(Severity.ERROR)
+        object AssigningToFieldOfAStructPassedByValueNotAllowed: Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -207,6 +208,8 @@ data class Diagnostic(
             is InvalidPragma -> "Invalid pragma $name"
             CantMoveNonLocal -> "Only local variables can be moved."
             CopyOfNoCopyTypeNotAllowed -> "Copying a NoCopy type is not allowed. Only moving is allowed."
+            AssigningToFieldOfAStructPassedByValueNotAllowed ->
+                "Assigning to a field of a struct passed by value is not allowed. Did you mean to pass this as a pointer?"
         }
 
     }
