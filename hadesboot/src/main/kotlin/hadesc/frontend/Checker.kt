@@ -443,20 +443,33 @@ class Checker(val ctx: Context) {
             return
         }
 
-        if (statement.lhs.lhs !is Expression.Var) {
-            error(statement.lhs.lhs, Diagnostic.Kind.NotAnAddressableValue)
-        } else {
-            val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
-            if (binding == null) {
-                error(statement.lhs.lhs, Diagnostic.Kind.UnboundVariable(statement.lhs.lhs.name.name))
-                return
+        when (statement.lhs.lhs) {
+            is Expression.Var -> {
+                val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
+                if (binding == null) {
+                    error(statement.lhs.lhs, Diagnostic.Kind.UnboundVariable(statement.lhs.lhs.name.name))
+                    return
+                }
+                if (binding !is Binding.ValBinding) {
+                    error(statement.lhs, Diagnostic.Kind.NotAnAddressableValue)
+                    return
+                }
+                if (!binding.statement.isMutable) {
+                    error(statement.lhs.lhs, Diagnostic.Kind.ValNotMutable)
+                }
             }
-            if (binding !is Binding.ValBinding) {
-                error(statement.lhs, Diagnostic.Kind.NotAnAddressableValue)
-                return
+            is Expression.This -> {
+                val fn = ctx.resolver.getEnclosingFunction(statement) ?: return
+                val thisParam = fn.signature.thisParamFlags ?: return
+                if (!thisParam.isMutable) {
+                    error(statement.lhs.lhs, Diagnostic.Kind.ValNotMutable)
+                }
+                if (!thisParam.isPointer) {
+                    error(statement.lhs, Diagnostic.Kind.AssigningToFieldOfAStructPassedByValueNotAllowed)
+                }
             }
-            if (!binding.statement.isMutable) {
-                error(statement.lhs.lhs, Diagnostic.Kind.ValNotMutable)
+            else -> {
+                error(statement.lhs.lhs, Diagnostic.Kind.NotAnAddressableValue)
             }
         }
     }

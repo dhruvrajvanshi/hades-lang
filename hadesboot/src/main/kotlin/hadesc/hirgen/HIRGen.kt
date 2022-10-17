@@ -475,18 +475,35 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment) {
-        require(statement.lhs.lhs is Expression.Var)
-        val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
-        require(binding is Binding.ValBinding)
-        require(binding.statement.isMutable)
-        val fieldAddr = addressOfStructField(statement.lhs)
-        emit(
-            HIRStatement.Store(
-                location = statement.location,
-                ptr = fieldAddr,
-                value = lowerExpression(statement.value)
-            )
-        )
+        when (statement.lhs.lhs) {
+            is Expression.Var -> {
+                val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
+                require(binding is Binding.ValBinding)
+                require(binding.statement.isMutable)
+                val fieldAddr = addressOfStructField(statement.lhs)
+                emit(
+                    HIRStatement.Store(
+                        location = statement.location,
+                        ptr = fieldAddr,
+                        value = lowerExpression(statement.value)
+                    )
+                )
+            }
+            is Expression.This -> {
+                val enclosingExtension = checkNotNull(ctx.resolver.getEnclosingFunction(statement))
+                val thisFlags = checkNotNull(enclosingExtension.signature.thisParamFlags)
+                check(thisFlags.isPointer)
+                check(thisFlags.isMutable)
+
+                val thisValue = lowerThisExpression(statement.lhs.lhs)
+                emitStore(
+                    thisValue
+                        .fieldPtr(statement.lhs.property.name),
+                    lowerExpression(statement.value)
+                )
+            }
+            else -> requireUnreachable()
+        }
     }
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
