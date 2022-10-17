@@ -12,8 +12,12 @@ import hadesc.BuildCLIOptions
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
+import kotlin.system.exitProcess
 
-class BuildCommand: CliktCommand(invokeWithoutSubcommand = true) {
+class BuildCommand: CliktCommand(
+    invokeWithoutSubcommand = true,
+    epilog = "Build complete"
+) {
     private val log = logger(BuildCommand::class.java)
     private val buildOptions by BuildCLIOptions()
     private val output by option("--output", "-o").path().required()
@@ -28,7 +32,11 @@ class BuildCommand: CliktCommand(invokeWithoutSubcommand = true) {
         if (skipExec) {
             return
         }
-        execute()
+        val diagnostics = execute()
+        if (diagnostics.isNotEmpty()) {
+            println("Build failed with errors")
+            exitProcess(1)
+        }
     }
 
     fun execute(): List<Diagnostic> {
