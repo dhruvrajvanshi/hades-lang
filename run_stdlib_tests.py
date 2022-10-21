@@ -10,8 +10,9 @@ def main():
     memcheck_errors = {}
     for file in glob.glob('./stdlib/hadesx/**/*_test.hds'):
         output = f'test_build/{file}'
+        hades_path = f'./hadesboot/build/install/hades/bin/hades'
         completed_process = subp.run(
-            ['hades', 'build', '-g', '--main', file, '--output', output],
+            [hades_path, 'build', '-g', '--main', file, '--output', output],
             stdout=sys.stdout,
             stderr=sys.stderr,
             env={**os.environ, 'HADES_HOME': '.'}
@@ -26,7 +27,7 @@ def main():
             [
                 'valgrind',
                 *(
-                    [] if os.environ['VALGRIND_SUMMARY']
+                    [] if 'VALGRIND_SUMMARY' in os.environ
                     else [
                         '--xml=yes',
                         f'--xml-file={output}.memcheck',
