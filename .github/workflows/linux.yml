@@ -28,7 +28,7 @@ jobs:
       run: ./gradlew installDist
      
     - name: Install valgrind
-      run: sudo apt install valgrind openjdk-17-jdk
+      run: sudo apt install valgrind
 
     - name: Run stdlib tests
       run: python ./run_stdlib_tests.py
