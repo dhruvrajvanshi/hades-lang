@@ -65,7 +65,7 @@ extension VecExtensions[T] for Vec[T] {
 implementation[T] Drop[Vec[T]] where not Drop[T] {
     def drop(self: Vec[T]): Void {
         if self._buffer != nullptr {
-            // Mem.free(self._buffer)
+            Mem.free(self._buffer)
         }
     }
 }
