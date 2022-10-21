@@ -1,0 +1,8 @@
+
+trait Drop[T] {
+    def drop(self: T): Void
+}
+
+def drop[T](self: T): Void where Drop[T] {
+    Drop[T].drop(self)
+}
