@@ -78,13 +78,9 @@ extern def ferror(*File): int = ferror
 extern def fileno(*File): int = fileno
 extern def abort(): Void = abort
 
-// pid_t is typedefed as int on Linux
-// this is slightly more typesafe
-struct pid_t {
-    val _value: int
-}
-
+type pid_t = int
 extern def fork(): pid_t = fork
 
 /// https://man7.org/linux/man-pages/man2/waitpid.2.html
-extern def waitpid(pid_t, *int, int): int = waitpid
+extern def waitpid(pid_t, *int, int): pid_t = waitpid
+extern def wait(*int): pid_t = wait
