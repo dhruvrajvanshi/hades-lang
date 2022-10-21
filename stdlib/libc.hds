@@ -1,60 +1,64 @@
 // TODO: do something better here. This isn't portable.
-type CInt = i32;
 type int = i32;
 type uint = u32
 type ulong = u64
 type long = i64
+type size_t = usize
+type ssize_t = isize
+type char = u8
+type void = Void
+type double = Double
 
-extern def puts(*Byte): Void = puts;
-extern def exit(CInt): Void = exit;
-extern def malloc(Size): *mut Void = malloc;
-extern def free(*mut Void): Void = free;
-extern def strlen(*Byte): usize = strlen;
-extern def strcat(*Byte, *Byte): *mut Byte = strcat;
-extern def strcmp(*Byte, *Byte): CInt = strcmp;
-extern def strcpy(*mut Byte, *Byte): *mut Byte = strcpy;
-extern def memcpy(*Void, *Void, usize): Void = memcpy;
-extern def memcmp(*Void, *Void, usize): CInt = memcmp;
-extern def floor(Double): Double = floor;
+extern def puts(*char): void = puts;
+extern def exit(int): void = exit;
+extern def malloc(size_t): *mut void = malloc;
+extern def free(*mut void): void = free;
+extern def strlen(*char): usize = strlen;
+extern def strcat(*char, *char): *mut char = strcat;
+extern def strcmp(*char, *char): int = strcmp;
+extern def strcpy(*mut char, *char): *mut char = strcpy;
+extern def memcpy(*void, *void, usize): void = memcpy;
+extern def memcmp(*void, *void, usize): int = memcmp;
+extern def floor(double): double = floor;
 
-extern def fprintf(*File, *Byte, *Byte): int = fprintf;
-extern def printf(*Byte, *Byte): int = printf;
+extern def fprintf(*FILE, *char, *char): int = fprintf;
+extern def printf(*char, *char): int = printf;
 extern def sleep(uint): uint = sleep;
-extern def fflush(*File): Void = fflush;
+extern def fflush(*FILE): void = fflush;
 
-extern def fputs(*Byte, *File): Void = fputs;
+extern def fputs(*char, *FILE): void = fputs;
 
-struct File {}
+struct FILE {}
 
-extern def getline(*mut *mut Byte, *mut usize, *File): isize = getline;
-extern def fgetc(*File): Byte = fgetc;
-extern def strtoul(*Byte, **Byte, u32): ulong = strtoul;
+extern def getline(*mut *mut char, *mut usize, *FILE): isize = getline;
+extern def fgetc(*FILE): char = fgetc;
+extern def strtoul(*char, **char, u32): ulong = strtoul;
 
 
-extern def fread(*Void, usize, usize, *File): usize = fread;
+extern def fread(*void, usize, usize, *FILE): usize = fread;
 
-type FileDescriptor = int;
-extern def read(FileDescriptor, *mut Void, usize): isize = read;
-extern def write(FileDescriptor, *Void, usize): isize = write;
+type FILEDescriptor = int;
+extern def read(FILEDescriptor, *mut void, usize): isize = read;
+extern def write(FILEDescriptor, *void, usize): isize = write;
 
 extern def errno(): int = hdc_errno;
-extern def strerror(CInt): *Byte = strerror;
-extern def set_errno(CInt): Void = hdc_set_errno;
+extern def strerror(int): *char = strerror;
+extern def set_errno(int): void = hdc_set_errno;
 
-extern def open(*Byte, CInt): CInt = open;
+extern def open(*char, int): int = open;
 
-extern def stdout(): *File = hdc_get_stdout;
-extern const stdin: *File = stdin;
-extern def stderr(): *File = hdc_get_stderr;
+extern def stdout(): *FILE = hdc_get_stdout;
+extern const stdin: *FILE = stdin;
+extern def stderr(): *FILE = hdc_get_stderr;
 
-extern def perror(*Byte): Void = perror;
+extern def perror(*char): void = perror;
 
-extern def listen(CInt, CInt): CInt = listen;
+extern def listen(int, int): int = listen;
 
 struct sockaddr {}
 struct socklen_t {}
-extern def accept(CInt, *mut sockaddr, *mut socklen_t): CInt = accept;
-extern def close(CInt): CInt = close;
+extern def accept(int, *mut sockaddr, *mut socklen_t): int = accept;
+extern def close(int): int = close;
 
 
 const EOF: int = -1
@@ -65,18 +69,18 @@ const SEEK_END: int = 2
 
 /// fseek(file, offset, whence)
 /// whence should be SEEK_SET or SEEK_CUR or SEEK_END
-extern def fseek(*File, long, int): i32 = fseek
+extern def fseek(*FILE, long, int): i32 = fseek
 
-extern def ftell(*File): long = ftell
+extern def ftell(*FILE): long = ftell
 
 /// fopen(file, mode)
-extern def fopen(*Byte, *Byte): *File = fopen
-extern def fclose(*File): int = fclose
-extern def rewind(*File): Void = rewind
-extern def feof(*File): int = feof
-extern def ferror(*File): int = ferror
-extern def fileno(*File): int = fileno
-extern def abort(): Void = abort
+extern def fopen(*char, *char): *FILE = fopen
+extern def fclose(*FILE): int = fclose
+extern def rewind(*FILE): void = rewind
+extern def feof(*FILE): int = feof
+extern def ferror(*FILE): int = ferror
+extern def fileno(*FILE): int = fileno
+extern def abort(): void = abort
 
 type pid_t = int
 extern def fork(): pid_t = fork
