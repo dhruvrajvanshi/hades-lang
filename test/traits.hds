@@ -2,11 +2,11 @@ import libc as c;
 import libc.{stdout}
 
 trait Printable[Self] {
-    def print(self: Self, file: *c.File): Void;
+    def print(self: Self, file: *c.FILE): Void;
 }
 
 implementation Printable[Bool] {
-    def print(self: Bool, file: *c.File): Void {
+    def print(self: Bool, file: *c.FILE): Void {
         if self {
             c.fputs(b"true", file);
         } else {
@@ -16,13 +16,13 @@ implementation Printable[Bool] {
 }
 
 implementation Printable[*Byte] {
-    def print(self: *Byte, file: *c.File): Void {
+    def print(self: *Byte, file: *c.FILE): Void {
         c.fputs(self, file);
     }
 }
 
 implementation[T] Printable[Box[T]] where Printable[T] {
-    def print(self: Box[T], file: *c.File): Void {
+    def print(self: Box[T], file: *c.FILE): Void {
         c.fputs(b"Box(", file);
         print_alias(self.value); // because print might refer to this function;
         c.fputs(b")", file);
