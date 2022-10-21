@@ -1,0 +1,23 @@
+import hadesx.panic.{panic}
+import hadesx.debug.{debugln}
+import hadesx.internal.libc.{wait, fork}
+import libc.{puts, exit}
+
+def test(name: *u8, f: || -> Void): Void {
+    // val child_pid = fork()
+    // if (child_pid == -1) {
+    //     panic(b"Couldn't fork")
+    // }
+    // if (child_pid == 0) {
+    //     // child process
+    //     f()
+    //     exit(0)
+    // } else {
+        debugln(b"====================")
+        debugln(name)
+        debugln(b"====================")
+        f()
+        debugln(b"-")
+    // }
+
+}
