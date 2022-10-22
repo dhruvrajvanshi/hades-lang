@@ -1135,14 +1135,48 @@ class Parser(
             }
             tt.DOT -> {
                 advance()
-                val ident = parseIdentifier()
-                parseExpressionTail(
-                    Expression.Property(
-                        makeLocation(head, ident),
-                        head,
-                        ident
+                when (currentToken.kind) {
+                    tt.ID -> {
+                        val ident = parseIdentifier()
+                        parseExpressionTail(
+                            Expression.Property(
+                                makeLocation(head, ident),
+                                head,
+                                ident
+                            )
+                        )
+                    }
+                    tt.STAR -> {
+                        val stop = advance()
+                        parseExpressionTail(
+                            Expression.Deref(
+                                SourceLocation.between(head, stop),
+                                head
+                            )
+                        )
+                    }
+                    tt.AMPERSAND -> {
+                        var stop = advance()
+                        var isMut = false
+                        if (at(tt.MUT)) {
+                            stop = advance()
+                            isMut = true
+                        }
+                        val location = SourceLocation.between(head, stop)
+                        val newExpr =
+                            if (isMut) {
+                                Expression.AddressOfMut(location, head)
+                            } else {
+                                Expression.AddressOf(location, head)
+                            }
+                        parseExpressionTail(newExpr)
+                    }
+                    else -> syntaxError(
+                        currentToken.location,
+                        Diagnostic.Kind.UnexpectedToken(tt.ID, currentToken)
                     )
-                )
+                }
+
             }
             tt.AS -> {
                 advance()
