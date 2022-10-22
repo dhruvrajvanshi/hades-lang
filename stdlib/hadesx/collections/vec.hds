@@ -1,6 +1,6 @@
 import hadesx.ops.drop.{drop, Drop}
 import hadesx.panic.{panic}
-import hadesx.NoCopy.{NoCopy}
+import hadesx.no_copy.{NoCopy}
 import hades.memory as Mem
 import hadesx.ops.for_each.{ForEach}
 
