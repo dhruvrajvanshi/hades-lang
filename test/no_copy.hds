@@ -1,4 +1,4 @@
-import hadesx.NoCopy.{NoCopy}
+import hadesx.no_copy.{NoCopy}
 
 struct OwnPtr[T] {
     val _ptr: *mut T
