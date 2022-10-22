@@ -1294,7 +1294,7 @@ class Analyzer(
         val isNoCopy = isTraitRequirementSatisfied(
             callNode,
             TraitRequirement(
-                ctx.qn("hadesx", "NoCopy", "NoCopy"),
+                ctx.qn("hadesx", "no_copy", "NoCopy"),
                 listOf(reducedType),
                 negated = false
             )
