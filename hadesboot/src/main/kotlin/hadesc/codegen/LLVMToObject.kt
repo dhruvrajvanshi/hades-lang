@@ -100,7 +100,12 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         makeParentDirectory(output)
         log.debug("Writing object file")
         log.debug(LLVM.LLVMPrintModuleToString(llvmModule).string)
-        LLVM.LLVMVerifyModule(llvmModule, LLVM.LLVMPrintMessageAction, ByteArray(1000))
+        // With MSVC, (as of org.bytedeco:llvm-platform:13.0.1-1.5.7),
+        // LLVMVerifyModule randomly crashes. Disable this to make CI
+        // for windows succeed consistently.
+        if (!shouldUseMicrosoftCL) {
+            LLVM.LLVMVerifyModule(llvmModule, LLVM.LLVMAbortProcessAction, ByteArray(10000))
+        }
         LLVM.LLVMInitializeAllTargetInfos()
         LLVM.LLVMInitializeAllTargets()
         LLVM.LLVMInitializeAllTargetMCs()
