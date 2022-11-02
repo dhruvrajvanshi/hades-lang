@@ -31,7 +31,19 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.InvokeClosure -> visitInvokeClosureStatement(statement)
             is HIRStatement.Move -> visitMoveStatement(statement)
             is HIRStatement.Memcpy -> visitMemcpyStatement(statement)
+            is HIRStatement.IntToPtr -> visitIntToPtr(statement)
+            is HIRStatement.PtrToInt -> visitPtrToInt(statement)
         }
+    }
+
+    fun visitPtrToInt(statement: HIRStatement.PtrToInt) {
+        visitExpression(statement.expression)
+        visitType(statement.type)
+    }
+
+    fun visitIntToPtr(statement: HIRStatement.IntToPtr) {
+        visitExpression(statement.expression)
+        visitType(statement.type)
     }
 
     fun visitMemcpyStatement(statement: HIRStatement.Memcpy) {

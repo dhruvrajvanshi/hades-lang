@@ -280,6 +280,25 @@ sealed interface HIRStatement: HIRNode {
         }
     }
 
+    data class IntToPtr(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type.Ptr,
+        val expression: HIROperand,
+    ): HIRStatement, NameBinder, StraightLineInstruction
+
+    data class PtrToInt(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type,
+        val expression: HIROperand,
+    ): HIRStatement, NameBinder, StraightLineInstruction {
+        init {
+            require(expression.type is Type.Ptr)
+            require(type.isIntegral())
+        }
+    }
+
     private fun prettyPrintInternal(): String = when(this) {
         is Call -> {
             "%${name.text}: ${resultType.prettyPrint()} = ${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -320,6 +339,9 @@ sealed interface HIRStatement: HIRNode {
             "memcpy source = ${source.prettyPrint()}," +
                     "destination = ${destination.prettyPrint()}, " +
                     "bytes = ${bytes.prettyPrint()}"
+
+        is IntToPtr -> "int-to-ptr[${type.prettyPrint()}] ${expression.prettyPrint()}"
+        is PtrToInt -> "ptr-to-int[${type.prettyPrint()}] ${expression.prettyPrint()}"
     }
 
     companion object {
