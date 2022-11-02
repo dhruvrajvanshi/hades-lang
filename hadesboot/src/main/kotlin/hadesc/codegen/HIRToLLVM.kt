@@ -55,6 +55,7 @@ class HIRToLLVM(
             print(llvmModule.prettyPrint())
         }
 
+        LLVM.LLVMDIBuilderFinalize(diBuilder)
         if (ctx.options.enableLLVMVerifier) {
             LLVM.LLVMVerifyModule(llvmModule, LLVM.LLVMAbortProcessAction, null as PointerPointer<*>?)
         }
@@ -189,7 +190,7 @@ class HIRToLLVM(
             file = fileScope,
             lineno = definition.location.start.line,
             ty = typeDI,
-            isLocalToUnit = false,
+            isLocalToUnit = true,
             isDefinition = true,
             scopeLine = definition.location.start.line,
             flags = LLVM.LLVMDIFlagZero,
