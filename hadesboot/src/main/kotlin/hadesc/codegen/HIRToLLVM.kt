@@ -479,15 +479,29 @@ class HIRToLLVM(
                 when (statement.type) {
                     is Type.Integral -> statement.type.isSigned
                     is Type.Size -> statement.type.isSigned
+                    is Type.FloatingPoint -> true
                     is Type.Bool -> false
                     else -> requireUnreachable { statement.type.prettyPrint() }
                 }
-            builder.buildICmp(
-                lowerPredicateOperator(isSigned, statement.operator),
-                lowerExpression(statement.lhs),
-                lowerExpression(statement.rhs),
-                name
-            )
+            if (statement.lhs.type is Type.FloatingPoint) {
+                check(statement.rhs.type is Type.FloatingPoint)
+                builder.buildFCmp(
+                    lowerFloatPredicateOperator(statement.operator),
+                    lowerExpression(statement.lhs),
+                    lowerExpression(statement.rhs),
+                    name
+                )
+            } else {
+                check(statement.lhs.type is Type.Integral)
+                check(statement.rhs.type is Type.Integral)
+
+                builder.buildICmp(
+                    lowerPredicateOperator(isSigned, statement.operator),
+                    lowerExpression(statement.lhs),
+                    lowerExpression(statement.rhs),
+                    name
+                )
+            }
         } else {
             if (statement.type is Type.FloatingPoint) {
                 builder.buildBinOp(
@@ -550,6 +564,16 @@ class HIRToLLVM(
             BinaryOperator.LESS_THAN_EQUAL -> if (isSigned) IntPredicate.SLE else IntPredicate.ULE
             else -> requireUnreachable()
         }
+    }
+
+    private fun lowerFloatPredicateOperator(operator: BinaryOperator): RealPredicate = when(operator) {
+        BinaryOperator.EQUALS -> RealPredicate.EQ
+        BinaryOperator.NOT_EQUALS -> RealPredicate.NE
+        BinaryOperator.GREATER_THAN -> RealPredicate.UGT
+        BinaryOperator.GREATER_THAN_EQUAL -> RealPredicate.UGE
+        BinaryOperator.LESS_THAN -> RealPredicate.ULT
+        BinaryOperator.LESS_THAN_EQUAL -> RealPredicate.ULE
+        else -> requireUnreachable()
     }
 
     private fun lowerPointerCast(statement: HIRStatement.PointerCast): Value {
