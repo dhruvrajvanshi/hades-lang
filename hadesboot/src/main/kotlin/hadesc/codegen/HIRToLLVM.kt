@@ -492,8 +492,8 @@ class HIRToLLVM(
                     name
                 )
             } else {
-                check(statement.lhs.type is Type.Integral)
-                check(statement.rhs.type is Type.Integral)
+                check(statement.lhs.type.isIntegral())
+                check(statement.rhs.type.isIntegral())
 
                 builder.buildICmp(
                     lowerPredicateOperator(isSigned, statement.operator),
