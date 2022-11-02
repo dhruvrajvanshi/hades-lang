@@ -131,7 +131,7 @@ internal class HIRGenExpression(
             IntrinsicType.PTR_TO_INT -> {
                 check(expression.type is Type.Size)
                 check(expression.args.size == 1)
-                return emitIntegerConvert(
+                return emitPtrToInt(
                     lowerExpression(expression.args[0].expression).asOperand(),
                     expression.type
                 )
@@ -139,7 +139,7 @@ internal class HIRGenExpression(
             IntrinsicType.INT_TO_PTR -> {
                 check(expression.type is Type.Ptr)
                 check(expression.args.size == 1)
-                return emitIntegerConvert(
+                return emitIntToPtr(
                     lowerExpression(expression.args[0].expression).asOperand(),
                     expression.type,
                 )

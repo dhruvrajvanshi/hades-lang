@@ -216,6 +216,35 @@ fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
     requireNotNull(currentStatements).addAll(statements)
 }
 
+fun HIRBuilder.emitIntToPtr(expression: HIROperand, to: Type.Ptr): HIROperand {
+    val s = emit(HIRStatement.IntToPtr(
+        expression.location,
+        namingCtx.makeUniqueName(),
+        to,
+        expression
+    ))
+    return HIRExpression.LocalRef(
+        s.location,
+        s.type,
+        s.name
+    )
+}
+
+fun HIRBuilder.emitPtrToInt(expression: HIROperand, to: Type): HIROperand {
+    require(to.isIntegral())
+    val s = emit(HIRStatement.PtrToInt(
+        expression.location,
+        namingCtx.makeUniqueName(),
+        to,
+        expression
+    ))
+    return HIRExpression.LocalRef(
+        s.location,
+        s.type,
+        s.name
+    )
+}
+
 fun HIRBuilder.emitIntegerConvert(expression: HIROperand, to: Type): HIROperand {
     val s = emit(HIRStatement.IntegerConvert(
         expression.location,

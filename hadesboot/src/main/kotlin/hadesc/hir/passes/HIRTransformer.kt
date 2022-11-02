@@ -163,6 +163,32 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         is HIRStatement.InvokeClosure -> transformInvokeClosureStatement(statement)
         is HIRStatement.Move -> transformMoveStatement(statement)
         is HIRStatement.Memcpy -> transformMemcpyStatement(statement)
+        is HIRStatement.IntToPtr -> transformIntToPtrStatement(statement)
+        is HIRStatement.PtrToInt -> transformPtrToIntStatement(statement)
+    }
+
+    fun transformPtrToIntStatement(statement: HIRStatement.PtrToInt): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.PtrToInt(
+                statement.location,
+                statement.name,
+                lowerType(statement.type),
+                transformOperand(statement.expression)
+            )
+        )
+    }
+
+    fun transformIntToPtrStatement(statement: HIRStatement.IntToPtr): Collection<HIRStatement> {
+        val loweredType = lowerType(statement.type)
+        check(loweredType is Type.Ptr)
+         return listOf(
+            HIRStatement.IntToPtr(
+                statement.location,
+                statement.name,
+                loweredType,
+                transformOperand(statement.expression)
+            )
+        )
     }
 
     fun transformMemcpyStatement(statement: HIRStatement.Memcpy): Collection<HIRStatement> {

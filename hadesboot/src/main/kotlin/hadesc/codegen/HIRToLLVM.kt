@@ -343,6 +343,8 @@ class HIRToLLVM(
             is HIRStatement.PointerCast -> lowerPointerCast(statement)
             is HIRStatement.TypeApplication -> requireUnreachable()
             is HIRStatement.BinOp -> lowerBinOp(statement)
+            is HIRStatement.IntToPtr -> lowerIntToPtr(statement)
+            is HIRStatement.PtrToInt -> lowerPtrToInt(statement)
             is HIRStatement.AllocateClosure -> requireUnreachable()
             is HIRStatement.InvokeClosure -> requireUnreachable()
         }
@@ -350,6 +352,24 @@ class HIRToLLVM(
         if (value != null) {
             localValues[statement.name] = value
         }
+    }
+
+    private fun lowerPtrToInt(statement: HIRStatement.PtrToInt): Value {
+        return LLVM.LLVMBuildPtrToInt(
+            builder,
+            lowerExpression(statement.expression),
+            lowerType(statement.type),
+            statement.name.text
+        )
+    }
+
+    private fun lowerIntToPtr(statement: HIRStatement.IntToPtr): Value {
+        return LLVM.LLVMBuildIntToPtr(
+            builder,
+            lowerExpression(statement.expression),
+            lowerType(statement.type),
+            statement.name.text
+        )
     }
 
     private fun lowerLoadStatement(statement: HIRStatement.Load): Value? {
