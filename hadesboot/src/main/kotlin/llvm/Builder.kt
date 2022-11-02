@@ -39,6 +39,9 @@ fun B.buildRetVoid(): LLVMValueRef =
 fun B.buildICmp(predicate: IntPredicate, lhs: LLVMValueRef, rhs: LLVMValueRef, name: String): LLVMValueRef =
     LLVM.LLVMBuildICmp(this, predicate.value, lhs, rhs, name)
 
+fun B.buildFCmp(predicate: RealPredicate, lhs: LLVMValueRef, rhs: LLVMValueRef, name: String): LLVMValueRef =
+    LLVM.LLVMBuildFCmp(this, predicate.value, lhs, rhs, name)
+
 fun B.buildBinOp(operator: Opcode, lhs: LLVMValueRef, rhs: LLVMValueRef, name: String): LLVMValueRef =
     LLVM.LLVMBuildBinOp(this, operator.value, lhs, rhs, name)
 
