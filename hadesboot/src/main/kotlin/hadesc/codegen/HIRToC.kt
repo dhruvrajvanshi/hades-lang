@@ -92,7 +92,10 @@ class HIRToC(
         val params = def.params.joinToString(", ") { it.type.lower() + " " + it.name.c }
 
         val body = def.basicBlocks.joinToString("\n") {
-            it.name.c + ":\n    " +  it.statements.joinToString("\n    ") { st -> st.lower() }
+            it.name.c + ":\n    " +  it.statements.joinToString("\n    ") { st ->
+                val lineDir = "#line ${st.location.start.line} \"${st.location.file.path.toString()}\"\n"
+                lineDir + "\n    " + st.lower()
+            }
         }
 
         val name =
@@ -132,7 +135,7 @@ class HIRToC(
         is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.location}.${s.name.text};"
         is HIRStatement.GetStructFieldPointer -> TODO()
         is HIRStatement.IntToPtr -> {
-            val ty = "*${s.type.lower()}"
+            val ty = "${s.type.lower()}"
             "$ty ${s.name.c} = (($ty) ${s.expression.lower()});"
         }
         is HIRStatement.IntegerConvert -> {
