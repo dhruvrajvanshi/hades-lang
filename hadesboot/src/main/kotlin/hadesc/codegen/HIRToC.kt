@@ -7,6 +7,7 @@ import hadesc.hir.*
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.ptr
+import hadesc.unit
 import java.nio.charset.Charset
 import java.nio.file.Paths
 
@@ -19,6 +20,30 @@ class HIRToC(
         cDecls.apply {
             add(CDecl("#include <stdint.h>"))
             add(CDecl("#include <stdbool.h>"))
+        }
+        for (def in module.definitions.sortedBy {
+            when (it) {
+                is HIRDefinition.Struct -> 0
+                is HIRDefinition.Function -> 1
+                is HIRDefinition.Implementation -> requireUnreachable()
+                is HIRDefinition.Const,
+                is HIRDefinition.ExternFunction,
+                is HIRDefinition.ExternConst -> 2
+            }
+        }) {
+            when (def) {
+                is HIRDefinition.Function -> {
+                    cDecls.add(
+                        CDecl(funcDefSignature(def) + ";\n")
+                    )
+                }
+                is HIRDefinition.Struct -> {
+                    cDecls.add(
+                        CDecl("struct ${def.name.c};")
+                    )
+                }
+                else -> unit
+            }
         }
         for (def in module.definitions.sortedBy {
             when (it) {
@@ -89,23 +114,27 @@ class HIRToC(
 
     private fun visitFunctionDef(def: HIRDefinition.Function) {
 
-        val params = def.params.joinToString(", ") { it.type.lower() + " " + it.name.c }
 
         val body = def.basicBlocks.joinToString("\n") {
             it.name.c + ":\n    " +  it.statements.joinToString("\n    ") { st ->
                 val lineDir = "#line ${st.location.start.line} \"${st.location.file.path.toString()}\"\n"
-                lineDir + "\n    " + st.lower()
+                lineDir+ "\n    " + st.lower()
             }
         }
+        val sig = funcDefSignature(def)
+        cDecls.add(
+            CDecl("$sig {$body\n}")
+        )
+    }
 
+    private fun funcDefSignature(def: HIRDefinition.Function): String {
         val name =
             if (def.name.mangle() == "main")
                 "hades_main"
             else
                 def.name.c
-        cDecls.add(
-            CDecl("${def.returnType.lower()} $name($params) {$body\n}")
-        )
+        val params = def.params.joinToString(", ") { it.type.lower() + " " + it.name.c }
+        return "${def.returnType.lower()} $name($params)"
     }
 
     private fun HIRStatement.lower(): String = when(this) {
@@ -135,7 +164,7 @@ class HIRToC(
         is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.location}.${s.name.text};"
         is HIRStatement.GetStructFieldPointer -> TODO()
         is HIRStatement.IntToPtr -> {
-            val ty = "${s.type.lower()}"
+            val ty = s.type.lower()
             "$ty ${s.name.c} = (($ty) ${s.expression.lower()});"
         }
         is HIRStatement.IntegerConvert -> {
@@ -143,7 +172,7 @@ class HIRToC(
             "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
         }
         is HIRStatement.PointerCast -> {
-            val ty = "*${s.toPointerOfType.lower()}"
+            val ty = "${s.toPointerOfType.lower()}*"
             "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
         }
         is HIRStatement.PtrToInt -> {
