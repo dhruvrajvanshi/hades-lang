@@ -69,8 +69,8 @@ class HIRToC(
         is HIRDefinition.ExternConst -> visitExternConst(def)
         is HIRDefinition.ExternFunction -> visitExternFunctionDef(def)
         is HIRDefinition.Function -> visitFunctionDef(def)
-        is HIRDefinition.Implementation -> TODO()
         is HIRDefinition.Struct -> visitStructDef(def)
+        is HIRDefinition.Implementation -> requireUnreachable()
     }
 
     private fun visitConstDef(def: HIRDefinition.Const) {
