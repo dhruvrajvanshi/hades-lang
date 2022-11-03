@@ -107,7 +107,7 @@ class HIRToC(
 
     private fun HIRStatement.lower(): String = when(this) {
         is HIRStatement.NameBinder -> lowerNameBinder(this)
-        is HIRStatement.Jump -> TODO()
+        is HIRStatement.Jump -> lowerJump(this)
         is HIRStatement.Memcpy -> TODO()
         is HIRStatement.Move -> ""
         is HIRStatement.Return -> lowerReturn(this)
@@ -115,6 +115,10 @@ class HIRToC(
         is HIRStatement.SwitchInt -> lowerSwitchInt(this)
         is HIRStatement.While -> requireUnreachable()
         is HIRStatement.MatchInt -> requireUnreachable()
+    }
+
+    private fun lowerJump(s: HIRStatement.Jump): String {
+        return "goto ${s.to.c};"
     }
 
     private fun lowerNameBinder(s: HIRStatement.NameBinder): String = when (s) {
