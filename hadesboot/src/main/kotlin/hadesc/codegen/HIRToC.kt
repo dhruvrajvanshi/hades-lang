@@ -42,6 +42,7 @@ class HIRToC(
 
         cSourcePath.toFile().apply {
             writeText(cSource)
+            appendText("\nint main() { hades_main(); return 0; }")
         }
         val commandParts = mutableListOf(
             "gcc",
@@ -66,7 +67,7 @@ class HIRToC(
     private fun visitDef(def: HIRDefinition): Unit = when (def) {
         is HIRDefinition.Const -> visitConstDef(def)
         is HIRDefinition.ExternConst -> visitExternConst(def)
-        is HIRDefinition.ExternFunction -> visitExternConstDef(def)
+        is HIRDefinition.ExternFunction -> visitExternFunctionDef(def)
         is HIRDefinition.Function -> visitFunctionDef(def)
         is HIRDefinition.Implementation -> TODO()
         is HIRDefinition.Struct -> visitStructDef(def)
@@ -94,8 +95,13 @@ class HIRToC(
             it.name.c + ":\n    " +  it.statements.joinToString("\n    ") { st -> st.lower() }
         }
 
+        val name =
+            if (def.name.mangle() == "main")
+                "hades_main"
+            else
+                def.name.c
         cDecls.add(
-            CDecl("${def.returnType.lower()} ${def.name.c}($params) {$body\n}")
+            CDecl("${def.returnType.lower()} $name($params) {$body\n}")
         )
     }
 
@@ -162,7 +168,16 @@ class HIRToC(
     }
 
     private fun HIROperand.lower(): String = when(this) {
-        is HIRExpression.GlobalRef -> name.c
+        is HIRExpression.GlobalRef -> {
+            when (val global = checkNotNull(module.findGlobalDefinition(name))) {
+                is HIRDefinition.Const -> global.name.c
+                is HIRDefinition.ExternConst -> global.externName.text
+                is HIRDefinition.ExternFunction -> global.externName.text
+                is HIRDefinition.Function -> global.name.c
+                is HIRDefinition.Implementation -> requireUnreachable()
+                is HIRDefinition.Struct -> requireUnreachable()
+            }
+        }
         is HIRConstant.AlignOf -> TODO()
         is HIRConstant.BoolValue -> TODO()
         is HIRConstant.ByteString ->
@@ -181,11 +196,11 @@ class HIRToC(
         is HIRExpression.TraitMethodRef -> TODO()
     }
 
-    private fun visitExternConstDef(def: HIRDefinition.ExternFunction) {
+    private fun visitExternFunctionDef(def: HIRDefinition.ExternFunction) {
         val params = def.params.joinToString(", ") { it.lower() }
         cDecls.add(
             CDecl("""
-                extern ${def.returnType.lower()} ${def.externName.c}($params);
+                extern ${def.returnType.lower()} ${def.externName.text}($params);
             """.trimIndent())
         )
     }
