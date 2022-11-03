@@ -13,4 +13,10 @@ sealed interface HadesBackend {
             LLVMToObject(ctx.options, ctx.target, HIRToLLVM(ctx, module).lower()).execute()
         }
     }
+
+    object C: HadesBackend {
+        override fun generate(ctx: Context, module: HIRModule) {
+            HIRToC(ctx, module).run()
+        }
+    }
 }

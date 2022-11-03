@@ -92,7 +92,7 @@ class Context(
 
         val backend = when (options.backend) {
             Backend.LLVM -> HadesBackend.LLVM
-            Backend.C -> HadesBackend.LLVM
+            Backend.C -> HadesBackend.C
         }
         backend.generate(this, hirModule)
         unit
