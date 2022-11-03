@@ -1,11 +1,9 @@
 package hadesc.context
 
-import hadesc.BuildOptions
-import hadesc.Name
+import hadesc.*
 import hadesc.analysis.Analyzer
 import hadesc.ast.*
-import hadesc.codegen.HIRToLLVM
-import hadesc.codegen.LLVMToObject
+import hadesc.codegen.HadesBackend
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.analysis.MissingReturnAnalyzer
@@ -16,11 +14,9 @@ import hadesc.hir.verifier.HIRVerifier
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
-import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
-import hadesc.unit
 import java.nio.file.Path
 
 interface ASTContext {
@@ -94,8 +90,11 @@ class Context(
         log.debug("Monomorphization:\n${hirModule.prettyPrint()}")
 
 
-        val llvmModule = HIRToLLVM(this, hirModule).lower()
-        LLVMToObject(options, target, llvmModule).execute()
+        val backend = when (options.backend) {
+            Backend.LLVM -> HadesBackend.LLVM
+            Backend.C -> HadesBackend.LLVM
+        }
+        backend.generate(this, hirModule)
         unit
     }
 
