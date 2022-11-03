@@ -20,6 +20,7 @@ class HIRToC(
         cDecls.apply {
             add(CDecl("#include <stdint.h>"))
             add(CDecl("#include <stdbool.h>"))
+            add(CDecl("#include <stddef.h>"))
         }
         for (def in module.definitions.sortedBy {
             when (it) {
