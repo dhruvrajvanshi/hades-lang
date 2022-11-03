@@ -106,30 +106,34 @@ class HIRToC(
     }
 
     private fun HIRStatement.lower(): String = when(this) {
-        is HIRStatement.Alloca -> lowerAlloca(this)
-        is HIRStatement.AllocateClosure -> TODO()
+        is HIRStatement.NameBinder -> lowerNameBinder(this)
+        is HIRStatement.Jump -> TODO()
+        is HIRStatement.Memcpy -> TODO()
+        is HIRStatement.Move -> ""
+        is HIRStatement.Return -> lowerReturn(this)
+        is HIRStatement.Store -> lowerStore(this)
+        is HIRStatement.SwitchInt -> lowerSwitchInt(this)
+        is HIRStatement.While -> requireUnreachable()
+        is HIRStatement.MatchInt -> requireUnreachable()
+    }
+
+    private fun lowerNameBinder(s: HIRStatement.NameBinder): String = when (s) {
+        is HIRStatement.Not -> "bool ${s.name.c} = !${s.expression.lower()};"
+        is HIRStatement.Load -> {
+            "${s.ptrType.to.lower()} ${s.name.c} = *${s.ptr.lower()};"
+        }
+        is HIRStatement.Alloca -> lowerAlloca(s)
         is HIRStatement.BinOp -> TODO()
-        is HIRStatement.Call -> lowerCall(this)
+        is HIRStatement.Call -> lowerCall(s)
         is HIRStatement.GetStructField -> TODO()
         is HIRStatement.GetStructFieldPointer -> TODO()
         is HIRStatement.IntToPtr -> TODO()
         is HIRStatement.IntegerConvert -> TODO()
-        is HIRStatement.InvokeClosure -> TODO()
-        is HIRStatement.Jump -> TODO()
-        is HIRStatement.Load -> {
-            "${ptrType.to.lower()} ${name.c} = *${ptr.lower()};"
-        }
-        is HIRStatement.MatchInt -> TODO()
-        is HIRStatement.Memcpy -> TODO()
-        is HIRStatement.Move -> TODO()
-        is HIRStatement.Not -> "bool ${this.name.c} = !${this.expression.lower()};"
         is HIRStatement.PointerCast -> TODO()
         is HIRStatement.PtrToInt -> TODO()
-        is HIRStatement.Return -> lowerReturn(this)
-        is HIRStatement.Store -> lowerStore(this)
-        is HIRStatement.SwitchInt -> lowerSwitchInt(this)
-        is HIRStatement.TypeApplication -> TODO()
-        is HIRStatement.While -> TODO()
+        is HIRStatement.TypeApplication,
+        is HIRStatement.InvokeClosure,
+        is HIRStatement.AllocateClosure -> requireUnreachable()
     }
 
     private fun lowerSwitchInt(switchInt: HIRStatement.SwitchInt): String {
