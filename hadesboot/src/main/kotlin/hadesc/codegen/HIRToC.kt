@@ -133,19 +133,19 @@ class HIRToC(
         is HIRStatement.GetStructFieldPointer -> TODO()
         is HIRStatement.IntToPtr -> {
             val ty = "*${s.type.lower()}"
-            "$ty ${s.name.c} = (($ty) ${s.expression.lower()});"
+            "$ty ${s.name.c} = (($ty) ${s.expression.lower()}));"
         }
         is HIRStatement.IntegerConvert -> {
             val ty = s.type.lower()
-            "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
+            "$ty ${s.name.c} = (($ty) ${s.value.lower()}));"
         }
         is HIRStatement.PointerCast -> {
             val ty = "*${s.toPointerOfType.lower()}"
-            "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
+            "$ty ${s.name.c} = (($ty) ${s.value.lower()}));"
         }
         is HIRStatement.PtrToInt -> {
             val ty = s.type.lower()
-            "$ty ${s.name.c} = (($ty) ${s.expression.lower()})"
+            "$ty ${s.name.c} = (($ty) ${s.expression.lower()}));"
         }
         is HIRStatement.TypeApplication,
         is HIRStatement.InvokeClosure,
