@@ -3,7 +3,9 @@ package hadesc
 import com.charleskorn.kaml.Yaml
 import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
+import hadesc.assertions.requireUnreachable
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.nio.file.Path
@@ -16,9 +18,13 @@ sealed interface Options
 data class HadesYAMLOptions(
     val build: YamlBuildOptions
 )
-
+enum class Backend {
+    LLVM,
+    C,
+}
 @Serializable
 data class YamlBuildOptions(
+    val backend: Backend = Backend.LLVM,
     val cSources: List<String> = emptyList(),
     val cFlags: List<String> = emptyList(),
     val libs: List<String> = emptyList(),
@@ -26,6 +32,7 @@ data class YamlBuildOptions(
 )
 
 data class BuildOptions(
+    val backend: Backend,
     val directories: List<Path>,
     val runtime: Path,
     val cFlags: List<String>,
@@ -51,6 +58,9 @@ class BuildCLIOptions: OptionGroup() {
         "--c-sources",
         help = "Add multiple space separated C source files",
     ).path().split(" ").default(emptyList())
+    private val backend by option("--backend")
+        .choice("LLVM", "C")
+        .default("C")
     private val dumpLLVMModule by option("--dump-llvm-module").flag(default = false)
     private val dumpHIRGen by option("--dump-hirgen").flag(default = false)
     private val libs by option("-l").multiple()
@@ -88,6 +98,11 @@ class BuildCLIOptions: OptionGroup() {
             enableHIRVerifier = enableHIRVerifier,
             dumpHIRGen = dumpHIRGen,
             enableLLVMVerifier = enableLLVMVerifier,
+            backend = when (backend) {
+                "C" -> Backend.C
+                "LLVM" -> Backend.LLVM
+                else -> requireUnreachable()
+            }
         )
     }
 }
