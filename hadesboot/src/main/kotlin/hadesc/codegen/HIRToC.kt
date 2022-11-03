@@ -199,10 +199,10 @@ class HIRToC(
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
             }\""
-        is HIRConstant.FloatValue -> TODO()
+        is HIRConstant.FloatValue -> "$value"
         is HIRConstant.IntValue -> "$value"
-        is HIRConstant.NullPtr -> TODO()
-        is HIRConstant.SizeOf -> TODO()
+        is HIRConstant.NullPtr -> "NULL"
+        is HIRConstant.SizeOf -> "sizeof(${type.lower()})"
         is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> name.c
         is HIRExpression.ParamRef -> requireUnreachable()
