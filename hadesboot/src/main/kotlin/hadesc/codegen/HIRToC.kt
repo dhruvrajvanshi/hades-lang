@@ -129,7 +129,7 @@ class HIRToC(
         is HIRStatement.Alloca -> lowerAlloca(s)
         is HIRStatement.BinOp -> TODO()
         is HIRStatement.Call -> lowerCall(s)
-        is HIRStatement.GetStructField -> TODO()
+        is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.location}.${s.name.text};"
         is HIRStatement.GetStructFieldPointer -> TODO()
         is HIRStatement.IntToPtr -> TODO()
         is HIRStatement.IntegerConvert -> TODO()
