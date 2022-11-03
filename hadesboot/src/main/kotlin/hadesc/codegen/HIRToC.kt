@@ -205,8 +205,8 @@ class HIRToC(
         is HIRConstant.SizeOf -> TODO()
         is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> name.c
-        is HIRExpression.ParamRef -> TODO()
-        is HIRExpression.TraitMethodRef -> TODO()
+        is HIRExpression.ParamRef -> requireUnreachable()
+        is HIRExpression.TraitMethodRef -> requireUnreachable()
     }
 
     private fun visitExternFunctionDef(def: HIRDefinition.ExternFunction) {
