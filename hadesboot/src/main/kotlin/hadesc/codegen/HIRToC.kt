@@ -131,10 +131,22 @@ class HIRToC(
         is HIRStatement.Call -> lowerCall(s)
         is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.location}.${s.name.text};"
         is HIRStatement.GetStructFieldPointer -> TODO()
-        is HIRStatement.IntToPtr -> TODO()
-        is HIRStatement.IntegerConvert -> TODO()
-        is HIRStatement.PointerCast -> TODO()
-        is HIRStatement.PtrToInt -> TODO()
+        is HIRStatement.IntToPtr -> {
+            val ty = "*${s.type.lower()}"
+            "$ty ${s.name.c} = (($ty) ${s.expression.lower()});"
+        }
+        is HIRStatement.IntegerConvert -> {
+            val ty = s.type.lower()
+            "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
+        }
+        is HIRStatement.PointerCast -> {
+            val ty = "*${s.toPointerOfType.lower()}"
+            "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
+        }
+        is HIRStatement.PtrToInt -> {
+            val ty = s.type.lower()
+            "$ty ${s.name.c} = (($ty) ${s.expression.lower()})"
+        }
         is HIRStatement.TypeApplication,
         is HIRStatement.InvokeClosure,
         is HIRStatement.AllocateClosure -> requireUnreachable()
@@ -213,7 +225,7 @@ class HIRToC(
         is HIRConstant.SizeOf -> "sizeof(${type.lower()})"
         is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> name.c
-        is HIRExpression.ParamRef -> requireUnreachable()
+        is HIRExpression.ParamRef -> name.c
         is HIRExpression.TraitMethodRef -> requireUnreachable()
     }
 
