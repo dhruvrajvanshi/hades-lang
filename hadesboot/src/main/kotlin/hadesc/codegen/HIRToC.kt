@@ -116,18 +116,31 @@ class HIRToC(
         is HIRStatement.IntegerConvert -> TODO()
         is HIRStatement.InvokeClosure -> TODO()
         is HIRStatement.Jump -> TODO()
-        is HIRStatement.Load -> TODO()
+        is HIRStatement.Load -> {
+            "${ptrType.to.lower()} ${name.c} = *${ptr.lower()};"
+        }
         is HIRStatement.MatchInt -> TODO()
         is HIRStatement.Memcpy -> TODO()
         is HIRStatement.Move -> TODO()
-        is HIRStatement.Not -> TODO()
+        is HIRStatement.Not -> "bool ${this.name.c} = !${this.expression.lower()};"
         is HIRStatement.PointerCast -> TODO()
         is HIRStatement.PtrToInt -> TODO()
         is HIRStatement.Return -> lowerReturn(this)
         is HIRStatement.Store -> lowerStore(this)
-        is HIRStatement.SwitchInt -> TODO()
+        is HIRStatement.SwitchInt -> lowerSwitchInt(this)
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerSwitchInt(switchInt: HIRStatement.SwitchInt): String {
+        val cases = switchInt.cases.joinToString("\n") {
+            "        case ${it.value.lower()} : { goto ${it.block.c}; }"
+        }
+        return """switch(${switchInt.condition.lower()}) {
+        $cases
+            default: { goto ${switchInt.otherwise.c}; }
+        }
+        """
     }
 
     private fun lowerReturn(statement: HIRStatement.Return): String {
@@ -174,12 +187,12 @@ class HIRToC(
                 is HIRDefinition.ExternConst -> global.externName.text
                 is HIRDefinition.ExternFunction -> global.externName.text
                 is HIRDefinition.Function -> global.name.c
+                is HIRDefinition.Struct -> global.name.c
                 is HIRDefinition.Implementation -> requireUnreachable()
-                is HIRDefinition.Struct -> requireUnreachable()
             }
         }
         is HIRConstant.AlignOf -> TODO()
-        is HIRConstant.BoolValue -> TODO()
+        is HIRConstant.BoolValue -> if (value) "true" else "false"
         is HIRConstant.ByteString ->
             "\"${bytes.toString(charset = Charset.defaultCharset())
                 .replace("\n", "\\n")
