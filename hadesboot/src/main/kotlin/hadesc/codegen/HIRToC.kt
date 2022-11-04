@@ -275,13 +275,13 @@ class HIRToC(
         check(def.typeParams == null)
         val fields =
             def.fields
-                .joinToString(";\n") { "  ${it.second.lower()} ${it.first.c}" }
+                .joinToString("\n") { "    ${it.second.lower()} ${it.first.c};" }
         cDecls.add(
             CDecl(
                 """
-                   typedef struct {
-                   $fields
-                   } ${def.name.c};
+typedef struct {
+$fields
+} ${def.name.c};
                 """.trimIndent()
             )
         )
