@@ -161,7 +161,7 @@ class HIRToC(
             "${s.ptrType.to.lower()} ${s.name.c} = *${s.ptr.lower()};"
         }
         is HIRStatement.Alloca -> lowerAlloca(s)
-        is HIRStatement.BinOp -> TODO()
+        is HIRStatement.BinOp -> lowerBinOp(s)
         is HIRStatement.Call -> lowerCall(s)
         is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.lower()}.${s.fieldName.c};"
         is HIRStatement.GetStructFieldPointer -> "${s.type.lower()} ${s.name.c} = &${s.lhs.lower()}->${s.memberName.c};"
@@ -184,6 +184,25 @@ class HIRToC(
         is HIRStatement.TypeApplication,
         is HIRStatement.InvokeClosure,
         is HIRStatement.AllocateClosure -> requireUnreachable()
+    }
+
+    private fun lowerBinOp(s: HIRStatement.BinOp): String {
+        val op = when (s.operator) {
+            BinaryOperator.PLUS -> "+"
+            BinaryOperator.MINUS -> "-"
+            BinaryOperator.TIMES -> "*"
+            BinaryOperator.DIV -> "/"
+            BinaryOperator.REM -> "%"
+            BinaryOperator.AND -> "&&"
+            BinaryOperator.OR -> "||"
+            BinaryOperator.EQUALS -> "=="
+            BinaryOperator.NOT_EQUALS -> "!="
+            BinaryOperator.GREATER_THAN -> ">"
+            BinaryOperator.GREATER_THAN_EQUAL -> ">="
+            BinaryOperator.LESS_THAN -> "<"
+            BinaryOperator.LESS_THAN_EQUAL -> "<="
+        }
+        return "${s.lhs.lower()} $op ${s.rhs.lower()}"
     }
 
     private fun lowerSwitchInt(switchInt: HIRStatement.SwitchInt): String {
