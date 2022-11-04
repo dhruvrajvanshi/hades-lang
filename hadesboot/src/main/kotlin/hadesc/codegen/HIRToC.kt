@@ -310,18 +310,33 @@ class HIRToC(
             }
         }
         is Type.Ptr -> {
-            if (isMutable) {
-                "${to.lower()}*"
-            } else {
-                "const ${to.lower()}*"
+            when (val inner = to) {
+                is Type.Function -> lowerFnPtrType(inner)
+                else ->
+                    if (isMutable) {
+                        "${to.lower()}*"
+                    } else {
+                        "const ${to.lower()}*"
+                    }
             }
+
         }
         is Type.Constructor -> name.c
-        is Type.Function -> TODO()
+        // should be handled by Type.Ptr case. At this stage,
+        // Function types can only appear with a pointer
+        is Type.Function -> requireUnreachable()
 
         is Type.Size -> if (isSigned) "ssize_t" else "size_t"
         is Type.UntaggedUnion -> TODO()
         Type.Void -> "void"
+    }
+
+    private fun lowerFnPtrType(fn: Type.Function): String {
+        val name = ctx.makeUniqueName("fn")
+        val params = fn.from.joinToString(", ") { it.lower() }
+        cDecls.add(CDecl("typedef ${fn.to.lower()} (*${name.c})($params);"))
+
+        return name.c
     }
 
     private val QualifiedName.c get() =
