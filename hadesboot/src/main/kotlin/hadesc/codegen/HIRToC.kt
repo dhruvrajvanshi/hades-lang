@@ -162,8 +162,8 @@ class HIRToC(
         is HIRStatement.Alloca -> lowerAlloca(s)
         is HIRStatement.BinOp -> TODO()
         is HIRStatement.Call -> lowerCall(s)
-        is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.location}.${s.name.text};"
-        is HIRStatement.GetStructFieldPointer -> TODO()
+        is HIRStatement.GetStructField -> "${s.type.lower()} ${s.name.c} = ${s.lhs.lower()}.${s.fieldName.c};"
+        is HIRStatement.GetStructFieldPointer -> "${s.type.lower()} ${s.name.c} = &${s.lhs.lower()}->${s.memberName.c};"
         is HIRStatement.IntToPtr -> {
             val ty = s.type.lower()
             "$ty ${s.name.c} = (($ty) ${s.expression.lower()});"
@@ -240,7 +240,7 @@ class HIRToC(
                 is HIRDefinition.ExternConst -> global.externName.text
                 is HIRDefinition.ExternFunction -> global.externName.text
                 is HIRDefinition.Function -> global.name.c
-                is HIRDefinition.Struct -> global.name.c
+                is HIRDefinition.Struct -> global.name.append(ctx.makeName("constructor")).c
                 is HIRDefinition.Implementation -> requireUnreachable()
             }
         }
@@ -284,6 +284,22 @@ class HIRToC(
                    } ${def.name.c};
                 """.trimIndent()
             )
+        )
+
+        val params = def.fields.joinToString(", ") { it.second.lower() + " " + it.first.c }
+        val retTy= def.name.c
+        val sig = "$retTy ${def.name.append(ctx.makeName("constructor")).c}($params) "
+        val initializers = def.fields.joinToString("\n") {
+            "    self.${it.first.c} = ${it.first.c};"
+        }
+        val body = """
+            {
+                $retTy self;
+                $initializers
+                return self;
+            }""".trimIndent()
+        cDecls.add(
+            CDecl(sig + body)
         )
     }
 
