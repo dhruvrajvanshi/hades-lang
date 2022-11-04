@@ -6,6 +6,7 @@ import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import hadesc.types.mutPtr
 import hadesc.types.ptr
 import hadesc.unit
 import java.nio.charset.Charset
@@ -119,7 +120,7 @@ class HIRToC(
         val body = def.basicBlocks.joinToString("\n") {
             it.name.c + ":\n    " +  it.statements.joinToString("\n    ") { st ->
                 val lineDir = "#line ${st.location.start.line} \"${st.location.file.path.toString()}\"\n"
-                lineDir+ "\n    " + st.lower()
+                "\n    " + st.lower()
             }
         }
         val sig = funcDefSignature(def)
@@ -173,7 +174,7 @@ class HIRToC(
             "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
         }
         is HIRStatement.PointerCast -> {
-            val ty = "${s.toPointerOfType.lower()}*"
+            val ty = s.toPointerOfType.mutPtr().lower()
             "$ty ${s.name.c} = (($ty) ${s.value.lower()});"
         }
         is HIRStatement.PtrToInt -> {
@@ -279,15 +280,15 @@ class HIRToC(
         cDecls.add(
             CDecl(
                 """
-typedef struct {
+struct ${def.name.c} {
 $fields
-} ${def.name.c};
+};
                 """.trimIndent()
             )
         )
 
         val params = def.fields.joinToString(", ") { it.second.lower() + " " + it.first.c }
-        val retTy= def.name.c
+        val retTy= "struct ${def.name.c}"
         val sig = "$retTy ${def.name.append(ctx.makeName("constructor")).c}($params) "
         val initializers = def.fields.joinToString("\n") {
             "    self.${it.first.c} = ${it.first.c};"
@@ -337,7 +338,7 @@ $fields
             }
 
         }
-        is Type.Constructor -> name.c
+        is Type.Constructor -> "struct ${name.c}"
         // should be handled by Type.Ptr case. At this stage,
         // Function types can only appear with a pointer
         is Type.Function -> requireUnreachable()
