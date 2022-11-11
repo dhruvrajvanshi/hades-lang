@@ -14,15 +14,15 @@ sealed interface Options
 
 @Serializable
 data class HadesYAMLOptions(
-    val build: YamlBuildOptions
+    val build: YamlBuildOptions?
 )
 
 @Serializable
 data class YamlBuildOptions(
-    val cSources: List<String> = emptyList(),
-    val cFlags: List<String> = emptyList(),
-    val libs: List<String> = emptyList(),
-    val directories: List<String> = emptyList(),
+    val cSources: List<String>? = null,
+    val cFlags: List<String>? = null,
+    val libs: List<String>? = null,
+    val directories: List<String>? = null,
 )
 
 data class BuildOptions(
