@@ -29,6 +29,7 @@ dependencies {
     implementation("com.diogonunes:JColor:5.5.1")
     implementation("com.github.ajalt.clikt:clikt:3.5.0")
     implementation("org.bytedeco:llvm-platform:13.0.1-1.5.7")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
     implementation("com.charleskorn.kaml:kaml:0.49.0")

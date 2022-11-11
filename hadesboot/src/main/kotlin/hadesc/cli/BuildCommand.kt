@@ -12,6 +12,14 @@ import hadesc.BuildCLIOptions
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToStream
+import java.nio.file.OpenOption
+import java.nio.file.StandardOpenOption
+import kotlin.io.path.Path
+import kotlin.io.path.createDirectory
+import kotlin.io.path.exists
+import kotlin.io.path.outputStream
 import kotlin.system.exitProcess
 
 class BuildCommand: CliktCommand(
@@ -27,6 +35,8 @@ class BuildCommand: CliktCommand(
         // needs to call execute manually to get the list of diagnostics
         // as a List
         .help("Internal flag. To be used only by the implementation").flag()
+
+    private val emitIDEMetadata by option("--emit-ide-metadata").flag()
 
     override fun run() {
         if (skipExec) {
@@ -47,6 +57,19 @@ class BuildCommand: CliktCommand(
         ))
         log.debug("Building")
         ctx.build()
+        if (emitIDEMetadata) {
+            val dotHades = Path(".hades")
+            if (!dotHades.exists()) {
+                dotHades.createDirectory()
+            }
+            val ideJSON = Path(".hades", "ide.json")
+
+            ideJSON.outputStream(StandardOpenOption.TRUNCATE_EXISTING).use { os ->
+                Json.encodeToStream(mapOf(
+                    "diagnostics" to ctx.diagnosticReporter.errors
+                ), os)
+            }
+        }
         return ctx.diagnosticReporter.errors
     }
 }

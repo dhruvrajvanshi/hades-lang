@@ -20,3 +20,4 @@ test_build
 .DS_Store
 /stdlib/libhdc.o
 /libhdc.o
+/.hades

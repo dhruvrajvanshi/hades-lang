@@ -12,17 +12,42 @@ import hadesc.hir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.encodeStructure
 import org.apache.commons.lang3.SystemUtils
 import kotlin.streams.toList
 
+@Serializable
 data class Diagnostic(
     val sourceLocation: SourceLocation, val kind: Kind
 ) {
+
+    @Serializable
     enum class Severity {
         WARNING,
         ERROR,
     }
 
+    object KindSerializer: KSerializer<Kind> {
+        override val descriptor: SerialDescriptor
+            get() = PrimitiveSerialDescriptor("Kind", PrimitiveKind.STRING)
+
+        override fun deserialize(decoder: Decoder): Kind {
+            TODO("Not yet implemented")
+        }
+
+        override fun serialize(encoder: Encoder, value: Kind) {
+            encoder.encodeString(value.prettyPrint())
+        }
+
+    }
+    @Serializable(with = KindSerializer::class)
     sealed class Kind(val severity: Severity) {
         data class UnexpectedToken(
             val expected: Token.Kind,

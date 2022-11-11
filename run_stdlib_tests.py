@@ -12,7 +12,7 @@ def main():
         output = f'test_build/{file}'
         hades_path = f'./hadesboot/build/install/hades/bin/hades'
         completed_process = subp.run(
-            [hades_path, 'build', '-g', '--main', file, '--output', output],
+            [hades_path, 'build', '-g', '--main', file, '--output', output, '--emit-ide-metadata'],
             stdout=sys.stdout,
             stderr=sys.stderr,
             env={**os.environ, 'HADES_HOME': '.'}
