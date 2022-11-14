@@ -8,7 +8,7 @@ plugins {
 
 val logbackVersion = "1.4.1"
 val slf4jVersion = "2.0.1"
-val junitVersion = "5.9.0"
+val junitVersion = "5.9.1"
 
 application {
     group = "org.hades"
