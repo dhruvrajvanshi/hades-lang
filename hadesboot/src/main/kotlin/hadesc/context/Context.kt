@@ -99,19 +99,10 @@ class Context(
     private fun makeSourcePath(path: Path) = SourcePath(path)
 
     private val parsedSourceFiles = mutableMapOf<Path, SourceFile>()
-    fun sourceFile(moduleName: QualifiedName, path: SourcePath) =
+    private fun sourceFile(moduleName: QualifiedName, path: SourcePath) =
         parsedSourceFiles.computeIfAbsent(path.path.toAbsolutePath()) {
             Parser(this, moduleName, path).parseSourceFile()
         }
-
-    fun program(): Program {
-        val sourceFiles = buildList {
-            forEachSourceFile {
-                add(it)
-            }
-        }
-        return Program(sourceFiles)
-    }
 
     fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
         return resolveSourceFile(qualifiedPathToName(modulePath))
