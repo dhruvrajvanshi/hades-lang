@@ -18,7 +18,7 @@ class HadesTestSuite {
         val directory = File("test")
         assert(directory.exists())
         assert(directory.isDirectory)
-        val utilsCLib = Paths.get(directory.toString(), "submodule", "test_utils.c")
+        val utilsCLib = Paths.get(directory.toString(), "packages", "submodule", "test_utils.c")
         val outputDirectory = Path.of("test_build").toFile()
         if (outputDirectory.exists()) {
             outputDirectory.deleteRecursively()
@@ -55,7 +55,7 @@ class HadesTestSuite {
                 val compiler = BuildCommand()
                 val flags = mutableListOf(
                     "--output", outputPath.toString(),
-                    "--module-path", directory.toString(),
+                    "--module-path", Paths.get(directory.toString(), "packages").toString(),
                     "--main", file.toString(),
                     "--enable-hir-verifier",
                     "--internal-skip-exec"
