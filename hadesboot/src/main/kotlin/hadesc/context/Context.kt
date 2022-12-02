@@ -1,7 +1,6 @@
 package hadesc.context
 
-import hadesc.BuildOptions
-import hadesc.Name
+import hadesc.*
 import hadesc.analysis.Analyzer
 import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
@@ -16,11 +15,9 @@ import hadesc.hir.verifier.HIRVerifier
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
-import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
-import hadesc.unit
 import java.nio.file.Path
 
 interface ASTContext {
@@ -52,8 +49,8 @@ class Context(
     private val log = logger(Context::class.java)
     val analyzer = Analyzer(this)
     val resolver = Resolver(this)
-    private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
     override val enumTagType: Type = Type.u8
+    private val modulePathMap by lazy { createModuleMap(::makeName, options.directories) }
 
     val diagnosticReporter = DiagnosticReporter()
 
@@ -130,54 +127,20 @@ class Context(
             check(path != null)
             return sourceFile(moduleName, SourcePath(path))
         }
-        val parts = moduleName.names.joinToString("/") { it.text }
-        val paths = mutableListOf<Path>()
-        for (directory in options.directories) {
-            val path = Path.of(directory.toString(), "$parts.hds")
-            if (path.toFile().exists()) {
-                paths.add(path)
-            }
-        }
-        val moduleNameStr = moduleName.names.joinToString(".") { it.text }
-        if (paths.size == 0) {
-            return null
-        } else if (paths.size > 1) {
-            TODO("$moduleNameStr has conflicting files $paths")
-        }
-        return sourceFile(moduleName, makeSourcePath(paths[0]))
+        val path = modulePathMap[moduleName] ?: return null
+
+        return sourceFile(moduleName, makeSourcePath(path))
     }
 
     fun forEachSourceFile(action: (SourceFile) -> Unit) {
-        fun visitSourceFile(sourceFile: SourceFile?) {
-            if (sourceFile == null) {
-                return
-            }
-            if (collectedFiles.containsKey(sourceFile.location.file)) {
-                return
-            }
-            collectedFiles[sourceFile.location.file] = sourceFile
-            for (declaration in sourceFile.declarations) {
-                if (declaration is Declaration.ImportAs) {
-                    visitSourceFile(resolveSourceFile(declaration.modulePath))
-                }
-                if (declaration is Declaration.ImportMembers) {
-                    visitSourceFile(resolveSourceFile(declaration.modulePath))
-                }
-            }
-        }
 
         when (target) {
             is BuildTarget.Executable ->
-                visitSourceFile(sourceFile(QualifiedName(), makeSourcePath(target.mainSourcePath)))
+                action(sourceFile(QualifiedName(), makeSourcePath(target.mainSourcePath)))
         }
-
-        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
-                makeName("hades"),
-                makeName("marker")))))
-        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
-            makeName("hades"),
-            makeName("libhdc")))))
-        collectedFiles.values.forEach(action)
+        for ((moduleName, path) in modulePathMap) {
+            action(sourceFile(moduleName, makeSourcePath(path)))
+        }
     }
 
     fun qn(vararg names: String) = QualifiedName(names.map { makeName(it) })
