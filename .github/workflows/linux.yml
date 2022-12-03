@@ -26,13 +26,6 @@ jobs:
 
     - name: Build distribution
       run: ./gradlew installDist
-     
-    - name: Install valgrind
-      run: sudo apt install valgrind
-
-    - name: Run stdlib tests
-      run: python ./run_stdlib_tests.py
-
 
     - name: Archive Test Results
       if: always() # Even on failures
