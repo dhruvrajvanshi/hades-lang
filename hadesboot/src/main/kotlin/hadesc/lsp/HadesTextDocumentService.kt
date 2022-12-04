@@ -31,7 +31,7 @@ class HadesTextDocumentService(private val ctx: Context): TextDocumentService {
     override fun didSave(params: DidSaveTextDocumentParams) = unit
 
     private fun publishDiagnostics(documentURI: String) {
-        ctx.build()
+        ctx.checkProgram()
         ctx.diagnosticReporter.errors.groupBy { it.sourceLocation.file.path }.forEach { (path, errors) ->
             client?.publishDiagnostics(PublishDiagnosticsParams().apply {
                 diagnostics = errors.map {

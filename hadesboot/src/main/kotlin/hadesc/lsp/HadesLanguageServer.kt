@@ -11,7 +11,7 @@ import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
 
-class HadesLanguageServer(private val ctx: Context): LanguageServer, LanguageClientAware {
+class HadesLanguageServer(ctx: Context): LanguageServer, LanguageClientAware {
     private val textDocumentService = HadesTextDocumentService(ctx)
     private val workspaceService = HadesWorkspaceService()
     override fun initialize(params: InitializeParams?): CompletableFuture<InitializeResult> {

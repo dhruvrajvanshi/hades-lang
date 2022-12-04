@@ -40,6 +40,11 @@ sealed interface BuildTarget {
         override val output: Path
     ): BuildTarget
 
+    object None: BuildTarget {
+        override val mainSourcePath: Path? = null
+        override val output: Path? = null
+    }
+
 }
 
 class Context(
@@ -133,6 +138,7 @@ class Context(
         when (target) {
             is BuildTarget.Executable ->
                 action(sourceFile(QualifiedName(), makeSourcePath(target.mainSourcePath)))
+            else -> unit
         }
         for ((moduleName, path) in modulePathMap) {
             action(sourceFile(moduleName, makeSourcePath(path)))
