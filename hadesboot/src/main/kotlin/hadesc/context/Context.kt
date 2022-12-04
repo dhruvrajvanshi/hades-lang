@@ -53,11 +53,16 @@ class Context(
     private val modulePathMap by lazy { createModuleMap(::makeName, options.directories) }
 
     val diagnosticReporter = DiagnosticReporter()
+    private val checker = Checker(this)
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
+    fun checkProgram() {
+        checker.checkProgram()
+    }
+
     fun build() = profile("Context::build") {
-        Checker(this).checkProgram()
+        checkProgram()
 
         if (this.diagnosticReporter.hasErrors) {
             return
