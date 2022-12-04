@@ -52,13 +52,13 @@ class Context(
     val target: BuildTarget
 ): ASTContext, NamingContext, GlobalConstantContext {
     private val log = logger(Context::class.java)
-    val analyzer = Analyzer(this)
-    val resolver = Resolver(this)
+    var analyzer = Analyzer(this)
+    var resolver = Resolver(this)
     override val enumTagType: Type = Type.u8
     private val modulePathMap by lazy { createModuleMap(::makeName, options.directories) }
 
-    val diagnosticReporter = DiagnosticReporter()
-    private val checker = Checker(this)
+    var diagnosticReporter = DiagnosticReporter()
+    private var checker = Checker(this)
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
@@ -157,4 +157,11 @@ class Context(
     }
 
     fun enumTagType(): Type = enumTagType
+    fun onFileChange(path: Path) {
+        parsedSourceFiles.remove(path.toAbsolutePath())
+        diagnosticReporter = DiagnosticReporter()
+        checker = Checker(this)
+        resolver = Resolver(this)
+        checkProgram()
+    }
 }

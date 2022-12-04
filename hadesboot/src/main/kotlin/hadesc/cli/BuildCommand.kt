@@ -47,6 +47,9 @@ class BuildCommand: CliktCommand(
         ))
         log.debug("Building")
         ctx.build()
-        return ctx.diagnosticReporter.errors
+        if (ctx.diagnosticReporter.hasErrors) {
+            ctx.diagnosticReporter.printDiagnostics()
+        }
+        return ctx.diagnosticReporter.errors.flatMap { it.value }
     }
 }

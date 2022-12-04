@@ -13,6 +13,7 @@ import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
 import org.apache.commons.lang3.SystemUtils
+import java.nio.file.Path
 import kotlin.streams.toList
 
 data class Diagnostic(
@@ -219,8 +220,11 @@ data class Diagnostic(
 class DiagnosticReporter {
     var hasErrors = false
     private val fileLines = mutableMapOf<SourcePath, List<String>>()
-    val errors = mutableListOf<Diagnostic>()
+    private val errorsByPath = mutableMapOf<Path, MutableList<Diagnostic>>()
     private val hasErrorAtLocation = mutableSetOf<SourceLocation>()
+
+    val errors get(): Map<Path, List<Diagnostic>> = errorsByPath
+
     fun report(location: SourceLocation, kind: Diagnostic.Kind) {
         if (location in hasErrorAtLocation) {
             return
@@ -229,7 +233,20 @@ class DiagnosticReporter {
         if (kind.severity == Diagnostic.Severity.ERROR) {
             hasErrors = true
         }
-        errors.add(Diagnostic(location, kind))
+        errorsByPath.computeIfAbsent(location.file.path.toAbsolutePath()) { mutableListOf() }.add(
+            Diagnostic(location, kind)
+        )
+    }
+
+    fun printDiagnostics() {
+        errorsByPath.values.forEach { errors ->
+            for (error in errors) {
+                printDiagnostic(error.sourceLocation, error.kind)
+            }
+        }
+    }
+
+    private fun printDiagnostic(location: SourceLocation, kind: Diagnostic.Kind) {
         val severityColor = if (kind.severity == Diagnostic.Severity.ERROR) {
             Attribute.RED_TEXT()
         } else {
