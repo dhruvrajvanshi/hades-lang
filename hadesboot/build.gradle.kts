@@ -27,7 +27,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("org.apache.commons:commons-lang3:3.12.0")
     implementation("com.diogonunes:JColor:5.5.1")
-    implementation("com.github.ajalt.clikt:clikt:3.5.0")
+    implementation("com.github.ajalt.clikt:clikt:3.5.1")
     implementation("org.bytedeco:llvm-platform:13.0.1-1.5.7")
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
