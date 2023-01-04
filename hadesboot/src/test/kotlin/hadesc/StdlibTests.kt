@@ -24,9 +24,14 @@ class StdlibTests {
                 )
             )
             assert(compiler.execute().isEmpty())
-            assert(Path.of(output).exists())
+            val outPath = if (Path.of(output).exists()) {
+                Path.of(output)
+            } else {
+                Path.of("$output.exe")
+            }
+            assert(outPath.exists())
 
-            val process = ProcessBuilder(output)
+            val process = ProcessBuilder(outPath.toString())
                 .redirectError(ProcessBuilder.Redirect.INHERIT)
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .start()
