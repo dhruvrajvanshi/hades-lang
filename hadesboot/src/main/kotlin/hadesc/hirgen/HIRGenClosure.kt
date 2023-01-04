@@ -54,7 +54,7 @@ internal class HIRGenClosure(
         val closureRef = emit(HIRStatement.AllocateClosure(
             currentLocation,
             ctx.makeUniqueName("closure"),
-            ctx.analyzer.reduceGenericInstances(expression.type) as Type.Function,
+            ctx.analyzer.reduceGenericInstances(expression.type) as Type.Closure,
             fnRef,
             contextRef.ptr()
         ))

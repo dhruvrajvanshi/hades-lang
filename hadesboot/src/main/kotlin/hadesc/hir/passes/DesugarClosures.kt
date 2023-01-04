@@ -32,13 +32,12 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
     override fun transformInvokeClosureStatement(statement: InvokeClosure): Collection<HIRStatement> {
         val closureRef = transformExpression(statement.closureRef)
-        check(closureRef.type is Type.Ptr)
-        val fnPtr = closureRef.fieldPtr(closureFunctionPtrName).load().ptrCast(
-            toPointerOfType = Type.Function(
+        val fnPtr = closureRef.fieldPtr(closureFunctionPtrName).ptrCast(
+            Type.FunctionPtr(
                 from = statement.args.map { it.type } + Type.Void.ptr(),
                 to = statement.type
             )
-        )
+        ).load()
         val ctxPtr = closureRef.fieldPtr(closureCtxFieldName).load()
 
         check(ctxPtr.type == Type.Void.ptr())
@@ -54,19 +53,7 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
     override fun lowerType(type: Type): Type {
         return when (type) {
-            is Type.Ptr ->
-                if (type.to is Type.Function) {
-                    return Type.Ptr(
-                        to = Type.Function(
-                            from = type.to.from.map { lowerType(it) },
-                            to = lowerType(type.to.to)
-                        ),
-                        isMutable = false
-                    )
-                } else {
-                    super.lowerType(type)
-                }
-            is Type.Function ->
+            is Type.Closure ->
                 closureStruct.instanceType(listOf(type.to)).ptr()
             else -> super.lowerType(type)
         }
@@ -97,8 +84,8 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
 
     }
 
-    private fun fnTypeThatReturns(returns: Type): Type.Function {
-        return Type.Function(
+    private fun fnTypeThatReturns(returns: Type): Type.FunctionPtr {
+        return Type.FunctionPtr(
             from = listOf(),
             to = returns
         )

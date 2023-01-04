@@ -166,7 +166,7 @@ internal class HIRGenExpression(
             return lowerIntrinsicCall(expression)
         }
         val callee = lowerExpression(expression.callee)
-        if (callee.type is Type.Function) {
+        if (callee.type is Type.Closure) {
             return emit(HIRStatement.InvokeClosure(
                 location = expression.location,
                 name = namingCtx.makeUniqueName(),
@@ -176,7 +176,7 @@ internal class HIRGenExpression(
             )).result()
         } else {
             val calleeType = callee.type
-            check(calleeType is Type.Ptr && calleeType.to is Type.Function)
+            check(calleeType is Type.FunctionPtr)
         }
         val receiver = ctx.analyzer.getCallReceiver(expression)?.let { lowerExpression(it) }
         val args =

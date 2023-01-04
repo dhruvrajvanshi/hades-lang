@@ -12,12 +12,11 @@ data class HIRFunctionSignature(
         val returnType: Type
 ) {
     val type get(): Type {
-        val fnType = Type.Function(params.map { it.type }, to = returnType, traitRequirements = null)
-        val ptrType = Type.Ptr(fnType, isMutable = false)
+        val fnType = Type.FunctionPtr(params.map { it.type }, to = returnType, traitRequirements = null)
         return if (typeParams == null)
-            ptrType
+            fnType
         else
-            Type.TypeFunction(typeParams.map { Type.Param(it.toBinder()) }, ptrType)
+            Type.TypeFunction(typeParams.map { Type.Param(it.toBinder()) }, fnType)
     }
     fun prettyPrint(): String {
         val typeParamsStr = if (typeParams == null)

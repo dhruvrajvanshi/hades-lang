@@ -81,11 +81,11 @@ class Analyzer(
         return PropertyBinding.TraitFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
-            Type.Ptr(Type.Function(
+            Type.FunctionPtr(
                 from = signature.params.map { it.type.applySubstitution(substitution) },
                 to = annotationToType(signature.returnType).applySubstitution(substitution),
                 traitRequirements = null
-            ), isMutable = false),
+            ),
             methodName = signature.name.name
         )
     }
@@ -123,11 +123,11 @@ class Analyzer(
         val withArgs = if (case.params == null) {
             instanceType
         } else {
-            Type.Ptr(Type.Function(
+            Type.FunctionPtr(
                 from = case.params.map {annotationToType(it.annotation) },
                 to = instanceType,
                 traitRequirements = null
-            ), false)
+            )
         }
         return if (declaration.typeParams == null) {
             withArgs
@@ -150,7 +150,7 @@ class Analyzer(
         val memberSignature = traitDef.signatures[memberIndex]
         val traitTypeArgs = if (lhsType is Type.Application) lhsType.args else emptyList()
         val substitution = traitDef.params.zip(traitTypeArgs).toSubstitution()
-        val type = Type.Function(
+        val type = Type.FunctionPtr(
                 from = memberSignature.params.map {
                     it.annotation?.let { annot -> annotationToType(annot).applySubstitution(substitution) }
                             ?: Type.Error(it.location)
@@ -212,13 +212,13 @@ class Analyzer(
             } else {
                 annotationToType(extensionDef.forType)
             }
-            var methodType: Type = Type.Ptr(Type.Function(
+            var methodType: Type = Type.FunctionPtr(
                 from = listOf(receiverType) + functionDef.params.mapIndexed { paramIndex, _ ->
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType),
                 traitRequirements = functionDef.traitRequirements
-            ), isMutable = false)
+            )
             if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
                     ((extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())).map { Type.Param(it.binder) },
@@ -728,10 +728,9 @@ class Analyzer(
                 }
             }
         }
-        return Type.Function(
+        return Type.Closure(
             from = paramTypes,
             to = returnType,
-            traitRequirements = null
         )
     }
 
@@ -827,16 +826,13 @@ class Analyzer(
                 val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
-                    Type.Ptr(
-                        isMutable = false,
-                        to = Type.Function(
-                            from = listOf(
-                                Type.ParamRef(typeParam),
-                                Type.ParamRef(typeParam)
-                            ),
-                            to = Type.ParamRef(typeParam),
-                            traitRequirements = null
-                        )
+                    Type.FunctionPtr(
+                        from = listOf(
+                            Type.ParamRef(typeParam),
+                            Type.ParamRef(typeParam)
+                        ),
+                        to = Type.ParamRef(typeParam),
+                        traitRequirements = null
                     )
                 )
             }
@@ -844,15 +840,12 @@ class Analyzer(
                 val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
-                    Type.Ptr(
-                        isMutable = false,
-                        to = Type.Function(
-                            from = listOf(
-                                Type.Ptr(Type.ParamRef(typeParam), isMutable = false),
-                            ),
-                            to = Type.Size(isSigned = false),
-                            traitRequirements = null
-                        )
+                    Type.FunctionPtr(
+                        from = listOf(
+                            Type.Ptr(Type.ParamRef(typeParam), isMutable = false),
+                        ),
+                        to = Type.Size(isSigned = false),
+                        traitRequirements = null
                     )
                 )
             }
@@ -860,15 +853,12 @@ class Analyzer(
                 val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
-                    Type.Ptr(
-                        isMutable = false,
-                        to = Type.Function(
-                            from = listOf(
-                                Type.Size(isSigned = false),
-                            ),
-                            to = Type.ParamRef(typeParam),
-                            traitRequirements = null
-                        )
+                    Type.FunctionPtr(
+                        from = listOf(
+                            Type.Size(isSigned = false),
+                        ),
+                        to = Type.ParamRef(typeParam),
+                        traitRequirements = null
                     )
                 )
             }
@@ -878,14 +868,14 @@ class Analyzer(
 
                 Type.TypeFunction(
                     listOf(t1),
-                    Type.Function(
+                    Type.FunctionPtr(
                         from = listOf(
                             Type.ParamRef(t1.binder).mutPtr(), // destination
                             Type.ParamRef(t1.binder).ptr(), // source
                             Type.usize, // number of items to copy
                         ),
                         to = Type.Void
-                    ).ptr()
+                    )
                 )
             }
             IntrinsicType.ERROR -> Type.Error(expression.location)
@@ -1126,14 +1116,14 @@ class Analyzer(
             )
         }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
-        val functionType =
-            Type.Ptr(Type.Function(from = fieldTypes, to = instanceType, traitRequirements = null), isMutable = false)
+        val functionPtrType =
+            Type.FunctionPtr(from = fieldTypes, to = instanceType, traitRequirements = null)
         return if (binding.declaration.typeParams == null) {
-            functionType
+            functionPtrType
         } else {
             Type.TypeFunction(
                 params = binding.declaration.typeParams.map { Type.Param(it.binder) },
-                body = functionType
+                body = functionPtrType
             )
         }
     }
@@ -1166,18 +1156,15 @@ class Analyzer(
     }
 
     private fun typeOfExternFunctionRef(declaration: Declaration.ExternFunctionDef): Type {
-        return Type.Ptr(
-                to = Type.Function(
-                        from = declaration.paramTypes.map { annotationToType(it) },
-                        to = annotationToType(declaration.returnType),
-                        traitRequirements = null
-                ),
-                isMutable = false
+        return Type.FunctionPtr(
+            from = declaration.paramTypes.map { annotationToType(it) },
+            to = annotationToType(declaration.returnType),
+            traitRequirements = null
         )
     }
 
     private fun typeOfGlobalFunctionRef(declaration: Declaration.FunctionDef): Type {
-        val functionType = Type.Function(
+        val functionPtrType = Type.FunctionPtr(
                 from = declaration.params.map { param ->
                     param.annotation?.let { annotationToType(it) } ?: Type.Error(param.location) },
                 to = annotationToType(declaration.signature.returnType),
@@ -1185,13 +1172,12 @@ class Analyzer(
                         ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
         )
         val typeParams = declaration.typeParams
-        val functionPointerType = Type.Ptr(functionType, isMutable = false)
         return if (typeParams != null) {
             Type.TypeFunction(
                     params = typeParams.map { Type.Param(it.binder) },
-                    body = functionPointerType
+                    body = functionPtrType
             )
-        } else functionPointerType
+        } else functionPtrType
     }
 
     data class FunctionTypeComponents(
@@ -1419,13 +1405,19 @@ class Analyzer(
     fun getFunctionTypeComponents(type: Type): FunctionTypeComponents? {
         fun recurse(type: Type, typeParams: List<Type.Param>?): FunctionTypeComponents? {
             return when (type) {
-                is Type.Ptr -> recurse(type.to, typeParams)
-                is Type.Function ->
+                is Type.FunctionPtr ->
                     FunctionTypeComponents(
                             from = type.from,
                             to = type.to,
                             typeParams = typeParams,
                             traitRequirements = type.traitRequirements
+                    )
+                is Type.Closure ->
+                    FunctionTypeComponents(
+                        from = type.from,
+                        to = type.to,
+                        typeParams = null,
+                        traitRequirements = null,
                     )
                 is Type.TypeFunction -> {
                     return recurse(type.body, type.params)
@@ -1469,10 +1461,18 @@ class Analyzer(
             is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
             is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
             is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
-            is TypeAnnotation.Function -> functionAnnotationToType(annotation)
+            is TypeAnnotation.FunctionPtr -> functionAnnotationToType(annotation)
+            is TypeAnnotation.Closure -> closureAnnotationToType(annotation)
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
             is TypeAnnotation.Select -> selectAnnotationToType(annotation)
         }
+    }
+
+    private fun closureAnnotationToType(annotation: TypeAnnotation.Closure): Type {
+        return Type.Closure(
+            annotation.from.map { annotationToType(it) },
+            annotationToType(annotation.to)
+        )
     }
 
     private fun selectAnnotationToType(annotation: TypeAnnotation.Select): Type {
@@ -1495,8 +1495,8 @@ class Analyzer(
         return Type.Error(annotation.location)
     }
 
-    private fun functionAnnotationToType(annotation: TypeAnnotation.Function): Type {
-        return Type.Function(
+    private fun functionAnnotationToType(annotation: TypeAnnotation.FunctionPtr): Type {
+        return Type.FunctionPtr(
             from = annotation.from.map { annotationToType(it) },
             to = annotationToType(annotation.to),
             traitRequirements = null
@@ -1761,11 +1761,10 @@ class Analyzer(
     }
 
     fun getReturnType(expression: Expression): Type {
-        val exprType = typeOfExpression(expression)
-        return if (exprType is Type.Function) {
-            reduceGenericInstances(exprType.to)
-        } else {
-            Type.Error(expression.location)
+        return when (val exprType = typeOfExpression(expression)) {
+            is Type.FunctionPtr -> reduceGenericInstances(exprType.to)
+            is Type.Closure -> reduceGenericInstances(exprType.to)
+            else -> Type.Error(expression.location)
         }
     }
 

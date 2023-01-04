@@ -30,11 +30,16 @@ sealed interface Type {
         val ref get() = ParamRef(binder)
     }
 
-    data class Function(
+    data class FunctionPtr(
             val from: List<Type>,
             val to: Type,
             val traitRequirements: List<TraitRequirement>? = null,
     ) : Type
+
+    data class Closure(
+        val from: List<Type>,
+        val to: Type,
+    ): Type
 
     data class Constructor(val name: QualifiedName) : Type
 
@@ -64,8 +69,8 @@ sealed interface Type {
                 "*mut ${to.prettyPrint()}"
             else "*${to.prettyPrint()}"
         }
-        is Function -> {
-            "(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
+        is FunctionPtr -> {
+            "def(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
         is ParamRef -> this.name.identifier.name.text
         is GenericInstance -> originalName.text
@@ -78,6 +83,11 @@ sealed interface Type {
         is FloatingPoint -> "f${size}"
         is AssociatedTypeRef -> binder.identifier.name.text
         is Select -> "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}].${associatedTypeName.text}"
+        is Closure -> {
+            val returnTy = to.prettyPrint()
+            val params = from.joinToString(",") { it.prettyPrint() }
+            "|$params| -> $returnTy"
+        }
     }
 
     fun isIntegral() = when(this) {
@@ -99,7 +109,7 @@ sealed interface Type {
             is FloatingPoint,
             Bool -> this
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
-            is Function -> Function(
+            is FunctionPtr -> FunctionPtr(
                 from = this.from.map { it.recurse() },
                 traitRequirements = this.traitRequirements?.map {
                     TraitRequirement(it.traitRef, it.arguments.map { t -> t.recurse() }, it.negated)
@@ -125,6 +135,10 @@ sealed interface Type {
             }
             is Select -> copy(
                 traitArgs = traitArgs.map { it.recurse() }
+            )
+            is Closure -> copy(
+                from = from.map { it.recurse() },
+                to = to.recurse(),
             )
         }
     }

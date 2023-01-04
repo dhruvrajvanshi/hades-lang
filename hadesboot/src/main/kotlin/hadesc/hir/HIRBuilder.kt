@@ -319,21 +319,17 @@ fun HIRBuilder.emitCall(
 ): HIRStatement.Call {
     val calleeType = callee.type
     if (!skipVerification) {
-        check(calleeType is Type.Ptr) {
+        check(calleeType is Type.FunctionPtr) {
             "Expected ${calleeType.prettyPrint()} to be a function pointer"
         }
-        check(calleeType.to is Type.Function) {
-            "Expected ${calleeType.prettyPrint()} to be a function pointer"
-        }
-        val fnType = calleeType.to
-        check(fnType.from.size == args.size) {
-            "Wrong number of args to fn of type ${fnType.prettyPrint()}"
+        check(calleeType.from.size == args.size) {
+            "Wrong number of args to fn of type ${calleeType.prettyPrint()}"
         }
 
-        for ((expected, arg) in fnType.from.zip(args)) {
+        for ((expected, arg) in calleeType.from.zip(args)) {
             arg.type.verifyAssignableTo(expected)
         }
-        resultType.verifyAssignableTo(fnType.to)
+        resultType.verifyAssignableTo(calleeType.to)
 
     }
     return emit(HIRStatement.Call(location, resultType, name, callee, args))

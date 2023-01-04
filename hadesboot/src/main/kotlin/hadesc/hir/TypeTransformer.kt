@@ -11,7 +11,7 @@ interface TypeTransformer {
         Type.Bool -> lowerBoolType(type)
         is Type.Size -> lowerSizeType(type)
         is Type.Ptr -> lowerRawPtrType(type)
-        is Type.Function -> lowerFunctionType(type)
+        is Type.FunctionPtr -> lowerFunctionType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
         is Type.ParamRef -> lowerParamRefType(type)
         is Type.GenericInstance -> lowerGenericInstance(type)
@@ -22,6 +22,14 @@ interface TypeTransformer {
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
         is Type.Select -> lowerSelectType(type)
+        is Type.Closure -> lowerClosureType(type)
+    }
+
+    fun lowerClosureType(type: Type.Closure): Type {
+        return Type.Closure(
+            from = type.from.map { lowerType(it) },
+            to = lowerType(type.to)
+        )
     }
 
     fun lowerSelectType(type: Type.Select): Type {
@@ -61,7 +69,7 @@ interface TypeTransformer {
         return Type.UntaggedUnion(type.members.map { lowerType(it) })
     }
 
-    fun lowerFunctionType(type: Type.Function): Type = Type.Function(
+    fun lowerFunctionType(type: Type.FunctionPtr): Type = Type.FunctionPtr(
             from = type.from.map { lowerType(it) },
             to = lowerType(type.to),
             traitRequirements = type.traitRequirements?.map { lowerTraitRequirement(it) }
@@ -99,7 +107,7 @@ interface TypeVisitor {
         is Type.Bool -> visitBoolType(type)
         is Type.Size -> visitSizeType(type)
         is Type.Ptr -> visitRawPtrType(type)
-        is Type.Function -> visitFunctionType(type)
+        is Type.FunctionPtr -> visitFunctionType(type)
         is Type.Constructor -> visitTypeConstructor(type)
         is Type.ParamRef -> visitParamRefType(type)
         is Type.GenericInstance -> visitGenericInstance(type)
@@ -110,6 +118,12 @@ interface TypeVisitor {
         is Type.FloatingPoint -> visitFloatingPointType(type)
         is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
         is Type.Select -> visitSelectType(type)
+        is Type.Closure -> visitClosureType(type)
+    }
+
+    fun visitClosureType(type: Type.Closure) {
+        type.from.forEach { visitType(it) }
+        visitType(type.to)
     }
 
     fun visitSelectType(type: Type.Select) = type.traitArgs.forEach {
@@ -132,7 +146,7 @@ interface TypeVisitor {
         type.members.forEach { visitType(it) }
     }
 
-    fun visitFunctionType(type: Type.Function) {
+    fun visitFunctionType(type: Type.FunctionPtr) {
         type.from.forEach { visitType(it) }
         visitType(type.to)
         type.traitRequirements?.forEach { visitTraitRequirement(it) }

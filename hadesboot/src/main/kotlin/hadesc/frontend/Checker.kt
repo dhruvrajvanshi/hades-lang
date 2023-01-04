@@ -142,7 +142,7 @@ class Checker(val ctx: Context) {
                 .map { (it, location) -> it?.type ?: Type.Error(location) }
                 .map { it.applySubstitution(substitution) }
             val returnType = method.returnType.type.applySubstitution(substitution)
-            val fnType = Type.Function(
+            val fnType = Type.FunctionPtr(
                 from = paramTypes,
                 to = returnType,
                 traitRequirements = null
@@ -290,7 +290,7 @@ class Checker(val ctx: Context) {
             }
             unit
         }
-        is TypeAnnotation.Function -> {
+        is TypeAnnotation.FunctionPtr -> {
             annotation.from.map {
                 checkTypeAnnotation(it)
             }
@@ -307,6 +307,14 @@ class Checker(val ctx: Context) {
         is TypeAnnotation.Select -> {
             checkSelectTypeAnnotation(annotation)
         }
+        is TypeAnnotation.Closure -> {
+            checkClosureTypeAnnotation(annotation)
+        }
+    }
+
+    private fun checkClosureTypeAnnotation(annotation: TypeAnnotation.Closure) {
+        annotation.from.forEach { checkTypeAnnotation(it) }
+        checkTypeAnnotation(annotation.to)
     }
 
     private fun checkSelectTypeAnnotation(annotation: TypeAnnotation.Select) {
@@ -365,7 +373,7 @@ class Checker(val ctx: Context) {
             }
         }
         is Type.TypeFunction -> TODO()
-        is Type.Function -> {
+        is Type.Closure -> {
             error(node, Diagnostic.Kind.ReturnTypeMustNotContainClosuresOrRefs)
         }
         is Type.GenericInstance -> requireUnreachable()
@@ -798,7 +806,7 @@ class Checker(val ctx: Context) {
 
     private fun checkClosureExpression(expression: Expression.Closure) {
         val expressionType = expression.type
-        require(expressionType is Type.Function)
+        require(expressionType is Type.Closure)
         val returnType = expressionType.to
         checkReturnType(expression.returnType ?: expression.body, returnType)
         returnTypeStack.push(returnType)
@@ -907,7 +915,7 @@ class Checker(val ctx: Context) {
                 error(expression, Diagnostic.Kind.NotAnAddressableValue)
             }
         }
-        if (expression.type is Type.Function) {
+        if (expression.type is Type.Closure) {
             error(expression, Diagnostic.Kind.TakingAddressOfClosureDisallowed)
         }
     }

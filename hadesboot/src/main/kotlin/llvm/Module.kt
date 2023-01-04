@@ -15,8 +15,6 @@ fun M.addGlobal(name: String, type: Type): Value {
 fun M.addModuleFlag(key: String, value: LLVMMetadataRef, flags: Int = LLVM.LLVMModuleFlagBehaviorError) =
     LLVM.LLVMAddModuleFlag(this, flags, key, key.length.toLong(), value)
 
-fun M.getSourceFileName(): String = LLVM.LLVMGetSourceFileName(this, SizeTPointer(0)).string
-
 val M.ref get() = this
 
 fun M.getFunction(name: String): Value? {
@@ -27,7 +25,12 @@ fun M.getNamedGlobal(name: String): Value? {
     return LLVM.LLVMGetNamedGlobal(this, name)
 }
 
-fun M.addFunction(name: String, type: Type): LLVMValueRef = LLVM.LLVMAddFunction(this, name, type)
+fun M.addFunction(name: String, from: List<Type>, to: Type): LLVMValueRef =
+    LLVM.LLVMAddFunction(
+        this,
+        name,
+        functionType(returns = to, types = from, variadic = false)
+    )
 
 fun M.prettyPrint(): String =
     LLVM.LLVMPrintModuleToString(this).string

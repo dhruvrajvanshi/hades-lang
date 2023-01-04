@@ -7,13 +7,19 @@ interface SyntaxVisitor {
     fun visitType(type: TypeAnnotation): Unit = when(type) {
         is TypeAnnotation.Application -> visitTypeApplicationType(type)
         is TypeAnnotation.Error -> visitErrorType(type)
-        is TypeAnnotation.Function -> visitFunctionType(type)
+        is TypeAnnotation.FunctionPtr -> visitFunctionType(type)
         is TypeAnnotation.MutPtr -> visitMutPtrType(type)
         is TypeAnnotation.Ptr -> visitPtrType(type)
         is TypeAnnotation.Qualified -> visitQualifiedType(type)
         is TypeAnnotation.Union -> visitUnionType(type)
         is TypeAnnotation.Var -> visitVarType(type)
         is TypeAnnotation.Select -> visitSelectType(type)
+        is TypeAnnotation.Closure -> visitClosureType(type)
+    }
+
+    fun visitClosureType(type: TypeAnnotation.Closure) {
+        type.from.forEach { visitType(it) }
+        visitType(type.to)
     }
 
     fun visitSelectType(type: TypeAnnotation.Select) {
@@ -39,7 +45,7 @@ interface SyntaxVisitor {
         visitType(type.to)
     }
 
-    fun visitFunctionType(type: TypeAnnotation.Function) {
+    fun visitFunctionType(type: TypeAnnotation.FunctionPtr) {
         type.from.forEach { visitType(it) }
         visitType(type.to)
     }
