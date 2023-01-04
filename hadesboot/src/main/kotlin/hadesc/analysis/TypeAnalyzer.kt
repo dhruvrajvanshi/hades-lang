@@ -64,7 +64,14 @@ class TypeAnalyzer {
             destination is Type.Constructor && source is Type.Constructor -> {
                 destination.name == source.name
             }
-            destination is Type.Function && source is Type.Function -> {
+            destination is Type.FunctionPtr && source is Type.FunctionPtr -> {
+                destination.from.size == source.from.size
+                        && isTypeAssignableTo(source = source.to, destination = destination.to)
+                        && source.from.zip(destination.from).all { (sourceParam, destParam) ->
+                    isTypeAssignableTo(source = destParam, destination = sourceParam)
+                }
+            }
+            destination is Type.Closure && source is Type.Closure -> {
                 destination.from.size == source.from.size
                         && isTypeAssignableTo(source = source.to, destination = destination.to)
                         && source.from.zip(destination.from).all { (sourceParam, destParam) ->

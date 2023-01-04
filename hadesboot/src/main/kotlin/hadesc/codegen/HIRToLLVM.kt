@@ -83,7 +83,7 @@ class HIRToLLVM(
         val fn = getStructConstructor(definition)
         withinBlock(fn.createBlock("entry")) {
             val instanceType = lowerType(definition.instanceType())
-            val thisPtr = buildAlloca(instanceType, "this", LLVM.LLVMABIAlignmentOfType(dataLayout, instanceType))
+            val thisPtr = buildAlloca(instanceType, "this")
             var index = -1
             for (field in definition.fields) {
                 index++
@@ -111,9 +111,12 @@ class HIRToLLVM(
             existing
         } else {
             val constructorPtrType = def.constructorType
-            check(constructorPtrType is Type.Ptr && constructorPtrType.to is Type.Function)
-            val loweredType = lowerType(constructorPtrType.to)
-            llvmModule.addFunction(name, loweredType)
+            check(constructorPtrType is Type.FunctionPtr)
+            llvmModule.addFunction(
+                name,
+                from = constructorPtrType.from.map { lowerType(it) },
+                to = lowerType(constructorPtrType.to)
+            )
         }
 
 
@@ -173,7 +176,7 @@ class HIRToLLVM(
 
         val fileScope = getFileScope(definition.location.file)
         val defType = definition.type
-        check(defType is Type.Ptr && defType.to is Type.Function)
+        check(defType is Type.Ptr && defType.to is Type.FunctionPtr)
         val fnType = defType.to
         val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
             diBuilder, fileScope,
@@ -220,7 +223,7 @@ class HIRToLLVM(
             null as BytePointer?,
             0
         )
-        is Type.Function -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
+        is Type.FunctionPtr -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
         is Type.UntaggedUnion -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.ParamRef,
@@ -228,6 +231,7 @@ class HIRToLLVM(
         is Type.GenericInstance,
         is Type.Application,
         is Type.AssociatedTypeRef,
+        is Type.Closure,
         is Type.Select -> requireUnreachable()
     }
 
@@ -258,12 +262,22 @@ class HIRToLLVM(
 
     private fun getFunctionRef(definition: HIRDefinition.ExternFunction): LLVMValueRef {
         val name = definition.externName.text
-        return llvmModule.getFunction(name) ?: llvmModule.addFunction(name, lowerType(definition.type))
+        return llvmModule.getFunction(name) ?: llvmModule.addFunction(
+            name,
+            from = definition.type.from.map { lowerType(it) },
+            to = lowerType(definition.type.to),
+        )
     }
     private fun getFunctionRef(definition: HIRDefinition.Function): LLVMValueRef {
         val name = getFunctionName(definition)
+        val fnType = definition.type
+        check(fnType is Type.FunctionPtr)
         return llvmModule.getFunction(name) ?:
-            llvmModule.addFunction(name, lowerType(definition.type))
+            llvmModule.addFunction(
+                name,
+                from = fnType.from.map { lowerType(it) },
+                to = lowerType(fnType.to),
+            )
     }
 
 
@@ -407,8 +421,7 @@ class HIRToLLVM(
         val loweredType = lowerType(statement.type)
         val value = builder.buildAlloca(
             loweredType,
-            statement.name.text,
-            LLVM.LLVMABIAlignmentOfType(dataLayout, loweredType)
+            statement.name.text
         )
 
         if (ctx.options.debugSymbols) {
@@ -729,10 +742,13 @@ class HIRToLLVM(
     }
 
     private fun lowerCallStatement(statement: HIRStatement.Call): Value {
+        val calleeType = statement.callee.type
+        check(calleeType is Type.FunctionPtr)
         val name = if (statement.resultType is Type.Void) null else ctx.makeUniqueName()
 
+        val loweredCallee = lowerExpression(statement.callee)
         return builder.buildCall(
-            callee = lowerExpression(statement.callee),
+            callee = loweredCallee,
             args = statement.args.map { lowerExpression(it) },
             name = name?.text
         )
@@ -758,12 +774,12 @@ class HIRToLLVM(
         Type.Void -> voidTy
         is Type.Bool -> boolTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
-        is Type.Function -> {
-            functionType(
+        is Type.FunctionPtr -> {
+            ptrTy(functionType(
                 returns = lowerType(type.to),
                 types = type.from.map { lowerType(it) },
                 variadic = false
-            )
+            ))
         }
         is Type.Constructor ->  {
             if (type.name !in structTypes) {
@@ -794,8 +810,9 @@ class HIRToLLVM(
         }
         is Type.Integral -> intType(type.size, llvmCtx)
         is Type.FloatingPoint -> floatType(type.size, llvmCtx)
-        is Type.TypeFunction -> requireUnreachable()
-        is Type.AssociatedTypeRef -> requireUnreachable()
+        is Type.TypeFunction,
+        is Type.AssociatedTypeRef,
+        is Type.Closure,
         is Type.Select -> requireUnreachable()
     }
 

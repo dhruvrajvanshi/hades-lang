@@ -1293,6 +1293,21 @@ class Parser(
                     )
                 }
             }
+            tt.DEF -> {
+                val start = advance()
+                expect(tt.LPAREN)
+                val from = parseSeperatedList(tt.COMMA, terminator = tt.RPAREN) {
+                    parseTypeAnnotation()
+                }
+                expect(tt.RPAREN)
+                expect(tt.ARROW)
+                val returnType = parseTypeAnnotation()
+                return TypeAnnotation.FunctionPtr(
+                    from = from,
+                    to = returnType,
+                    location = SourceLocation.between(start, returnType)
+                )
+            }
             tt.VBAR -> {
                 val start = advance()
                 val from = parseSeperatedList(tt.COMMA, terminator = tt.VBAR) {
@@ -1301,7 +1316,7 @@ class Parser(
                 expect(tt.VBAR)
                 expect(tt.ARROW)
                 val to = parseTypeAnnotation()
-                TypeAnnotation.Function(
+                TypeAnnotation.Closure(
                         makeLocation(start, to),
                         from,
                         to

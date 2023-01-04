@@ -31,11 +31,17 @@ sealed class TypeAnnotation : HasLocation {
         val qualifiedPath: QualifiedPath
     ) : TypeAnnotation()
 
-    data class Function(
+    data class FunctionPtr(
         override val location: SourceLocation,
         val from: List<TypeAnnotation>,
         val to: TypeAnnotation
     ) : TypeAnnotation()
+
+    data class Closure(
+        override val location: SourceLocation,
+        val from: List<TypeAnnotation>,
+        val to: TypeAnnotation,
+    ): TypeAnnotation()
 
     data class Union(
         override val location: SourceLocation,

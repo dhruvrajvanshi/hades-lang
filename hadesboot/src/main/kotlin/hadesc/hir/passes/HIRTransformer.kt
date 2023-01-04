@@ -221,7 +221,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             HIRStatement.AllocateClosure(
                 statement.location,
                 statement.name,
-                lowerType(statement.type) as Type.Function,
+                lowerType(statement.type) as Type.Closure,
                 statement.function,
                 transformOperand(statement.ctxPtr),
             )

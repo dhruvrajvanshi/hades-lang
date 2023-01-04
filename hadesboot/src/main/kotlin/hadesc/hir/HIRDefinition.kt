@@ -31,7 +31,7 @@ sealed class HIRDefinition: HasLocation {
         val name get() = signature.name
         val typeParams get() = signature.typeParams
         val type get(): Type {
-            val functionType = Type.Function(
+            val functionPtrType = Type.FunctionPtr(
                     from = params.map { it.type },
                     to = returnType,
                     traitRequirements = null
@@ -39,15 +39,15 @@ sealed class HIRDefinition: HasLocation {
             return if (typeParams != null) {
                 Type.TypeFunction(
                         params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
-                        body = functionType
+                        body = functionPtrType
                 )
             } else {
-                functionType
+                functionPtrType
             }
         }
 
         val fnPtrType get(): Type {
-            val functionType = Type.Function(
+            val functionPtrType = Type.FunctionPtr(
                 from = params.map { it.type },
                 to = returnType,
                 traitRequirements = null
@@ -55,10 +55,10 @@ sealed class HIRDefinition: HasLocation {
             return if (typeParams != null) {
                 Type.TypeFunction(
                     params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
-                    body = functionType
+                    body = functionPtrType
                 )
             } else {
-                functionType
+                functionPtrType
             }
         }
     }
@@ -78,7 +78,7 @@ sealed class HIRDefinition: HasLocation {
             val returnType: Type,
             val externName: Name
     ) : HIRDefinition() {
-        val type get() = Type.Function(
+        val type get() = Type.FunctionPtr(
                 from = params,
                 to = returnType,
                 traitRequirements = null
@@ -120,28 +120,20 @@ sealed class HIRDefinition: HasLocation {
                     instanceConstructorType
                 else
                     Type.Application(instanceConstructorType, typeParams.map { Type.ParamRef(it.toBinder()) })
-            val fnType = Type.Function(
+            val fnType = Type.FunctionPtr(
                 from = fields.map { it.second },
                 to = instanceType,
                 traitRequirements = null
             )
 
-            val fnPtrType = Type.Ptr(fnType, isMutable = false)
-
             return if (typeParams == null)
-                fnPtrType
+                fnType
             else
                 Type.TypeFunction(
                     params = typeParams.map { Type.Param(it.toBinder()) },
-                    body = fnPtrType
+                    body = fnType
                 )
         }
-
-        fun constructorRef(location: SourceLocation) = HIRExpression.GlobalRef(
-            location,
-            constructorType,
-            name
-        )
 
         fun instanceType(typeArgs: List<Type> = emptyList()): Type {
             return if (typeParams == null) {

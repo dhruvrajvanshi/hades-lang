@@ -7,7 +7,7 @@ enum T {
     V(closure: || -> Void);
 }
 
-type ReturnsClosure = *|| -> || -> Void;
+type ReturnsClosure = def() -> || -> Void;
 
 def returns_closure(): || -> Void {
 }
