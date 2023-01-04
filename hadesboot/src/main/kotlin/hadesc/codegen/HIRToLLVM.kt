@@ -39,6 +39,7 @@ class HIRToLLVM(
 
     private val log = logger(HIRToLLVM::class.java)
     private val i32Ty = intType(32, llvmCtx)
+    @Suppress("unused")
     private val metadataTy = LLVM.LLVMMetadataTypeInContext(llvmCtx)
     private val errorStack = Stack<HIRStatement>()
 
@@ -821,6 +822,7 @@ class HIRToLLVM(
     }
 
     private val Type.sizeInBits get() = LLVM.LLVMSizeOfTypeInBits(dataLayout, lowerType(this))
+    @Suppress("unused")
     private val Type.sizeInBytes get() = LLVM.LLVMABISizeOfType(dataLayout, lowerType(this))
 
 

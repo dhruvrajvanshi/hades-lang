@@ -186,7 +186,6 @@ internal class HIRGenExpression(
                 expression.args.map { lowerExpression(it.expression) }
             }
         return emitCall(
-            resultType = expression.type,
             callee = callee,
             args = args
         ).result()

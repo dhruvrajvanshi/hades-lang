@@ -43,7 +43,6 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
         check(ctxPtr.type == Type.Void.ptr())
 
         emitCall(
-            statement.type,
             fnPtr,
             statement.args.map { transformExpression(it) } + ctxPtr,
             name = statement.name
