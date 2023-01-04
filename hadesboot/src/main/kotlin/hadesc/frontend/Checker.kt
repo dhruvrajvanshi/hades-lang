@@ -100,11 +100,11 @@ class Checker(val ctx: Context) {
                 foundMethods.add(declaration.name.identifier.name)
                 val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
                 require(typeOfMethod is Type.FunctionPtr)
-                val actualType = typeOfMethod.to
                 val expectedType = expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
-                if (expectedType != null && !actualType.isAssignableTo(declaration, expectedType)) {
+                if (expectedType != null && !typeOfMethod.isAssignableTo(declaration, expectedType)) {
                     error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(
-                        expected = expectedType, found = actualType))
+                        expected = expectedType, found = typeOfMethod
+                    ))
                 }
             } else if (declaration is Declaration.TypeAlias) {
                 checkTypeAlias(declaration, skipDuplicateDeclarationCheck = true)
