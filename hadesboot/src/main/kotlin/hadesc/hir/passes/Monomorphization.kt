@@ -268,7 +268,7 @@ class Monomorphization(
         val implMethodNames = impl.methods
         return HIRExpression.GlobalRef(
             expression.location,
-            Type.Ptr(Type.Void, isMutable = false),
+            lowerType(expression.type),
             checkNotNull(implMethodNames[expression.methodName])
         )
     }
@@ -338,6 +338,7 @@ class Monomorphization(
         val (candidate, subst) = eligibleCandidates.first()
         val result = MonoImpl(
             generateImplMethodMap(candidate, subst),
+
             generateImplAssociatedTypeMap(candidate, subst)
         )
         monoImplCache[implName] = result
