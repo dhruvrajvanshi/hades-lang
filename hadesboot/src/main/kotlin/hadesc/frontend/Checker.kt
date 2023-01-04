@@ -315,6 +315,7 @@ class Checker(val ctx: Context) {
     private fun checkClosureTypeAnnotation(annotation: TypeAnnotation.Closure) {
         annotation.from.forEach { checkTypeAnnotation(it) }
         checkTypeAnnotation(annotation.to)
+        checkReturnType(annotation, annotation.to.type)
     }
 
     private fun checkSelectTypeAnnotation(annotation: TypeAnnotation.Select) {
