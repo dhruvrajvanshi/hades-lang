@@ -133,10 +133,10 @@ interface HIRBuilder {
     }
 
     fun debugDump(value: HIROperand) {
-        val stderrVal = emitCall(Type.Void, libhdcFn("get_stderr").ref(), emptyList()).result()
+        val stderrVal = emitCall(libhdcFn("get_stderr").ref(), emptyList()).result()
         when (value.type) {
             is Type.Ptr -> {
-                emitCall(Type.Void,
+                emitCall(
                     libhdcFn("file_put_void_ptr").ref(),
                     listOf(
                         stderrVal,
@@ -299,40 +299,24 @@ fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = cur
 }
 
 fun HIRBuilder.emitCall(
-    resultType: Type,
     callee: HIROperand,
     args: List<HIRExpression>,
     location: SourceLocation = currentLocation,
-    /**
-     * Temporary way to skip the type checking of arguments
-     * for specific cases.
-     * TODO: Remove the need for this flag
-     *       Currently only used for one case where the callee
-     *       type is not a fn ptr when Enum case constructors
-     *       without parameters are automatically converted
-     *       to no parameter functions. This is currently done
-     *       in HIRGen in a hacky way. Once that is fixed,
-     *       this flag won't be required.
-     */
-    skipVerification: Boolean = false,
     name: Name = namingCtx.makeUniqueName()
 ): HIRStatement.Call {
     val calleeType = callee.type
-    if (!skipVerification) {
-        check(calleeType is Type.FunctionPtr) {
-            "Expected ${calleeType.prettyPrint()} to be a function pointer"
-        }
-        check(calleeType.from.size == args.size) {
-            "Wrong number of args to fn of type ${calleeType.prettyPrint()}"
-        }
-
-        for ((expected, arg) in calleeType.from.zip(args)) {
-            arg.type.verifyAssignableTo(expected)
-        }
-        resultType.verifyAssignableTo(calleeType.to)
-
+    check(calleeType is Type.FunctionPtr) {
+        "Expected ${calleeType.prettyPrint()} to be a function pointer"
     }
-    return emit(HIRStatement.Call(location, resultType, name, callee, args))
+    check(calleeType.from.size == args.size) {
+        "Wrong number of args to fn of type ${calleeType.prettyPrint()}"
+    }
+
+    for ((expected, arg) in calleeType.from.zip(args)) {
+        arg.type.verifyAssignableTo(expected)
+    }
+
+    return emit(HIRStatement.Call(location, calleeType.to, name, callee, args))
 }
 
 fun HIRBuilder.emitAlloca(namePrefix: String, type: Type, location: SourceLocation = currentLocation): HIRStatement.Alloca {
@@ -381,24 +365,7 @@ fun HIRBuilder.emitDumpCStr(operand: HIROperand) {
 
     check(operand.type == Type.u8.ptr() || operand.type == Type.u8.mutPtr())
     emitCall(
-        Type.Void,
         puts.ref(),
         listOf(operand)
-    )
-}
-
-fun HIRBuilder.emitDumpText(string: String) {
-    val puts = currentModule.findDefinition(qn("_hdc_puts"))
-    check(puts is HIRDefinition.ExternFunction)
-    emitCall(
-        Type.Void,
-        puts.ref(),
-        listOf(
-            HIRConstant.ByteString(
-                currentLocation,
-                Type.u8.ptr(),
-                string.toByteArray()
-            )
-        )
     )
 }

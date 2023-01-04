@@ -99,7 +99,7 @@ class Checker(val ctx: Context) {
                 checkFunctionDef(declaration, skipDuplicateDeclarationCheck = false)
                 foundMethods.add(declaration.name.identifier.name)
                 val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
-                require(typeOfMethod is Type.Ptr)
+                require(typeOfMethod is Type.FunctionPtr)
                 val actualType = typeOfMethod.to
                 val expectedType = expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
                 if (expectedType != null && !actualType.isAssignableTo(declaration, expectedType)) {

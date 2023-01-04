@@ -664,10 +664,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return if (enumConstructorBinding != null && expression !is Expression.TypeApplication) {
             if (enumConstructorBinding.case.params == null) {
                 emitCall(
-                    withAppliedTypes.type,
-                    withAppliedTypes,
+                    withAppliedTypes.withType(
+                        Type.FunctionPtr(
+                            from = listOf(),
+                            to = withAppliedTypes.type,
+                        )
+                    ),
                     emptyList(),
-                    skipVerification = true // FIXME
                 ).result()
             } else {
                 withAppliedTypes
