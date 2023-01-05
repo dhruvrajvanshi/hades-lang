@@ -162,7 +162,15 @@ class HIRToLLVM(
             listOf()
         )
         builder.buildCall(
-            callee.getType(),
+            functionType(
+                types = listOf(
+                    metadataTy,
+                    metadataTy,
+                    metadataTy,
+                ),
+                returns = voidTy,
+                variadic = false,
+            ),
             callee,
             listOf(
                 value.asMetadata().asValue(),
