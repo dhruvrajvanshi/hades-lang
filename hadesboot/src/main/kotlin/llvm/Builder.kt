@@ -24,11 +24,8 @@ fun B.buildStore(toPointer: LLVMValueRef, value: LLVMValueRef): LLVMValueRef {
     return LLVM.LLVMBuildStore(this, value, toPointer)
 }
 
-fun B.buildStructGEP(structType: Type?, pointer: LLVMValueRef, index: Int, name: String): LLVMValueRef =
-    if (structType != null)
-        LLVM.LLVMBuildStructGEP2(this, structType, pointer, index, name)
-    else
-        LLVM.LLVMBuildStructGEP(this, pointer, index, name)
+fun B.buildStructGEP(structType: Type, pointer: LLVMValueRef, index: Int, name: String): LLVMValueRef =
+    LLVM.LLVMBuildStructGEP2(this, structType, pointer, index, name)
 
 fun B.buildRet(value: LLVMValueRef): LLVMValueRef =
     LLVM.LLVMBuildRet(this, value)
