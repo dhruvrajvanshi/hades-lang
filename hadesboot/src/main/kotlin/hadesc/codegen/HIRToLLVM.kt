@@ -157,11 +157,13 @@ class HIRToLLVM(
             value.getType().alignment().bits
         )
 
+        val callee = llvmModule.getIntrinsicDeclaration(
+            "llvm.dbg.addr",
+            listOf()
+        )
         builder.buildCall(
-            llvmModule.getIntrinsicDeclaration(
-                "llvm.dbg.addr",
-                listOf()
-            ),
+            callee.getType(),
+            callee,
             listOf(
                 value.asMetadata().asValue(),
                 meta.asValue(),
@@ -762,9 +764,15 @@ class HIRToLLVM(
         val name = if (statement.resultType is Type.Void) null else ctx.makeUniqueName()
 
         val loweredCallee = lowerExpression(statement.callee)
+        val args = statement.args.map { lowerExpression(it) }
         return builder.buildCall(
+            functionType = functionType(
+                returns = lowerType(statement.resultType),
+                types = statement.args.map { lowerType(it.type) },
+                variadic = false,
+            ),
             callee = loweredCallee,
-            args = statement.args.map { lowerExpression(it) },
+            args = args,
             name = name?.text
         )
     }
