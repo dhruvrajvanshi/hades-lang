@@ -1889,7 +1889,7 @@ class Analyzer(
     /**
      * Returns true if the given expression refers to a trait implementation
      * (note that trait implementation method reference returns false)
-     * For example, isTraitRef(SomeTrait\[usizse]) -> true, isTraitRef(SomeTrait[usize].foo) -> false
+     * For example, isTraitRef(SomeTrait\[usizse]) -> true, isTraitRef(SomeTrait\[usize].foo) -> false
      */
     private fun isTraitImplRef(expression: Expression): Boolean {
         return when (expression) {
