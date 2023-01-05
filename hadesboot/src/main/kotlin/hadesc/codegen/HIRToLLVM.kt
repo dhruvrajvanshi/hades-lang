@@ -177,12 +177,11 @@ class HIRToLLVM(
 
         val fileScope = getFileScope(definition.location.file)
         val defType = definition.type
-        check(defType is Type.Ptr && defType.to is Type.FunctionPtr)
-        val fnType = defType.to
+        check(defType is Type.FunctionPtr)
         val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
             diBuilder, fileScope,
-            fnType.from.map { it.debugInfo }.asPointerPointer(),
-            fnType.from.size,
+            defType.from.map { it.debugInfo }.asPointerPointer(),
+            defType.from.size,
             LLVM.LLVMDIFlagZero
         )
 
