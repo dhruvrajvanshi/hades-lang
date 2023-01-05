@@ -1680,14 +1680,6 @@ class Analyzer(
         return null
     }
 
-    fun getDiscriminants(type: Type): List<Discriminant>? {
-        val args = type.typeArgs()
-
-        val declaration = getEnumTypeDeclaration(type) ?: return null
-
-        return getEnumDiscriminants(declaration, args)
-    }
-
     fun getEnumDiscriminants(declaration: Declaration.Enum, args: List<Type>): List<Discriminant> {
         val substitution = (declaration.typeParams ?: emptyList()).zip(args).toSubstitution()
 
@@ -1897,7 +1889,7 @@ class Analyzer(
     /**
      * Returns true if the given expression refers to a trait implementation
      * (note that trait implementation method reference returns false)
-     * For example, isTraitRef(SomeTrait[usizse]) -> true, isTraitRef(SomeTrait[usize].foo) -> false
+     * For example, isTraitRef(SomeTrait\[usizse]) -> true, isTraitRef(SomeTrait[usize].foo) -> false
      */
     private fun isTraitImplRef(expression: Expression): Boolean {
         return when (expression) {
@@ -1912,7 +1904,7 @@ class Analyzer(
      * Returns true if given expression refers to a trait
      * e.g.
      * // module Foo
-     * trait SomeTrait[Self] { ... }
+     * trait SomeTrait\[Self] { ... }
      *
      * isTraitRef(SomeTrait) -> true
      * isTraitRef(Foo.SomeTrait) -> true
