@@ -91,7 +91,12 @@ class HIRToLLVM(
                 if (field.second is Type.Void) {
                     continue
                 }
-                val fieldPtr = buildStructGEP(thisPtr, index, "field_$index")
+                val fieldPtr = buildStructGEP(
+                    instanceType,
+                    thisPtr,
+                    index,
+                    "field_$index"
+                )
                 val value = fn.getParameter(index)
                 buildStore(toPointer = fieldPtr, value = value)
             }
@@ -492,7 +497,10 @@ class HIRToLLVM(
     }
 
     private fun lowerGetStructFieldPointer(expression: HIRStatement.GetStructFieldPointer): Value {
+        val ptrTy = expression.lhs.type
+        check(ptrTy is Type.Ptr)
         return builder.buildStructGEP(
+            structType = lowerType(ptrTy.to),
             pointer = lowerExpression(expression.lhs),
             name = ctx.makeUniqueName().text,
             index = expression.memberIndex
