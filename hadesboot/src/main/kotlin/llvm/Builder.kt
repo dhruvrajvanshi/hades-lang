@@ -16,8 +16,8 @@ fun B.positionAtEnd(block: LLVMBasicBlockRef) =
 fun B.buildAlloca(type: LLVMTypeRef, name: String): LLVMValueRef =
     LLVM.LLVMBuildAlloca(this, type, name)
 
-fun B.buildLoad(ptr: LLVMValueRef, name: String): LLVMValueRef {
-    return LLVM.LLVMBuildLoad(this, ptr, name)
+fun B.buildLoad(type: Type, ptr: LLVMValueRef, name: String): LLVMValueRef {
+    return LLVM.LLVMBuildLoad2(this, type, ptr, name)
 }
 
 fun B.buildStore(toPointer: LLVMValueRef, value: LLVMValueRef): LLVMValueRef {

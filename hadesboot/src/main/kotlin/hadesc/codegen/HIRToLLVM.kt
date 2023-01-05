@@ -95,7 +95,7 @@ class HIRToLLVM(
                 val value = fn.getParameter(index)
                 buildStore(toPointer = fieldPtr, value = value)
             }
-            val instance = buildLoad(thisPtr, "instance")
+            val instance = buildLoad(instanceType, thisPtr, "instance")
             buildRet(instance)
         }
     }
@@ -398,7 +398,8 @@ class HIRToLLVM(
         }
         return builder.buildLoad(
             name = statement.name.text,
-            ptr = lowerOperand(statement.ptr)
+            ptr = lowerOperand(statement.ptr),
+            type = lowerType(ptrTy.to),
         )
     }
 
@@ -734,7 +735,11 @@ class HIRToLLVM(
                 getFunctionRef(definition)
             is HIRDefinition.Function -> getFunctionRef(definition)
             is HIRDefinition.Struct -> getStructRef(definition)
-            is HIRDefinition.ExternConst -> builder.buildLoad(getConstRef(definition), ctx.makeUniqueName().text)
+            is HIRDefinition.ExternConst -> builder.buildLoad(
+                lowerType(expression.type),
+                getConstRef(definition),
+                ctx.makeUniqueName().text
+            )
             is HIRDefinition.Const -> lowerExpression(definition.initializer)
 //                builder.buildLoad(getConstRef(definition), ctx.makeUniqueName().text)
             else -> requireUnreachable { definition.javaClass.name }
