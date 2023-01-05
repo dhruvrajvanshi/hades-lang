@@ -73,8 +73,8 @@ fun B.buildExtractValue(value: Value, index: Int, name: String): Value =
 fun B.buildExtractElement(value: Value, index: Value, name: String): Value =
     LLVM.LLVMBuildExtractElement(this, value, index, name)
 
-fun B.buildCall(callee: Value, args: List<Value>, name: String?): LLVMValueRef =
-    LLVM.LLVMBuildCall(this, callee, args.asPointerPointer(), args.size, name ?: "")
+fun B.buildCall(functionType: Type, callee: Value, args: List<Value>, name: String?): LLVMValueRef =
+    LLVM.LLVMBuildCall2(this, functionType, callee, args.asPointerPointer(), args.size, name ?: "")
 
 fun B.buildZExt(value: Value, toType: Type, name: String): LLVMValueRef =
     LLVM.LLVMBuildZExt(this, value, toType, name)
