@@ -662,14 +662,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
         val enumConstructorBinding = ctx.analyzer.getEnumConstructorBinding(expression)
         return if (enumConstructorBinding != null && expression !is Expression.TypeApplication) {
+            /**
+             * Implicitly call zero argument constructor for
+             * enum case with zero parameters.
+             * see [lowerEnumCaseConstructor]
+             */
             if (enumConstructorBinding.case.params == null) {
                 emitCall(
-                    withAppliedTypes.withType(
-                        Type.FunctionPtr(
-                            from = listOf(),
-                            to = withAppliedTypes.type,
-                        )
-                    ),
+                    withAppliedTypes,
                     emptyList(),
                 ).result()
             } else {
@@ -1119,9 +1119,32 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         require(expression.lhs is Expression.Var)
         val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name).append(ctx.makeName("constructor"))
 
+        val originalTy = typeOfExpression(expression)
+        // if this is a case constructor without parameters,
+        // its type is actually a parameterless function that
+        // returns the instance, instead of the instance itself
+        // in lowerExpression, when the actual type arguments are
+        // resolved, an implicit call to this function is added
+        val ty =
+            if (binding.case.params == null)
+                if (originalTy is Type.TypeFunction)
+                    originalTy.copy(
+                        body = Type.FunctionPtr(
+                            listOf(),
+                            originalTy.body
+                        )
+                    )
+
+                else
+                    Type.FunctionPtr(
+                        listOf(),
+                        originalTy
+                    )
+            else
+                originalTy
         return HIRExpression.GlobalRef(
             expression.location,
-            typeOfExpression(expression),
+            ty,
             name
         )
     }
