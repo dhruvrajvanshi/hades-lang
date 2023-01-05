@@ -1,0 +1,7 @@
+def main(): Void {
+    val x = Option.None[usize]
+}
+
+enum Option[T] {
+    None
+}

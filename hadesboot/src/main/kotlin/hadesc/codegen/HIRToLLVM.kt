@@ -744,7 +744,9 @@ class HIRToLLVM(
 
     private fun lowerCallStatement(statement: HIRStatement.Call): Value {
         val calleeType = statement.callee.type
-        check(calleeType is Type.FunctionPtr)
+        check(calleeType is Type.FunctionPtr) {
+            statement.location
+        }
         val name = if (statement.resultType is Type.Void) null else ctx.makeUniqueName()
 
         val loweredCallee = lowerExpression(statement.callee)
