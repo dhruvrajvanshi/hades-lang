@@ -31,7 +31,7 @@ dependencies {
     implementation("org.bytedeco:llvm-platform:15.0.3-1.5.8")
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
-    implementation("com.charleskorn.kaml:kaml:0.49.0")
+    implementation("com.charleskorn.kaml:kaml:0.50.0")
 
     testImplementation(kotlin("test"))
 
