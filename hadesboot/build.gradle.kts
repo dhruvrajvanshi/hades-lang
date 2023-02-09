@@ -1,7 +1,7 @@
 plugins {
     java
     application
-    kotlin("jvm") version "1.8.0"
+    kotlin("jvm") version "1.8.10"
     kotlin("plugin.serialization") version "1.8.10"
     jacoco
 }
