@@ -1,4 +1,7 @@
-.idea
+/.idea/inspectionProfiles
+/.idea/modules
+/.idea/.name
+/.idea/*.xml
 .gradle
 test_build
 /build
