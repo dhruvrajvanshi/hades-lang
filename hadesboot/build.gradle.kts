@@ -121,3 +121,7 @@ kotlinter {
     experimentalRules = false
     disabledRules = arrayOf("no-wildcard-imports", "filename")
 }
+
+detekt {
+    config = files("$projectDir/detekt.yml")
+}
