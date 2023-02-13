@@ -8,6 +8,7 @@ import kotlin.contracts.contract
 import kotlin.experimental.ExperimentalTypeInference
 
 inline fun <reified T : Pointer> List<T>.asPointerPointer(): PointerPointer<T> {
+    @Suppress("SpreadOperator")
     return PointerPointer(*this.toTypedArray())
 }
 
