@@ -1,5 +1,8 @@
 package hadesc.location
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class SourceLocation(
     val file: SourcePath,
     val start: Position,
