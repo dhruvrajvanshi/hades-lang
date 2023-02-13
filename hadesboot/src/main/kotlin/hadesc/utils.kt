@@ -6,13 +6,6 @@ package hadesc
  */
 fun <T> exhaustive(t: T) = t
 
-inline fun <reified Ctx, T> Ctx.profile(message: String, block: () -> T): T {
-    val start = System.currentTimeMillis()
-    val result = block()
-    val miliseconds = System.currentTimeMillis() - start
-    return result
-}
-
 fun <T> scoped(builder: Scoped.() -> T): T {
     val defer = Scoped()
     val result = defer.builder()
@@ -33,7 +26,8 @@ fun Scoped.defer(block: () -> Unit) {
 
 val unit = Unit
 
-inline fun <reified T> T.ignore() {}
+@Suppress("UnusedReceiverParameter")
+fun Any.ignore() = unit
 
 fun clampToPowerOfTwo(value: Int): Int {
     var currentValue = 1
