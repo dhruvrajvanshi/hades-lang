@@ -25,6 +25,7 @@ abstract class ControlFlowVisitor : HIRModuleVisitor {
         defer { visitedBlockSet = null }
 
         workList.add(definition.findBlockOrThrow(Name("entry")))
+        @Suppress("LoopWithTooManyJumpStatements")
         while (workList.isNotEmpty()) {
             val block = workList.removeFirst()
             val visitedSet = checkNotNull(visitedBlockSet)
