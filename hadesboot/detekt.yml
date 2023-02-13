@@ -3,6 +3,9 @@ complexity:
   ComplexCondition:
     active: true
 
+naming:
+  MatchingDeclarationName:
+    active: false
 style:
   ForbiddenComment:
     values:
