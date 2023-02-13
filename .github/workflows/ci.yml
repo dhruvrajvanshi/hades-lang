@@ -7,6 +7,37 @@ on:
     branches: [ master ]
 
 jobs:
+  Lint:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Lint
+        run: ./gradlew check -x test
+
+      - name: Upload ktlint results
+        uses: jwgmeligmeyling/checkstyle-github-action@master
+        if: always()
+        with:
+          name: Ktlint
+          path: '**/*-lint.xml'
+      - name: Upload detekt results
+        uses: jwgmeligmeyling/checkstyle-github-action@master
+        if: always()
+        with:
+          name: Detekt
+          path: 'hadesboot/build/reports/detekt/*.xml'
+
+
   Test:
     runs-on: ${{matrix.os}}
     strategy:
@@ -26,22 +57,6 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
-
-      - name: Lint
-        run: ./gradlew check -x test
-
-      - name: Upload lint results
-        uses: jwgmeligmeyling/checkstyle-github-action@master
-        if: always()
-        with:
-          name: Ktlint
-          path: '**/*-lint.xml'
-      - name: Upload detekt results
-        uses: jwgmeligmeyling/checkstyle-github-action@master
-        if: always()
-        with:
-          name: Detekt
-          path: 'hadesboot/build/reports/detekt/*.xml'
 
       - name: Test
         run: ./gradlew test
