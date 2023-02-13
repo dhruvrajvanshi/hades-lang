@@ -34,7 +34,7 @@ jobs:
         uses: jwgmeligmeyling/checkstyle-github-action@master
         if: always()
         with:
-          path: '**/*-lint.xml'
+          path: 'hadesboot/build/reports/**/*.xml'
 
       - name: Test
         run: ./gradlew test

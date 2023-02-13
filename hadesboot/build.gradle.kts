@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.serialization") version "1.8.10"
     jacoco
     id("org.jmailen.kotlinter") version "3.13.0"
+    id("io.gitlab.arturbosch.detekt").version("1.22.0")
 }
 
 val logbackVersion = "1.4.5"
