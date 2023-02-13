@@ -34,7 +34,14 @@ jobs:
         uses: jwgmeligmeyling/checkstyle-github-action@master
         if: always()
         with:
-          path: 'hadesboot/build/reports/**/*.xml'
+          name: Ktlint
+          path: '**/*-lint.xml'
+      - name: Upload detekt results
+        uses: jwgmeligmeyling/checkstyle-github-action@master
+        if: always()
+        with:
+          name: Detekt
+          path: 'hadesboot/build/reports/detekt/*.xml'
 
       - name: Test
         run: ./gradlew test
