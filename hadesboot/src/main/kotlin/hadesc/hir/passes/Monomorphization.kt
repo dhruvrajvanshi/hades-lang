@@ -221,12 +221,11 @@ class Monomorphization(
 
     private fun specializeName(name: QualifiedName, typeArgs: List<Type>): QualifiedName {
         return QualifiedName(
-            listOf(
-                *name.names.toTypedArray(),
+            name.names + listOf(
                 namingCtx.makeName(
                     "[" +
-                        typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
-                        "]"
+                            typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
+                            "]"
                 )
             )
         )
@@ -301,6 +300,7 @@ class Monomorphization(
             .map { if (it is Type.Constructor) specializedTypes[it.name] ?: it else it }
 
         val eligibleCandidates = mutableListOf<Pair<HIRDefinition.Implementation, Substitution>>()
+        @Suppress("LoopWithTooManyJumpStatements")
         for (candidate in allImpls) {
             val typeAnalyzer = TypeAnalyzer()
             if (candidate.traitName != traitName) continue
