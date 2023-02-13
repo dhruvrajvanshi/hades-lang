@@ -1,5 +1,8 @@
 package hadesc.location
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Position(
     val line: Int,
     val column: Int,
