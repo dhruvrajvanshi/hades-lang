@@ -4,6 +4,9 @@ complexity:
     active: true
 
 style:
+  ForbiddenComment:
+    values:
+      - NOMERGE
   WildcardImport:
     active: false
   MaxLineLength:
