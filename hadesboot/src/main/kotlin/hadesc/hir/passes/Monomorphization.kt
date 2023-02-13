@@ -224,8 +224,8 @@ class Monomorphization(
             name.names + listOf(
                 namingCtx.makeName(
                     "[" +
-                            typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
-                            "]"
+                        typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
+                        "]"
                 )
             )
         )
