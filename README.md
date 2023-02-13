@@ -1,6 +1,5 @@
 # Hades
- [![Linux](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/linux.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/linux.yml)
- [![Windows](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/windows.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/windows.yml)
+ [![Build](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/ci.yml)
  
  
 A systems level programming language that compiles to LLVM
