@@ -12,17 +12,27 @@ import hadesc.hir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.apache.commons.lang3.SystemUtils
 import kotlin.streams.toList
 
+@Serializable
 data class Diagnostic(
     val sourceLocation: SourceLocation, val kind: Kind
 ) {
+    @Serializable
     enum class Severity {
         WARNING,
         ERROR,
     }
 
+    @Serializable(with = DiagnosticKindSerializer::class)
     sealed class Kind(val severity: Severity) {
         data class UnexpectedToken(
             val expected: Token.Kind,
@@ -290,6 +300,27 @@ class DiagnosticReporter {
 
     private fun printErrLn(string: String) {
         System.err.println(string)
+    }
+
+}
+
+/**
+ * Custom serializer for Diagnostic.Kind because we want kinds to
+ * be serialized as their formatted messages, not their internal
+ * structure.
+ * This means they can't be deserialized without pain.
+ * Thankfully we don't need to.
+ */
+private class DiagnosticKindSerializer: KSerializer<Diagnostic.Kind> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Diagnostic.Kind", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): Diagnostic.Kind {
+        // We don't want to ever deserialize
+        throw UnsupportedOperationException("Deserialization Diagnostic.Kind is not supported.")
+    }
+
+    override fun serialize(encoder: Encoder, value: Diagnostic.Kind) {
+        encoder.encodeString(value.prettyPrint())
     }
 
 }
