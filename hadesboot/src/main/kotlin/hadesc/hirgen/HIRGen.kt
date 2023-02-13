@@ -136,14 +136,12 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
             log.debug("HIRGen output")
             log.debug(result.prettyPrint())
             return result
-        }
-        catch (e: Error) {
+        } catch (e: Error) {
             log.error("Error while compiling module", e)
             log.debug("Generated sources:\n${declarations.joinToString("\n\n") { it.prettyPrint() }}")
             log.debug("current statements:\n${currentStatements?.joinToString("\n") { it.prettyPrint() }}")
             throw e
         }
-
     }
 
     private fun lowerDeclaration(declaration: Declaration): List<HIRDefinition> {
