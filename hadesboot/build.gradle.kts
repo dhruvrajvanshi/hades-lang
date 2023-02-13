@@ -9,6 +9,7 @@ plugins {
 val logbackVersion = "1.4.5"
 val slf4jVersion = "2.0.6"
 val junitVersion = "5.9.2"
+val kotlinxSerializationVersion = "1.4.1"
 
 application {
     group = "org.hades"
@@ -34,6 +35,8 @@ dependencies {
     implementation("com.charleskorn.kaml:kaml:0.51.0")
 
     testImplementation(kotlin("test"))
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
