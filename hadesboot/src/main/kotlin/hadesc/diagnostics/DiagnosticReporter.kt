@@ -250,12 +250,12 @@ class DiagnosticReporter {
         val coloredKind = colorize(kind.prettyPrint(), Attribute.BOLD())
         printErrLn("$path:$lineInfo: $severity: $coloredKind")
         printLocationLine(location)
-        for (i in 0 until location.start.column) {
+        repeat(location.start.column) {
             System.err.print(' ')
         }
         System.err.print(colorize("^", Attribute.RED_TEXT(), Attribute.BOLD()))
         if (location.start.line == location.stop.line) {
-            for (i in 0 until location.stop.column - location.start.column) {
+            repeat(location.stop.column - location.start.column) {
                 System.err.print(colorize("~", Attribute.RED_TEXT(), Attribute.BOLD()))
             }
         }
