@@ -4,3 +4,6 @@
 [submodule "tree-sitter"]
 	path = tree-sitter
 	url = git@github.com:tree-sitter/tree-sitter.git
+[submodule "bdwgc"]
+	path = bdwgc
+	url = git@github.com:dhruvrajvanshi/bdwgc.git
