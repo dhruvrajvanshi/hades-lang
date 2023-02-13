@@ -9,7 +9,6 @@ import kotlinx.serialization.encoding.Encoder
 import java.net.URI
 import java.nio.file.Path
 
-
 @Serializable(with = SourcePathToURISerializer::class)
 data class SourcePath(
     val path: Path
@@ -19,7 +18,7 @@ data class SourcePath(
     }
 }
 
-private class SourcePathToURISerializer: KSerializer<SourcePath> {
+private class SourcePathToURISerializer : KSerializer<SourcePath> {
     override val descriptor = PrimitiveSerialDescriptor("SourcePath", PrimitiveKind.STRING)
 
     override fun deserialize(decoder: Decoder): SourcePath =
@@ -27,5 +26,4 @@ private class SourcePathToURISerializer: KSerializer<SourcePath> {
 
     override fun serialize(encoder: Encoder, value: SourcePath) =
         encoder.encodeString(value.path.toUri().toString())
-
 }

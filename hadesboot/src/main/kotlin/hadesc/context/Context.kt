@@ -10,9 +10,9 @@ import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.analysis.MissingReturnAnalyzer
 import hadesc.hir.analysis.UseAfterMoveAnalyzer
-import hadesc.hirgen.HIRGen
 import hadesc.hir.passes.*
 import hadesc.hir.verifier.HIRVerifier
+import hadesc.hirgen.HIRGen
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -41,14 +41,13 @@ sealed interface BuildTarget {
     data class Executable(
         override val mainSourcePath: Path,
         override val output: Path
-    ): BuildTarget
-
+    ) : BuildTarget
 }
 
 class Context(
     val options: BuildOptions,
     val target: BuildTarget
-): ASTContext, NamingContext, GlobalConstantContext {
+) : ASTContext, NamingContext, GlobalConstantContext {
     private val log = logger(Context::class.java)
     val analyzer = Analyzer(this)
     val resolver = Resolver(this)
@@ -92,7 +91,6 @@ class Context(
 
         hirModule = Monomorphization(this).transformModule(hirModule)
         log.debug("Monomorphization:\n${hirModule.prettyPrint()}")
-
 
         val llvmModule = HIRToLLVM(this, hirModule).lower()
         LLVMToObject(options, target, llvmModule).execute()
@@ -162,12 +160,26 @@ class Context(
                 visitSourceFile(sourceFile(QualifiedName(), makeSourcePath(target.mainSourcePath)))
         }
 
-        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
-                makeName("hades"),
-                makeName("marker")))))
-        visitSourceFile(resolveSourceFile(QualifiedName(listOf(
-            makeName("hades"),
-            makeName("libhdc")))))
+        visitSourceFile(
+            resolveSourceFile(
+                QualifiedName(
+                    listOf(
+                        makeName("hades"),
+                        makeName("marker")
+                    )
+                )
+            )
+        )
+        visitSourceFile(
+            resolveSourceFile(
+                QualifiedName(
+                    listOf(
+                        makeName("hades"),
+                        makeName("libhdc")
+                    )
+                )
+            )
+        )
         collectedFiles.values.forEach(action)
     }
 

@@ -9,7 +9,7 @@ import hadesc.hir.HIRExpression
 import hadesc.hir.HIRStatement
 import hadesc.location.SourceLocation
 
-class UseAfterMoveAnalyzer(private val ctx: Context): ControlFlowVisitor() {
+class UseAfterMoveAnalyzer(private val ctx: Context) : ControlFlowVisitor() {
     private val movedVars = mutableMapOf<Name, SourceLocation>()
     override fun visitFunctionDef(definition: HIRDefinition.Function) {
         movedVars.clear()

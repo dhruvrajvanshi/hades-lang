@@ -9,23 +9,23 @@ import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.context.NamingContext
 import hadesc.defer
-import hadesc.scoped
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
+import hadesc.hir.*
 import hadesc.hir.HIRStatement.Companion.ifStatement
+import hadesc.ignore
 import hadesc.location.HasLocation
+import hadesc.location.Position
 import hadesc.location.SourceLocation
+import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Binding
+import hadesc.scoped
 import hadesc.types.Type
-import libhades.collections.Stack
-import hadesc.hir.*
-import hadesc.ignore
-import hadesc.location.Position
-import hadesc.location.SourcePath
 import hadesc.types.mutPtr
 import hadesc.types.ptr
+import libhades.collections.Stack
 import java.nio.file.Path
 
 internal interface HIRGenModuleContext {
@@ -43,7 +43,7 @@ internal interface HIRGenModuleContext {
     fun getExternDef(declaration: Declaration.ExternFunctionDef): HIRDefinition.ExternFunction
 }
 
-internal interface HIRGenFunctionContext: HIRBuilder {
+internal interface HIRGenFunctionContext : HIRBuilder {
     val scopeStack: HIRGenScopeStack
     fun lowerExpression(expression: Expression): HIRExpression
     fun HIRExpression.asOperand(): HIROperand
@@ -52,7 +52,7 @@ internal interface HIRGenFunctionContext: HIRBuilder {
         addReturnVoid: Boolean = false,
         into: HIRBlock = HIRBlock(currentLocation, namingCtx.makeUniqueName(), mutableListOf()),
         before: HIRBuilder.() -> Unit = {},
-        after: HIRBuilder.() -> Unit = {},
+        after: HIRBuilder.() -> Unit = {}
     ): HIRBlock
 }
 
@@ -69,7 +69,7 @@ class HIRGenScopeStack {
         return stack.removeLast().first
     }
 }
-class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
+class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
     private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()
     override val namingCtx: NamingContext get() = ctx
@@ -106,7 +106,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 name = qn("_hdc_puts"),
                 returnType = Type.Void,
                 params = listOf(Type.u8.ptr())
-            ),
+            )
 
         )
         val inputDeclarations = mutableListOf<Declaration>()
@@ -117,13 +117,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 defer { check(scopeStack.pop() === sourceFile) }
 
                 inputDeclarations.addAll(sourceFile.declarations)
-
             }
             val decls = inputDeclarations
                 .sortedBy {
                     when (it) {
                         is Declaration.Struct,
-                        is Declaration.Enum,
+                        is Declaration.Enum
                         -> 1
                         else -> 2
                     }
@@ -179,22 +178,22 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val traitDecl = ctx.resolver.resolveDeclaration(declaration.traitRef)
         require(traitDecl is Declaration.TraitDef)
         return listOf(
-                HIRDefinition.Implementation(
-                        declaration.location,
-                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
-                        traitName = ctx.resolver.qualifiedName(traitDecl.name),
-                        traitArgs = declaration.traitArguments.map { lowerTypeAnnotation(it) },
-                        functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map {
-                            lowerFunctionDef(it, QualifiedName(listOf(it.name.identifier.name)))
-                        },
-                        typeAliases = declaration.body.filterIsInstance<Declaration.TypeAlias>().associate {
-                            require(it.typeParams == null)
-                            it.name.name to lowerTypeAnnotation(it.rhs)
-                        },
-                        traitRequirements = declaration.whereClause?.traitRequirements?.map {
-                            lowerTraitRequirement(it)
-                        } ?: emptyList()
-                )
+            HIRDefinition.Implementation(
+                declaration.location,
+                typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                traitName = ctx.resolver.qualifiedName(traitDecl.name),
+                traitArgs = declaration.traitArguments.map { lowerTypeAnnotation(it) },
+                functions = declaration.body.filterIsInstance<Declaration.FunctionDef>().map {
+                    lowerFunctionDef(it, QualifiedName(listOf(it.name.identifier.name)))
+                },
+                typeAliases = declaration.body.filterIsInstance<Declaration.TypeAlias>().associate {
+                    require(it.typeParams == null)
+                    it.name.name to lowerTypeAnnotation(it.rhs)
+                },
+                traitRequirements = declaration.whereClause?.traitRequirements?.map {
+                    lowerTraitRequirement(it)
+                } ?: emptyList()
+            )
         )
     }
 
@@ -214,9 +213,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         currentExtensionDef = declaration
         val list = mutableListOf<HIRDefinition>()
         for (functionDef in declaration.functionDefs) {
-            list.add(lowerFunctionDef(
+            list.add(
+                lowerFunctionDef(
                     functionDef,
-                    extensionMethodName(declaration, functionDef)))
+                    extensionMethodName(declaration, functionDef)
+                )
+            )
         }
         currentExtensionDef = null
         return list
@@ -228,11 +230,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {
         return listOf(
-                HIRDefinition.Const(
-                        declaration.location,
-                        lowerGlobalName(declaration.name),
-                        lowerExpression(declaration.initializer)
-                )
+            HIRDefinition.Const(
+                declaration.location,
+                lowerGlobalName(declaration.name),
+                lowerExpression(declaration.initializer)
+            )
         )
     }
 
@@ -242,12 +244,12 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             it.binder.identifier.name to lowerTypeAnnotation(it.typeAnnotation)
         }
         return listOf(
-                HIRDefinition.Struct(
-                        declaration.location,
-                        lowerGlobalName(declaration.binder),
-                        typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
-                        fields = fields
-                )
+            HIRDefinition.Struct(
+                declaration.location,
+                lowerGlobalName(declaration.binder),
+                typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
+                fields = fields
+            )
         )
     }
 
@@ -266,27 +268,38 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
 
         declaration.cases.forEachIndexed { index, case ->
-            val enumCaseStructDef = emitDef(HIRDefinition.Struct(
-                case.name.location,
-                enumName.append(case.name.identifier.name),
-                typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
-                fields = (case.params?.mapIndexed { caseParamIndex, it ->
-                    ctx.makeName("$caseParamIndex") to ctx.analyzer.annotationToType(requireNotNull(it.annotation))
-                } ?: emptyList())
-            ))
-            val caseTagDef = emitDef(HIRDefinition.Const(
-                case.name.location,
-                caseTagName(enumName, case),
-                HIRConstant.IntValue(
+            val enumCaseStructDef = emitDef(
+                HIRDefinition.Struct(
                     case.name.location,
-                    ctx.enumTagType(),
-                    index
+                    enumName.append(case.name.identifier.name),
+                    typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
+                    fields = (
+                        case.params?.mapIndexed { caseParamIndex, it ->
+                            ctx.makeName("$caseParamIndex") to ctx.analyzer.annotationToType(requireNotNull(it.annotation))
+                        } ?: emptyList()
+                        )
                 )
-            ))
+            )
+            val caseTagDef = emitDef(
+                HIRDefinition.Const(
+                    case.name.location,
+                    caseTagName(enumName, case),
+                    HIRConstant.IntValue(
+                        case.name.location,
+                        ctx.enumTagType(),
+                        index
+                    )
+                )
+            )
 
-            emitDef(enumCaseConstructor(
-                enumStructDef, enumCaseStructDef, caseTagDef, case,
-            ))
+            emitDef(
+                enumCaseConstructor(
+                    enumStructDef,
+                    enumCaseStructDef,
+                    caseTagDef,
+                    case
+                )
+            )
         }
 
         return emptyList()
@@ -300,13 +313,15 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         enumStructDef: HIRDefinition.Struct,
         enumCaseStructDef: HIRDefinition.Struct,
         caseTagDef: HIRDefinition.Const,
-        case: Declaration.Enum.Case,
+        case: Declaration.Enum.Case
     ): HIRDefinition.Function {
         val constructorParams = case.params?.mapIndexed { index, param ->
             HIRParam(
                 param.annotation.location,
                 Binder(Identifier(param.annotation.location, ctx.makeName("param_$index"))),
-                lowerTypeAnnotation(checkNotNull(param.annotation))) } ?: emptyList()
+                lowerTypeAnnotation(checkNotNull(param.annotation))
+            )
+        } ?: emptyList()
         val fnName = enumCaseStructDef.name.append(ctx.makeName("constructor"))
         val typeArgs = enumStructDef.typeParams?.map { Type.ParamRef(it.toBinder()) } ?: emptyList()
         val instanceType = enumStructDef.instanceType(typeArgs)
@@ -348,8 +363,8 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private var currentFunctionDef: Declaration.FunctionDef? = null
     private fun lowerFunctionDef(
-            declaration: Declaration.FunctionDef,
-            qualifiedName: QualifiedName? = null
+        declaration: Declaration.FunctionDef,
+        qualifiedName: QualifiedName? = null
     ): HIRDefinition.Function = scoped {
         check(currentFunctionDef == null)
         currentFunctionDef = declaration
@@ -366,29 +381,31 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
         val body = lowerBlock(
             declaration.body,
-            addReturnVoid,
+            addReturnVoid
         ).copy(name = ctx.makeName("entry"))
         HIRDefinition.Function(
-                location = declaration.location,
-                signature = signature,
-                mutableListOf(body)
+            location = declaration.location,
+            signature = signature,
+            mutableListOf(body)
         )
     }
 
     private fun lowerFunctionSignature(
-            signature: FunctionSignature,
-            qualifiedName: QualifiedName? = null
+        signature: FunctionSignature,
+        qualifiedName: QualifiedName? = null
     ): HIRFunctionSignature {
         val returnType = lowerTypeAnnotation(signature.returnType)
         val name = qualifiedName ?: lowerGlobalName(signature.name)
         val params = mutableListOf<HIRParam>()
         if (signature.thisParamFlags != null) {
             require(qualifiedName != null)
-            params.add(HIRParam(
+            params.add(
+                HIRParam(
                     signature.location,
                     binder = checkNotNull(signature.thisParamBinder),
                     type = thisParamType()
-            ))
+                )
+            )
         }
         params.addAll(signature.params.map { lowerParam(it) })
 
@@ -407,11 +424,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
 
         return HIRFunctionSignature(
-                location = signature.location,
-                name = name,
-                typeParams = typeParams,
-                params = params,
-                returnType = returnType
+            location = signature.location,
+            name = name,
+            typeParams = typeParams,
+            params = params,
+            returnType = returnType
         )
     }
 
@@ -421,7 +438,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         addReturnVoid: Boolean,
         into: HIRBlock,
         before: HIRBuilder.() -> Unit,
-        after: HIRBuilder.() -> Unit,
+        after: HIRBuilder.() -> Unit
     ): HIRBlock = scoped {
         scopeStack.push(body)
         defer { check(scopeStack.pop() === body) }
@@ -444,7 +461,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         }
     }
 
-    private fun lowerBlockMember(member: Block.Member): Unit = when(member) {
+    private fun lowerBlockMember(member: Block.Member): Unit = when (member) {
         is Block.Member.Expression ->
             allocaAssign(
                 ctx.makeUniqueName(),
@@ -453,7 +470,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         is Block.Member.Statement -> lowerStatement(member.statement)
     }
 
-    private fun lowerStatement(statement: Statement): Unit = when(statement) {
+    private fun lowerStatement(statement: Statement): Unit = when (statement) {
         is Statement.Return -> lowerReturnStatement(statement)
         is Statement.Val -> lowerValStatement(statement)
         is Statement.While -> lowerWhileStatement(statement)
@@ -509,11 +526,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
         val ptr = lowerExpression(statement.lhs.expression)
         emit(
-                HIRStatement.Store(
-                        statement.location,
-                        ptr = ptr,
-                        value = lowerExpression(statement.value)
-                )
+            HIRStatement.Store(
+                statement.location,
+                ptr = ptr,
+                value = lowerExpression(statement.value)
+            )
         )
     }
 
@@ -542,10 +559,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                 statement.location,
                 conditionName = conditionVar.name,
                 buildBlock(statement.condition.location, ctx.makeUniqueName("while_condition_block")) {
-                   emitStore(
-                       conditionVar.mutPtr(),
-                       lowerExpression(statement.condition)
-                   )
+                    emitStore(
+                        conditionVar.mutPtr(),
+                        lowerExpression(statement.condition)
+                    )
                 },
                 lowerBlock(statement.body)
             )
@@ -670,12 +687,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             if (enumConstructorBinding.case.params == null) {
                 emitCall(
                     withAppliedTypes,
-                    emptyList(),
+                    emptyList()
                 ).result()
             } else {
                 withAppliedTypes
             }
-        } else withAppliedTypes
+        } else {
+            withAppliedTypes
+        }
     }
 
     private fun lowerAlignOfExpression(expression: Expression.AlignOf): HIROperand {
@@ -697,13 +716,13 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         // so we just create a new variable for this use, copy the original variable into
         // the new one and then emit a move instruction
 
-        /// foo(move x, x)
-        /// This should emit the following:
-        ///
-        /// moveFrom = alloca typeof x
-        /// store moveFrom = x
-        /// move x
-        /// foo(
+        // / foo(move x, x)
+        // / This should emit the following:
+        // /
+        // / moveFrom = alloca typeof x
+        // / store moveFrom = x
+        // / move x
+        // / foo(
         //      moveFrom, // this is fine
         //      x,  // this is a move after use
         //      )
@@ -768,7 +787,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
                     elseArm.location,
                     elseBlockName
                 ) {
-                     emitStore(result.mutPtr(), lowerExpression(elseArm.value))
+                    emitStore(result.mutPtr(), lowerExpression(elseArm.value))
                 }
             )
         )
@@ -790,28 +809,30 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         return when (type) {
             is Type.Integral,
             is Type.FloatingPoint,
-            is Type.Size,
+            is Type.Size
             -> {
-                emit(HIRStatement.BinOp(
-                    expression.location,
-                    ctx.makeUniqueName(),
-                    inner.type,
-                    if (type is Type.FloatingPoint) {
-                        HIRConstant.FloatValue(
-                            expression.location,
-                            type,
-                            0.0
-                        )
-                    } else {
-                        HIRConstant.IntValue(
-                            expression.location,
-                            type,
-                            0
-                        )
-                    },
-                    BinaryOperator.MINUS,
-                    inner
-                )).result()
+                emit(
+                    HIRStatement.BinOp(
+                        expression.location,
+                        ctx.makeUniqueName(),
+                        inner.type,
+                        if (type is Type.FloatingPoint) {
+                            HIRConstant.FloatValue(
+                                expression.location,
+                                type,
+                                0.0
+                            )
+                        } else {
+                            HIRConstant.IntValue(
+                                expression.location,
+                                type,
+                                0
+                            )
+                        },
+                        BinaryOperator.MINUS,
+                        inner
+                    )
+                ).result()
             }
             else -> requireUnreachable()
         }
@@ -838,17 +859,19 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             }
             emitStore(resultRef.mutPtr(), resultVal)
         }
-        emit(HIRStatement.MatchInt(
-            currentLocation,
-            HIRConstant.IntValue(currentLocation, Type.u8, 1),
-            arms = listOf(
-                MatchIntArm(
-                    HIRConstant.IntValue(currentLocation, Type.u8, 1),
-                    loweredBlock
-                )
-            ),
-            otherwise = buildBlock {}
-        ))
+        emit(
+            HIRStatement.MatchInt(
+                currentLocation,
+                HIRConstant.IntValue(currentLocation, Type.u8, 1),
+                arms = listOf(
+                    MatchIntArm(
+                        HIRConstant.IntValue(currentLocation, Type.u8, 1),
+                        loweredBlock
+                    )
+                ),
+                otherwise = buildBlock {}
+            )
+        )
         return resultRef.ptr().load()
     }
 
@@ -875,17 +898,19 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val extensionDef = requireNotNull(currentExtensionDef)
         val extensionForType = lowerTypeAnnotation(extensionDef.forType)
         val thisParamFlags = requireNotNull(functionDef.signature.thisParamFlags)
-        return if (thisParamFlags.isPointer)
+        return if (thisParamFlags.isPointer) {
             Type.Ptr(extensionForType, isMutable = thisParamFlags.isMutable)
-        else extensionForType
+        } else {
+            extensionForType
+        }
     }
 
     private fun lowerThisExpression(expression: Expression.This): HIROperand {
         return HIRExpression.ParamRef(
-                expression.location,
-                thisParamType(),
-                name = ctx.makeName("this"),
-                binder = Binder(Identifier(expression.location, ctx.makeName("this")))
+            expression.location,
+            thisParamType(),
+            name = ctx.makeName("this"),
+            binder = Binder(Identifier(expression.location, ctx.makeName("this")))
         )
     }
 
@@ -961,9 +986,10 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerSizeOfExpression(expression: Expression.SizeOf): HIROperand {
         return HIRConstant.SizeOf(
-                expression.location,
-                typeOfExpression(expression),
-                lowerTypeAnnotation(expression.type))
+            expression.location,
+            typeOfExpression(expression),
+            lowerTypeAnnotation(expression.type)
+        )
     }
 
     private fun lowerIfExpression(expression: Expression.If): HIROperand {
@@ -974,12 +1000,14 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         val falseBlock = buildBlock(expression.falseBranch.location) {
             emitStore(resultRef.mutPtr(), lowerExpression(expression.falseBranch))
         }
-        emit(ifStatement(
+        emit(
+            ifStatement(
                 expression.location,
                 lowerExpression(expression.condition),
                 trueBlock,
                 falseBlock
-        ))
+            )
+        )
         return resultRef.ptr().load()
     }
 
@@ -990,41 +1018,47 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     private fun lowerBinaryExpression(expression: Expression.BinaryOperation): HIRExpression {
         return when (expression.operator) {
             BinaryOperator.AND -> lowerAndExpression(expression)
-            BinaryOperator.OR  -> lowerOrExpression(expression)
-            else -> emit(HIRStatement.BinOp(
-                expression.location,
-                ctx.makeUniqueName(),
-                typeOfExpression(expression),
-                lowerExpression(expression.lhs),
-                expression.operator,
-                lowerExpression(expression.rhs)
-            )).result()
+            BinaryOperator.OR -> lowerOrExpression(expression)
+            else -> emit(
+                HIRStatement.BinOp(
+                    expression.location,
+                    ctx.makeUniqueName(),
+                    typeOfExpression(expression),
+                    lowerExpression(expression.lhs),
+                    expression.operator,
+                    lowerExpression(expression.rhs)
+                )
+            ).result()
         }
     }
 
     private fun lowerOrExpression(expression: Expression.BinaryOperation): HIROperand {
         val resultRef = allocaAssign(ctx.makeUniqueName(), lowerExpression(expression.lhs))
-        emit(ifStatement(
-            currentLocation,
-            resultRef.ptr().load(),
-            trueBranch = buildBlock {},
-            falseBranch = buildBlock {
-                emitStore(resultRef.mutPtr(), lowerExpression(expression.rhs))
-            }
-        ))
+        emit(
+            ifStatement(
+                currentLocation,
+                resultRef.ptr().load(),
+                trueBranch = buildBlock {},
+                falseBranch = buildBlock {
+                    emitStore(resultRef.mutPtr(), lowerExpression(expression.rhs))
+                }
+            )
+        )
         return resultRef.ptr().load()
     }
 
     private fun lowerAndExpression(expression: Expression.BinaryOperation): HIROperand {
         val resultRef = allocaAssign(ctx.makeUniqueName(), lowerExpression(expression.lhs))
-        emit(ifStatement(
-            currentLocation,
-            resultRef.ptr().load(),
-            trueBranch = buildBlock {
-                emitStore(resultRef.mutPtr(), lowerExpression(expression.rhs))
-            },
-            falseBranch = buildBlock {}
-        ))
+        emit(
+            ifStatement(
+                currentLocation,
+                resultRef.ptr().load(),
+                trueBranch = buildBlock {
+                    emitStore(resultRef.mutPtr(), lowerExpression(expression.rhs))
+                },
+                falseBranch = buildBlock {}
+            )
+        )
 
         return resultRef.ptr().load()
     }
@@ -1060,7 +1094,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIROperand = when(val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
+    private fun lowerPropertyExpression(expression: Expression.Property): HIROperand = when (val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
         null -> requireUnreachable()
         is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
@@ -1078,7 +1112,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
             expression.type,
             traitName = binding.traitName,
             traitArgs = binding.args,
-            methodName = binding.methodName,
+            methodName = binding.methodName
         )
     }
 
@@ -1090,12 +1124,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         )
     }
 
-
     private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIROperand {
         return HIRExpression.LocalRef(
             expression.lhs.location,
             caseType(binding),
-            binding.name.name,
+            binding.name.name
         )
             .load()
             .getStructField(binding.propertyName.name)
@@ -1103,7 +1136,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
         val constructorType = Type.Constructor(
-            name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.caseName),
+            name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.caseName)
         )
         return if (binding.typeArgs.isEmpty()) {
             constructorType
@@ -1126,22 +1159,23 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
         // in lowerExpression, when the actual type arguments are
         // resolved, an implicit call to this function is added
         val ty =
-            if (binding.case.params == null)
-                if (originalTy is Type.TypeFunction)
+            if (binding.case.params == null) {
+                if (originalTy is Type.TypeFunction) {
                     originalTy.copy(
                         body = Type.FunctionPtr(
                             listOf(),
                             originalTy.body
                         )
                     )
-
-                else
+                } else {
                     Type.FunctionPtr(
                         listOf(),
                         originalTy
                     )
-            else
+                }
+            } else {
                 originalTy
+            }
         return HIRExpression.GlobalRef(
             expression.location,
             ty,
@@ -1150,7 +1184,7 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerStructPointerFieldLoad(
-        expression: Expression.Property,
+        expression: Expression.Property
     ): HIROperand {
         val structPtrType = expression.lhs.type
         require(structPtrType is Type.Ptr)
@@ -1160,12 +1194,11 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
     }
 
     private fun lowerStructFieldBinding(
-            expression: Expression.Property,
+        expression: Expression.Property
     ): HIROperand {
         return lowerExpression(expression.lhs)
             .getStructField(expression.property.name)
     }
-
 
     private val externDefs = mutableMapOf<QualifiedName, HIRDefinition.ExternFunction>()
     override fun getExternDef(declaration: Declaration.ExternFunctionDef) = externDefs.computeIfAbsent(lowerGlobalName(declaration.binder)) {
@@ -1212,9 +1245,9 @@ class HIRGen(private val ctx: Context): ASTContext by ctx, HIRGenModuleContext, 
 
     private fun lowerParam(param: Param): HIRParam {
         return HIRParam(
-                param.location,
-                binder = param.binder,
-                type = ctx.analyzer.typeOfBinder(param.binder)
+            param.location,
+            binder = param.binder,
+            type = ctx.analyzer.typeOfBinder(param.binder)
         )
     }
 

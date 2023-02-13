@@ -3,24 +3,24 @@ package hadesc.hir
 import hadesc.location.SourceLocation
 import hadesc.types.Type
 
-sealed interface HIRConstant: HIROperand {
+sealed interface HIRConstant : HIROperand {
 
     data class ByteString(
-            override val location: SourceLocation,
-            override val type: Type,
-            val bytes: ByteArray
+        override val location: SourceLocation,
+        override val type: Type,
+        val bytes: ByteArray
     ) : HIRConstant
 
     data class BoolValue(
-            override val location: SourceLocation,
-            override val type: Type,
-            val value: Boolean
+        override val location: SourceLocation,
+        override val type: Type,
+        val value: Boolean
     ) : HIRConstant
 
     data class IntValue(
-            override val location: SourceLocation,
-            override val type: Type,
-            val value: Int
+        override val location: SourceLocation,
+        override val type: Type,
+        val value: Int
     ) : HIRConstant
 
     data class FloatValue(
@@ -29,7 +29,7 @@ sealed interface HIRConstant: HIROperand {
         val value: Double
     ) : HIRConstant
 
-    data class Void(override val location: SourceLocation): HIRConstant {
+    data class Void(override val location: SourceLocation) : HIRConstant {
         override val type: Type
             get() = Type.Void
     }
@@ -44,11 +44,10 @@ sealed interface HIRConstant: HIROperand {
         override val location: SourceLocation,
         override val type: Type,
         val ofType: Type
-    ): HIRConstant
+    ) : HIRConstant
 
     data class NullPtr(
         override val location: SourceLocation,
         override val type: Type.Ptr
     ) : HIRConstant
-
 }

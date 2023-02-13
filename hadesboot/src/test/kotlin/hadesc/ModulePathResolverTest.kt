@@ -15,8 +15,8 @@ class ModulePathResolverTest {
         )
 
         val actual = result
-                .mapKeys { entry -> entry.key.names.joinToString(".") { it.text } }
-                .mapValues { it.value.joinToString("/").replace("hadesboot/module_path_resolver_test/", "") }
+            .mapKeys { entry -> entry.key.names.joinToString(".") { it.text } }
+            .mapValues { it.value.joinToString("/").replace("hadesboot/module_path_resolver_test/", "") }
 
         assertEquals(
             actual = actual,

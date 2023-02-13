@@ -2,14 +2,14 @@ package hadesc.hir
 
 import hadesc.unit
 
-interface HIRModuleVisitor: HIRBlockVisitor {
+interface HIRModuleVisitor : HIRBlockVisitor {
     fun visitModule(module: HIRModule) {
         for (definition in module.definitions) {
             visitDefinition(definition)
         }
     }
 
-    fun visitDefinition(definition: HIRDefinition) = when(definition) {
+    fun visitDefinition(definition: HIRDefinition) = when (definition) {
         is HIRDefinition.Const -> visitConstDef(definition)
         is HIRDefinition.ExternConst -> visitExternConstDef(definition)
         is HIRDefinition.ExternFunction -> visitExternFunctionDef(definition)

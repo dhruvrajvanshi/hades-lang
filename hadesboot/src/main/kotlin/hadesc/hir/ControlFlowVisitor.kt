@@ -7,7 +7,7 @@ import hadesc.*
  * visiting its basic blocks in control flow order.
  * Ensures each basic block is visited only once.
  */
-abstract class ControlFlowVisitor: HIRModuleVisitor {
+abstract class ControlFlowVisitor : HIRModuleVisitor {
     private val workList = ArrayDeque<HIRBlock>()
     private var visitedBlockSet: MutableSet<Name>? = null
     private var currentFunction: HIRDefinition.Function? = null
@@ -53,7 +53,6 @@ abstract class ControlFlowVisitor: HIRModuleVisitor {
                 }
                 is HIRStatement.Return -> {}
             }
-
         }
 
         unit
@@ -70,7 +69,7 @@ abstract class ControlFlowVisitor: HIRModuleVisitor {
         for (statement in block.statements) {
             check(statement !is HIRStatement.NestedControlFlow) {
                 "Found an unexpected nested control flow statement" +
-                        "ControlFlowVisitor must only be called after SimplifyControlFlow has been run"
+                    "ControlFlowVisitor must only be called after SimplifyControlFlow has been run"
             }
             visitStatement(statement)
         }

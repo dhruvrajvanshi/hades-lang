@@ -112,7 +112,7 @@ interface HIRBuilder {
         return HIRExpression.LocalRef(
             location,
             s.type,
-            s.name,
+            s.name
         )
     }
 
@@ -157,13 +157,15 @@ interface HIRBuilder {
         check(ty is Type.TypeFunction)
         check(ty.params.size == args.size)
         val substitution = ty.params.zip(args).toSubstitution()
-        return emit(HIRStatement.TypeApplication(
-            currentLocation,
-            namingCtx.makeUniqueName(),
-            ty.body.applySubstitution(substitution),
-            this,
-            args
-        )).result()
+        return emit(
+            HIRStatement.TypeApplication(
+                currentLocation,
+                namingCtx.makeUniqueName(),
+                ty.body.applySubstitution(substitution),
+                this,
+                args
+            )
+        ).result()
     }
 
     fun HIRExpression.fieldPtr(name: String): HIRExpression.LocalRef {
@@ -171,12 +173,14 @@ interface HIRBuilder {
     }
 
     fun HIRExpression.ptrCast(toPointerOfType: Type, nameHint: String = ""): HIRExpression.LocalRef {
-        val s = emit(HIRStatement.PointerCast(
-            currentLocation,
-            namingCtx.makeUniqueName(nameHint),
-            toPointerOfType,
-            this
-        ))
+        val s = emit(
+            HIRStatement.PointerCast(
+                currentLocation,
+                namingCtx.makeUniqueName(nameHint),
+                toPointerOfType,
+                this
+            )
+        )
         return HIRExpression.LocalRef(
             currentLocation,
             s.type,
@@ -196,18 +200,17 @@ interface HIRBuilder {
             currentLocation,
             type,
             name,
-            binder,
+            binder
         )
     }
 }
 
-
-fun <T: HIRStatement> HIRBuilder.emit(statement: T): T {
+fun <T : HIRStatement> HIRBuilder.emit(statement: T): T {
     requireNotNull(currentStatements).add(statement)
     return statement
 }
 
-fun <T: HIRDefinition> HIRBuilder.emitDef(definition: T): T {
+fun <T : HIRDefinition> HIRBuilder.emitDef(definition: T): T {
     currentModule.addDefinition(definition)
     return definition
 }
@@ -217,12 +220,14 @@ fun HIRBuilder.emitAll(statements: Iterable<HIRStatement>) {
 }
 
 fun HIRBuilder.emitIntToPtr(expression: HIROperand, to: Type.Ptr): HIROperand {
-    val s = emit(HIRStatement.IntToPtr(
-        expression.location,
-        namingCtx.makeUniqueName(),
-        to,
-        expression
-    ))
+    val s = emit(
+        HIRStatement.IntToPtr(
+            expression.location,
+            namingCtx.makeUniqueName(),
+            to,
+            expression
+        )
+    )
     return HIRExpression.LocalRef(
         s.location,
         s.type,
@@ -232,12 +237,14 @@ fun HIRBuilder.emitIntToPtr(expression: HIROperand, to: Type.Ptr): HIROperand {
 
 fun HIRBuilder.emitPtrToInt(expression: HIROperand, to: Type): HIROperand {
     require(to.isIntegral())
-    val s = emit(HIRStatement.PtrToInt(
-        expression.location,
-        namingCtx.makeUniqueName(),
-        to,
-        expression
-    ))
+    val s = emit(
+        HIRStatement.PtrToInt(
+            expression.location,
+            namingCtx.makeUniqueName(),
+            to,
+            expression
+        )
+    )
     return HIRExpression.LocalRef(
         s.location,
         s.type,
@@ -246,12 +253,14 @@ fun HIRBuilder.emitPtrToInt(expression: HIROperand, to: Type): HIROperand {
 }
 
 fun HIRBuilder.emitIntegerConvert(expression: HIROperand, to: Type): HIROperand {
-    val s = emit(HIRStatement.IntegerConvert(
-        expression.location,
-        namingCtx.makeUniqueName(),
-        to,
-        expression
-    ))
+    val s = emit(
+        HIRStatement.IntegerConvert(
+            expression.location,
+            namingCtx.makeUniqueName(),
+            to,
+            expression
+        )
+    )
     return HIRExpression.LocalRef(
         s.location,
         s.type,

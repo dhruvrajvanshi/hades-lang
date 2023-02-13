@@ -53,7 +53,6 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
                 commandParts.add("/GL")
                 commandParts.add("/GF")
                 commandParts.add("/Gw")
-
             }
         }
 
@@ -69,12 +68,11 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
             commandParts.add(target.output.toString())
         }
 
-
         commandParts.addAll(options.cSources.map { it.toString() })
         commandParts.add(options.runtime.toString())
         commandParts.add(objectFilePath)
         commandParts.addAll(options.cFlags)
-        commandParts.addAll(options.libs.map {"-l$it" })
+        commandParts.addAll(options.libs.map { "-l$it" })
 
         val outputFile = target.output?.toFile()
         check(outputFile != null)
@@ -92,7 +90,6 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
             "${commandParts.joinToString(" ")} exited with code $exitCode"
         }
     }
-
 
     private fun writeModuleToFile() {
         val output = target.output
@@ -125,7 +122,6 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         val targetMachine = LLVM.LLVMCreateTargetMachine(targetRef, targetTriple, cpu, features, LLVM.LLVMCodeGenLevelDefault, LLVM.LLVMRelocDefault, LLVM.LLVMCodeModelDefault)
 
         if (!options.debugSymbols) {
-
             val pass = LLVM.LLVMCreatePassManager()
             LLVM.LLVMAddFunctionInliningPass(pass)
             LLVM.LLVMAddPromoteMemoryToRegisterPass(pass)
@@ -158,7 +154,6 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         LLVM.LLVMDisposeTargetMachine(targetMachine)
     }
 }
-
 
 private fun makeParentDirectory(output: Path) {
     output.toAbsolutePath().parent.createDirectories()

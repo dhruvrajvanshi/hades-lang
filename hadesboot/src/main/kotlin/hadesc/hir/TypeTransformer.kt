@@ -56,8 +56,8 @@ interface TypeTransformer {
 
     fun lowerTypeFunction(type: Type.TypeFunction): Type {
         return Type.TypeFunction(
-                params = type.params,
-                body = lowerType(type.body)
+            params = type.params,
+            body = lowerType(type.body)
         )
     }
 
@@ -70,9 +70,9 @@ interface TypeTransformer {
     }
 
     fun lowerFunctionType(type: Type.FunctionPtr): Type = Type.FunctionPtr(
-            from = type.from.map { lowerType(it) },
-            to = lowerType(type.to),
-            traitRequirements = type.traitRequirements?.map { lowerTraitRequirement(it) }
+        from = type.from.map { lowerType(it) },
+        to = lowerType(type.to),
+        traitRequirements = type.traitRequirements?.map { lowerTraitRequirement(it) }
     )
 
     fun lowerTraitRequirement(requirement: TraitRequirement): TraitRequirement {
@@ -88,8 +88,8 @@ interface TypeTransformer {
     fun lowerParamRefType(type: Type.ParamRef): Type = type
 
     fun lowerTypeApplication(type: Type.Application): Type = Type.Application(
-            callee = lowerType(type.callee) as Type.Constructor,
-            args = type.args.map { lowerType(it) }
+        callee = lowerType(type.callee) as Type.Constructor,
+        args = type.args.map { lowerType(it) }
     )
 
     fun lowerVoidType(type: Type): Type = type
@@ -98,7 +98,6 @@ interface TypeTransformer {
 
     fun lowerByteType(type: Type): Type = type
 }
-
 
 interface TypeVisitor {
     fun visitType(type: Type): Unit = when (type) {

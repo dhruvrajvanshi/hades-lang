@@ -5,24 +5,27 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
 data class HIRFunctionSignature(
-        val location: SourceLocation,
-        val name: QualifiedName,
-        val typeParams: List<HIRTypeParam>?,
-        val params: List<HIRParam>,
-        val returnType: Type
+    val location: SourceLocation,
+    val name: QualifiedName,
+    val typeParams: List<HIRTypeParam>?,
+    val params: List<HIRParam>,
+    val returnType: Type
 ) {
     val type get(): Type {
         val fnType = Type.FunctionPtr(params.map { it.type }, to = returnType, traitRequirements = null)
-        return if (typeParams == null)
+        return if (typeParams == null) {
             fnType
-        else
+        } else {
             Type.TypeFunction(typeParams.map { Type.Param(it.toBinder()) }, fnType)
+        }
     }
     fun prettyPrint(): String {
-        val typeParamsStr = if (typeParams == null)
+        val typeParamsStr = if (typeParams == null) {
             ""
-        else "[${typeParams.joinToString(", ") { it.prettyPrint() }}] "
+        } else {
+            "[${typeParams.joinToString(", ") { it.prettyPrint() }}] "
+        }
         return "def ${name.mangle()}$typeParamsStr(${params.joinToString(", ") {it.prettyPrint()}})" +
-                ": ${returnType.prettyPrint()}"
+            ": ${returnType.prettyPrint()}"
     }
 }

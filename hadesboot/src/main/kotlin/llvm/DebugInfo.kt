@@ -46,6 +46,7 @@ fun LLVMDIBuilderRef.createCompileUnit(
         // @Cast("size_t") long SDKLen
         0
     )
+
 @Suppress("unused")
 fun LLVMDIBuilderRef.createLexicalBlock(scope: LLVMMetadataRef, file: LLVMMetadataRef, line: Int, column: Int): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateLexicalBlock(this, scope, file, line, column)
@@ -88,7 +89,8 @@ fun LLVMDIBuilderRef.createBasicType(
         name.length.toLong(),
         sizeInBits,
         llvmDWARFEncoding,
-        llvmDIFlags)
+        llvmDIFlags
+    )
 
 fun LLVMDIBuilderRef.createUnionType(
     name: String,
@@ -129,7 +131,7 @@ fun LLVMDIBuilderRef.createFunction(
     isLocalToUnit: Boolean,
     isDefinition: Boolean,
     scopeLine: Int,
-    flags: Int,
+    flags: Int
 ): LLVMMetadataRef =
     LLVM.LLVMDIBuilderCreateFunction(
         this,
@@ -145,5 +147,5 @@ fun LLVMDIBuilderRef.createFunction(
         isDefinition.toLLVMBool(),
         scopeLine,
         flags,
-        false.toLLVMBool(),
+        false.toLLVMBool()
     )

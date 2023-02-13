@@ -31,21 +31,21 @@ sealed interface Type {
     }
 
     data class FunctionPtr(
-            val from: List<Type>,
-            val to: Type,
-            val traitRequirements: List<TraitRequirement>? = null,
+        val from: List<Type>,
+        val to: Type,
+        val traitRequirements: List<TraitRequirement>? = null
     ) : Type
 
     data class Closure(
         val from: List<Type>,
-        val to: Type,
-    ): Type
+        val to: Type
+    ) : Type
 
     data class Constructor(val name: QualifiedName) : Type
 
     data class ParamRef(val name: Binder) : Type
 
-    data class TypeFunction(val params: List<Param>, val body: Type): Type
+    data class TypeFunction(val params: List<Param>, val body: Type) : Type
 
     data class GenericInstance(
         val originalName: Name,
@@ -65,9 +65,11 @@ sealed interface Type {
         Void -> "Void"
         Bool -> "Bool"
         is Ptr -> {
-            if (isMutable)
+            if (isMutable) {
                 "*mut ${to.prettyPrint()}"
-            else "*${to.prettyPrint()}"
+            } else {
+                "*${to.prettyPrint()}"
+            }
         }
         is FunctionPtr -> {
             "def(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
@@ -79,8 +81,8 @@ sealed interface Type {
         is Size -> if (isSigned) "isize" else "usize"
         is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
         is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
-        is Integral -> "${if(isSigned) "i" else "u" }${size}"
-        is FloatingPoint -> "f${size}"
+        is Integral -> "${if (isSigned) "i" else "u" }$size"
+        is FloatingPoint -> "f$size"
         is AssociatedTypeRef -> binder.identifier.name.text
         is Select -> "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}].${associatedTypeName.text}"
         is Closure -> {
@@ -90,7 +92,7 @@ sealed interface Type {
         }
     }
 
-    fun isIntegral() = when(this) {
+    fun isIntegral() = when (this) {
         is Integral -> true
         is Size -> true
         else -> false
@@ -124,11 +126,11 @@ sealed interface Type {
             }
             is Constructor -> this
             is UntaggedUnion -> UntaggedUnion(
-                    members.map { it.recurse() }
+                members.map { it.recurse() }
             )
             is TypeFunction -> TypeFunction(
-                    params,
-                    body.recurse()
+                params,
+                body.recurse()
             )
             is AssociatedTypeRef -> {
                 substitution[this.binder.location] ?: this
@@ -138,17 +140,17 @@ sealed interface Type {
             )
             is Closure -> copy(
                 from = from.map { it.recurse() },
-                to = to.recurse(),
+                to = to.recurse()
             )
         }
     }
 
-    fun typeArgs(): List<Type> = when(this) {
+    fun typeArgs(): List<Type> = when (this) {
         is Application -> args
         else -> emptyList()
     }
 
-    fun nominalName(): QualifiedName = when(this) {
+    fun nominalName(): QualifiedName = when (this) {
         is Constructor -> name
         is Application -> callee.nominalName()
         else -> requireUnreachable { prettyPrint() }

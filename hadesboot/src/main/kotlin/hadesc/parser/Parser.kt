@@ -14,50 +14,54 @@ import llvm.makeList
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
-        tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
-        tt.TRAIT, tt.IMPLEMENTATION, tt.AT_SYMBOL,
-        tt.TYPE, tt.EXTENSION
+    tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
+    tt.TRAIT, tt.IMPLEMENTATION, tt.AT_SYMBOL,
+    tt.TYPE, tt.EXTENSION
 )
 private val statementPredictors = setOf(
-    tt.RETURN, tt.VAL, tt.WHILE, tt.IF,
+    tt.RETURN,
+    tt.VAL,
+    tt.WHILE,
+    tt.IF,
     tt.DEFER
 )
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE, tt.MATCH) + statementPredictors
 private val byteStringEscapes = mapOf(
-        'n' to '\n',
-        '0' to '\u0000',
-        'r' to '\r',
-        '\\' to '\\'
+    'n' to '\n',
+    '0' to '\u0000',
+    'r' to '\r',
+    '\\' to '\\'
 )
 
 private val OPERATORS = listOf(
-        listOf(tt.AND, tt.OR),
-        listOf(
-                tt.LESS_THAN,
-                tt.LESS_THAN_EQUAL,
-                tt.GREATER_THAN_EQUAL,
-                tt.GREATER_THAN),
-        listOf(tt.EQEQ, tt.BANG_EQ),
-        listOf(tt.PLUS, tt.MINUS),
-        listOf(tt.STAR, tt.SLASH, tt.PERCENT)
+    listOf(tt.AND, tt.OR),
+    listOf(
+        tt.LESS_THAN,
+        tt.LESS_THAN_EQUAL,
+        tt.GREATER_THAN_EQUAL,
+        tt.GREATER_THAN
+    ),
+    listOf(tt.EQEQ, tt.BANG_EQ),
+    listOf(tt.PLUS, tt.MINUS),
+    listOf(tt.STAR, tt.SLASH, tt.PERCENT)
 )
 
 typealias op = BinaryOperator
 
 private val BINARY_OPERATORS = mapOf(
-        tt.LESS_THAN to op.LESS_THAN,
-        tt.LESS_THAN_EQUAL to op.LESS_THAN_EQUAL,
-        tt.GREATER_THAN to op.GREATER_THAN,
-        tt.GREATER_THAN_EQUAL to op.GREATER_THAN_EQUAL,
-        tt.PLUS to op.PLUS,
-        tt.MINUS to op.MINUS,
-        tt.STAR to op.TIMES,
-        tt.SLASH to op.DIV,
-        tt.AND to op.AND,
-        tt.OR to op.OR,
-        tt.EQEQ to op.EQUALS,
-        tt.BANG_EQ to op.NOT_EQUALS,
-        tt.PERCENT to op.REM,
+    tt.LESS_THAN to op.LESS_THAN,
+    tt.LESS_THAN_EQUAL to op.LESS_THAN_EQUAL,
+    tt.GREATER_THAN to op.GREATER_THAN,
+    tt.GREATER_THAN_EQUAL to op.GREATER_THAN_EQUAL,
+    tt.PLUS to op.PLUS,
+    tt.MINUS to op.MINUS,
+    tt.STAR to op.TIMES,
+    tt.SLASH to op.DIV,
+    tt.AND to op.AND,
+    tt.OR to op.OR,
+    tt.EQEQ to op.EQUALS,
+    tt.BANG_EQ to op.NOT_EQUALS,
+    tt.PERCENT to op.REM
 ).apply {
     for (tokenType in keys) {
         require(OPERATORS.any { it.contains(tokenType) }) {
@@ -73,15 +77,15 @@ private val INTRINSIC_TYPE = mapOf(
 
     "int_to_ptr" to IntrinsicType.INT_TO_PTR,
     "ptr_to_int" to IntrinsicType.PTR_TO_INT,
-    "memcpy" to IntrinsicType.MEMCPY,
+    "memcpy" to IntrinsicType.MEMCPY
 )
 
 object SyntaxError : Error()
 
 class Parser(
-        private val ctx: Context,
-        private val moduleName: QualifiedName,
-        private val file: SourcePath
+    private val ctx: Context,
+    private val moduleName: QualifiedName,
+    private val file: SourcePath
 ) {
     private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file))
     private val currentToken get() = tokenBuffer.currentToken
@@ -112,7 +116,7 @@ class Parser(
             tt.DEF,
             tt.AT_SYMBOL -> parseDeclarationFunctionDef()
             tt.STRUCT -> parseStructDeclaration(decorators = decorators)
-            tt.EXTERN -> when(tokenBuffer.peek(1).kind) {
+            tt.EXTERN -> when (tokenBuffer.peek(1).kind) {
                 tt.CONST -> parseExternConstDef()
                 else -> parseExternFunctionDef()
             }
@@ -143,7 +147,7 @@ class Parser(
             makeLocation(start, externName),
             name,
             typeAnnotation,
-            externName,
+            externName
         )
     }
 
@@ -184,7 +188,9 @@ class Parser(
             }
             expect(tt.RPAREN)
             list
-        } else null
+        } else {
+            null
+        }
         return Declaration.Enum.Case(
             name,
             params
@@ -223,12 +229,12 @@ class Parser(
         }
         val stop = expect(tt.RBRACE)
         return Declaration.ImplementationDef(
-                makeLocation(start, stop),
-                typeParams,
-                traitRef,
-                traitArguments,
-                whereClause,
-                defs
+            makeLocation(start, stop),
+            typeParams,
+            traitRef,
+            traitArguments,
+            whereClause,
+            defs
         )
     }
 
@@ -245,10 +251,10 @@ class Parser(
         }
         val stop = expect(tt.RBRACE)
         return Declaration.TraitDef(
-                makeLocation(start, stop),
-                binder,
-                typeParams,
-                signatures
+            makeLocation(start, stop),
+            binder,
+            typeParams,
+            signatures
         )
     }
 
@@ -276,12 +282,12 @@ class Parser(
         }
         val end = expect(tt.RBRACE)
         return Declaration.ExtensionDef(
-                makeLocation(start, end),
-                binder,
-                typeParams,
-                forType,
-                whereClause,
-                functions
+            makeLocation(start, end),
+            binder,
+            typeParams,
+            forType,
+            whereClause,
+            functions
         )
     }
 
@@ -294,7 +300,9 @@ class Parser(
                 val args = parseSeperatedList(tt.COMMA, tt.RPAREN) { parseIdentifier() }
                 expect(tt.RPAREN)
                 args
-            } else emptyList()
+            } else {
+                emptyList()
+            }
             add(Decorator(makeLocation(start, name), name, args))
         }
     }
@@ -314,10 +322,11 @@ class Parser(
 
     private fun parseTraitRef(): TraitRequirementAnnotation {
         val negated =
-            if (currentToken.kind == TokenKind.NOT)
+            if (currentToken.kind == TokenKind.NOT) {
                 advance().let { true }
-            else
+            } else {
                 false
+            }
         val path = parseQualifiedPath()
         expect(tt.LSQB)
         val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
@@ -355,10 +364,10 @@ class Parser(
         val rhs = parseExpression()
         expect(tt.SEMICOLON)
         return Declaration.ConstDefinition(
-                makeLocation(start, rhs),
-                name,
-                annotation,
-                rhs
+            makeLocation(start, rhs),
+            name,
+            annotation,
+            rhs
         )
     }
 
@@ -371,12 +380,11 @@ class Parser(
         expect(tt.SEMICOLON)
 
         return Declaration.TypeAlias(
-                makeLocation(start, body),
-                binder,
-                params,
-                body
+            makeLocation(start, body),
+            binder,
+            params,
+            body
         )
-
     }
 
     private fun parseStructDeclaration(decorators: List<Decorator>): Declaration {
@@ -393,11 +401,11 @@ class Parser(
         val stop = expect(tt.RBRACE)
 
         return Declaration.Struct(
-                makeLocation(start, stop),
-                decorators,
-                binder,
-                typeParams,
-                members
+            makeLocation(start, stop),
+            decorators,
+            binder,
+            typeParams,
+            members
         )
     }
 
@@ -421,9 +429,9 @@ class Parser(
         val annotation = parseTypeAnnotation()
         expect(tt.SEMICOLON)
         return Declaration.Struct.Member.Field(
-                binder,
-                isMutable,
-                annotation
+            binder,
+            isMutable,
+            annotation
         )
     }
 
@@ -444,11 +452,11 @@ class Parser(
 
         expect(tt.SEMICOLON)
         return Declaration.ExternFunctionDef(
-                makeLocation(start, returnType),
-                binder = name,
-                paramTypes = params,
-                returnType = returnType,
-                externName = externName
+            makeLocation(start, returnType),
+            binder = name,
+            paramTypes = params,
+            returnType = returnType,
+            externName = externName
         )
     }
 
@@ -483,7 +491,6 @@ class Parser(
             val end = expect(tt.RBRACE)
             expect(tt.SEMICOLON)
             return Declaration.ImportMembers(makeLocation(start, end), modulePath, names)
-
         } else {
             expect(tt.AS)
             val asName = parseBinder()
@@ -491,16 +498,17 @@ class Parser(
 
             return Declaration.ImportAs(modulePath, asName)
         }
-
     }
 
-    private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(makeList {
-        add(parseIdentifier())
-        while (at(tt.DOT)) {
-            advance()
+    private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(
+        makeList {
             add(parseIdentifier())
+            while (at(tt.DOT)) {
+                advance()
+                add(parseIdentifier())
+            }
         }
-    })
+    )
 
     private fun parseIdentifier(tokenKind: TokenKind = tt.ID): Identifier {
         val tok = expect(tokenKind)
@@ -515,14 +523,16 @@ class Parser(
             val name = parseIdentifier()
             expect(tt.RPAREN)
             name
-        } else null
+        } else {
+            null
+        }
         val signature = parseFunctionSignature()
         val body = parseBlock()
         return Declaration.FunctionDef(
-                location = makeLocation(signature, body),
-                externName = externName,
-                signature = signature,
-                body = body
+            location = makeLocation(signature, body),
+            externName = externName,
+            signature = signature,
+            body = body
         )
     }
 
@@ -587,17 +597,17 @@ class Parser(
     }
 
     private fun isStatementPredicted(): Boolean {
-        return currentToken.kind in statementPredictors
-                // LocalAssignment
-                || (currentToken.kind == TokenKind.ID && tokenBuffer.peek(1).kind == TokenKind.EQ)
-                || isPropertyAssignmentPredicted()
+        return currentToken.kind in statementPredictors ||
+            // LocalAssignment
+            (currentToken.kind == TokenKind.ID && tokenBuffer.peek(1).kind == TokenKind.EQ) ||
+            isPropertyAssignmentPredicted()
     }
 
     private fun isPropertyAssignmentPredicted(): Boolean {
         return (currentToken.kind == TokenKind.ID || currentToken.kind == TokenKind.THIS) &&
-                tokenBuffer.peek(1).kind == TokenKind.DOT &&
-                tokenBuffer.peek(2).kind == TokenKind.ID &&
-                tokenBuffer.peek(3).kind == TokenKind.EQ
+            tokenBuffer.peek(1).kind == TokenKind.DOT &&
+            tokenBuffer.peek(2).kind == TokenKind.ID &&
+            tokenBuffer.peek(3).kind == TokenKind.EQ
     }
 
     private fun parseStatement(): Statement {
@@ -646,7 +656,6 @@ class Parser(
             lhs,
             rhs
         )
-
     }
 
     private fun parseLocalAssignment(): Statement {
@@ -655,9 +664,9 @@ class Parser(
         val value = parseExpression()
         expect(tt.SEMICOLON)
         return Statement.LocalAssignment(
-                makeLocation(name, value),
-                name,
-                value
+            makeLocation(name, value),
+            name,
+            value
         )
     }
 
@@ -672,10 +681,10 @@ class Parser(
             null
         }
         return Statement.If(
-                location = makeLocation(start, ifFalse ?: ifTrue),
-                condition = condition,
-                ifTrue = ifTrue,
-                ifFalse = ifFalse
+            location = makeLocation(start, ifFalse ?: ifTrue),
+            condition = condition,
+            ifTrue = ifTrue,
+            ifFalse = ifFalse
         )
     }
 
@@ -684,9 +693,9 @@ class Parser(
         val condition = parseExpression()
         val block = parseBlock()
         val result = Statement.While(
-                makeLocation(start, block),
-                condition,
-                block
+            makeLocation(start, block),
+            condition,
+            block
         )
         ctx.resolver.onParseScopeNode(result)
         return result
@@ -694,13 +703,15 @@ class Parser(
 
     private fun parseReturnStatement(): Statement {
         val start = expect(tt.RETURN)
-        val value = if (at(tt.SEMICOLON) || at(tt.RBRACE))
+        val value = if (at(tt.SEMICOLON) || at(tt.RBRACE)) {
             null
-        else parseExpression()
+        } else {
+            parseExpression()
+        }
         expect(tt.SEMICOLON)
         return Statement.Return(
-                makeLocation(start, value ?: start),
-                value
+            makeLocation(start, value ?: start),
+            value
         )
     }
 
@@ -718,11 +729,11 @@ class Parser(
         val rhs = parseExpression()
         expect(tt.SEMICOLON)
         return Statement.Val(
-                makeLocation(start, rhs),
-                isMutable,
-                binder,
-                typeAnnotation,
-                rhs
+            makeLocation(start, rhs),
+            isMutable,
+            binder,
+            typeAnnotation,
+            rhs
         )
     }
 
@@ -735,15 +746,15 @@ class Parser(
             parsePrimaryExpression()
         } else {
             var currentExpression = parseExpressionMinPrecedence(minPrecedence + 1)
-            while (currentToken.kind in OPERATORS[minPrecedence]
+            while (currentToken.kind in OPERATORS[minPrecedence] &&
                 // operators are only allowed on the same line as the left hand side expression
-                && currentExpression.location.stop.line == currentToken.location.start.line
+                currentExpression.location.stop.line == currentToken.location.start.line
             ) {
                 val opToken = advance()
                 currentExpression = makeBinOp(
-                        currentExpression,
-                        opToken.kind,
-                        parseExpressionMinPrecedence(minPrecedence + 1)
+                    currentExpression,
+                    opToken.kind,
+                    parseExpressionMinPrecedence(minPrecedence + 1)
                 )
             }
 
@@ -756,10 +767,10 @@ class Parser(
             "Bug: Token type not found in binary operators table $operatorToken"
         }
         return Expression.BinaryOperation(
-                makeLocation(lhs, rhs),
-                lhs,
-                operator,
-                rhs
+            makeLocation(lhs, rhs),
+            lhs,
+            operator,
+            rhs
         )
     }
 
@@ -829,7 +840,9 @@ class Parser(
                 val isMut = if (at(tt.MUT)) {
                     advance()
                     true
-                } else false
+                } else {
+                    false
+                }
                 val expression = parsePrimaryExpression(withTail = true)
                 if (isMut) {
                     Expression.AddressOfMut(makeLocation(start, expression), expression)
@@ -854,11 +867,10 @@ class Parser(
                 val arg = parseExpression()
                 val stop = expect(tt.RPAREN)
                 Expression.PointerCast(
-                        makeLocation(start, stop),
-                        toType,
-                        arg
+                    makeLocation(start, stop),
+                    toType,
+                    arg
                 )
-
             }
             tt.IF -> {
                 val start = advance()
@@ -869,10 +881,10 @@ class Parser(
                 expect(tt.ELSE)
                 val falseBranch = parseExpression()
                 Expression.If(
-                        makeLocation(start, falseBranch),
-                        condition,
-                        trueBranch,
-                        falseBranch
+                    makeLocation(start, falseBranch),
+                    condition,
+                    trueBranch,
+                    falseBranch
                 )
             }
             tt.THIS -> {
@@ -923,7 +935,6 @@ class Parser(
             val arm = Expression.Match.Arm(pattern, armValue)
             arms.add(arm)
             ctx.resolver.onParseMatchArm(arm)
-
         }
 
         val end = expect(tt.RBRACE)
@@ -937,7 +948,7 @@ class Parser(
         return match
     }
 
-    private fun parsePattern(): Pattern = when(currentToken.kind) {
+    private fun parsePattern(): Pattern = when (currentToken.kind) {
         tt.INT_LITERAL -> {
             val tok = advance()
             Pattern.IntLiteral(
@@ -958,7 +969,9 @@ class Parser(
                     }
                     expect(tt.RPAREN)
                     list
-                } else null
+                } else {
+                    null
+                }
                 Pattern.EnumCase(id, args)
             }
         }
@@ -1066,7 +1079,6 @@ class Parser(
                     } else {
                         TODO("Invalid byte string escape $escapeChar in ${token.location}")
                     }
-
                 } else {
                     addAll("$char".encodeToByteArray().toList())
                 }
@@ -1087,11 +1099,13 @@ class Parser(
                     parseTypeAnnotation()
                 }
                 val rsqb = expect(tt.RSQB)
-                parseExpressionTail(Expression.TypeApplication(
+                parseExpressionTail(
+                    Expression.TypeApplication(
                         makeLocation(head, rsqb),
                         head,
                         typeArgs
-                ))
+                    )
+                )
             }
             tt.VBAR -> {
                 val arg = parseArg()
@@ -1176,7 +1190,6 @@ class Parser(
                         Diagnostic.Kind.UnexpectedToken(tt.ID, currentToken)
                     )
                 }
-
             }
             tt.AS -> {
                 advance()
@@ -1184,7 +1197,7 @@ class Parser(
                 Expression.As(
                     makeLocation(head, type),
                     head,
-                    type,
+                    type
                 )
             }
             else -> head
@@ -1234,10 +1247,12 @@ class Parser(
         }
         val thisParamFlags = if (hasThis) {
             FunctionSignature.ThisParamFlags(
-                    isPointer = isThisPtr,
-                    isMutable = isThisMut,
+                isPointer = isThisPtr,
+                isMutable = isThisMut
             )
-        } else null
+        } else {
+            null
+        }
         return Triple(thisParamFlags, thisBinder, params)
     }
 
@@ -1245,8 +1260,8 @@ class Parser(
         val binder = parseBinder()
         val annotation = parseOptionalAnnotation()
         return Param(
-                binder = binder,
-                annotation = annotation
+            binder = binder,
+            annotation = annotation
         )
     }
 
@@ -1279,7 +1294,9 @@ class Parser(
                 val isMutable = if (at(tt.MUT)) {
                     advance()
                     true
-                } else false
+                } else {
+                    false
+                }
                 val to = parseTypeAnnotation()
                 if (isMutable) {
                     TypeAnnotation.MutPtr(
@@ -1317,9 +1334,9 @@ class Parser(
                 expect(tt.ARROW)
                 val to = parseTypeAnnotation()
                 TypeAnnotation.Closure(
-                        makeLocation(start, to),
-                        from,
-                        to
+                    makeLocation(start, to),
+                    from,
+                    to
                 )
             }
             tt.LPAREN -> {
@@ -1336,8 +1353,8 @@ class Parser(
                 }
                 val stop = expect(tt.RSQB)
                 TypeAnnotation.Union(
-                        makeLocation(start, stop),
-                        args
+                    makeLocation(start, stop),
+                    args
                 )
             }
             else -> {
@@ -1361,29 +1378,33 @@ class Parser(
                     parseTypeAnnotation()
                 }
                 val end = expect(tt.RSQB)
-                parseTypeAnnotationTail(TypeAnnotation.Application(
+                parseTypeAnnotationTail(
+                    TypeAnnotation.Application(
                         makeLocation(head, end),
                         head,
                         args
-                ))
+                    )
+                )
             }
             tt.DOT -> {
                 advance()
                 val identifier = parseIdentifier()
-                parseTypeAnnotationTail(TypeAnnotation.Select(
-                    makeLocation(head, identifier),
-                    head,
-                    identifier
-                ))
+                parseTypeAnnotationTail(
+                    TypeAnnotation.Select(
+                        makeLocation(head, identifier),
+                        head,
+                        identifier
+                    )
+                )
             }
             else -> head
         }
     }
 
     private inline fun <reified T> parseSeperatedList(
-            seperator: Token.Kind,
-            terminator: Token.Kind,
-            parseItem: () -> T
+        seperator: Token.Kind,
+        terminator: Token.Kind,
+        parseItem: () -> T
     ): List<T> = makeList {
         var isFirst = true
         while (currentToken.kind != terminator && currentToken.kind != tt.EOF) {
@@ -1401,8 +1422,10 @@ class Parser(
         } else {
             val lastToken = tokenBuffer.lastToken
             if (lastToken != null && kind == tt.SEMICOLON && (
-                        currentToken.kind == tt.EOF ||
-                        currentToken.location.start.line > lastToken.location.start.line)) {
+                currentToken.kind == tt.EOF ||
+                    currentToken.location.start.line > lastToken.location.start.line
+                )
+            ) {
                 currentToken
             } else {
                 syntaxError(currentToken.location, Diagnostic.Kind.UnexpectedToken(kind, currentToken))
@@ -1413,7 +1436,7 @@ class Parser(
     private fun at(kind: tt): Boolean = currentToken.kind == kind
 
     private fun recoverFromError(
-            stopBefore: Set<tt> = declarationRecoveryTokens
+        stopBefore: Set<tt> = declarationRecoveryTokens
     ) {
         advance()
         while (true) {
@@ -1435,7 +1458,7 @@ class Parser(
     }
 
     private fun isEOF() =
-            currentToken.kind == tt.EOF
+        currentToken.kind == tt.EOF
 }
 
 class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
@@ -1451,7 +1474,6 @@ class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
         return buffer[current]
     }
 
-
     fun advance(): Token {
         val result = currentToken
         buffer[current] = lexer.nextToken()
@@ -1461,9 +1483,7 @@ class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
     }
 
     fun peek(offset: Int): Token {
-        require(offset < maxLookahead) {"Tried to peek past max lookahead $maxLookahead"}
+        require(offset < maxLookahead) { "Tried to peek past max lookahead $maxLookahead" }
         return buffer[(current + offset) % maxLookahead]
     }
-
 }
-

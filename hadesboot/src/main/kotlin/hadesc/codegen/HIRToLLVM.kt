@@ -6,8 +6,8 @@ import hadesc.clampToPowerOfTwo
 import hadesc.context.Context
 import hadesc.exhaustive
 import hadesc.hir.*
-import hadesc.hir.passes.SimplifyControlFlow
 import hadesc.hir.BinaryOperator
+import hadesc.hir.passes.SimplifyControlFlow
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
@@ -39,6 +39,7 @@ class HIRToLLVM(
 
     private val log = logger(HIRToLLVM::class.java)
     private val i32Ty = intType(32, llvmCtx)
+
     @Suppress("unused")
     private val metadataTy = LLVM.LLVMMetadataTypeInContext(llvmCtx)
     private val errorStack = Stack<HIRStatement>()
@@ -124,14 +125,9 @@ class HIRToLLVM(
                 to = lowerType(constructorPtrType.to)
             )
         }
-
-
     }
 
-
-
     private val shouldEmitDebugSymbols get() = ctx.options.debugSymbols
-
 
     private val fileScopeCache = mutableMapOf<SourcePath, LLVMMetadataRef>()
     private fun getFileScope(file: SourcePath): LLVMMetadataRef = fileScopeCache.getOrPut(file) {
@@ -166,10 +162,10 @@ class HIRToLLVM(
                 types = listOf(
                     metadataTy,
                     metadataTy,
-                    metadataTy,
+                    metadataTy
                 ),
                 returns = voidTy,
-                variadic = false,
+                variadic = false
             ),
             callee,
             listOf(
@@ -194,7 +190,8 @@ class HIRToLLVM(
         val defType = definition.type
         check(defType is Type.FunctionPtr)
         val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
-            diBuilder, fileScope,
+            diBuilder,
+            fileScope,
             defType.from.map { it.debugInfo }.asPointerPointer(),
             defType.from.size,
             LLVM.LLVMDIFlagZero
@@ -211,9 +208,9 @@ class HIRToLLVM(
             isLocalToUnit = true,
             isDefinition = true,
             scopeLine = definition.location.start.line,
-            flags = LLVM.LLVMDIFlagZero,
+            flags = LLVM.LLVMDIFlagZero
 
-            )
+        )
         currentFunctionMetadata = meta
         LLVM.LLVMGlobalSetMetadata(fn, LLVM.LLVMMDStringMetadataKind, meta)
         LLVM.LLVMSetCurrentDebugLocation2(builder, null)
@@ -271,8 +268,6 @@ class HIRToLLVM(
 
         currentHIRFunction = null
         currentFunction = null
-
-
     }
 
     private fun getFunctionRef(definition: HIRDefinition.ExternFunction): LLVMValueRef {
@@ -280,32 +275,31 @@ class HIRToLLVM(
         return llvmModule.getFunction(name) ?: llvmModule.addFunction(
             name,
             from = definition.type.from.map { lowerType(it) },
-            to = lowerType(definition.type.to),
+            to = lowerType(definition.type.to)
         )
     }
     private fun getFunctionRef(definition: HIRDefinition.Function): LLVMValueRef {
         val name = getFunctionName(definition)
         val fnType = definition.type
         check(fnType is Type.FunctionPtr)
-        return llvmModule.getFunction(name) ?:
-            llvmModule.addFunction(
-                name,
-                from = fnType.from.map { lowerType(it) },
-                to = lowerType(fnType.to),
-            )
+        return llvmModule.getFunction(name)
+            ?: llvmModule.addFunction(
+            name,
+            from = fnType.from.map { lowerType(it) },
+            to = lowerType(fnType.to)
+        )
     }
-
 
     private fun getConstRef(definition: HIRDefinition.ExternConst): Value {
         val name = definition.externName.text
-        return llvmModule.getNamedGlobal(name) ?:
-            llvmModule.addGlobal(name, lowerType(definition.type))
+        return llvmModule.getNamedGlobal(name)
+            ?: llvmModule.addGlobal(name, lowerType(definition.type))
     }
 
     private fun getConstRef(definition: HIRDefinition.Const): Value {
         val name = definition.name.mangle()
-        return llvmModule.getNamedGlobal(name) ?:
-            llvmModule.addGlobal(name, lowerType(definition.type))
+        return llvmModule.getNamedGlobal(name)
+            ?: llvmModule.addGlobal(name, lowerType(definition.type))
     }
 
     private fun getStructRef(definition: HIRDefinition.Struct): LLVMValueRef {
@@ -316,7 +310,6 @@ class HIRToLLVM(
         val originalName = definition.name.mangle()
         return if (originalName == "main") "hades_main" else originalName
     }
-
 
     private fun lowerStatement(statement: HIRStatement) {
         errorStack.push(statement)
@@ -330,21 +323,23 @@ class HIRToLLVM(
             )
             LLVM.LLVMSetCurrentDebugLocation2(builder, location)
         }
-        exhaustive(when (statement) {
-            is HIRStatement.NameBinder -> lowerNameBinder(statement)
-            is HIRStatement.Return -> lowerReturnStatement(statement)
-            is HIRStatement.Store -> lowerStore(statement)
-            is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
-            is HIRStatement.Move -> {
-                // Move is  a no-op
+        exhaustive(
+            when (statement) {
+                is HIRStatement.NameBinder -> lowerNameBinder(statement)
+                is HIRStatement.Return -> lowerReturnStatement(statement)
+                is HIRStatement.Store -> lowerStore(statement)
+                is HIRStatement.SwitchInt -> lowerSwitchInt(statement)
+                is HIRStatement.Move -> {
+                    // Move is  a no-op
+                }
+                is HIRStatement.MatchInt,
+                is HIRStatement.While -> requireUnreachable {
+                    "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
+                }
+                is HIRStatement.Jump -> TODO()
+                is HIRStatement.Memcpy -> lowerMemcpy(statement)
             }
-            is HIRStatement.MatchInt,
-            is HIRStatement.While -> requireUnreachable {
-                "Unexpected control flow branch should have been desugared by ${SimplifyControlFlow::class.simpleName}"
-            }
-            is HIRStatement.Jump -> TODO()
-            is HIRStatement.Memcpy -> lowerMemcpy(statement)
-        })
+        )
         errorStack.pop()
     }
 
@@ -414,7 +409,7 @@ class HIRToLLVM(
         return builder.buildLoad(
             name = statement.name.text,
             ptr = lowerOperand(statement.ptr),
-            type = lowerType(ptrTy.to),
+            type = lowerType(ptrTy.to)
         )
     }
 
@@ -427,7 +422,6 @@ class HIRToLLVM(
             val ptr = lowerOperand(statement.ptr)
             builder.buildStore(ptr, rhs)
         }
-
     }
 
     private fun lowerAlloca(statement: HIRStatement.Alloca): Value? {
@@ -471,7 +465,6 @@ class HIRToLLVM(
             lowerStatement(statement)
         }
     }
-
 
     private fun lowerReturnStatement(statement: HIRStatement.Return) {
         if (statement.expression.type == Type.Void) {
@@ -558,7 +551,7 @@ class HIRToLLVM(
                     lowerFloatingPointOperator(statement.operator),
                     lowerExpression(statement.lhs),
                     lowerExpression(statement.rhs),
-                    name,
+                    name
                 )
             } else {
                 builder.buildBinOp(
@@ -571,12 +564,12 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerFloatingPointOperator(operator: BinaryOperator): Opcode = when(operator) {
+    private fun lowerFloatingPointOperator(operator: BinaryOperator): Opcode = when (operator) {
         BinaryOperator.PLUS -> Opcode.FAdd
         BinaryOperator.MINUS -> Opcode.FSub
         BinaryOperator.TIMES -> Opcode.FMul
-        BinaryOperator.DIV   -> Opcode.FDiv
-        BinaryOperator.REM   -> Opcode.FRem
+        BinaryOperator.DIV -> Opcode.FDiv
+        BinaryOperator.REM -> Opcode.FRem
         else -> requireUnreachable()
     }
 
@@ -591,7 +584,6 @@ class HIRToLLVM(
         }
     }
 
-
     private fun isPredicateOperator(operator: BinaryOperator): Boolean {
         return when (operator) {
             BinaryOperator.EQUALS,
@@ -605,7 +597,7 @@ class HIRToLLVM(
     }
 
     private fun lowerPredicateOperator(isSigned: Boolean, operator: BinaryOperator): IntPredicate {
-        return when(operator) {
+        return when (operator) {
             BinaryOperator.EQUALS -> IntPredicate.EQ
             BinaryOperator.NOT_EQUALS -> IntPredicate.NE
             BinaryOperator.GREATER_THAN -> if (isSigned) IntPredicate.SGT else IntPredicate.UGT
@@ -616,7 +608,7 @@ class HIRToLLVM(
         }
     }
 
-    private fun lowerFloatPredicateOperator(operator: BinaryOperator): RealPredicate = when(operator) {
+    private fun lowerFloatPredicateOperator(operator: BinaryOperator): RealPredicate = when (operator) {
         BinaryOperator.EQUALS -> RealPredicate.EQ
         BinaryOperator.NOT_EQUALS -> RealPredicate.NE
         BinaryOperator.GREATER_THAN -> RealPredicate.UGT
@@ -661,7 +653,7 @@ class HIRToLLVM(
                 builder.buildZExt(
                     lowerExpression(statement.value),
                     toType = lowerType(toType),
-                    name = statement.name.text,
+                    name = statement.name.text
                 )
             }
             toSize < fromSize -> {
@@ -690,13 +682,12 @@ class HIRToLLVM(
     }
 
     private fun buildErrorMessage(message: String): String {
-
         var resultMessage = "Bug in code generation: $message"
         val currentStatement = errorStack.peek()
         if (currentStatement != null) {
             resultMessage += "\nWhile lowering statement (originally defined " +
-                    "at ${currentStatement.location.file}:${currentStatement.location.start.line})\n" +
-                    currentStatement.prettyPrint()
+                "at ${currentStatement.location.file}:${currentStatement.location.start.line})\n" +
+                currentStatement.prettyPrint()
 
             for (statement in errorStack.items()) {
                 resultMessage += statement.prettyPrint()
@@ -741,7 +732,7 @@ class HIRToLLVM(
         val constStringRef = constantString(text, dontNullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),
-            constStringRef.getType(),
+            constStringRef.getType()
         )
         globalRef.setInitializer(constStringRef)
         return builder.buildPointerCast(globalRef, pointerType(byteTy), ctx.makeUniqueName().text)
@@ -777,7 +768,7 @@ class HIRToLLVM(
             functionType = functionType(
                 returns = lowerType(statement.resultType),
                 types = statement.args.map { lowerType(it.type) },
-                variadic = false,
+                variadic = false
             ),
             callee = loweredCallee,
             args = args,
@@ -796,7 +787,6 @@ class HIRToLLVM(
         return pointerType(to)
     }
 
-
     private val structTypes = mutableMapOf<QualifiedName, llvm.Type>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
         is Type.Error -> requireUnreachable {
@@ -806,13 +796,15 @@ class HIRToLLVM(
         is Type.Bool -> boolTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.FunctionPtr -> {
-            ptrTy(functionType(
-                returns = lowerType(type.to),
-                types = type.from.map { lowerType(it) },
-                variadic = false
-            ))
+            ptrTy(
+                functionType(
+                    returns = lowerType(type.to),
+                    types = type.from.map { lowerType(it) },
+                    variadic = false
+                )
+            )
         }
-        is Type.Constructor ->  {
+        is Type.Constructor -> {
             if (type.name !in structTypes) {
                 val binding = hir.findGlobalDefinition(type.name)
                 check(binding is HIRDefinition.Struct)
@@ -852,9 +844,9 @@ class HIRToLLVM(
     }
 
     private val Type.sizeInBits get() = LLVM.LLVMSizeOfTypeInBits(dataLayout, lowerType(this))
+
     @Suppress("unused")
     private val Type.sizeInBytes get() = LLVM.LLVMABISizeOfType(dataLayout, lowerType(this))
-
 
     private var nextLiteralIndex = 0
     private fun stringLiteralName(): String {

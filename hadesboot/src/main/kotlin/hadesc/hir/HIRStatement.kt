@@ -5,7 +5,7 @@ import hadesc.location.SourceLocation
 import hadesc.types.Type
 import hadesc.types.ptr
 
-sealed interface HIRStatement: HIRNode {
+sealed interface HIRStatement : HIRNode {
     /**
      * Instructions that bind a new name
      * e.g.
@@ -37,7 +37,7 @@ sealed interface HIRStatement: HIRNode {
      * This and NestedControlFlow combined are the only instructions
      * that can jump within a function.
      */
-    sealed interface BasicBlockControlFlow: Terminator
+    sealed interface BasicBlockControlFlow : Terminator
 
     /**
      * Simple instructions that can't branch
@@ -52,15 +52,15 @@ sealed interface HIRStatement: HIRNode {
     }
 
     data class Return(
-            override val location: SourceLocation,
-            val expression: HIRExpression
-    ): HIRStatement, Terminator
+        override val location: SourceLocation,
+        val expression: HIRExpression
+    ) : HIRStatement, Terminator
 
     data class Alloca(
-            override val location: SourceLocation,
-            override val name: Name,
-            val isMutable: Boolean,
-            val type: Type
+        override val location: SourceLocation,
+        override val name: Name,
+        val isMutable: Boolean,
+        val type: Type
     ) : HIRStatement, NameBinder, StraightLineInstruction {
         val pointerType get(): Type =
             type.ptr(isMutable)
@@ -101,11 +101,10 @@ sealed interface HIRStatement: HIRNode {
             get() = Type.Ptr(toPointerOfType, isMutable = true)
     }
 
-
     data class Store(
-            override val location: SourceLocation,
-            val ptr: HIROperand,
-            val value: HIRExpression
+        override val location: SourceLocation,
+        val ptr: HIROperand,
+        val value: HIRExpression
     ) : HIRStatement, StraightLineInstruction
 
     data class MatchInt(
@@ -114,7 +113,6 @@ sealed interface HIRStatement: HIRNode {
         val arms: List<MatchIntArm>,
         val otherwise: HIRBlock
     ) : HIRStatement, NestedControlFlow
-
 
     data class GetStructField(
         override val location: SourceLocation,
@@ -156,7 +154,7 @@ sealed interface HIRStatement: HIRNode {
         val destination: HIROperand,
         val source: HIROperand,
         val bytes: HIROperand
-    ): HIRStatement, StraightLineInstruction {
+    ) : HIRStatement, StraightLineInstruction {
         init {
             check(destination.type is Type.Ptr)
             check(source.type is Type.Ptr)
@@ -181,7 +179,7 @@ sealed interface HIRStatement: HIRNode {
         val type: Type.Closure,
         val function: HIROperand,
         val ctxPtr: HIROperand
-    ): HIRStatement, NameBinder, StraightLineInstruction {
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
             require(ctxPtr.type is Type.Ptr)
         }
@@ -192,13 +190,13 @@ sealed interface HIRStatement: HIRNode {
         override val name: Name,
         val type: Type,
         val closureRef: HIROperand,
-        val args: List<HIROperand>,
-    ): HIRStatement, NameBinder, StraightLineInstruction
+        val args: List<HIROperand>
+    ) : HIRStatement, NameBinder, StraightLineInstruction
 
     data class Move(
         override val location: SourceLocation,
         val name: Name
-    ): HIRStatement, StraightLineInstruction
+    ) : HIRStatement, StraightLineInstruction
 
     /**
      * The basic structure of a while statement is this
@@ -246,7 +244,6 @@ sealed interface HIRStatement: HIRNode {
         val body: HIRBlock
     ) : HIRStatement, NestedControlFlow
 
-
     data class BinOp(
         override val location: SourceLocation,
         override val name: Name,
@@ -266,7 +263,7 @@ sealed interface HIRStatement: HIRNode {
     data class Jump(
         override val location: SourceLocation,
         val to: Name
-    ): HIRStatement, Terminator, BasicBlockControlFlow
+    ) : HIRStatement, Terminator, BasicBlockControlFlow
 
     data class TypeApplication(
         override val location: SourceLocation,
@@ -284,37 +281,37 @@ sealed interface HIRStatement: HIRNode {
         override val location: SourceLocation,
         override val name: Name,
         val type: Type.Ptr,
-        val expression: HIROperand,
-    ): HIRStatement, NameBinder, StraightLineInstruction
+        val expression: HIROperand
+    ) : HIRStatement, NameBinder, StraightLineInstruction
 
     data class PtrToInt(
         override val location: SourceLocation,
         override val name: Name,
         val type: Type,
-        val expression: HIROperand,
-    ): HIRStatement, NameBinder, StraightLineInstruction {
+        val expression: HIROperand
+    ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
             require(expression.type is Type.Ptr)
             require(type.isIntegral())
         }
     }
 
-    private fun prettyPrintInternal(): String = when(this) {
+    private fun prettyPrintInternal(): String = when (this) {
         is Call -> {
             "%${name.text}: ${resultType.prettyPrint()} = ${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
         }
         is Return -> "return ${expression.prettyPrint()}"
         is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +
-                arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +
-                "\n    otherwise -> ${otherwise.prettyPrint().prependIndent("    ").trimStart()}\n" +
-                "  }"
+            arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +
+            "\n    otherwise -> ${otherwise.prettyPrint().prependIndent("    ").trimStart()}\n" +
+            "  }"
         is While -> "while ${conditionBlock.prettyPrint()} { $conditionName } ${body.prettyPrint()}"
         is Store -> "store ${ptr.prettyPrint()} = ${value.prettyPrint()}"
         is SwitchInt -> "switch ${condition.prettyPrint()} [\n    " +
-                cases.joinToString { "case ${it.value.prettyPrint()}: ${it.block.text}\n    " } +
-                "otherwise: ${otherwise.text}\n" +
-                "  ]"
+            cases.joinToString { "case ${it.value.prettyPrint()}: ${it.block.text}\n    " } +
+            "otherwise: ${otherwise.text}\n" +
+            "  ]"
         is Load -> "%${name.text}: ${type.prettyPrint()} = load ${ptr.prettyPrint()}"
         is GetStructField -> "%${name.text}: ${type.prettyPrint()} = ${lhs.prettyPrint()}.${fieldName.text}"
         is GetStructFieldPointer -> "%${name.text}: ${type.prettyPrint()} = field-offset ${lhs.prettyPrint()} ${memberName.text}"
@@ -332,13 +329,13 @@ sealed interface HIRStatement: HIRNode {
         is AllocateClosure ->
             "%${name.text} = allocate-closure ${function.prettyPrint()}, ${ctxPtr.prettyPrint()}"
         is InvokeClosure -> "%${name.text}: ${type.prettyPrint()} = invoke closure " +
-                "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
+            "${closureRef.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
 
         is Move -> "move %${name.text}"
         is Memcpy ->
             "memcpy source = ${source.prettyPrint()}," +
-                    "destination = ${destination.prettyPrint()}, " +
-                    "bytes = ${bytes.prettyPrint()}"
+                "destination = ${destination.prettyPrint()}, " +
+                "bytes = ${bytes.prettyPrint()}"
 
         is IntToPtr -> "int-to-ptr[${type.prettyPrint()}] ${expression.prettyPrint()}"
         is PtrToInt -> "ptr-to-int[${type.prettyPrint()}] ${expression.prettyPrint()}"
@@ -373,7 +370,6 @@ sealed interface HIRStatement: HIRNode {
     override fun prettyPrint(): String {
         return "${prettyPrintInternal()} // $location"
     }
-
 }
 
 data class SwitchIntCase(

@@ -90,7 +90,7 @@ data class Token(
         BANG_EQ,
 
         EOF,
-        ERROR,
+        ERROR
     }
 }
 typealias TokenKind = Token.Kind

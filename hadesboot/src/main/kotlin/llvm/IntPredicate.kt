@@ -14,5 +14,5 @@ enum class IntPredicate(val value: Int) {
     ULE(LLVM.LLVMIntULE),
 
     EQ(LLVM.LLVMIntEQ),
-    NE(LLVM.LLVMIntNE),
+    NE(LLVM.LLVMIntNE)
 }

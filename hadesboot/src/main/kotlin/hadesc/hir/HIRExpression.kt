@@ -1,35 +1,33 @@
 package hadesc.hir
 
 import hadesc.Name
-import hadesc.analysis.ClosureCaptures
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import hadesc.types.ptr
 
 /**
  * Subset of HIRExpressions that don't nest.
  */
 typealias HIROperand = HIRExpression
-sealed interface HIRExpression: HIRNode {
+sealed interface HIRExpression : HIRNode {
     val type: Type
     sealed interface LocalName {
         val name: Name
     }
 
     data class GlobalRef(
-            override val location: SourceLocation,
-            override val type: Type,
-            val name: QualifiedName
+        override val location: SourceLocation,
+        override val type: Type,
+        val name: QualifiedName
     ) : HIRExpression
 
     data class ParamRef(
-            override val location: SourceLocation,
-            override val type: Type,
-            override val name: Name,
-            val binder: Binder,
+        override val location: SourceLocation,
+        override val type: Type,
+        override val name: Name,
+        val binder: Binder
     ) : HIRExpression, LocalName
 
     data class LocalRef(
@@ -38,20 +36,19 @@ sealed interface HIRExpression: HIRNode {
         override val name: Name
     ) : HIRExpression, LocalName
 
-
     data class TraitMethodRef(
-            override val location: SourceLocation,
-            override val type: Type,
-            val traitName: QualifiedName,
-            val traitArgs: List<Type>,
-            val methodName: Name,
+        override val location: SourceLocation,
+        override val type: Type,
+        val traitName: QualifiedName,
+        val traitArgs: List<Type>,
+        val methodName: Name
     ) : HIRExpression
 
-    override fun prettyPrint(): String = when(this) {
+    override fun prettyPrint(): String = when (this) {
         is GlobalRef -> name.mangle()
         is ParamRef -> name.text
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
-                methodName.text
+            methodName.text
         is HIRConstant.ByteString -> "b\"" + String(bytes)
             .replace("\"", "\"\"")
             .replace("\\", "\\\\") + "\""
@@ -81,5 +78,4 @@ fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
     is HIRConstant.Void,
     is HIRConstant.FloatValue,
     is HIRConstant.IntValue -> requireUnreachable()
-
 }

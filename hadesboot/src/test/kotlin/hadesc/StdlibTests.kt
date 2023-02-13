@@ -17,8 +17,10 @@ class StdlibTests {
             val compiler = BuildCommand()
             compiler.main(
                 arrayOf(
-                    "--main", testSource.toString(),
-                    "--output", output,
+                    "--main",
+                    testSource.toString(),
+                    "--output",
+                    output,
                     "--internal-skip-exec",
                     "-g"
                 )
@@ -56,5 +58,4 @@ class StdlibTests {
             }
         }
     }
-
 }

@@ -36,7 +36,6 @@ class Resolver(private val ctx: Context) {
         return null
     }
 
-
     fun resolveTraitDef(name: Identifier): TraitDef? {
         val scopeStack = getScopeStack(name)
         for (scope in scopeStack.scopes) {
@@ -143,7 +142,6 @@ class Resolver(private val ctx: Context) {
                     it.binder.identifier.name == ident.name
                 }?.let { TypeBinding.TypeParam(it.binder) }
             }
-
         }
         is ImplementationDef -> {
             val aliasDef = scopeNode.body.filterIsInstance<TypeAlias>().find {
@@ -156,7 +154,6 @@ class Resolver(private val ctx: Context) {
                     it.binder.identifier.name == ident.name
                 }?.let { TypeBinding.TypeParam(it.binder) }
             }
-
         }
         is Closure -> null
         is Match -> null
@@ -222,19 +219,22 @@ class Resolver(private val ctx: Context) {
         return findInPattern(ident, scope.pattern)
     }
 
-    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when(pattern) {
-        is Pattern.EnumCase -> pattern.args
-            ?.asReversed() // last match wins
-            ?.mapIndexedNotNull { indexFromBack, arg ->
-                val index = pattern.args.size - 1 - indexFromBack
-                when (arg) {
-                    is Pattern.Val -> if (arg.binder.name == ident.name)
-                        Binding.MatchArmEnumCaseArg(pattern, index)
-                    else null
-                    else -> null
+    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when (pattern) {
+        is Pattern.EnumCase ->
+            pattern.args
+                ?.asReversed() // last match wins
+                ?.mapIndexedNotNull { indexFromBack, arg ->
+                    val index = pattern.args.size - 1 - indexFromBack
+                    when (arg) {
+                        is Pattern.Val -> if (arg.binder.name == ident.name) {
+                            Binding.MatchArmEnumCaseArg(pattern, index)
+                        } else {
+                            null
+                        }
+                        else -> null
+                    }
                 }
-            }
-            ?.firstOrNull()
+                ?.firstOrNull()
         is Pattern.IntLiteral -> null
         is Pattern.Val -> TODO()
         is Pattern.Wildcard -> null
@@ -273,9 +273,11 @@ class Resolver(private val ctx: Context) {
                 is Declaration.Error -> null
                 is ImportAs -> null
                 is FunctionDef -> {
-                    if (declaration.name.identifier.name == name)
+                    if (declaration.name.identifier.name == name) {
                         Binding.GlobalFunction(declaration)
-                    else null
+                    } else {
+                        null
+                    }
                 }
                 is ExternFunctionDef -> {
                     if (declaration.binder.identifier.name == name) {
@@ -452,7 +454,6 @@ class Resolver(private val ctx: Context) {
             if (binding != null) {
                 return binding
             }
-
         }
         return null
     }
@@ -474,21 +475,23 @@ class Resolver(private val ctx: Context) {
         val declName = qualifiedName.names.last()
         val sourceFile = ctx.resolveSourceFile(modulePath) ?: return null
         for (decl in sourceFile.declarations) {
-            val match = exhaustive(when(decl) {
-                is Declaration.Error -> false
-                is ImportAs -> decl.asName.identifier.name == declName
-                is FunctionDef -> decl.name.identifier.name == declName
-                is ConstDefinition -> decl.name.identifier.name == declName
-                is ExternFunctionDef -> decl.binder.identifier.name == declName
-                is Struct -> decl.binder.identifier.name == declName
-                is TypeAlias -> decl.name.identifier.name == declName
-                is ExtensionDef -> false
-                is TraitDef -> decl.name.identifier.name == declName
-                is ImplementationDef -> false
-                is ImportMembers -> false
-                is Declaration.Enum -> decl.name.identifier.name == declName
-                is ExternConst -> decl.name.identifier.name == declName
-            })
+            val match = exhaustive(
+                when (decl) {
+                    is Declaration.Error -> false
+                    is ImportAs -> decl.asName.identifier.name == declName
+                    is FunctionDef -> decl.name.identifier.name == declName
+                    is ConstDefinition -> decl.name.identifier.name == declName
+                    is ExternFunctionDef -> decl.binder.identifier.name == declName
+                    is Struct -> decl.binder.identifier.name == declName
+                    is TypeAlias -> decl.name.identifier.name == declName
+                    is ExtensionDef -> false
+                    is TraitDef -> decl.name.identifier.name == declName
+                    is ImplementationDef -> false
+                    is ImportMembers -> false
+                    is Declaration.Enum -> decl.name.identifier.name == declName
+                    is ExternConst -> decl.name.identifier.name == declName
+                }
+            )
             if (match) {
                 return decl
             }
@@ -513,7 +516,6 @@ class Resolver(private val ctx: Context) {
             }
             return null
         }
-
     }
 
     private fun findDeclarationOf(sourceFile: SourceFile, name: Identifier): Declaration? {
@@ -523,7 +525,9 @@ class Resolver(private val ctx: Context) {
                 is ImportAs -> null
                 is FunctionDef -> if (declaration.name.identifier.name == name.name) {
                     declaration
-                } else null
+                } else {
+                    null
+                }
                 is ConstDefinition -> if (declaration.name.identifier.name == name.name) {
                     declaration
                 } else {
@@ -536,7 +540,9 @@ class Resolver(private val ctx: Context) {
                 }
                 is ExternFunctionDef -> if (declaration.binder.identifier.name == name.name) {
                     declaration
-                } else null
+                } else {
+                    null
+                }
                 is Struct -> if (declaration.binder.identifier.name == name.name) {
                     declaration
                 } else {
@@ -550,7 +556,9 @@ class Resolver(private val ctx: Context) {
                 is ExtensionDef -> null
                 is TraitDef -> if (declaration.name.identifier.name == name.name) {
                     declaration
-                } else null
+                } else {
+                    null
+                }
                 is ImplementationDef -> null
                 is ImportMembers -> {
                     if (declaration.names.map { it.name }.contains(name.name)) {
@@ -566,14 +574,15 @@ class Resolver(private val ctx: Context) {
                 }
                 is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
                     declaration
-                } else null
+                } else {
+                    null
+                }
             }
             if (decl != null) {
                 return decl
             }
         }
         return null
-
     }
 
     fun getEnclosingFunction(node: HasLocation): FunctionDef? {
@@ -604,7 +613,7 @@ class Resolver(private val ctx: Context) {
         return getEnclosingScopeTree(node)
     }
 
-    private inline fun <reified Scope: ScopeTree> getEnclosingScopeTree(at: HasLocation): Scope? {
+    private inline fun <reified Scope : ScopeTree> getEnclosingScopeTree(at: HasLocation): Scope? {
         for (scopeNode in getScopeStack(at)) {
             if (scopeNode is Scope) {
                 return scopeNode
@@ -627,21 +636,25 @@ class Resolver(private val ctx: Context) {
             if (includeImports && declaration is ImportAs) {
                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
                 if (sourceFile != null) {
-                    yieldAll(extensionDefsInDeclarations(
-                        sourceFile.declarations,
-                        // extensions are not transitively included
-                        includeImports = false
-                    ))
+                    yieldAll(
+                        extensionDefsInDeclarations(
+                            sourceFile.declarations,
+                            // extensions are not transitively included
+                            includeImports = false
+                        )
+                    )
                 }
             }
             if (includeImports && declaration is ImportMembers) {
                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
                 if (sourceFile != null) {
-                    yieldAll(extensionDefsInDeclarations(
-                        sourceFile.declarations,
-                        // extensions are not transitively included
-                        includeImports = false
-                    ))
+                    yieldAll(
+                        extensionDefsInDeclarations(
+                            sourceFile.declarations,
+                            // extensions are not transitively included
+                            includeImports = false
+                        )
+                    )
                 }
             }
             if (declaration !is ExtensionDef) {
@@ -664,9 +677,11 @@ class Resolver(private val ctx: Context) {
             if (declaration is ImportAs) {
                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
                 if (sourceFile != null) {
-                    yieldAll(implementationDefsInDeclarations(
+                    yieldAll(
+                        implementationDefsInDeclarations(
                             sourceFile.declarations
-                    ))
+                        )
+                    )
                 }
             }
             if (declaration !is ImplementationDef) {
@@ -717,5 +732,4 @@ class Resolver(private val ctx: Context) {
         }
         return null
     }
-
 }

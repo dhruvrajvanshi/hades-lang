@@ -1,7 +1,5 @@
 package hadesc
 
-import hadesc.logging.logger
-
 /**
  * Utility function that's used to force when statements
  * to be treated as expressions to ensure exhaustiveness
@@ -35,7 +33,7 @@ fun Scoped.defer(block: () -> Unit) {
 
 val unit = Unit
 
-inline fun <reified T> T.ignore(): Unit {}
+inline fun <reified T> T.ignore() {}
 
 fun clampToPowerOfTwo(value: Int): Int {
     var currentValue = 1

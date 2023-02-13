@@ -44,7 +44,7 @@ val KEYWORDS = mapOf(
     "match" to tt.MATCH,
     "@" to tt.AT_SYMBOL,
     "@intrinsic" to tt.AT_INTRINSIC,
-    "move" to tt.MOVE,
+    "move" to tt.MOVE
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
@@ -61,7 +61,7 @@ val SINGLE_CHAR_TOKENS = mapOf(
     ']' to tt.RSQB,
     '&' to tt.AMPERSAND,
     '/' to tt.SLASH,
-    '%' to tt.PERCENT,
+    '%' to tt.PERCENT
 )
 
 class Lexer(private val file: SourcePath) {
@@ -244,7 +244,6 @@ class Lexer(private val file: SourcePath) {
     private fun Char.isIdentifierChar(): Boolean {
         return isIdentifierStarter() || isDigit()
     }
-
 
     private fun skipWhitespace() {
         while (currentChar.isWhitespace()) {

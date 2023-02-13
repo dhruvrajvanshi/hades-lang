@@ -20,8 +20,7 @@ internal class HIRGenExpression(
     private val closureGen: HIRGenClosure
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
-    ASTContext by ctx
-{
+    ASTContext by ctx {
     override val currentModule: HIRModule
         get() = moduleContext.currentModule
     internal fun lowerVarExpression(expression: Expression.Var): HIROperand {
@@ -33,11 +32,10 @@ internal class HIRGenExpression(
         }
     }
 
-
     internal fun lowerBinding(
         expression: Expression,
         binding: Binding
-    ): HIROperand = when(binding) {
+    ): HIROperand = when (binding) {
         is Binding.Local -> {
             val name = when (expression) {
                 is Expression.Move -> expression.name
@@ -119,14 +117,16 @@ internal class HIRGenExpression(
         return when (intrinsic.intrinsicType) {
             IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL -> {
                 check(expression.args.size == 2)
-                return emit(HIRStatement.BinOp(
-                    expression.location,
-                    ctx.makeUniqueName(),
-                    expression.type,
-                    lowerExpression(expression.args[0].expression),
-                    checkNotNull(INTRINSIC_TYPE_TO_BINOP[intrinsic.intrinsicType]),
-                    lowerExpression(expression.args[1].expression),
-                )).result()
+                return emit(
+                    HIRStatement.BinOp(
+                        expression.location,
+                        ctx.makeUniqueName(),
+                        expression.type,
+                        lowerExpression(expression.args[0].expression),
+                        checkNotNull(INTRINSIC_TYPE_TO_BINOP[intrinsic.intrinsicType]),
+                        lowerExpression(expression.args[1].expression)
+                    )
+                ).result()
             }
             IntrinsicType.PTR_TO_INT -> {
                 check(expression.type is Type.Size)
@@ -141,7 +141,7 @@ internal class HIRGenExpression(
                 check(expression.args.size == 1)
                 return emitIntToPtr(
                     lowerExpression(expression.args[0].expression).asOperand(),
-                    expression.type,
+                    expression.type
                 )
             }
             IntrinsicType.MEMCPY -> {
@@ -149,12 +149,14 @@ internal class HIRGenExpression(
                 check(typeArgs != null)
                 check(typeArgs.size == 1)
                 check(expression.args.size == 3)
-                emit(HIRStatement.Memcpy(
-                    expression.location,
-                    lowerExpression(expression.args[0].expression),
-                    lowerExpression(expression.args[1].expression),
-                    lowerExpression(expression.args[2].expression),
-                ))
+                emit(
+                    HIRStatement.Memcpy(
+                        expression.location,
+                        lowerExpression(expression.args[0].expression),
+                        lowerExpression(expression.args[1].expression),
+                        lowerExpression(expression.args[2].expression)
+                    )
+                )
                 HIRConstant.Void(expression.location)
             }
             IntrinsicType.ERROR -> requireUnreachable()
@@ -167,13 +169,15 @@ internal class HIRGenExpression(
         }
         val callee = lowerExpression(expression.callee)
         if (callee.type is Type.Closure) {
-            return emit(HIRStatement.InvokeClosure(
-                location = expression.location,
-                name = namingCtx.makeUniqueName(),
-                type = expression.type,
-                closureRef = lowerExpression(expression.callee),
-                args = expression.args.map { lowerExpression(it.expression) }
-            )).result()
+            return emit(
+                HIRStatement.InvokeClosure(
+                    location = expression.location,
+                    name = namingCtx.makeUniqueName(),
+                    type = expression.type,
+                    closureRef = lowerExpression(expression.callee),
+                    args = expression.args.map { lowerExpression(it.expression) }
+                )
+            ).result()
         } else {
             val calleeType = callee.type
             check(calleeType is Type.FunctionPtr)
@@ -191,8 +195,8 @@ internal class HIRGenExpression(
         ).result()
     }
     private fun isIntrinsicCall(expression: Expression.Call): Boolean {
-        return expression.callee is Expression.Intrinsic
-                || (expression.callee is Expression.TypeApplication && expression.callee.lhs is Expression.Intrinsic)
+        return expression.callee is Expression.Intrinsic ||
+            (expression.callee is Expression.TypeApplication && expression.callee.lhs is Expression.Intrinsic)
     }
 
     internal fun lowerEnumMatchExpression(expression: Expression.Match): HIROperand {
@@ -248,10 +252,12 @@ internal class HIRGenExpression(
                                 currentLocation = arg.location
                                 when (arg) {
                                     is Pattern.Val -> {
-                                        val type = ctx.analyzer.typeOfMatchArmEnumCaseArgBinding(Binding.MatchArmEnumCaseArg(
-                                            arm.pattern,
-                                            argIndex
-                                        ))
+                                        val type = ctx.analyzer.typeOfMatchArmEnumCaseArgBinding(
+                                            Binding.MatchArmEnumCaseArg(
+                                                arm.pattern,
+                                                argIndex
+                                            )
+                                        )
                                         val argPatternValRef = emitAlloca(arg.binder.name, type)
 
                                         val payloadType = payloadUnionType.members[index]
@@ -282,18 +288,19 @@ internal class HIRGenExpression(
 
         emit(
             HIRStatement.MatchInt(
-            expression.location,
-            tagVar,
-            arms,
-            otherwise = buildBlock(elseArm?.location ?: expression.location, ctx.makeUniqueName("else")) {
-                if (elseArm != null) {
-                    emitStore(
-                        resultRef.mutPtr(),
-                        lowerExpression(elseArm.value)
-                    )
+                expression.location,
+                tagVar,
+                arms,
+                otherwise = buildBlock(elseArm?.location ?: expression.location, ctx.makeUniqueName("else")) {
+                    if (elseArm != null) {
+                        emitStore(
+                            resultRef.mutPtr(),
+                            lowerExpression(elseArm.value)
+                        )
+                    }
                 }
-            }
-        ))
+            )
+        )
 
         return resultRef.ptr().load()
     }
@@ -302,5 +309,5 @@ internal class HIRGenExpression(
 private val INTRINSIC_TYPE_TO_BINOP = mapOf(
     IntrinsicType.ADD to BinaryOperator.PLUS,
     IntrinsicType.SUB to BinaryOperator.MINUS,
-    IntrinsicType.MUL to BinaryOperator.TIMES,
+    IntrinsicType.MUL to BinaryOperator.TIMES
 )

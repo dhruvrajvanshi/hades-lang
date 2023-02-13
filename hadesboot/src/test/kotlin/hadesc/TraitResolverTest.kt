@@ -1,7 +1,7 @@
 package hadesc
 
-import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitClause
+import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.ast.Binder
@@ -18,7 +18,7 @@ class TraitResolverTest {
     @Test
     fun `should resolve impls without where clauses`() {
         val resolver = makeResolver(
-                impl(params(), qn("Printable"), forType(Type.Bool), requires())
+            impl(params(), qn("Printable"), forType(Type.Bool), requires())
         )
         assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
     }
@@ -27,7 +27,7 @@ class TraitResolverTest {
     fun `should resolve impls with type params`() {
         val self = param("T")
         val resolver = makeResolver(
-                impl(params(self), qn("Printable"), forType(self.ref), requires())
+            impl(params(self), qn("Printable"), forType(self.ref), requires())
         )
 
         assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
@@ -38,29 +38,39 @@ class TraitResolverTest {
     fun `should check impl requirements`() {
         val t = param("T1")
         val resolver = makeResolver(
-                // implementation : Printable[Bool]
-                impl(params(), qn("Printable"), forType(Type.Bool), requires()),
-                // implementation : Printable[i32]
-                impl(params(), qn("Printable"), forType(Type.Integral(32, true)), requires()),
+            // implementation : Printable[Bool]
+            impl(params(), qn("Printable"), forType(Type.Bool), requires()),
+            // implementation : Printable[i32]
+            impl(params(), qn("Printable"), forType(Type.Integral(32, true)), requires()),
 
-                // implementation [T] : Printable[Box[T]] where Printable[T]
-                impl(
-                        params(t), qn("Printable"), forType(
-                            tycon("Box").ap(t.ref)
-                        ),
-                        requires(
-                                requirement(qn("Printable"), t.ref)
-                        )
+            // implementation [T] : Printable[Box[T]] where Printable[T]
+            impl(
+                params(t),
+                qn("Printable"),
+                forType(
+                    tycon("Box").ap(t.ref)
+                ),
+                requires(
+                    requirement(qn("Printable"), t.ref)
                 )
+            )
         )
         assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
         assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Integral(32, true))))
         assert(!resolver.isTraitImplemented(qn("Printable"), forType(tycon("NonPrintable"))))
         assert(resolver.isTraitImplemented(qn("Printable"), forType(tycon("Box").ap(Type.Bool))))
-        assert(resolver.isTraitImplemented(qn("Printable"),
-                forType(tycon("Box").ap(Type.Integral(32, true)))))
-        assert(!resolver.isTraitImplemented(qn("Printable"),
-                forType(tycon("Box").ap(tycon("NonPrintable")))))
+        assert(
+            resolver.isTraitImplemented(
+                qn("Printable"),
+                forType(tycon("Box").ap(Type.Integral(32, true)))
+            )
+        )
+        assert(
+            !resolver.isTraitImplemented(
+                qn("Printable"),
+                forType(tycon("Box").ap(tycon("NonPrintable")))
+            )
+        )
     }
 
     @Test
@@ -77,7 +87,8 @@ class TraitResolverTest {
             impl(params(), qn("Foo"), forType(Type.Bool)),
             impl(
                 params(t),
-                qn("Bar"), forType(t.ref),
+                qn("Bar"),
+                forType(t.ref),
                 requires(
                     TraitRequirement(
                         qn("Foo"),
@@ -112,13 +123,18 @@ class TraitResolverTest {
         val line = 1
         val column = currentColumn
         currentColumn++
-        return Type.Param(Binder(
-                Identifier(SourceLocation(
+        return Type.Param(
+            Binder(
+                Identifier(
+                    SourceLocation(
                         SourcePath(Path.of("test.hds")),
                         Position(line, column),
                         Position(line, column)
-                ),  Name(name))
-        ))
+                    ),
+                    Name(name)
+                )
+            )
+        )
     }
 
     private fun params(vararg params: Type.Param): List<Type.Param> {
@@ -140,6 +156,4 @@ class TraitResolverTest {
     private fun qn(name: String): QualifiedName {
         return QualifiedName(listOf(Name(name)))
     }
-
-
 }

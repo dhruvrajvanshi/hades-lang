@@ -10,12 +10,12 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.ptr
 
-sealed class HIRDefinition: HasLocation {
+sealed class HIRDefinition : HasLocation {
     data class Function(
         override val location: SourceLocation,
         val signature: HIRFunctionSignature,
-        val basicBlocks: MutableList<HIRBlock> = mutableListOf(),
-    ): HIRDefinition() {
+        val basicBlocks: MutableList<HIRBlock> = mutableListOf()
+    ) : HIRDefinition() {
         fun findBlock(label: Name): HIRBlock? {
             return basicBlocks.find { it.name == label }
         }
@@ -32,14 +32,14 @@ sealed class HIRDefinition: HasLocation {
         val typeParams get() = signature.typeParams
         val type get(): Type {
             val functionPtrType = Type.FunctionPtr(
-                    from = params.map { it.type },
-                    to = returnType,
-                    traitRequirements = null
+                from = params.map { it.type },
+                to = returnType,
+                traitRequirements = null
             )
             return if (typeParams != null) {
                 Type.TypeFunction(
-                        params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
-                        body = functionPtrType
+                    params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
+                    body = functionPtrType
                 )
             } else {
                 functionPtrType
@@ -64,24 +64,24 @@ sealed class HIRDefinition: HasLocation {
     }
 
     data class Const(
-            override val location: SourceLocation,
-            val name: QualifiedName,
-            val initializer: HIRExpression
+        override val location: SourceLocation,
+        val name: QualifiedName,
+        val initializer: HIRExpression
     ) : HIRDefinition() {
         val type get() = initializer.type
     }
 
     data class ExternFunction(
-            override val location: SourceLocation,
-            val name: QualifiedName,
-            val params: List<Type>,
-            val returnType: Type,
-            val externName: Name
+        override val location: SourceLocation,
+        val name: QualifiedName,
+        val params: List<Type>,
+        val returnType: Type,
+        val externName: Name
     ) : HIRDefinition() {
         val type get() = Type.FunctionPtr(
-                from = params,
-                to = returnType,
-                traitRequirements = null
+            from = params,
+            to = returnType,
+            traitRequirements = null
         )
     }
 
@@ -89,50 +89,52 @@ sealed class HIRDefinition: HasLocation {
         override val location: SourceLocation,
         val name: QualifiedName,
         val type: Type,
-        val externName: Name,
+        val externName: Name
     ) : HIRDefinition()
 
     data class Implementation(
-            override val location: SourceLocation,
-            val traitRequirements: List<TraitRequirement>,
-            val typeParams: List<HIRTypeParam>?,
-            val typeAliases: Map<Name, Type>,
-            val traitName: QualifiedName,
-            val traitArgs: List<Type>,
-            val functions: List<Function>
-    ): HIRDefinition() {
+        override val location: SourceLocation,
+        val traitRequirements: List<TraitRequirement>,
+        val typeParams: List<HIRTypeParam>?,
+        val typeAliases: Map<Name, Type>,
+        val traitName: QualifiedName,
+        val traitArgs: List<Type>,
+        val functions: List<Function>
+    ) : HIRDefinition() {
         init {
             require(traitArgs.isNotEmpty())
         }
     }
 
     data class Struct(
-            override val location: SourceLocation,
-            val name: QualifiedName,
-            val typeParams: List<HIRTypeParam>?,
-            val fields: List<Pair<Name, Type>>
+        override val location: SourceLocation,
+        val name: QualifiedName,
+        val typeParams: List<HIRTypeParam>?,
+        val fields: List<Pair<Name, Type>>
     ) : HIRDefinition() {
 
         val constructorType get(): Type {
             val instanceConstructorType = Type.Constructor(name)
             val instanceType =
-                if (typeParams == null)
+                if (typeParams == null) {
                     instanceConstructorType
-                else
+                } else {
                     Type.Application(instanceConstructorType, typeParams.map { Type.ParamRef(it.toBinder()) })
+                }
             val fnType = Type.FunctionPtr(
                 from = fields.map { it.second },
                 to = instanceType,
                 traitRequirements = null
             )
 
-            return if (typeParams == null)
+            return if (typeParams == null) {
                 fnType
-            else
+            } else {
                 Type.TypeFunction(
                     params = typeParams.map { Type.Param(it.toBinder()) },
                     body = fnType
                 )
+            }
         }
 
         fun instanceType(typeArgs: List<Type> = emptyList()): Type {
@@ -164,40 +166,42 @@ sealed class HIRDefinition: HasLocation {
         }
     }
 
-    fun prettyPrint(): String = when(this) {
+    fun prettyPrint(): String = when (this) {
         is Function -> {
             "${signature.prettyPrint()} {\n" +
-            basicBlocks.joinToString("\n") { block ->
-                block.name.text + ":\n  " +
+                basicBlocks.joinToString("\n") { block ->
+                    block.name.text + ":\n  " +
                         block.statements.joinToString("\n  ") { it.prettyPrint() }
-            } +
-            "\n}"
+                } +
+                "\n}"
         }
         is ExternFunction -> {
             "extern def ${name.mangle()}(${params.joinToString(", ") {it.prettyPrint()}})" +
-                    ": ${returnType.prettyPrint()} = ${externName.text}"
+                ": ${returnType.prettyPrint()} = ${externName.text}"
         }
         is Struct -> {
-            val typeParamsStr = if (typeParams == null)
+            val typeParamsStr = if (typeParams == null) {
                 ""
-            else "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "]"
+            } else {
+                "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "]"
+            }
             "struct ${name.mangle()}$typeParamsStr {\n" +
-                    fields.joinToString("\n") {
-                        "  val ${it.first.text}: ${it.second.prettyPrint()}"
-                    } +
-                    "\n}"
+                fields.joinToString("\n") {
+                    "  val ${it.first.text}: ${it.second.prettyPrint()}"
+                } +
+                "\n}"
         }
         is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
-        is Implementation -> "implementation" +
-                ppTypeParams(typeParams)  +
-             "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
+        is Implementation ->
+            "implementation" +
+                ppTypeParams(typeParams) +
+                "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
                 ppTraitRequirements(traitRequirements) +
                 "{\n" +
                 functions.joinToString("\n") { it.prettyPrint() }.prependIndent("  ") +
                 "\n}"
         is ExternConst -> "extern const ${name.mangle()}: ${type.prettyPrint()} = $externName"
     }
-
 }
 private fun ppTraitRequirements(traitRequirements: List<TraitRequirement>): String {
     if (traitRequirements.isEmpty()) {

@@ -40,8 +40,8 @@ sealed class TypeAnnotation : HasLocation {
     data class Closure(
         override val location: SourceLocation,
         val from: List<TypeAnnotation>,
-        val to: TypeAnnotation,
-    ): TypeAnnotation()
+        val to: TypeAnnotation
+    ) : TypeAnnotation()
 
     data class Union(
         override val location: SourceLocation,
@@ -51,6 +51,6 @@ sealed class TypeAnnotation : HasLocation {
     data class Select(
         override val location: SourceLocation,
         val lhs: TypeAnnotation,
-        val rhs: Identifier,
+        val rhs: Identifier
     ) : TypeAnnotation()
 }

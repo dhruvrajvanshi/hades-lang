@@ -7,7 +7,7 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.experimental.ExperimentalTypeInference
 
-inline fun <reified T: Pointer> List<T>.asPointerPointer(): PointerPointer<T> {
+inline fun <reified T : Pointer> List<T>.asPointerPointer(): PointerPointer<T> {
     return PointerPointer(*this.toTypedArray())
 }
 
@@ -18,7 +18,6 @@ fun Boolean.toLLVMBool(): Int {
 @Suppress("EXPERIMENTAL_IS_NOT_ENABLED")
 @OptIn(ExperimentalTypeInference::class, kotlin.contracts.ExperimentalContracts::class)
 inline fun <reified T> makeList(@BuilderInference builder: MutableList<T>.() -> Unit): List<T> {
-
     contract {
         callsInPlace(builder, InvocationKind.EXACTLY_ONCE)
     }
@@ -31,7 +30,7 @@ inline fun <reified T> makeList(@BuilderInference builder: MutableList<T>.() -> 
 
 object LLVMUtils {
     @JvmStatic
-    fun lookupIntrinsicID(name: String): Int  {
+    fun lookupIntrinsicID(name: String): Int {
         return LLVM.LLVMLookupIntrinsicID(name, name.length.toLong())
     }
 }

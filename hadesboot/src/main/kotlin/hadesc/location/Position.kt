@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Position(
     val line: Int,
-    val column: Int,
+    val column: Int
 ) : Comparable<Position> {
     override fun toString(): String {
         return "(Line: $line, Column: $column)"
@@ -27,7 +27,9 @@ data class Position(
         }
         return if (line == other.line) {
             column > other.column
-        } else line > other.line
+        } else {
+            line > other.line
+        }
     }
 
     fun lte(other: Position): Boolean {
@@ -36,6 +38,8 @@ data class Position(
         }
         return if (line == other.line) {
             column < other.column
-        } else line < other.line
+        } else {
+            line < other.line
+        }
     }
 }

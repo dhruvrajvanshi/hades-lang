@@ -2,9 +2,8 @@ package hadesc.ast
 
 import hadesc.unit
 
-
 interface SyntaxVisitor {
-    fun visitType(type: TypeAnnotation): Unit = when(type) {
+    fun visitType(type: TypeAnnotation): Unit = when (type) {
         is TypeAnnotation.Application -> visitTypeApplicationType(type)
         is TypeAnnotation.Error -> visitErrorType(type)
         is TypeAnnotation.FunctionPtr -> visitFunctionType(type)
@@ -27,7 +26,6 @@ interface SyntaxVisitor {
     }
 
     fun visitVarType(type: TypeAnnotation.Var) {
-
     }
 
     fun visitUnionType(type: TypeAnnotation.Union) {
@@ -51,7 +49,6 @@ interface SyntaxVisitor {
     }
 
     fun visitErrorType(type: TypeAnnotation.Error) {
-
     }
 
     fun visitTypeApplicationType(type: TypeAnnotation.Application) {
@@ -59,7 +56,7 @@ interface SyntaxVisitor {
         type.args.forEach { visitType(it) }
     }
 
-    fun visitExpression(expression: Expression): Unit = when(expression) {
+    fun visitExpression(expression: Expression): Unit = when (expression) {
         is Expression.AddressOf -> visitAddressOfExpr(expression)
         is Expression.AddressOfMut -> visitAddressOfMutExpr(expression)
         is Expression.BinaryOperation -> visitBinaryOperationExpr(expression)
@@ -127,7 +124,6 @@ interface SyntaxVisitor {
     }
 
     fun visitByteStringExpr(expression: Expression.ByteString) {
-
     }
 
     fun visitCallExpr(expression: Expression.Call) {
@@ -159,7 +155,7 @@ interface SyntaxVisitor {
         }
     }
 
-    fun visitStatement(statement: Statement): Unit = when(statement) {
+    fun visitStatement(statement: Statement): Unit = when (statement) {
         is Statement.Defer -> visitDeferStatement(statement)
         is Statement.Error -> visitErrorStatement(statement)
         is Statement.If -> visitIfStatement(statement)
@@ -196,7 +192,6 @@ interface SyntaxVisitor {
     }
 
     fun visitLocalAssignment(statement: Statement.LocalAssignment) {
-
     }
 
     fun visitIfStatement(statement: Statement.If) {
@@ -226,7 +221,6 @@ interface SyntaxVisitor {
     }
 
     fun visitErrorExpr(expression: Expression.Error) {
-
     }
 
     fun visitIfExpr(expression: Expression.If) {
@@ -244,7 +238,6 @@ interface SyntaxVisitor {
     }
 
     fun visitNullPtrExpr(expression: Expression.NullPtr) {
-
     }
 
     fun visitPointerCast(expression: Expression.PointerCast) {
@@ -289,7 +282,7 @@ interface SyntaxVisitor {
         visitExpression(expression.expression)
     }
 
-    fun visitPattern(pattern: Pattern): Unit = when(pattern) {
+    fun visitPattern(pattern: Pattern): Unit = when (pattern) {
         is Pattern.IntLiteral -> visitIntPattern(pattern)
         is Pattern.Wildcard -> visitWildcardPattern(pattern)
         is Pattern.EnumCase -> visitEnumCasePattern(pattern)

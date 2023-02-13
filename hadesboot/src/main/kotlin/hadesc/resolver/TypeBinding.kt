@@ -7,17 +7,17 @@ import hadesc.types.Type
 
 sealed class TypeBinding {
     data class Struct(
-            val declaration: Declaration.Struct
+        val declaration: Declaration.Struct
     ) : TypeBinding()
 
     data class TypeParam(val binder: Binder) : TypeBinding()
 
     data class TypeAlias(
-            val declaration: Declaration.TypeAlias
+        val declaration: Declaration.TypeAlias
     ) : TypeBinding()
 
     data class Trait(
-            val declaration: Declaration.TraitDef
+        val declaration: Declaration.TraitDef
     ) : TypeBinding()
 
     data class Enum(
@@ -28,7 +28,7 @@ sealed class TypeBinding {
 
     data class AssociatedType(val binder: Binder) : TypeBinding()
 
-    fun isLocalTo(scope: HasLocation) = when(this) {
+    fun isLocalTo(scope: HasLocation) = when (this) {
         is TypeParam -> binder.location.isWithin(scope.location)
         else -> false
     }
