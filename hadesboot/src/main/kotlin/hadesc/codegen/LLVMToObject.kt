@@ -13,6 +13,7 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteExisting
 
+private val hadesHome = System.getenv("HADES_HOME")
 class LLVMToObject(private val options: BuildOptions, private val target: BuildTarget, private val llvmModule: LLVMModuleRef) {
     private val log = logger(LLVMToObject::class.java)
     private val objectFilePath get() = target.output.toString() + if (shouldUseMicrosoftCL) ".obj" else ".o"
@@ -72,6 +73,19 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         commandParts.add(objectFilePath)
         commandParts.addAll(options.cFlags)
         commandParts.addAll(options.libs.map { "-l$it" })
+
+        if (shouldUseMicrosoftCL) {
+            commandParts.add("/MD")
+            commandParts.add("-I")
+            commandParts.add("$hadesHome/include")
+            commandParts.addAll(
+                sequenceOf("gc.lib", "cord.lib", "atomic_ops.lib").map { "$hadesHome/lib/$it" }
+            )
+        } else {
+            commandParts.add("-L$hadesHome/lib")
+            commandParts.add("-I$hadesHome/include")
+            commandParts.add("-lgc")
+        }
 
         val outputFile = target.output?.toFile()
         check(outputFile != null)

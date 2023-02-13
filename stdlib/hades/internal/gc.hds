@@ -1,0 +1,11 @@
+
+/// Allocate a GC object that will be cleaned up
+/// automatically. Thread safe
+extern def gc_alloc(usize): *mut Void = __hades_gc_alloc
+
+/// Allocate an opaque buffer managed by the GC.
+/// This will be cleaned up automatically, but
+/// this won't be scanned for pointers.
+/// Use this to allocate strings, byte buffers, anything
+/// that doesn't point to other objects.
+extern def gc_alloc_bytes(usize): *mut Void = __hades_gc_alloc_bytes

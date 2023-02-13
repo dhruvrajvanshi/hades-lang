@@ -49,6 +49,8 @@ jobs:
         if: matrix.os == 'windows-latest'
 
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
