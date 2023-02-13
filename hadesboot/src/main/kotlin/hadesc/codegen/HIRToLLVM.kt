@@ -284,10 +284,10 @@ class HIRToLLVM(
         check(fnType is Type.FunctionPtr)
         return llvmModule.getFunction(name)
             ?: llvmModule.addFunction(
-            name,
-            from = fnType.from.map { lowerType(it) },
-            to = lowerType(fnType.to)
-        )
+                name,
+                from = fnType.from.map { lowerType(it) },
+                to = lowerType(fnType.to)
+            )
     }
 
     private fun getConstRef(definition: HIRDefinition.ExternConst): Value {
