@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm") version "1.8.10"
     kotlin("plugin.serialization") version "1.8.10"
     jacoco
+    id("org.jmailen.kotlinter") version "3.13.0"
 }
 
 val logbackVersion = "1.4.5"
@@ -111,4 +112,11 @@ distributions {
             exclude("**/llvm-*-macos-x86.jar")
         }
     }
+}
+
+kotlinter {
+    ignoreFailures = false
+    reporters = arrayOf("checkstyle", "plain")
+    experimentalRules = false
+    disabledRules = arrayOf("no-wildcard-imports", "filename")
 }
