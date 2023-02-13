@@ -1,6 +1,5 @@
 package libhades.collections
 
-
 class Stack<T> {
     private val items = mutableListOf<T>()
 

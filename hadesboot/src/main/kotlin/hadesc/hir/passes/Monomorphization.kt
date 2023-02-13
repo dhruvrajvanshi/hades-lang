@@ -16,8 +16,8 @@ import hadesc.types.toSubstitution
 import java.util.concurrent.LinkedBlockingQueue
 
 class Monomorphization(
-        override val namingCtx: NamingContext
-): AbstractHIRTransformer() {
+    override val namingCtx: NamingContext
+) : AbstractHIRTransformer() {
     private val log = logger(Monomorphization::class.java)
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
@@ -60,7 +60,7 @@ class Monomorphization(
             returnType = lowerType(definition.returnType),
             typeParams = null,
             name = request.name,
-            params = definition.params.map { transformParam(it) },
+            params = definition.params.map { transformParam(it) }
         )
         module.addDefinition(
             HIRDefinition.Function(
@@ -89,7 +89,8 @@ class Monomorphization(
                         signature = specializeFunctionSignature(
                             request.name,
                             request.typeArgs,
-                            definition.signature),
+                            definition.signature
+                        ),
                         basicBlocks = definition.basicBlocks.map { transformBlock(it) }.toMutableList()
                     )
                 )
@@ -134,7 +135,7 @@ class Monomorphization(
             returnType = lowerType(definition.returnType),
             typeParams = null,
             name = getSpecializedName(name, typeArgs),
-            params = definition.params.map { transformParam(it) },
+            params = definition.params.map { transformParam(it) }
         )
     }
 
@@ -163,7 +164,6 @@ class Monomorphization(
         return listOf()
     }
 
-
     private val specializedFnRef = mutableMapOf<Name, HIROperand>()
     override fun transformTypeApplication(statement: HIRStatement.TypeApplication): List<HIRStatement> {
         val specializedRef = generateSpecialization(statement.expression, statement.args)
@@ -179,7 +179,7 @@ class Monomorphization(
         return super.transformLocalRef(expression)
     }
 
-    private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIROperand = when(expression) {
+    private fun generateSpecialization(expression: HIRExpression, typeArgs: List<Type>): HIROperand = when (expression) {
         is HIRExpression.GlobalRef -> {
             val name = getSpecializedName(expression.name, typeArgs.map { lowerType(it) })
             val definition = oldModule.findGlobalDefinition(expression.name)
@@ -220,12 +220,16 @@ class Monomorphization(
     }
 
     private fun specializeName(name: QualifiedName, typeArgs: List<Type>): QualifiedName {
-        return QualifiedName(listOf(
+        return QualifiedName(
+            listOf(
                 *name.names.toTypedArray(),
-                namingCtx.makeName("[" +
+                namingCtx.makeName(
+                    "[" +
                         typeArgs.map { lowerType(it) }.joinToString(",") { it.prettyPrint() } +
-                "]")
-        ))
+                        "]"
+                )
+            )
+        )
     }
 
     override fun lowerRawPtrType(type: Type.Ptr): Type {
@@ -288,14 +292,13 @@ class Monomorphization(
         // ------------------------------------------
         // isCandidate(impl [Ps...] T[...Ps])
 
-
         //
         // ------------
         // isCandidate(Printable[Box[X, Y]], impl [A, B] Printable[Box[A, B]] where Printable[A], Printable[B]
 
         val traitArgs = requiredTraitArgs
             .map { lowerType(it) }
-            .map { if (it is Type.Constructor) specializedTypes[it.name] ?: it else  it }
+            .map { if (it is Type.Constructor) specializedTypes[it.name] ?: it else it }
 
         val eligibleCandidates = mutableListOf<Pair<HIRDefinition.Implementation, Substitution>>()
         for (candidate in allImpls) {
@@ -303,13 +306,17 @@ class Monomorphization(
             if (candidate.traitName != traitName) continue
             val substitutionMap =
                 candidate.typeParams?.associate { it.location to typeAnalyzer.makeGenericInstance(it.toBinder()) }
-                ?: emptyMap()
+                    ?: emptyMap()
             val substitution = substitutionMap.toSubstitution()
             if (!traitArgs.zip(candidate.traitArgs).all { (requiredType, actualType) ->
-                    typeAnalyzer.isTypeAssignableTo(
+                typeAnalyzer.isTypeAssignableTo(
                         destination = requiredType,
-                        source = actualType.applySubstitution(substitution))
-                }) continue
+                        source = actualType.applySubstitution(substitution)
+                    )
+            }
+            ) {
+                continue
+            }
 
             val traitResolver = TraitResolver(
                 TraitResolver.Env(globalTraitClauses),
@@ -317,16 +324,22 @@ class Monomorphization(
             )
 
             if (!candidate.traitRequirements.all { requirement ->
-                    traitResolver.isSatisfied(
+                traitResolver.isSatisfied(
                         requirement.copy(
-                            arguments = requirement.arguments.map { it.applySubstitution(substitution) })
-                        )
-            })
+                                arguments = requirement.arguments.map { it.applySubstitution(substitution) }
+                            )
+                    )
+            }
+            ) {
                 continue
-            val subst = (substitutionMap.mapValues {
-                requireNotNull(typeAnalyzer.getInstantiatedType(it.value)) })
+            }
+            val subst = (
+                substitutionMap.mapValues {
+                    requireNotNull(typeAnalyzer.getInstantiatedType(it.value))
+                }
+                )
             eligibleCandidates.add(
-                    candidate to subst.toSubstitution()
+                candidate to subst.toSubstitution()
             )
         }
         require(eligibleCandidates.isNotEmpty()) {
@@ -368,16 +381,17 @@ class Monomorphization(
             if (typeArgs.isEmpty()) {
                 transformFunctionDef(fn, name).forEach { newDefinitions.add(it) }
             } else {
-
-                specializationQueue.add(SpecializationRequest.FunctionDef(
-                    name = name,
-                    typeArgs = typeArgs,
-                    def = fn.copy(
-                        signature = fn.signature.copy(
-                            typeParams = impl.typeParams
+                specializationQueue.add(
+                    SpecializationRequest.FunctionDef(
+                        name = name,
+                        typeArgs = typeArgs,
+                        def = fn.copy(
+                            signature = fn.signature.copy(
+                                typeParams = impl.typeParams
+                            )
                         )
                     )
-                ))
+                )
             }
         }
         return result
@@ -385,8 +399,6 @@ class Monomorphization(
 
     private val HIRDefinition.Implementation.name get() =
         namingCtx.makeName("${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
-
-
 }
 
 sealed class SpecializationRequest {

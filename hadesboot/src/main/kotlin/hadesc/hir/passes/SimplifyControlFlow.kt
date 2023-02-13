@@ -47,9 +47,11 @@ class SimplifyControlFlow(private val ctx: Context) {
         }
 
     private fun visitImplementationDef(definition: HIRDefinition.Implementation) {
-        outputModule.addDefinition(definition.copy(
-            functions = definition.functions.map { transformFunctionDef(it) }
-        ))
+        outputModule.addDefinition(
+            definition.copy(
+                functions = definition.functions.map { transformFunctionDef(it) }
+            )
+        )
     }
 
     private fun transformFunctionDef(definition: HIRDefinition.Function): HIRDefinition.Function {
@@ -88,11 +90,11 @@ class SimplifyControlFlow(private val ctx: Context) {
     }
 
     sealed interface StatementControlFlow {
-        object EarlyReturn: StatementControlFlow
-        object NoEarlyReturn: StatementControlFlow
+        object EarlyReturn : StatementControlFlow
+        object NoEarlyReturn : StatementControlFlow
     }
     private fun lowerStatement(statement: HIRStatement): StatementControlFlow =
-        when(statement) {
+        when (statement) {
             is HIRStatement.MatchInt -> lowerMatchInt(statement).let { StatementControlFlow.NoEarlyReturn }
             is HIRStatement.While -> lowerWhileStatement(statement).let { StatementControlFlow.NoEarlyReturn }
             is HIRStatement.Return -> {
@@ -111,7 +113,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         appendStatement(goto(statement.conditionBlock.location, whileEntry.name))
         withinBlock(whileEntry) {
             for (s in statement.conditionBlock.statements) {
-                when(lowerStatement(s)) {
+                when (lowerStatement(s)) {
                     StatementControlFlow.EarlyReturn -> break
                     StatementControlFlow.NoEarlyReturn -> unit
                 }
@@ -132,7 +134,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         withinBlock(whileBody) {
             var earlyReturn = false
             for (s in statement.body.statements) {
-                when(lowerStatement(s)) {
+                when (lowerStatement(s)) {
                     StatementControlFlow.EarlyReturn -> {
                         earlyReturn = true
                         break
@@ -146,7 +148,6 @@ class SimplifyControlFlow(private val ctx: Context) {
                 )
             }
         }
-
 
         currentBlock = whileExit
     }
@@ -274,13 +275,13 @@ class SimplifyControlFlow(private val ctx: Context) {
             is HIRStatement.Move,
             is HIRStatement.Memcpy,
             is HIRStatement.PtrToInt,
-            is HIRStatement.IntToPtr,
+            is HIRStatement.IntToPtr
             -> false
 
             is HIRStatement.Return,
             is HIRStatement.Jump,
-            is HIRStatement.SwitchInt,
-                -> true
+            is HIRStatement.SwitchInt
+            -> true
             is HIRStatement.MatchInt -> requireUnreachable()
             is HIRStatement.While -> requireUnreachable()
         }
@@ -291,7 +292,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         return block
     }
 
-    private fun <T: HIRStatement> appendStatement(statement: T, intoBlock: HIRBlock = checkNotNull(currentBlock)): T {
+    private fun <T : HIRStatement> appendStatement(statement: T, intoBlock: HIRBlock = checkNotNull(currentBlock)): T {
         intoBlock.statements.add(statement)
         return statement
     }

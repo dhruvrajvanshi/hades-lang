@@ -5,7 +5,7 @@ import com.github.ajalt.clikt.core.subcommands
 import hadesc.cli.BuildCommand
 import hadesc.cli.TestCommand
 
-class MainCommand: CliktCommand(name = "hades") {
+class MainCommand : CliktCommand(name = "hades") {
     override fun run() = unit
 }
 fun main(args: Array<String>) {

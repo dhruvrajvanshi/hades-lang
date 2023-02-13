@@ -31,7 +31,7 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun checkDeclaration(declaration: Declaration) = when(declaration) {
+    private fun checkDeclaration(declaration: Declaration) = when (declaration) {
         is Declaration.Error -> {}
         is Declaration.ImportAs -> checkImportAsDeclaration(declaration)
         is Declaration.ImportMembers -> checkImportMembersDeclaration(declaration)
@@ -81,7 +81,9 @@ class Checker(val ctx: Context) {
 
         val expectedMethods = if (traitDef is Declaration.TraitDef) {
             traitDef.expectedMethods(implDef.traitArguments.map { it.type })
-        } else emptyMap()
+        } else {
+            emptyMap()
+        }
         val expectedAssociatedTypes = if (traitDef is Declaration.TraitDef) {
             traitDef.expectedAssociatedTypes()
         } else {
@@ -102,9 +104,13 @@ class Checker(val ctx: Context) {
                 require(typeOfMethod is Type.FunctionPtr)
                 val expectedType = expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
                 if (expectedType != null && !typeOfMethod.isAssignableTo(declaration, expectedType)) {
-                    error(declaration.name, Diagnostic.Kind.TraitMethodTypeMismatch(
-                        expected = expectedType, found = typeOfMethod
-                    ))
+                    error(
+                        declaration.name,
+                        Diagnostic.Kind.TraitMethodTypeMismatch(
+                            expected = expectedType,
+                            found = typeOfMethod
+                        )
+                    )
                 }
             } else if (declaration is Declaration.TypeAlias) {
                 checkTypeAlias(declaration, skipDuplicateDeclarationCheck = true)
@@ -150,7 +156,6 @@ class Checker(val ctx: Context) {
             map[method.name.identifier.name] = fnType
         }
         return map
-
     }
 
     private fun checkWhereClause(whereClause: WhereClause) {
@@ -168,7 +173,6 @@ class Checker(val ctx: Context) {
             error(requirement.path, Diagnostic.Kind.NotATrait)
         }
     }
-
 
     private val TypeAnnotation.type get() = ctx.analyzer.annotationToType(this)
 
@@ -201,7 +205,6 @@ class Checker(val ctx: Context) {
 
     private fun checkExternConstDef(declaration: Declaration.ExternConst) {
         checkTypeAnnotation(declaration.type)
-
     }
 
     private fun checkConstDefinition(declaration: Declaration.ConstDefinition) {
@@ -267,7 +270,7 @@ class Checker(val ctx: Context) {
         checkTypeAnnotation(declaration.rhs)
     }
 
-    private fun checkTypeAnnotation(annotation: TypeAnnotation): Unit = when(annotation) {
+    private fun checkTypeAnnotation(annotation: TypeAnnotation): Unit = when (annotation) {
         is TypeAnnotation.Error -> unit
         is TypeAnnotation.Var -> {
             val resolved = ctx.resolver.resolveTypeVariable(annotation.name)
@@ -331,7 +334,7 @@ class Checker(val ctx: Context) {
         }
     }
 
-    private fun checkReturnType(node: HasLocation, type:Type) {
+    private fun checkReturnType(node: HasLocation, type: Type) {
         checkReturnTypeWorker(node, ctx.analyzer.reduceGenericInstances(type))
     }
     private fun checkReturnTypeWorker(node: HasLocation, unreducedType: Type, typeArguments: List<Type>? = null): Unit = when (val type = ctx.analyzer.reduceGenericInstances(unreducedType)) {
@@ -339,27 +342,26 @@ class Checker(val ctx: Context) {
             checkReturnTypeWorker(node, type.callee, typeArguments = type.args)
         }
         is Type.Constructor -> {
-
             when (val declaration = ctx.resolver.resolveDeclaration(type.name)) {
                 is Declaration.Struct -> {
-
                     val substitution =
-                        if (typeArguments != null && declaration.typeParams != null)
+                        if (typeArguments != null && declaration.typeParams != null) {
                             declaration.typeParams.zip(typeArguments).toSubstitution()
-                        else
+                        } else {
                             emptySubstitution()
+                        }
                     val fieldTypes = declaration.members.filterIsInstance<Declaration.Struct.Member.Field>()
                         .map { it.typeAnnotation.type }
                         .map { it.applySubstitution(substitution) }
                     fieldTypes.forEach { checkReturnTypeWorker(node, it) }
                 }
                 is Declaration.Enum -> {
-
                     val substitution =
-                        if (typeArguments != null && declaration.typeParams != null)
+                        if (typeArguments != null && declaration.typeParams != null) {
                             declaration.typeParams.zip(typeArguments).toSubstitution()
-                        else
+                        } else {
                             emptySubstitution()
+                        }
                     val memberTypes = declaration.cases
                         .asSequence()
                         .mapNotNull { it.params }
@@ -420,14 +422,13 @@ class Checker(val ctx: Context) {
         returnTypeStack.push(ctx.analyzer.annotationToType(declaration.signature.returnType))
         checkBlock(declaration.body)
         returnTypeStack.pop()
-
     }
 
     private fun checkBlock(body: Block) {
         body.members.forEach { checkBlockMember(it) }
     }
 
-    private fun checkStatement(statement: Statement): Unit = when(statement) {
+    private fun checkStatement(statement: Statement): Unit = when (statement) {
         is Statement.Return -> checkReturnStatement(statement)
         is Statement.Val -> checkValStatement(statement)
         is Statement.While -> checkWhileStatement(statement)
@@ -499,7 +500,6 @@ class Checker(val ctx: Context) {
                 error(statement.lhs, Diagnostic.Kind.NotAPointerType(lhsType))
             }
         }
-
     }
 
     private fun checkLocalAssignment(statement: Statement.LocalAssignment) {
@@ -532,9 +532,13 @@ class Checker(val ctx: Context) {
         checkExpression(expression)
         val exprType = ctx.analyzer.typeOfExpression(expression)
         if (!exprType.isAssignableTo(expression, type)) {
-            error(expression, Diagnostic.Kind.TypeNotAssignable(
-                source = ctx.analyzer.reduceGenericInstances(ctx.analyzer.reduceAssociatedType(exprType, expression)),
-                destination = type))
+            error(
+                expression,
+                Diagnostic.Kind.TypeNotAssignable(
+                    source = ctx.analyzer.reduceGenericInstances(ctx.analyzer.reduceAssociatedType(exprType, expression)),
+                    destination = type
+                )
+            )
         }
     }
 
@@ -542,7 +546,7 @@ class Checker(val ctx: Context) {
         checkBlockMember(statement.blockMember)
     }
 
-    private fun checkBlockMember(blockMember: Block.Member) = when(blockMember) {
+    private fun checkBlockMember(blockMember: Block.Member) = when (blockMember) {
         is Block.Member.Expression -> checkExpression(blockMember.expression)
         is Block.Member.Statement -> checkStatement(blockMember.statement)
     }
@@ -553,8 +557,9 @@ class Checker(val ctx: Context) {
         }
         val expectedReturnType = requireNotNull(returnTypeStack.peek())
 
-        if (expectedReturnType.isAssignableTo(statement, Type.Void)
-            && statement.value != null) {
+        if (expectedReturnType.isAssignableTo(statement, Type.Void) &&
+            statement.value != null
+        ) {
             error(statement, Diagnostic.Kind.ReturningFromVoidFunction)
         }
         if (statement.value != null) {
@@ -586,41 +591,42 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkExpression(expression: Expression) {
-        exhaustive(when (expression) {
-            is Expression.Error -> unit
-            is Expression.Var -> checkVarExpression(expression)
-            is Expression.Call -> checkCallExpression(expression)
-            is Expression.Property -> checkPropertyExpression(expression)
-            is Expression.ByteString -> Unit
-            is Expression.BoolLiteral -> Unit
-            is Expression.NullPtr -> checkNullPtrExpression(expression)
-            is Expression.IntLiteral -> Unit
-            is Expression.FloatLiteral -> unit
-            is Expression.Not -> checkNotExpression(expression)
-            is Expression.BinaryOperation -> checkBinaryOperation(expression)
-            is Expression.SizeOf -> checkSizeOf(expression)
-            is Expression.AlignOf -> checkAlignOf(expression)
-            is Expression.AddressOf -> checkAddressOf(expression)
-            is Expression.AddressOfMut -> checkAddressOfMut(expression)
-            is Expression.Deref -> checkDeref(expression)
-            is Expression.PointerCast -> checkPointerCast(expression)
-            is Expression.If -> checkIfExpression(expression)
-            is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
-            is Expression.Closure -> checkClosureExpression(expression)
-            is Expression.This -> checkThisExpression(expression)
-            is Expression.As -> checkAsExpression(expression)
-            is Expression.BlockExpression -> checkBlockExpression(expression)
-            is Expression.Intrinsic -> checkIntrinsicExpression(expression)
-            is Expression.UnaryMinus -> checkUnaryMinusExpression(expression)
-            is Expression.ByteCharLiteral -> unit
-            is Expression.Match -> checkMatchExpression(expression)
-            is Expression.Uninitialized -> unit
-            is Expression.Move -> checkMoveExpression(expression)
-        })
+        exhaustive(
+            when (expression) {
+                is Expression.Error -> unit
+                is Expression.Var -> checkVarExpression(expression)
+                is Expression.Call -> checkCallExpression(expression)
+                is Expression.Property -> checkPropertyExpression(expression)
+                is Expression.ByteString -> Unit
+                is Expression.BoolLiteral -> Unit
+                is Expression.NullPtr -> checkNullPtrExpression(expression)
+                is Expression.IntLiteral -> Unit
+                is Expression.FloatLiteral -> unit
+                is Expression.Not -> checkNotExpression(expression)
+                is Expression.BinaryOperation -> checkBinaryOperation(expression)
+                is Expression.SizeOf -> checkSizeOf(expression)
+                is Expression.AlignOf -> checkAlignOf(expression)
+                is Expression.AddressOf -> checkAddressOf(expression)
+                is Expression.AddressOfMut -> checkAddressOfMut(expression)
+                is Expression.Deref -> checkDeref(expression)
+                is Expression.PointerCast -> checkPointerCast(expression)
+                is Expression.If -> checkIfExpression(expression)
+                is Expression.TypeApplication -> checkTypeApplicationExpression(expression)
+                is Expression.Closure -> checkClosureExpression(expression)
+                is Expression.This -> checkThisExpression(expression)
+                is Expression.As -> checkAsExpression(expression)
+                is Expression.BlockExpression -> checkBlockExpression(expression)
+                is Expression.Intrinsic -> checkIntrinsicExpression(expression)
+                is Expression.UnaryMinus -> checkUnaryMinusExpression(expression)
+                is Expression.ByteCharLiteral -> unit
+                is Expression.Match -> checkMatchExpression(expression)
+                is Expression.Uninitialized -> unit
+                is Expression.Move -> checkMoveExpression(expression)
+            }
+        )
     }
 
     private fun checkMoveExpression(expression: Expression.Move) {
-
         when (val binding = ctx.resolver.resolve(expression.name)) {
             is Binding.Local -> {
                 val enclosingClosure = ctx.resolver.getEnclosingClosure(expression)
@@ -629,8 +635,8 @@ class Checker(val ctx: Context) {
                         expression.name,
                         Diagnostic.Kind.UseAfterMove(
                             expression.name.location,
-                            hint="Since closures might be called multiple times, we have to " +
-                                    "assume that it might already be moved on subsequent invocations."
+                            hint = "Since closures might be called multiple times, we have to " +
+                                "assume that it might already be moved on subsequent invocations."
                         )
                     )
                 }
@@ -641,11 +647,10 @@ class Checker(val ctx: Context) {
                         expression.name,
                         Diagnostic.Kind.UseAfterMove(
                             expression.name.location,
-                            hint="Moved in the previous iteration of the loop."
+                            hint = "Moved in the previous iteration of the loop."
                         )
                     )
                 }
-
             }
             null -> {
                 error(expression, Diagnostic.Kind.UnboundVariable(expression.name.name))
@@ -674,7 +679,6 @@ class Checker(val ctx: Context) {
         }
 
         checkPatternExhaustivity(expression.value, expression.value.type, expression.arms)
-
     }
 
     private fun checkPatternHasType(pattern: Pattern, type: Type) {
@@ -759,7 +763,6 @@ class Checker(val ctx: Context) {
                     else -> error(expression, Diagnostic.Kind.TypeDoesNotSupportArithmetic(typeArg))
                 }
 
-
                 unit
             }
             IntrinsicType.PTR_TO_INT -> unit
@@ -791,7 +794,6 @@ class Checker(val ctx: Context) {
 
         val lhsType = expression.lhs.type
 
-
         if (!lhsType.isIntegral()) {
             error(expression.lhs, Diagnostic.Kind.NotAnIntegralValue)
         }
@@ -822,7 +824,6 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkThisExpression(expression: Expression.This) {
-
         val extension = ctx.resolver.getEnclosingExtensionDef(expression)
 
         if (extension == null) {
@@ -894,7 +895,6 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkValueIsAddressable(expression: Expression) {
-
         when (expression) {
             is Expression.Property -> {
                 when (ctx.analyzer.resolvePropertyBinding(expression)) {
@@ -927,14 +927,14 @@ class Checker(val ctx: Context) {
         checkExpression(expression.falseBranch)
 
         checkExpressionHasType(expression.falseBranch, expression.trueBranch.type)
-
     }
 
     private val Expression.type get() = ctx.analyzer.typeOfExpression(this)
 
     private fun checkNullPtrExpression(
         @Suppress("UNUSED_PARAMETER")
-        expression: Expression.NullPtr) = unit
+        expression: Expression.NullPtr
+    ) = unit
 
     private fun checkBinaryOperation(expression: Expression.BinaryOperation) {
         checkExpression(expression.lhs)
@@ -986,9 +986,8 @@ class Checker(val ctx: Context) {
     private fun checkCallLikeExpression(
         callExpression: Expression.Call,
         callee: Expression,
-        args: List<Expression>,
+        args: List<Expression>
     ) {
-
         ctx.analyzer.typeOfExpression(callExpression)
         if (callee is Expression.Property) {
             val propertyBinding = ctx.analyzer.resolvePropertyBinding(callee)
@@ -996,13 +995,14 @@ class Checker(val ctx: Context) {
                 val requirement = TraitRequirement(
                     propertyBinding.traitName,
                     propertyBinding.args,
-                    negated = false,
+                    negated = false
                 )
                 val traitDef = ctx.resolver.resolveDeclaration(requirement.traitRef)
                 require(traitDef is Declaration.TraitDef)
 
                 if (traitDef.params.size == propertyBinding.args.size &&
-                    !ctx.analyzer.isTraitRequirementSatisfied(callExpression, requirement)) {
+                    !ctx.analyzer.isTraitRequirementSatisfied(callExpression, requirement)
+                ) {
                     error(callee.lhs, Diagnostic.Kind.TraitRequirementNotSatisfied(requirement))
                 }
             }
@@ -1036,7 +1036,7 @@ class Checker(val ctx: Context) {
         }
         val typeArgs = ctx.analyzer.getTypeArgs(genericCallee)
         if (fnTypeComponents.traitRequirements != null) {
-            val substitution = (fnTypeComponents.typeParams?: emptyList()).zip(typeArgs ?: emptyList()).toSubstitution()
+            val substitution = (fnTypeComponents.typeParams ?: emptyList()).zip(typeArgs ?: emptyList()).toSubstitution()
 
             checkTraitInstances(
                 callExpression,
@@ -1062,10 +1062,9 @@ class Checker(val ctx: Context) {
         return checkCallLikeExpression(
             callee = expression.callee,
             callExpression = expression,
-            args = expression.args.map { it.expression },
+            args = expression.args.map { it.expression }
         )
     }
-
 
     private fun checkTraitInstances(callNode: Expression, requiredInstances: List<TraitRequirement>) {
         for (requirement in requiredInstances) {
@@ -1077,7 +1076,6 @@ class Checker(val ctx: Context) {
 
     private fun checkFunctionSignature(signature: FunctionSignature, skipThisParamCheck: Boolean = false) {
         if (ctx.resolver.getEnclosingExtensionDef(signature) != null) {
-
             if (signature.thisParamFlags == null) {
                 error(signature.name, Diagnostic.Kind.MissingThisParam)
             }
@@ -1108,7 +1106,7 @@ class Checker(val ctx: Context) {
             val existing = binders[param.binder.name]
             if (existing != null) {
                 error(param.binder, Diagnostic.Kind.DuplicateValueBinding(existing))
-            } else{
+            } else {
                 binders[param.binder.name] = param.binder
             }
         }

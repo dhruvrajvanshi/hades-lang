@@ -23,10 +23,10 @@ val ARITHMETIC_OPERATORS = setOf(
     BinaryOperator.MINUS,
     BinaryOperator.PLUS,
     BinaryOperator.TIMES,
-    BinaryOperator.DIV,
+    BinaryOperator.DIV
 )
 class Analyzer(
-        private val ctx: Context
+    private val ctx: Context
 ) {
     val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
@@ -37,10 +37,8 @@ class Analyzer(
             return PropertyBinding.Global(modulePropertyBinding)
         }
 
-
         val traitFunctionRefBinding = resolveTraitFunctionRefBinding(expression)
         if (traitFunctionRefBinding != null) return traitFunctionRefBinding
-
 
         val enumCaseConstructorBinding = resolveEnumConstructorBinding(expression)
         if (enumCaseConstructorBinding != null) {
@@ -73,9 +71,11 @@ class Analyzer(
     private fun resolveTraitFunctionRefBinding(expression: Expression.Property): PropertyBinding.TraitFunctionRef? {
         val traitDef = resolveTraitRef(expression.lhs) ?: return null
         val signature = traitDef.signatures.find { it.name.identifier.name == expression.property.name } ?: return null
-        val typeArgs = if (expression.lhs is Expression.TypeApplication)
+        val typeArgs = if (expression.lhs is Expression.TypeApplication) {
             expression.lhs.args.map { annotationToType(it) }
-        else emptyList()
+        } else {
+            emptyList()
+        }
         val substitution = traitDef.params.zip(typeArgs).toSubstitution()
         check(signature.typeParams == null)
         return PropertyBinding.TraitFunctionRef(
@@ -124,7 +124,7 @@ class Analyzer(
             instanceType
         } else {
             Type.FunctionPtr(
-                from = case.params.map {annotationToType(it.annotation) },
+                from = case.params.map { annotationToType(it.annotation) },
                 to = instanceType,
                 traitRequirements = null
             )
@@ -151,18 +151,17 @@ class Analyzer(
         val traitTypeArgs = if (lhsType is Type.Application) lhsType.args else emptyList()
         val substitution = traitDef.params.zip(traitTypeArgs).toSubstitution()
         val type = Type.FunctionPtr(
-                from = memberSignature.params.map {
-                    it.annotation?.let { annot -> annotationToType(annot).applySubstitution(substitution) }
-                            ?: Type.Error(it.location)
-
-                },
-                to = annotationToType(memberSignature.returnType).applySubstitution(substitution),
-                traitRequirements = null
+            from = memberSignature.params.map {
+                it.annotation?.let { annot -> annotationToType(annot).applySubstitution(substitution) }
+                    ?: Type.Error(it.location)
+            },
+            to = annotationToType(memberSignature.returnType).applySubstitution(substitution),
+            traitRequirements = null
         )
         return PropertyBinding.WhereParamRef(
-                traitDef,
-                memberIndex,
-                type = type
+            traitDef,
+            memberIndex,
+            type = type
         )
     }
 
@@ -245,7 +244,7 @@ class Analyzer(
 
     private fun hasExtensionMethodForType(callNode: HasLocation, extensionDef: Declaration.ExtensionDef, methodName: Name, type: Type): Boolean {
         val hasRequiredMethodName = extensionDef.declarations.filterIsInstance<Declaration.FunctionDef>()
-            .any { it.name.name ==  methodName }
+            .any { it.name.name == methodName }
         if (!hasRequiredMethodName) return false
         val forType = annotationToType(extensionDef.forType)
         val valueAssignmentSubstitution = extensionDef.typeParams?.associate {
@@ -257,14 +256,15 @@ class Analyzer(
             )
         }?.toSubstitution() ?: emptySubstitution()
         val isValueAssignable = isTypeAssignableTo(
-                callNode,
-                source = type,
-                destination = forType.applySubstitution(valueAssignmentSubstitution)
-            )
+            callNode,
+            source = type,
+            destination = forType.applySubstitution(valueAssignmentSubstitution)
+        )
         val isPointerAssignable = isTypeAssignableTo(
             callNode,
             source = type,
-            destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false))
+            destination = Type.Ptr(forType.applySubstitution(pointerAssignmentSubstitution), isMutable = false)
+        )
 
         if (!isValueAssignable && !isPointerAssignable) return false
         var assignableCount = 0
@@ -278,7 +278,7 @@ class Analyzer(
                 } != null
                 val valueMethodAvailable = methods.find {
                     it.name.identifier.name == methodName && (it.signature.thisParamFlags != null && !it.signature.thisParamFlags.isPointer)
-                }  != null
+                } != null
 
                 var candidateCount = 0
                 if (pointerMethodAvailable) candidateCount++
@@ -307,17 +307,18 @@ class Analyzer(
         }
 
         return extensionDef.traitRequirements.all { requirement ->
-            isTraitRequirementSatisfied(callNode, requirement.copy(
-                arguments = requirement.arguments.map { arg -> arg.applySubstitution(substitution) }
-            ))
+            isTraitRequirementSatisfied(
+                callNode,
+                requirement.copy(
+                    arguments = requirement.arguments.map { arg -> arg.applySubstitution(substitution) }
+                )
+            )
         }
-
     }
 
     private fun instantiateType(type: Type, typeParams: List<TypeParam>?): Type {
         return instantiateTypeAndSubstitution(type, typeParams).first
     }
-
 
     private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructPointerFieldLoad? {
         val lhsType = inferExpression(expression.lhs)
@@ -326,37 +327,42 @@ class Analyzer(
         }
         val fieldBinding = resolveStructFieldBinding(lhsType.to, expression.property) ?: return null
         return PropertyBinding.StructPointerFieldLoad(
-                fieldBinding.structDecl,
-                fieldBinding.memberIndex,
-                type = fieldBinding.type
+            fieldBinding.structDecl,
+            fieldBinding.memberIndex,
+            type = fieldBinding.type
         )
-
     }
 
     private fun resolveStructFieldBinding(lhsType: Type, property: Identifier): PropertyBinding.StructField? {
         val structDecl = getStructDeclOfType(lhsType)
-        return if (structDecl == null) null else {
+        return if (structDecl == null) {
+            null
+        } else {
             val index = structDecl.members.indexOfFirst {
-                it is Declaration.Struct.Member.Field
-                        && it.binder.identifier.name == property.name
+                it is Declaration.Struct.Member.Field &&
+                    it.binder.identifier.name == property.name
             }
             if (index > -1) {
                 val field = structDecl.members[index]
                 require(field is Declaration.Struct.Member.Field)
                 val typeArgs = if (lhsType is Type.Application) {
                     lhsType.args
-                } else emptyList()
+                } else {
+                    emptyList()
+                }
                 val substitution = structDecl.typeParams?.zip(typeArgs)
                     ?.toSubstitution()
                     ?: emptySubstitution()
                 val fieldType = annotationToType(field.typeAnnotation).applySubstitution(substitution)
                 isTypeAssignableTo(property, lhsType, fieldType)
                 PropertyBinding.StructField(
-                        structDecl = structDecl,
-                        memberIndex = index,
-                        type = reduceGenericInstances(fieldType)
+                    structDecl = structDecl,
+                    memberIndex = index,
+                    type = reduceGenericInstances(fieldType)
                 )
-            } else null
+            } else {
+                null
+            }
         }
     }
     private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
@@ -368,8 +374,11 @@ class Analyzer(
         return when (lhsType) {
             is Type.Constructor -> {
                 val decl = ctx.resolver.resolveDeclaration(lhsType.name)
-                if (decl is Declaration.Struct) decl
-                else null
+                if (decl is Declaration.Struct) {
+                    decl
+                } else {
+                    null
+                }
             }
             is Type.Application -> {
                 getStructDeclOfType(lhsType.callee)
@@ -381,8 +390,11 @@ class Analyzer(
         return when (lhsType) {
             is Type.Constructor -> {
                 val decl = ctx.resolver.resolveDeclaration(lhsType.name)
-                if (decl is Declaration.TraitDef) decl
-                else null
+                if (decl is Declaration.TraitDef) {
+                    decl
+                } else {
+                    null
+                }
             }
             is Type.Application -> {
                 getTraitDefOfType(lhsType.callee)
@@ -451,11 +463,13 @@ class Analyzer(
 
     private val visitedDeclarationSet = MutableNodeMap<Declaration, Unit>()
     private fun visitDeclaration(declaration: Declaration) = visitedDeclarationSet.getOrPut(declaration) {
-        exhaustive(when (declaration) {
-            is Declaration.FunctionDef -> visitFunctionDef(declaration)
-            is Declaration.ConstDefinition -> visitConstDef(declaration)
-            else -> Unit
-        })
+        exhaustive(
+            when (declaration) {
+                is Declaration.FunctionDef -> visitFunctionDef(declaration)
+                is Declaration.ConstDefinition -> visitConstDef(declaration)
+                else -> Unit
+            }
+        )
     }
 
     private val checkTraitRequirementCache = MutableNodeMap<TraitRequirementAnnotation, TraitRequirement?>()
@@ -469,7 +483,6 @@ class Analyzer(
         } else {
             TraitRequirement(ctx.resolver.qualifiedName(declaration.name), args ?: listOf(), negated = requirement.negated)
         }
-
     }
 
     private fun visitConstDef(declaration: Declaration.ConstDefinition) {
@@ -480,7 +493,6 @@ class Analyzer(
         } else {
             inferExpression(declaration.initializer)
         }
-
     }
 
     private fun visitFunctionDef(def: Declaration.FunctionDef) {
@@ -488,7 +500,6 @@ class Analyzer(
         returnTypeStack.push(returnType)
         checkBlock(def.body)
         returnTypeStack.pop()
-
     }
 
     private fun checkBlock(block: Block) {
@@ -497,7 +508,7 @@ class Analyzer(
         }
     }
 
-    private fun checkBlockMember(member: Block.Member): Unit = when(member) {
+    private fun checkBlockMember(member: Block.Member): Unit = when (member) {
         is Block.Member.Expression -> {
             inferExpression(member.expression)
             Unit
@@ -505,7 +516,7 @@ class Analyzer(
         is Block.Member.Statement -> checkStatement(member.statement)
     }
 
-    private fun checkStatement(statement: Statement): Unit = when(statement) {
+    private fun checkStatement(statement: Statement): Unit = when (statement) {
         is Statement.Return -> visitReturnStatement(statement)
         is Statement.Val -> visitValStatement(statement)
         is Statement.While -> visitWhileStatement(statement)
@@ -597,20 +608,26 @@ class Analyzer(
     }
 
     private fun isPredicateOperator(operator: BinaryOperator): Boolean {
-        return (isEqualityCheckingOperator(operator)
-                || isOrderPredicateOperator(operator))
+        return (
+            isEqualityCheckingOperator(operator) ||
+                isOrderPredicateOperator(operator)
+            )
     }
 
     private fun isEqualityCheckingOperator(operator: BinaryOperator): Boolean {
-        return (operator == BinaryOperator.EQUALS
-                || operator == BinaryOperator.NOT_EQUALS)
+        return (
+            operator == BinaryOperator.EQUALS ||
+                operator == BinaryOperator.NOT_EQUALS
+            )
     }
 
     private fun isOrderPredicateOperator(operator: BinaryOperator): Boolean {
-        return (operator == BinaryOperator.GREATER_THAN
-                || operator == BinaryOperator.GREATER_THAN_EQUAL
-                || operator == BinaryOperator.LESS_THAN
-                || operator == BinaryOperator.LESS_THAN_EQUAL)
+        return (
+            operator == BinaryOperator.GREATER_THAN ||
+                operator == BinaryOperator.GREATER_THAN_EQUAL ||
+                operator == BinaryOperator.LESS_THAN ||
+                operator == BinaryOperator.LESS_THAN_EQUAL
+            )
     }
 
     private fun checkExpression(expression: Expression, expectedType: Type): Type {
@@ -681,7 +698,9 @@ class Analyzer(
         if (functionTypeComponents != null && expression.returnType != null) {
             checkAssignability(
                 at = expression,
-                source = annotationToType(expression.returnType), destination = functionTypeComponents.to)
+                source = annotationToType(expression.returnType),
+                destination = functionTypeComponents.to
+            )
         }
         returnTypeStack.push(expectedReturnType)
         val expectedParamTypes = expectedType?.let { getFunctionTypeComponents(it) }
@@ -730,7 +749,7 @@ class Analyzer(
         }
         return Type.Closure(
             from = paramTypes,
-            to = returnType,
+            to = returnType
         )
     }
 
@@ -753,7 +772,7 @@ class Analyzer(
         else -> expectedType
     }
 
-    private fun isIntLiteralAssignable(type: Type): Boolean = when(reduceGenericInstances(type)) {
+    private fun isIntLiteralAssignable(type: Type): Boolean = when (reduceGenericInstances(type)) {
         is Type.Size,
         is Type.Integral -> true
         is Type.FloatingPoint -> true
@@ -761,40 +780,42 @@ class Analyzer(
     }
 
     private fun inferExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression) {
-        reduceGenericInstances(when (expression) {
-            is Expression.Error -> Type.Error(expression.location)
-            is Expression.Var -> inferVarExpresion(expression)
-            is Expression.Call -> inferCallExpression(expression)
-            is Expression.Property -> inferPropertyExpression(expression)
-            is Expression.ByteString -> Type.Ptr(Type.Integral(8, isSigned = false), isMutable = false)
-            is Expression.BoolLiteral -> Type.Bool
-            is Expression.NullPtr -> inferNullPtrExpression(expression)
-            is Expression.IntLiteral -> inferIntLiteral(expression)
-            is Expression.Not -> inferNotExpression(expression)
-            is Expression.BinaryOperation -> inferBinaryOperation(expression)
-            is Expression.SizeOf -> inferSizeOfExpression(expression)
-            is Expression.AlignOf -> inferAlignOfExpression(expression)
-            is Expression.AddressOf -> inferAddressOf(expression)
-            is Expression.AddressOfMut -> inferAddressOfMut(expression)
-            is Expression.Deref -> inferDerefExpression(expression)
-            is Expression.PointerCast -> inferPointerCast(expression)
-            is Expression.If -> inferIfExpression(expression)
-            is Expression.TypeApplication -> inferTypeApplication(expression)
-            is Expression.This -> inferThisExpression(expression)
-            is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
-            is Expression.As -> {
-                inferExpression(expression.lhs)
-                annotationToType(expression.rhs)
+        reduceGenericInstances(
+            when (expression) {
+                is Expression.Error -> Type.Error(expression.location)
+                is Expression.Var -> inferVarExpresion(expression)
+                is Expression.Call -> inferCallExpression(expression)
+                is Expression.Property -> inferPropertyExpression(expression)
+                is Expression.ByteString -> Type.Ptr(Type.Integral(8, isSigned = false), isMutable = false)
+                is Expression.BoolLiteral -> Type.Bool
+                is Expression.NullPtr -> inferNullPtrExpression(expression)
+                is Expression.IntLiteral -> inferIntLiteral(expression)
+                is Expression.Not -> inferNotExpression(expression)
+                is Expression.BinaryOperation -> inferBinaryOperation(expression)
+                is Expression.SizeOf -> inferSizeOfExpression(expression)
+                is Expression.AlignOf -> inferAlignOfExpression(expression)
+                is Expression.AddressOf -> inferAddressOf(expression)
+                is Expression.AddressOfMut -> inferAddressOfMut(expression)
+                is Expression.Deref -> inferDerefExpression(expression)
+                is Expression.PointerCast -> inferPointerCast(expression)
+                is Expression.If -> inferIfExpression(expression)
+                is Expression.TypeApplication -> inferTypeApplication(expression)
+                is Expression.This -> inferThisExpression(expression)
+                is Expression.Closure -> checkOrInferClosureExpression(expression, expectedType = null)
+                is Expression.As -> {
+                    inferExpression(expression.lhs)
+                    annotationToType(expression.rhs)
+                }
+                is Expression.BlockExpression -> inferBlockExpression(expression)
+                is Expression.Intrinsic -> inferIntrinsicExpression(expression)
+                is Expression.UnaryMinus -> inferUnaryMinus(expression)
+                is Expression.ByteCharLiteral -> Type.Integral(8, isSigned = false)
+                is Expression.Match -> inferMatchExpression(expression)
+                is Expression.FloatLiteral -> Type.f64
+                is Expression.Uninitialized -> Type.Error(expression.location) // uninitialized expression must be checked, not inferred
+                is Expression.Move -> inferIdentifier(expression.name)
             }
-            is Expression.BlockExpression -> inferBlockExpression(expression)
-            is Expression.Intrinsic -> inferIntrinsicExpression(expression)
-            is Expression.UnaryMinus -> inferUnaryMinus(expression)
-            is Expression.ByteCharLiteral -> Type.Integral(8, isSigned = false)
-            is Expression.Match -> inferMatchExpression(expression)
-            is Expression.FloatLiteral -> Type.f64
-            is Expression.Uninitialized -> Type.Error(expression.location) // uninitialized expression must be checked, not inferred
-            is Expression.Move -> inferIdentifier(expression.name)
-        })
+        )
     }
 
     private fun inferMatchExpression(expression: Expression.Match): Type {
@@ -842,7 +863,7 @@ class Analyzer(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
-                            Type.Ptr(Type.ParamRef(typeParam), isMutable = false),
+                            Type.Ptr(Type.ParamRef(typeParam), isMutable = false)
                         ),
                         to = Type.Size(isSigned = false),
                         traitRequirements = null
@@ -855,7 +876,7 @@ class Analyzer(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
-                            Type.Size(isSigned = false),
+                            Type.Size(isSigned = false)
                         ),
                         to = Type.ParamRef(typeParam),
                         traitRequirements = null
@@ -872,7 +893,7 @@ class Analyzer(
                         from = listOf(
                             Type.ParamRef(t1.binder).mutPtr(), // destination
                             Type.ParamRef(t1.binder).ptr(), // source
-                            Type.usize, // number of items to copy
+                            Type.usize // number of items to copy
                         ),
                         to = Type.Void
                     )
@@ -961,8 +982,8 @@ class Analyzer(
             checkExpression(expression.rhs, matchingRule.first)
             matchingRule.second
         } else {
-            if ((expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS)
-                && isTypeEquatable(lhsType)
+            if ((expression.operator == BinaryOperator.EQUALS || expression.operator == BinaryOperator.NOT_EQUALS) &&
+                isTypeEquatable(lhsType)
             ) {
                 checkExpression(expression.rhs, if (lhsType is Type.Ptr) lhsType.copy(isMutable = false) else lhsType)
                 Type.Bool
@@ -970,14 +991,13 @@ class Analyzer(
                 checkExpression(expression.rhs, lhsType)
                 lhsType
             } else {
-
                 inferExpression(expression.rhs)
                 Type.Error(expression.location)
             }
         }
     }
 
-    private fun isTypeEquatable(lhsType: Type): Boolean = when(reduceGenericInstances(lhsType)) {
+    private fun isTypeEquatable(lhsType: Type): Boolean = when (reduceGenericInstances(lhsType)) {
         is Type.Ptr,
         is Type.Bool,
         is Type.Integral,
@@ -1026,20 +1046,21 @@ class Analyzer(
     }
 
     private fun inferPropertyExpression(expression: Expression.Property): Type =
-            when (val binding = resolvePropertyBinding(expression)) {
-                is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
-                is PropertyBinding.StructField -> binding.type
-                is PropertyBinding.StructPointerFieldLoad -> binding.type
-                is PropertyBinding.ExtensionDef -> binding.type
-                is PropertyBinding.WhereParamRef -> binding.type
-                is PropertyBinding.EnumTypeCaseConstructor -> binding.type
-                is PropertyBinding.WhenCaseFieldRef -> binding.type
-                null -> Type.Error(expression.location)
-                is PropertyBinding.TraitFunctionRef -> binding.type
-            }
+        when (val binding = resolvePropertyBinding(expression)) {
+            is PropertyBinding.Global -> typeOfGlobalPropertyBinding(binding)
+            is PropertyBinding.StructField -> binding.type
+            is PropertyBinding.StructPointerFieldLoad -> binding.type
+            is PropertyBinding.ExtensionDef -> binding.type
+            is PropertyBinding.WhereParamRef -> binding.type
+            is PropertyBinding.EnumTypeCaseConstructor -> binding.type
+            is PropertyBinding.WhenCaseFieldRef -> binding.type
+            null -> Type.Error(expression.location)
+            is PropertyBinding.TraitFunctionRef -> binding.type
+        }
 
     private fun typeOfGlobalPropertyBinding(
-            binding: PropertyBinding.Global): Type {
+        binding: PropertyBinding.Global
+    ): Type {
         return typeOfBinding(binding.binding)
     }
 
@@ -1056,7 +1077,7 @@ class Analyzer(
         }
     }
 
-    private fun typeOfBinding(binding: Binding): Type = when(binding) {
+    private fun typeOfBinding(binding: Binding): Type = when (binding) {
         is Binding.GlobalFunction -> typeOfGlobalFunctionRef(binding.declaration)
         is Binding.ExternFunction -> typeOfExternFunctionRef(binding.declaration)
         is Binding.FunctionParam -> typeOfParam(binding.declaration, binding.index)
@@ -1080,7 +1101,6 @@ class Analyzer(
         if (enumDecl.typeParams == null) {
             return declaredType
         }
-
 
         val subst: Substitution = enumDecl.typeParams.zip(discriminantType.typeArgs()).associate { (param, arg) ->
             param.location to arg
@@ -1143,7 +1163,6 @@ class Analyzer(
         } else {
             inferExpression(binding.statement.rhs)
         }
-
     }
 
     private fun typeOfParam(declaration: Declaration.FunctionDef, paramIndex: Int): Type {
@@ -1165,47 +1184,50 @@ class Analyzer(
 
     private fun typeOfGlobalFunctionRef(declaration: Declaration.FunctionDef): Type {
         val functionPtrType = Type.FunctionPtr(
-                from = declaration.params.map { param ->
-                    param.annotation?.let { annotationToType(it) } ?: Type.Error(param.location) },
-                to = annotationToType(declaration.signature.returnType),
-                traitRequirements = declaration.signature.whereClause
-                        ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
+            from = declaration.params.map { param ->
+                param.annotation?.let { annotationToType(it) } ?: Type.Error(param.location)
+            },
+            to = annotationToType(declaration.signature.returnType),
+            traitRequirements = declaration.signature.whereClause
+                ?.traitRequirements?.mapNotNull { checkTraitRequirement(it) }
         )
         val typeParams = declaration.typeParams
         return if (typeParams != null) {
             Type.TypeFunction(
-                    params = typeParams.map { Type.Param(it.binder) },
-                    body = functionPtrType
+                params = typeParams.map { Type.Param(it.binder) },
+                body = functionPtrType
             )
-        } else functionPtrType
+        } else {
+            functionPtrType
+        }
     }
 
     data class FunctionTypeComponents(
-            val from: List<Type>,
-            val to: Type,
-            val typeParams: List<Type.Param>?,
-            val traitRequirements: List<TraitRequirement>?
+        val from: List<Type>,
+        val to: Type,
+        val typeParams: List<Type.Param>?,
+        val traitRequirements: List<TraitRequirement>?
     )
 
     private fun inferCallExpression(expression: Expression.Call): Type {
         return inferOrCheckCallLikeExpression(
-                callNode = expression,
-                args = expression.args,
-                expectedReturnType = null
+            callNode = expression,
+            args = expression.args,
+            expectedReturnType = null
         )
     }
     private fun checkCallExpression(expression: Expression.Call, expectedType: Type): Type {
         return inferOrCheckCallLikeExpression(
-                callNode = expression,
-                args = expression.args,
-                expectedReturnType = expectedType
+            callNode = expression,
+            args = expression.args,
+            expectedReturnType = expectedType
         )
     }
 
     private fun inferOrCheckCallLikeExpression(
-            callNode: Expression.Call,
-            args: List<Arg>,
-            expectedReturnType: Type?
+        callNode: Expression.Call,
+        args: List<Arg>,
+        expectedReturnType: Type?
     ): Type {
         val calleeType = getCalleeType(callNode)
         val callee = getCallee(callNode)
@@ -1218,7 +1240,7 @@ class Analyzer(
         } else {
             check(callee != null)
             val substitution = instantiateSubstitution(
-                functionType.typeParams,
+                functionType.typeParams
             )
 
             if (functionType.typeParams != null) {
@@ -1231,9 +1253,11 @@ class Analyzer(
                 }
             }
             val receiver = getCallReceiver(callNode)
-            val argsWithReceiver = if (receiver == null)
+            val argsWithReceiver = if (receiver == null) {
                 args.map { it.expression }
-            else listOf(receiver) + args.map { it.expression }
+            } else {
+                listOf(receiver) + args.map { it.expression }
+            }
             val explicitTypeArgs = when (callee) {
                 is Expression.TypeApplication -> callee.args.map { annotationToType(it) }
                 else -> null
@@ -1242,15 +1266,14 @@ class Analyzer(
             if (expectedReturnType != null) {
                 val source = functionType.to.applySubstitution(substitution)
                 checkAssignability(
-                        callNode,
-                        source = source,
-                        destination = expectedReturnType
+                    callNode,
+                    source = source,
+                    destination = expectedReturnType
                 )
             }
 
             reduceGenericInstances(functionType.to.applySubstitution(substitution))
         }
-
     }
 
     private val globalTraitClauses: List<TraitClause<Declaration.ImplementationDef>> by lazy {
@@ -1260,11 +1283,11 @@ class Analyzer(
                 null
             } else {
                 TraitClause.Implementation(
-                        def = implementationDef,
-                        params = implementationDef.typeParams?.map { p -> Type.Param(p.binder) } ?: emptyList(),
-                        traitRef = ctx.resolver.qualifiedName(traitDef.name),
-                        arguments = implementationDef.traitArguments.map { annotationToType(it) },
-                        requirements = implementationDef.whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
+                    def = implementationDef,
+                    params = implementationDef.typeParams?.map { p -> Type.Param(p.binder) } ?: emptyList(),
+                    traitRef = ctx.resolver.qualifiedName(traitDef.name),
+                    arguments = implementationDef.traitArguments.map { annotationToType(it) },
+                    requirements = implementationDef.whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
                 )
             }
         }
@@ -1288,7 +1311,7 @@ class Analyzer(
         return !isNoCopy
     }
 
-    fun isRValue(expr: Expression) = when(expr) {
+    fun isRValue(expr: Expression) = when (expr) {
         is Expression.Var -> false
         is Expression.Property -> {
             val binding = resolvePropertyBinding(expr)
@@ -1322,12 +1345,11 @@ class Analyzer(
 
     private val Declaration.ImplementationDef.traitRequirements get(): List<TraitRequirement> =
         whereClause
-                ?.traitRequirements
-                ?.mapNotNull { checkTraitRequirement(it) }
-                ?: emptyList()
+            ?.traitRequirements
+            ?.mapNotNull { checkTraitRequirement(it) }
+            ?: emptyList()
 
-
-    fun getCallReceiver(callNode: Expression.Call): Expression? = when(callNode.callee) {
+    fun getCallReceiver(callNode: Expression.Call): Expression? = when (callNode.callee) {
         is Expression.Property -> getPropertyExpressionReceiver(callNode.callee)
         is Expression.TypeApplication -> when (callNode.callee.lhs) {
             is Expression.Property -> getPropertyExpressionReceiver(callNode.callee.lhs)
@@ -1370,7 +1392,7 @@ class Analyzer(
      *
      */
     private fun instantiateSubstitution(
-        typeParams: List<Type.Param>?,
+        typeParams: List<Type.Param>?
     ): Substitution {
         return typeParams?.associate {
             it.binder.location to makeGenericInstance(
@@ -1380,11 +1402,11 @@ class Analyzer(
     }
 
     private fun checkCallArgs(
-            callNode: HasLocation,
-            functionType: FunctionTypeComponents,
-            typeArgs: List<Type>?,
-            args: List<Expression>,
-            substitution: Substitution
+        callNode: HasLocation,
+        functionType: FunctionTypeComponents,
+        typeArgs: List<Type>?,
+        args: List<Expression>,
+        substitution: Substitution
     ) {
         val length = min(functionType.from.size, args.size)
         typeArgs?.zip(functionType.typeParams ?: emptyList())?.forEach { (arg, param) ->
@@ -1407,17 +1429,17 @@ class Analyzer(
             return when (type) {
                 is Type.FunctionPtr ->
                     FunctionTypeComponents(
-                            from = type.from,
-                            to = type.to,
-                            typeParams = typeParams,
-                            traitRequirements = type.traitRequirements
+                        from = type.from,
+                        to = type.to,
+                        typeParams = typeParams,
+                        traitRequirements = type.traitRequirements
                     )
                 is Type.Closure ->
                     FunctionTypeComponents(
                         from = type.from,
                         to = type.to,
                         typeParams = null,
-                        traitRequirements = null,
+                        traitRequirements = null
                     )
                 is Type.TypeFunction -> {
                     return recurse(type.body, type.params)
@@ -1436,7 +1458,6 @@ class Analyzer(
             }
         }
         return recurse(type, null)
-
     }
 
     private fun makeGenericInstance(
@@ -1450,7 +1471,6 @@ class Analyzer(
         typeOfExpression(expression) // ensure that the surrounding context has been typed
         return getTypeArgsCache[expression]?.map { reduceGenericInstances(it) }
     }
-
 
     private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
     fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.getOrPut(annotation) {
@@ -1531,26 +1551,27 @@ class Analyzer(
 
     private fun mutPtrAnnotationToType(annotation: TypeAnnotation.MutPtr): Type {
         return Type.Ptr(
-                to = annotationToType(annotation.to),
-                isMutable = true
+            to = annotationToType(annotation.to),
+            isMutable = true
         )
     }
 
     private fun ptrAnnotationToType(annotation: TypeAnnotation.Ptr): Type {
         return Type.Ptr(
-                to = annotationToType(annotation.to),
-                isMutable = false
+            to = annotationToType(annotation.to),
+            isMutable = false
         )
     }
 
     private fun typeOfTypeAlias(binding: TypeBinding.TypeAlias): Type {
         return if (binding.declaration.typeParams != null) {
             return Type.TypeFunction(
-                    binding.declaration.typeParams.map { Type.Param(it.binder) },
-                    annotationToType(binding.declaration.rhs)
+                binding.declaration.typeParams.map { Type.Param(it.binder) },
+                annotationToType(binding.declaration.rhs)
             )
+        } else {
+            annotationToType(binding.declaration.rhs)
         }
-        else annotationToType(binding.declaration.rhs)
     }
 
     private fun typeOfTraitTypeBinding(binding: TypeBinding.Trait): Type {
@@ -1560,8 +1581,8 @@ class Analyzer(
         return Type.TypeFunction(
             params = binding.declaration.params.map { Type.Param(it.binder) },
             body = Type.Application(
-                    typeConstructor,
-                    args = binding.declaration.params.map { Type.ParamRef(it.binder) }
+                typeConstructor,
+                args = binding.declaration.params.map { Type.ParamRef(it.binder) }
             )
         )
     }
@@ -1573,11 +1594,11 @@ class Analyzer(
             typeConstructor
         } else {
             Type.TypeFunction(
-                    params = binding.declaration.typeParams.map { Type.Param(it.binder) },
-                    body = Type.Application(
-                            typeConstructor,
-                            args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
-                    )
+                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                body = Type.Application(
+                    typeConstructor,
+                    args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                )
             )
         }
     }
@@ -1689,10 +1710,10 @@ class Analyzer(
                 case.name.identifier.name,
                 case.params?.map {
                     it.binder?.identifier?.name to
-                            annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
+                        annotationToType(requireNotNull(it.annotation)).applySubstitution(substitution)
                 } ?: singletonList(
                     ctx.makeName("dummy") to
-                            Type.Integral(8, false)
+                        Type.Integral(8, false)
                 )
             )
         }
@@ -1700,17 +1721,18 @@ class Analyzer(
 
     fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion {
         val enumName = ctx.resolver.qualifiedName(declaration.name)
-        return Type.UntaggedUnion(declaration.cases.map {  case ->
-            val constructorType = Type.Constructor(
-                enumName.append(case.name.identifier.name)
-            )
-            if (declaration.typeParams != null) {
-                Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
-            } else {
-                constructorType
+        return Type.UntaggedUnion(
+            declaration.cases.map { case ->
+                val constructorType = Type.Constructor(
+                    enumName.append(case.name.identifier.name)
+                )
+                if (declaration.typeParams != null) {
+                    Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
+                } else {
+                    constructorType
+                }
             }
-        })
-
+        )
     }
 
     fun isValidPropertyAccess(expression: Expression.Property): Boolean {
@@ -1723,7 +1745,7 @@ class Analyzer(
             is Expression.IntLiteral,
             is Expression.BoolLiteral,
             is Expression.ByteString,
-            is Expression.Var, -> true
+            is Expression.Var -> true
             is Expression.Property -> {
                 val binding = ctx.analyzer.resolvePropertyBinding(initializer)
                 binding is PropertyBinding.Global
@@ -1735,7 +1757,7 @@ class Analyzer(
     }
 
     fun getEnumConstructorBinding(expression: Expression): PropertyBinding.EnumTypeCaseConstructor? =
-        when(expression) {
+        when (expression) {
             is Expression.Property -> {
                 val binding = resolvePropertyBinding(expression)
                 if (binding is PropertyBinding.EnumTypeCaseConstructor) {
@@ -1770,7 +1792,7 @@ class Analyzer(
         return ctx.resolver.findTraitInSourceFile(expression.property, moduleAlias)
     }
 
-    fun resolveTraitRef(expression: Expression): Declaration.TraitDef? = when(expression) {
+    fun resolveTraitRef(expression: Expression): Declaration.TraitDef? = when (expression) {
         is Expression.Var -> {
             ctx.resolver.resolveTraitDef(expression.name)
         }
@@ -1800,12 +1822,11 @@ class Analyzer(
                         visitType(
                             type.callee.body.applySubstitution(subst)
                         )
-                    }
-                    else
+                    } else {
                         super.visitTypeApplication(type)
+                    }
                 }
             }
-
 
             override fun visitExpression(expression: Expression) {
                 super.visitExpression(expression)
@@ -1820,13 +1841,11 @@ class Analyzer(
                 } else {
                     typeVisitor.visitType(type)
                 }
-
             }
 
             override fun visitType(type: TypeAnnotation) {
                 typeVisitor.visitType(annotationToType(type))
             }
-
 
             override fun visitVarExpr(expression: Expression.Var) {
                 val binding = ctx.resolver.resolve(expression.name)
@@ -1920,8 +1939,8 @@ class Analyzer(
                 // Otherwise, it can't be
                 val moduleSourceFile = resolveModuleRef(expression.lhs) ?: return false
                 moduleSourceFile.declarations.any {
-                    it is Declaration.TraitDef
-                            && it.name.name == expression.property.name
+                    it is Declaration.TraitDef &&
+                        it.name.name == expression.property.name
                 }
             }
             else -> false
@@ -1938,8 +1957,7 @@ class Analyzer(
         else -> null
     }
 
-
-    fun asTraitRequirement(type: TypeAnnotation): TraitRequirement? = when(type) {
+    fun asTraitRequirement(type: TypeAnnotation): TraitRequirement? = when (type) {
         is TypeAnnotation.Application -> {
             asTraitRequirement(type.callee)?.let { traitRequirement ->
                 require(traitRequirement.arguments.isEmpty())
@@ -1957,8 +1975,9 @@ class Analyzer(
                     emptyList(),
                     negated = false
                 )
-            } else
+            } else {
                 null
+            }
         }
         is TypeAnnotation.Qualified -> {
             ctx.resolver.resolveDeclaration(type.qualifiedPath)?.let {
@@ -2008,7 +2027,6 @@ class Analyzer(
         return ctx.resolver.getEnclosingClosure(this)
             ?: checkNotNull(ctx.resolver.getEnclosingFunction(this))
     }
-
 }
 
 data class ClosureCaptures(
@@ -2042,12 +2060,11 @@ typealias op = BinaryOperator
 
 val BIN_OP_RULES: Map<Pair<op, Type>, Pair<Type, Type>> = mapOf(
 
-        (op.AND to Type.Bool) to (Type.Bool to Type.Bool),
-        (op.OR to Type.Bool) to (Type.Bool to Type.Bool),
+    (op.AND to Type.Bool) to (Type.Bool to Type.Bool),
+    (op.OR to Type.Bool) to (Type.Bool to Type.Bool),
 
-
-        (op.EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
-        (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
+    (op.EQUALS to Type.Bool) to (Type.Bool to Type.Bool),
+    (op.NOT_EQUALS to Type.Bool) to (Type.Bool to Type.Bool)
 )
 
 data class Discriminant(

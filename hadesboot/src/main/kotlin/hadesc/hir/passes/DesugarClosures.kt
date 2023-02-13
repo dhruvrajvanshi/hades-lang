@@ -13,7 +13,7 @@ import hadesc.types.Type
 import hadesc.types.ptr
 import java.nio.file.Path
 
-class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransformer() {
+class DesugarClosures(override val namingCtx: NamingContext) : AbstractHIRTransformer() {
 
     override fun transformAllocateClosure(statement: AllocateClosure): Collection<HIRStatement> {
         val closureRef = emitAlloca(statement.name, closureStruct.instanceType(listOf(statement.type.to)))
@@ -74,13 +74,12 @@ class DesugarClosures(override val namingCtx: NamingContext): AbstractHIRTransfo
             typeParams = listOf(HIRTypeParam(location, typeParamName)),
             fields = listOf(
                 closureCtxFieldName to Type.Void.ptr(),
-                closureFunctionPtrName to fnTypeThatReturns(Type.ParamRef(typeParam)).ptr(),
+                closureFunctionPtrName to fnTypeThatReturns(Type.ParamRef(typeParam)).ptr()
             ),
             name = structName.toQualifiedName()
         )
         currentModule.addDefinition(def)
         def
-
     }
 
     private fun fnTypeThatReturns(returns: Type): Type.FunctionPtr {

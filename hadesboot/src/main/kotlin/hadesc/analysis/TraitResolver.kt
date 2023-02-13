@@ -7,7 +7,7 @@ import hadesc.types.emptySubstitution
 
 class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: TypeAnalyzer) {
     data class Env<Def>(val clauses: List<TraitClause<Def>>) {
-        constructor(vararg clauses: TraitClause<Def>): this(listOf(*clauses))
+        constructor(vararg clauses: TraitClause<Def>) : this(listOf(*clauses))
     }
 
     fun getImplementationClauseAndSubstitution(traitRef: QualifiedName, arguments: List<Type>): Pair<TraitClause<Def>, Substitution>? {
@@ -27,7 +27,6 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
         val isImplemented = isTraitImplemented(requirement.traitRef, requirement.arguments)
         return if (requirement.negated) !isImplemented else isImplemented
     }
-
 
     private fun getImplementationSubstitution(traitRef: QualifiedName, arguments: List<Type>, clause: TraitClause<Def>): Substitution? {
         return when (clause) {
@@ -80,32 +79,30 @@ class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: Ty
     private infix fun Type.isAssignableTo(destination: Type): Boolean {
         return typeAnalyzer.isTypeAssignableTo(source = this, destination)
     }
-
 }
 
 sealed class TraitClause<Def> {
     data class Implementation<Def>(
-            val params: List<Type.Param>,
-            val traitRef: QualifiedName,
-            val arguments: List<Type>,
-            val requirements: List<TraitRequirement>,
-            val def: Def? = null,
-    ): TraitClause<Def>() {
+        val params: List<Type.Param>,
+        val traitRef: QualifiedName,
+        val arguments: List<Type>,
+        val requirements: List<TraitRequirement>,
+        val def: Def? = null
+    ) : TraitClause<Def>() {
         override fun toString(): String {
             return "implementation [${params.joinToString(", ") { it.prettyPrint() } }] : ${traitRef.mangle()}" +
-                    "[${arguments.joinToString(", ") { it.prettyPrint() } }] " +
-                    "where ${ requirements.joinToString(", ") }"
+                "[${arguments.joinToString(", ") { it.prettyPrint() } }] " +
+                "where ${ requirements.joinToString(", ") }"
         }
     }
 
-    data class Requirement<Def>(val requirement: TraitRequirement): TraitClause<Def>()
-
+    data class Requirement<Def>(val requirement: TraitRequirement) : TraitClause<Def>()
 }
 
 data class TraitRequirement(
-        val traitRef: QualifiedName,
-        val arguments: List<Type>,
-        val negated: Boolean
+    val traitRef: QualifiedName,
+    val arguments: List<Type>,
+    val negated: Boolean
 ) {
     override fun toString(): String {
         if (arguments.isEmpty()) {
@@ -117,9 +114,9 @@ data class TraitRequirement(
 
     fun applySubstitution(substitution: Substitution): TraitRequirement {
         return TraitRequirement(
-                traitRef,
-                arguments.map { it.applySubstitution(substitution) },
-                negated = negated
+            traitRef,
+            arguments.map { it.applySubstitution(substitution) },
+            negated = negated
         )
     }
 

@@ -11,15 +11,17 @@ package hadesc.location
  * and be sure that we're only putting SourceLocations of Binder nodes
  * into this map.
  */
-class TaggedLocation<T: HasLocation>(node: T) {
+class TaggedLocation<T : HasLocation>(node: T) {
     val location = node.location
 
     override fun equals(other: Any?): Boolean = if (other is TaggedLocation<*>) {
         other.location == location
-    } else false
+    } else {
+        false
+    }
 
     override fun hashCode(): Int = location.hashCode()
 }
 
-inline fun <reified T: HasLocation> T.taggedLocation() =
+inline fun <reified T : HasLocation> T.taggedLocation() =
     TaggedLocation(this)

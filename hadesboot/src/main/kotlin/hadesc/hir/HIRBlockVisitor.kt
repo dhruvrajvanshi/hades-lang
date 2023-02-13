@@ -88,7 +88,6 @@ interface HIRBlockVisitor : TypeVisitor {
         visitType(statement.type)
     }
 
-
     fun visitStore(statement: HIRStatement.Store) {
         visitExpression(statement.ptr)
         visitExpression(statement.value)
@@ -137,7 +136,6 @@ interface HIRBlockVisitor : TypeVisitor {
     }
 
     fun visitGlobalRef(expression: HIRExpression.GlobalRef) {
-
     }
 
     fun visitIntegerConvert(statement: HIRStatement.IntegerConvert) {
@@ -150,7 +148,6 @@ interface HIRBlockVisitor : TypeVisitor {
     }
 
     fun visitParamRef(expression: HIRExpression.ParamRef) {
-
     }
 
     fun visitPointerCast(statement: HIRStatement.PointerCast) {

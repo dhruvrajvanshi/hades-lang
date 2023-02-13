@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class SourceLocation(
     val file: SourcePath,
     val start: Position,
-    val stop: Position,
+    val stop: Position
 ) : Comparable<SourceLocation>, HasLocation {
     override fun toString(): String {
         return "(" + file + ":" + start.line + ")"

@@ -1,5 +1,5 @@
-package hadesc.location;
+package hadesc.location
 
 interface HasLocation {
-    val location: SourceLocation;
+    val location: SourceLocation
 }

@@ -7,8 +7,8 @@ import com.github.ajalt.clikt.parameters.types.path
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.nio.file.Path
-import kotlin.system.exitProcess
 import kotlin.io.path.Path
+import kotlin.system.exitProcess
 
 sealed interface Options
 
@@ -37,12 +37,14 @@ data class BuildOptions(
     val enableHIRVerifier: Boolean,
     val dumpHIRGen: Boolean,
     val enableLLVMVerifier: Boolean,
-    val jsonDiagnostics: Boolean,
+    val jsonDiagnostics: Boolean
 ) : Options
 
-class BuildCLIOptions: OptionGroup() {
-    private val directories by option("--module-path",
-        help = "Add a directory to the module search path").path().multiple()
+class BuildCLIOptions : OptionGroup() {
+    private val directories by option(
+        "--module-path",
+        help = "Add a directory to the module search path"
+    ).path().multiple()
     private val cFlags by option("--c-flag").multiple()
     private val debugSymbols by option("--debug-symbols", "-g").flag(default = false)
     private val cSources by option(
@@ -51,7 +53,7 @@ class BuildCLIOptions: OptionGroup() {
     ).path().multiple()
     private val cSourcesSplit by option(
         "--c-sources",
-        help = "Add multiple space separated C source files",
+        help = "Add multiple space separated C source files"
     ).path().split(" ").default(emptyList())
     private val dumpLLVMModule by option("--dump-llvm-module").flag(default = false)
     private val dumpHIRGen by option("--dump-hirgen").flag(default = false)
@@ -70,7 +72,7 @@ class BuildCLIOptions: OptionGroup() {
     }
 
     fun toBuildOptions(): BuildOptions {
-                val hadesHome = System.getenv("HADES_HOME")
+        val hadesHome = System.getenv("HADES_HOME")
         if (hadesHome == null) {
             System.err.println("Environment HADES_HOME must be set to a valid hades install location")
             exitProcess(1)
@@ -93,7 +95,7 @@ class BuildCLIOptions: OptionGroup() {
             enableHIRVerifier = enableHIRVerifier,
             dumpHIRGen = dumpHIRGen,
             enableLLVMVerifier = enableLLVMVerifier,
-            jsonDiagnostics = jsonDiagnostics,
+            jsonDiagnostics = jsonDiagnostics
         )
     }
 }

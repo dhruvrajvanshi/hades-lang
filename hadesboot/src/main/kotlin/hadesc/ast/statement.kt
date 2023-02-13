@@ -43,9 +43,9 @@ sealed interface Statement : HasLocation {
     ) : Statement
 
     data class PointerAssignment(
-            override val location: SourceLocation,
-            val lhs: Expression.Deref,
-            val value: Expression
+        override val location: SourceLocation,
+        val lhs: Expression.Deref,
+        val value: Expression
     ) : Statement
 
     data class Defer(

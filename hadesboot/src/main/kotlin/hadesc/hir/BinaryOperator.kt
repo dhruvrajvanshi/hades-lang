@@ -20,7 +20,7 @@ enum class BinaryOperator {
     LESS_THAN,
     LESS_THAN_EQUAL;
 
-    fun prettyPrint(): String = when(this) {
+    fun prettyPrint(): String = when (this) {
         PLUS -> "add"
         MINUS -> "sub"
         TIMES -> "mul"

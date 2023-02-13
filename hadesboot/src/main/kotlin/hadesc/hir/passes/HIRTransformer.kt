@@ -10,7 +10,7 @@ import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
-abstract class AbstractHIRTransformer: HIRTransformer {
+abstract class AbstractHIRTransformer : HIRTransformer {
     override val typeAnalyzer = TypeAnalyzer()
     override var currentStatements: MutableList<HIRStatement>? = null
     override lateinit var currentLocation: SourceLocation
@@ -43,7 +43,7 @@ abstract class AbstractHIRTransformer: HIRTransformer {
     }
 }
 
-interface HIRTransformer: TypeTransformer, HIRBuilder {
+interface HIRTransformer : TypeTransformer, HIRBuilder {
     fun transformModule(oldModule: HIRModule): HIRModule {
         val definitions = currentModule.definitions
         val defns = oldModule.definitions.sortedBy {
@@ -58,7 +58,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         return currentModule
     }
 
-    fun transformDefinition(definition: HIRDefinition): Collection<HIRDefinition> = when(definition) {
+    fun transformDefinition(definition: HIRDefinition): Collection<HIRDefinition> = when (definition) {
         is HIRDefinition.Function -> transformFunctionDef(definition)
         is HIRDefinition.ExternFunction -> transformExternFunctionDef(definition)
         is HIRDefinition.Struct -> transformStructDef(definition)
@@ -80,54 +80,56 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
     fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {
         return listOf(
-                HIRDefinition.Implementation(
-                        typeParams = definition.typeParams?.map { transformTypeParam(it) },
-                        traitName = transformGlobalName(definition.traitName),
-                        traitArgs = definition.traitArgs.map { lowerType(it) },
-                        functions = definition.functions.flatMap { transformDefinition(it) as Collection<HIRDefinition.Function> }.toList(),
-                        typeAliases = definition.typeAliases.mapValues { lowerType(it.value) },
-                        location = definition.location,
-                        traitRequirements = definition.traitRequirements.map { lowerTraitRequirement(it) }
-                )
+            HIRDefinition.Implementation(
+                typeParams = definition.typeParams?.map { transformTypeParam(it) },
+                traitName = transformGlobalName(definition.traitName),
+                traitArgs = definition.traitArgs.map { lowerType(it) },
+                functions = definition.functions.flatMap { transformDefinition(it) as Collection<HIRDefinition.Function> }.toList(),
+                typeAliases = definition.typeAliases.mapValues { lowerType(it.value) },
+                location = definition.location,
+                traitRequirements = definition.traitRequirements.map { lowerTraitRequirement(it) }
+            )
         )
     }
 
     fun transformConstDef(definition: HIRDefinition.Const): Collection<HIRDefinition> {
         return listOf(
-                HIRDefinition.Const(
-                        definition.location,
-                        transformGlobalName(definition.name),
-                        transformExpression(definition.initializer)
-                )
+            HIRDefinition.Const(
+                definition.location,
+                transformGlobalName(definition.name),
+                transformExpression(definition.initializer)
+            )
         )
     }
 
     fun transformStructDef(definition: HIRDefinition.Struct): Collection<HIRDefinition> {
         return listOf(
-                HIRDefinition.Struct(
-                        name = transformGlobalName(definition.name),
-                        typeParams = definition.typeParams?.map { transformTypeParam(it) },
-                        location = definition.location,
-                        fields = definition.fields.map { it.first to lowerType(it.second) }
-                )
+            HIRDefinition.Struct(
+                name = transformGlobalName(definition.name),
+                typeParams = definition.typeParams?.map { transformTypeParam(it) },
+                location = definition.location,
+                fields = definition.fields.map { it.first to lowerType(it.second) }
+            )
         )
     }
 
     fun transformFunctionDef(definition: HIRDefinition.Function, newName: QualifiedName? = null): Collection<HIRDefinition> {
-        return listOf(HIRDefinition.Function(
+        return listOf(
+            HIRDefinition.Function(
                 location = definition.location,
                 signature = transformFunctionSignature(definition.signature, newName),
                 basicBlocks = definition.basicBlocks.map { transformBlock(it) }.toMutableList()
-        ))
+            )
+        )
     }
 
     fun transformFunctionSignature(signature: HIRFunctionSignature, newName: QualifiedName? = null): HIRFunctionSignature {
         return HIRFunctionSignature(
-                location = signature.location,
-                name = newName ?: transformGlobalName(signature.name),
-                returnType = lowerType(signature.returnType),
-                params = signature.params.map { transformParam(it) },
-                typeParams = signature.typeParams?.map { transformTypeParam(it) }
+            location = signature.location,
+            name = newName ?: transformGlobalName(signature.name),
+            returnType = lowerType(signature.returnType),
+            params = signature.params.map { transformParam(it) },
+            typeParams = signature.typeParams?.map { transformTypeParam(it) }
         )
     }
 
@@ -142,7 +144,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
         currentLocation = statement.location
         return transformStatementWorker(statement)
     }
-    private fun transformStatementWorker(statement: HIRStatement): Collection<HIRStatement> = when(statement) {
+    private fun transformStatementWorker(statement: HIRStatement): Collection<HIRStatement> = when (statement) {
         is HIRStatement.Return -> transformReturnStatement(statement)
         is HIRStatement.Alloca -> transformValDeclaration(statement)
         is HIRStatement.MatchInt -> transformMatchInt(statement)
@@ -181,7 +183,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     fun transformIntToPtrStatement(statement: HIRStatement.IntToPtr): Collection<HIRStatement> {
         val loweredType = lowerType(statement.type)
         check(loweredType is Type.Ptr)
-         return listOf(
+        return listOf(
             HIRStatement.IntToPtr(
                 statement.location,
                 statement.name,
@@ -196,7 +198,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
             HIRStatement.Memcpy(
                 location = statement.location,
                 destination = transformExpression(statement.destination),
-                source =  transformExpression(statement.source),
+                source = transformExpression(statement.source),
                 bytes = transformExpression(statement.bytes)
             )
         )
@@ -223,7 +225,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 statement.name,
                 lowerType(statement.type) as Type.Closure,
                 statement.function,
-                transformOperand(statement.ctxPtr),
+                transformOperand(statement.ctxPtr)
             )
         )
     }
@@ -248,29 +250,29 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 statement.location,
                 transformExpression(statement.condition),
                 statement.cases,
-                statement.otherwise,
+                statement.otherwise
             )
         )
     }
 
     fun transformStoreStatement(statement: HIRStatement.Store): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.Store(
-                        statement.location,
-                        transformOperand(statement.ptr),
-                        transformExpression(statement.value)
-                )
+            HIRStatement.Store(
+                statement.location,
+                transformOperand(statement.ptr),
+                transformExpression(statement.value)
+            )
         )
     }
 
     fun transformWhileStatement(statement: HIRStatement.While): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.While(
-                        statement.location,
-                        statement.conditionName,
-                        transformBlock(statement.conditionBlock),
-                        transformBlock(statement.body)
-                )
+            HIRStatement.While(
+                statement.location,
+                statement.conditionName,
+                transformBlock(statement.conditionBlock),
+                transformBlock(statement.body)
+            )
         )
     }
 
@@ -292,21 +294,21 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
     fun transformValDeclaration(statement: HIRStatement.Alloca): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.Alloca(
-                        location = statement.location,
-                        name = transformValName(statement.name),
-                        isMutable = statement.isMutable,
-                        type = lowerType(statement.type)
-                )
+            HIRStatement.Alloca(
+                location = statement.location,
+                name = transformValName(statement.name),
+                isMutable = statement.isMutable,
+                type = lowerType(statement.type)
+            )
         )
     }
 
     fun transformReturnStatement(statement: HIRStatement.Return): Collection<HIRStatement> {
         return listOf(
-                HIRStatement.Return(
-                        location = statement.location,
-                        expression = transformExpression(statement.expression)
-                )
+            HIRStatement.Return(
+                location = statement.location,
+                expression = transformExpression(statement.expression)
+            )
         )
     }
 
@@ -316,7 +318,7 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
     private fun transformExpressionWorker(expression: HIRExpression): HIRExpression = transformOperand(expression)
 
-    fun transformOperand(expression: HIROperand): HIROperand = when(expression) {
+    fun transformOperand(expression: HIROperand): HIROperand = when (expression) {
         is HIRExpression.GlobalRef -> transformGlobalRef(expression)
         is HIRExpression.ParamRef -> transformParamRef(expression)
         is HIRExpression.TraitMethodRef -> transformTraitMethodRef(expression)
@@ -345,63 +347,71 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
     fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIROperand {
         return HIRExpression.TraitMethodRef(
-                expression.location,
-                expression.type,
-                transformGlobalName(expression.traitName),
-                methodName = expression.methodName,
-                traitArgs = expression.traitArgs.map { lowerType(it) },
+            expression.location,
+            expression.type,
+            transformGlobalName(expression.traitName),
+            methodName = expression.methodName,
+            traitArgs = expression.traitArgs.map { lowerType(it) }
         )
     }
 
     fun transformGetStructFieldPointer(statement: HIRStatement.GetStructFieldPointer): List<HIRStatement> {
         val type = lowerType(statement.type)
         require(type is Type.Ptr)
-        return listOf(HIRStatement.GetStructFieldPointer(
-            statement.location,
-            name = statement.name,
-            type = statement.type,
-            lhs = transformExpression(statement.lhs),
-            memberIndex = statement.memberIndex,
-            memberName = statement.memberName
-        ))
+        return listOf(
+            HIRStatement.GetStructFieldPointer(
+                statement.location,
+                name = statement.name,
+                type = statement.type,
+                lhs = transformExpression(statement.lhs),
+                memberIndex = statement.memberIndex,
+                memberName = statement.memberName
+            )
+        )
     }
 
     fun transformPointerCast(statement: HIRStatement.PointerCast): List<HIRStatement> {
-        return listOf(HIRStatement.PointerCast(
-            location = statement.location,
-            name = statement.name,
-            toPointerOfType = lowerType(statement.toPointerOfType),
-            value = transformExpression(statement.value)
-        ))
+        return listOf(
+            HIRStatement.PointerCast(
+                location = statement.location,
+                name = statement.name,
+                toPointerOfType = lowerType(statement.toPointerOfType),
+                value = transformExpression(statement.value)
+            )
+        )
     }
 
     fun transformTypeApplication(statement: HIRStatement.TypeApplication): List<HIRStatement> {
-        return listOf(HIRStatement.TypeApplication(
-            statement.location,
-            statement.name,
-            lowerType(statement.type),
-            transformOperand(statement.expression),
-            statement.args.map { lowerType(it) }
-        ))
+        return listOf(
+            HIRStatement.TypeApplication(
+                statement.location,
+                statement.name,
+                lowerType(statement.type),
+                transformOperand(statement.expression),
+                statement.args.map { lowerType(it) }
+            )
+        )
     }
 
     fun transformSizeOfExpression(constant: HIRConstant.SizeOf): HIRConstant {
         return HIRConstant.SizeOf(
-                constant.location,
-                type = lowerType(constant.type),
-                ofType = lowerType(constant.ofType)
+            constant.location,
+            type = lowerType(constant.type),
+            ofType = lowerType(constant.ofType)
         )
     }
 
     fun transformBinOp(statement: HIRStatement.BinOp): List<HIRStatement> {
-        return listOf(HIRStatement.BinOp(
-            statement.location,
-            statement.name,
-            lowerType(statement.type),
-            transformExpression(statement.lhs),
-            statement.operator,
-            transformExpression(statement.rhs)
-        ))
+        return listOf(
+            HIRStatement.BinOp(
+                statement.location,
+                statement.name,
+                lowerType(statement.type),
+                transformExpression(statement.lhs),
+                statement.operator,
+                transformExpression(statement.rhs)
+            )
+        )
     }
 
     fun transformNotStatement(statement: HIRStatement.Not): List<HIRStatement> {
@@ -409,14 +419,16 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
 
     fun transformGetStructField(expression: HIRStatement.GetStructField): List<HIRStatement> {
-        return listOf(HIRStatement.GetStructField(
-            location = expression.location,
-            name = expression.name,
-            type = lowerType(expression.type),
-            index = expression.index,
-            fieldName = expression.fieldName,
-            lhs = transformExpression(expression.lhs)
-        ))
+        return listOf(
+            HIRStatement.GetStructField(
+                location = expression.location,
+                name = expression.name,
+                type = lowerType(expression.type),
+                index = expression.index,
+                fieldName = expression.fieldName,
+                lhs = transformExpression(expression.lhs)
+            )
+        )
     }
 
     fun transformValName(name: Name): Name {
@@ -425,10 +437,10 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
     fun transformParamRef(expression: HIRExpression.ParamRef): HIROperand {
         return HIRExpression.ParamRef(
-                location = expression.location,
-                type = lowerType(expression.type),
-                name = transformParamName(expression.name),
-                binder = Binder(Identifier(expression.binder.location, transformParamName(expression.name)))
+            location = expression.location,
+            type = lowerType(expression.type),
+            name = transformParamName(expression.name),
+            binder = Binder(Identifier(expression.binder.location, transformParamName(expression.name)))
         )
     }
 
@@ -439,20 +451,20 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
                 name = statement.name,
                 resultType = lowerType(statement.resultType),
                 callee = transformOperand(statement.callee),
-                args = statement.args.map { transformExpression(it) },
+                args = statement.args.map { transformExpression(it) }
             )
         )
     }
 
     fun transformGlobalRef(expression: HIRExpression.GlobalRef): HIROperand {
         return HIRExpression.GlobalRef(
-                location = expression.location,
-                type = lowerType(expression.type),
-                name = transformGlobalName(expression.name)
+            location = expression.location,
+            type = lowerType(expression.type),
+            name = transformGlobalName(expression.name)
         )
     }
 
-    fun transformConstant(expression: HIRConstant): HIRConstant = when(expression) {
+    fun transformConstant(expression: HIRConstant): HIRConstant = when (expression) {
         is HIRConstant.ByteString -> expression
         is HIRConstant.BoolValue -> expression
         is HIRConstant.IntValue -> expression
@@ -475,9 +487,9 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
 
     fun transformParam(param: HIRParam): HIRParam {
         return HIRParam(
-                location = param.location,
-                binder = param.binder,
-                type = lowerType(param.type)
+            location = param.location,
+            binder = param.binder,
+            type = lowerType(param.type)
         )
     }
 
@@ -486,13 +498,15 @@ interface HIRTransformer: TypeTransformer, HIRBuilder {
     }
 
     fun transformExternFunctionDef(definition: HIRDefinition.ExternFunction): Collection<HIRDefinition> {
-        return listOf(HIRDefinition.ExternFunction(
+        return listOf(
+            HIRDefinition.ExternFunction(
                 location = definition.location,
                 name = transformGlobalName(definition.name),
                 params = definition.params.map { lowerType(it) },
                 externName = definition.externName,
                 returnType = lowerType(definition.returnType)
-        ))
+            )
+        )
     }
 
     fun transformGlobalName(name: QualifiedName): QualifiedName {

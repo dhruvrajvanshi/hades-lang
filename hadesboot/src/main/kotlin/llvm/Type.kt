@@ -31,7 +31,7 @@ fun intType(size: Int, context: Context = LLVM.LLVMGetGlobalContext()): LLVMType
 fun arrayType(elementType: Type, count: Int): Type =
     LLVM.LLVMArrayType(elementType, count)
 
-fun floatType(size: Int, context: Context): T = when(size) {
+fun floatType(size: Int, context: Context): T = when (size) {
     16 -> LLVM.LLVMHalfTypeInContext(context)
     32 -> LLVM.LLVMFloatTypeInContext(context)
     64 -> LLVM.LLVMDoubleTypeInContext(context)
@@ -46,4 +46,3 @@ fun structType(name: String, context: Context): T =
 
 fun T.setBody(elementTypes: List<Type>, packed: Boolean) =
     LLVM.LLVMStructSetBody(this, elementTypes.asPointerPointer(), elementTypes.size, packed.toLLVMBool())
-

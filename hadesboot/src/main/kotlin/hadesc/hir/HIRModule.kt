@@ -1,10 +1,6 @@
 package hadesc.hir
 
-import hadesc.location.Position
-import hadesc.location.SourceLocation
-import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
-import java.nio.file.Path
 
 data class HIRModule(
     val definitions: MutableList<HIRDefinition>
@@ -36,7 +32,7 @@ data class HIRModule(
         }
     }
 
-    private fun hasName(definition: HIRDefinition, name: QualifiedName): Boolean = when(definition) {
+    private fun hasName(definition: HIRDefinition, name: QualifiedName): Boolean = when (definition) {
         is HIRDefinition.Function -> definition.name == name
         is HIRDefinition.ExternFunction -> definition.name == name
         is HIRDefinition.Struct -> definition.name == name

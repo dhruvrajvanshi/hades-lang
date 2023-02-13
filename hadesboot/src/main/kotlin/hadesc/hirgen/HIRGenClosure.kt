@@ -18,7 +18,7 @@ import libhades.collections.Stack
 internal class HIRGenClosure(
     private val ctx: Context,
     private val moduleContext: HIRGenModuleContext,
-    private val functionContext: HIRGenFunctionContext,
+    private val functionContext: HIRGenFunctionContext
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
     ASTContext by ctx {
@@ -38,26 +38,30 @@ internal class HIRGenClosure(
         val closureFn = emitClosureFn(expression, captureInfo, captureStruct)
 
         val captureTypeArgs =
-            if (captureStruct.typeParams == null)
+            if (captureStruct.typeParams == null) {
                 emptyList()
-            else
+            } else {
                 captureInfo.types.map { Type.ParamRef(it) }
+            }
         val contextRef = emitAlloca("closureCtxPtr", captureStruct.instanceType(captureTypeArgs))
 
         emitCaptureInitializers(contextRef, captureInfo)
 
-        val fnRef = if (captureInfo.types.isEmpty())
-                        closureFn.ref()
-                    else
-                        emitTypeApplication(closureFn.ref(), captureTypeArgs).result()
+        val fnRef = if (captureInfo.types.isEmpty()) {
+            closureFn.ref()
+        } else {
+            emitTypeApplication(closureFn.ref(), captureTypeArgs).result()
+        }
 
-        val closureRef = emit(HIRStatement.AllocateClosure(
-            currentLocation,
-            ctx.makeUniqueName("closure"),
-            ctx.analyzer.reduceGenericInstances(expression.type) as Type.Closure,
-            fnRef,
-            contextRef.ptr()
-        ))
+        val closureRef = emit(
+            HIRStatement.AllocateClosure(
+                currentLocation,
+                ctx.makeUniqueName("closure"),
+                ctx.analyzer.reduceGenericInstances(expression.type) as Type.Closure,
+                fnRef,
+                contextRef.ptr()
+            )
+        )
         return closureRef.result()
     }
 
@@ -108,10 +112,11 @@ internal class HIRGenClosure(
                     val captureTy = it.value.second
                     val capturedBinding = it.value.first
                     val fieldTy =
-                        if (isCapturedByValue(capturedBinding))
+                        if (isCapturedByValue(capturedBinding)) {
                             captureTy
-                        else
+                        } else {
                             captureTy.mutPtr()
+                        }
                     it.key.name to fieldTy
                 }
             )
@@ -135,15 +140,16 @@ internal class HIRGenClosure(
     ): HIRDefinition.Function = scoped {
         val fnName = ctx.makeUniqueName("closure_fn")
         val captureTypeArgs =
-            if (captureStruct.typeParams == null)
+            if (captureStruct.typeParams == null) {
                 emptyList()
-            else
+            } else {
                 captureInfo.types.map { Type.ParamRef(it) }
+            }
 
         val captureParam = HIRParam(
             expression.location,
             Binder(Identifier(currentLocation, closureCtxParamName)),
-            captureStruct.instanceType(captureTypeArgs).ptr(),
+            captureStruct.instanceType(captureTypeArgs).ptr()
         )
         val returnType = ctx.analyzer.getReturnType(expression)
         val body = scoped {
@@ -153,10 +159,10 @@ internal class HIRGenClosure(
             when (expression.body) {
                 is ClosureBody.Block -> {
                     val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
-                    lowerBlock(expression.body.block, addReturnVoid = addReturnVoid, into=intoBlock)
+                    lowerBlock(expression.body.block, addReturnVoid = addReturnVoid, into = intoBlock)
                 }
                 is ClosureBody.Expression -> {
-                    buildBlock(into=intoBlock) {
+                    buildBlock(into = intoBlock) {
                         emit(
                             HIRStatement.Return(
                                 currentLocation,
@@ -167,7 +173,6 @@ internal class HIRGenClosure(
                 }
             }
         }
-
 
         val signature = HIRFunctionSignature(
             currentLocation,
@@ -249,7 +254,7 @@ internal class HIRGenClosure(
 
 data class ClosureGenContext(
     val captureParam: HIRParam,
-    val captureStruct: HIRDefinition.Struct,
+    val captureStruct: HIRDefinition.Struct
 ) {
     fun getCapture(name: Name): Type? {
         return captureStruct.fields.find { it.first == name }?.second

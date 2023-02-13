@@ -24,12 +24,13 @@ import kotlin.streams.toList
 
 @Serializable
 data class Diagnostic(
-    val sourceLocation: SourceLocation, val kind: Kind
+    val sourceLocation: SourceLocation,
+    val kind: Kind
 ) {
     @Serializable
     enum class Severity {
         WARNING,
-        ERROR,
+        ERROR
     }
 
     @Serializable(with = DiagnosticKindSerializer::class)
@@ -44,7 +45,7 @@ data class Diagnostic(
         object TypeAnnotationExpected : Kind(Severity.ERROR)
         object StatementExpected : Kind(Severity.ERROR)
         object ExpressionExpected : Kind(Severity.ERROR)
-        data class UnboundVariable(val name: Name): Kind(Severity.ERROR)
+        data class UnboundVariable(val name: Name) : Kind(Severity.ERROR)
         object UnboundThis : Kind(Severity.ERROR)
         object AmbiguousExpression : Kind(Severity.ERROR)
         object NotAConst : Kind(Severity.ERROR)
@@ -108,7 +109,7 @@ data class Diagnostic(
         data class TraitMethodTypeMismatch(val expected: Type, val found: Type) : Kind(Severity.ERROR)
         data class DuplicateTypeBinding(val existing: Binder) : Kind(Severity.ERROR)
         data class DuplicateValueBinding(val existing: Binder) : Kind(Severity.ERROR)
-        object TakingAddressOfClosureDisallowed: Kind(Severity.ERROR)
+        object TakingAddressOfClosureDisallowed : Kind(Severity.ERROR)
         object ReturnTypeMustNotContainClosuresOrRefs : Kind(Severity.ERROR)
         data class UseAfterMove(
             val movedAt: SourceLocation,
@@ -117,10 +118,10 @@ data class Diagnostic(
         object NotAnIntegralValue : Kind(Severity.ERROR)
         object BlockExpressionMustEndWithExpression : Kind(Severity.ERROR)
         object InvalidIntrinsic : Kind(Severity.ERROR)
-        data class TypeDoesNotSupportArithmetic(val type: Type): Kind(Severity.ERROR)
+        data class TypeDoesNotSupportArithmetic(val type: Type) : Kind(Severity.ERROR)
 
         data class NoSuchAssociatedType(val name: Name) : Kind(Severity.ERROR)
-        data class NotAnArrayType(val type: Type): Kind(Severity.ERROR)
+        data class NotAnArrayType(val type: Type) : Kind(Severity.ERROR)
 
         data class MissingAssociatedType(val name: Name) : Kind(Severity.ERROR)
         data class InvalidEscape(val c: Char) : Kind(Severity.ERROR)
@@ -129,9 +130,9 @@ data class Diagnostic(
         data class NoSuchCase(val declaration: Declaration.Enum, val name: Name) : Kind(Severity.ERROR)
         class InvalidPragma(val name: String) : Kind(Severity.ERROR)
 
-        object CantMoveNonLocal: Kind(Severity.ERROR)
-        object CopyOfNoCopyTypeNotAllowed: Kind(Severity.ERROR)
-        object AssigningToFieldOfAStructPassedByValueNotAllowed: Kind(Severity.ERROR)
+        object CantMoveNonLocal : Kind(Severity.ERROR)
+        object CopyOfNoCopyTypeNotAllowed : Kind(Severity.ERROR)
+        object AssigningToFieldOfAStructPassedByValueNotAllowed : Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -146,7 +147,7 @@ data class Diagnostic(
             is TypeNotAssignable -> "Type ${source.prettyPrint()} is not assignable to ${destination.prettyPrint()}"
             is NoSuchProperty -> "Type ${type.prettyPrint()} has no property named ${property.text}"
             is UnboundType -> "Unbound type variable ${name.text}"
-            is UninferrableTypeParam -> "Uninferrable type parameter ${name.text}; Explicit type annotation required. (Defined at ${location})"
+            is UninferrableTypeParam -> "Uninferrable type parameter ${name.text}; Explicit type annotation required. (Defined at $location)"
             is IncompleteType -> "Incomplete type; Required $requiredArgs arg(s)"
             UnboundThis -> "'this' is not bound. Try adding a receiver parameter to the enclosing function"
             AmbiguousExpression -> "Expression cannot be inferred; A type annotation is required"
@@ -211,7 +212,7 @@ data class Diagnostic(
             BlockExpressionMustEndWithExpression -> "Block expressions must end with an expression, not a statement"
             InvalidIntrinsic -> "Invalid intrinsic"
             is TypeDoesNotSupportArithmetic -> "Type '${type.prettyPrint()}' does not support arithmetic."
-            is InvalidEscape -> "Invalid escape character '${c}'"
+            is InvalidEscape -> "Invalid escape character '$c'"
             is NotAMatchableType -> "Not a matchable type: ${type.prettyPrint()}"
             is NotAnEnumType -> "Not an enum type: ${type.prettyPrint()}"
             is NoSuchCase -> "No such case. Allowed cases: ${declaration.cases.map { it.name.name }}"
@@ -221,10 +222,8 @@ data class Diagnostic(
             AssigningToFieldOfAStructPassedByValueNotAllowed ->
                 "Assigning to a field of a struct passed by value is not allowed. Did you mean to pass this as a pointer?"
         }
-
     }
 }
-
 
 class DiagnosticReporter {
     var hasErrors = false
@@ -249,23 +248,21 @@ class DiagnosticReporter {
         val path = colorize(location.file.path.toString(), Attribute.BOLD())
         val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD())
         val coloredKind = colorize(kind.prettyPrint(), Attribute.BOLD())
-        printErrLn("${path}:${lineInfo}: ${severity}: $coloredKind")
+        printErrLn("$path:$lineInfo: $severity: $coloredKind")
         printLocationLine(location)
         for (i in 0 until location.start.column) {
             System.err.print(' ')
         }
         System.err.print(colorize("^", Attribute.RED_TEXT(), Attribute.BOLD()))
         if (location.start.line == location.stop.line) {
-
             for (i in 0 until location.stop.column - location.start.column) {
                 System.err.print(colorize("~", Attribute.RED_TEXT(), Attribute.BOLD()))
             }
-
         }
 
         if (kind is Diagnostic.Kind.UseAfterMove) {
             System.err.println()
-            System.err.print(colorize("${path}:(${kind.movedAt.start.line}:${kind.movedAt.start.column}): ", Attribute.BOLD()))
+            System.err.print(colorize("$path:(${kind.movedAt.start.line}:${kind.movedAt.start.column}): ", Attribute.BOLD()))
             System.err.print(colorize("Moved here", Attribute.BRIGHT_YELLOW_TEXT()))
             System.err.println()
             printLocationLine(kind.movedAt, Attribute.BRIGHT_YELLOW_TEXT())
@@ -295,13 +292,12 @@ class DiagnosticReporter {
         val startLine = lines[location.start.line - 1]
         val lineno = colorize(location.start.line.toString(), Attribute.DIM())
         printErrLn(" $lineno\t${colorize("| $startLine", *attribute)}")
-        System.err.print(colorize(" ${location.start.line.toString().chars().toList().joinToString(" ") { "" }  }\t|", *attribute))
+        System.err.print(colorize(" ${location.start.line.toString().chars().toList().joinToString(" ") { "" } }\t|", *attribute))
     }
 
     private fun printErrLn(string: String) {
         System.err.println(string)
     }
-
 }
 
 /**
@@ -311,7 +307,7 @@ class DiagnosticReporter {
  * This means they can't be deserialized without pain.
  * Thankfully we don't need to.
  */
-private class DiagnosticKindSerializer: KSerializer<Diagnostic.Kind> {
+private class DiagnosticKindSerializer : KSerializer<Diagnostic.Kind> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Diagnostic.Kind", PrimitiveKind.STRING)
 
     override fun deserialize(decoder: Decoder): Diagnostic.Kind {
@@ -322,5 +318,4 @@ private class DiagnosticKindSerializer: KSerializer<Diagnostic.Kind> {
     override fun serialize(encoder: Encoder, value: Diagnostic.Kind) {
         encoder.encodeString(value.prettyPrint())
     }
-
 }

@@ -41,16 +41,16 @@ class TypeAnalyzer {
                 source.binder.location == destination.binder.location
             }
             destination is Type.Application && source is Type.Application -> {
-                isTypeAssignableTo(source.callee, destination.callee)
-                        && source.args.size == destination.args.size
-                        && source.args.zip(destination.args).all {
-                    isTypeAssignableTo(source = it.first, destination = it.second)
-                }
+                isTypeAssignableTo(source.callee, destination.callee) &&
+                    source.args.size == destination.args.size &&
+                    source.args.zip(destination.args).all {
+                        isTypeAssignableTo(source = it.first, destination = it.second)
+                    }
             }
 
             destination is Type.ParamRef && source is Type.ParamRef -> {
-                destination.name.identifier.name == source.name.identifier.name
-                        && destination.name.location == source.name.location
+                destination.name.identifier.name == source.name.identifier.name &&
+                    destination.name.location == source.name.location
             }
             destination is Type.Ptr && source is Type.Ptr -> {
                 val ptrTypeAssignable = isTypeAssignableTo(source.to, destination.to)
@@ -59,32 +59,31 @@ class TypeAnalyzer {
                 } else {
                     ptrTypeAssignable
                 }
-
             }
             destination is Type.Constructor && source is Type.Constructor -> {
                 destination.name == source.name
             }
             destination is Type.FunctionPtr && source is Type.FunctionPtr -> {
-                destination.from.size == source.from.size
-                        && isTypeAssignableTo(source = source.to, destination = destination.to)
-                        && source.from.zip(destination.from).all { (sourceParam, destParam) ->
-                    isTypeAssignableTo(source = destParam, destination = sourceParam)
-                }
+                destination.from.size == source.from.size &&
+                    isTypeAssignableTo(source = source.to, destination = destination.to) &&
+                    source.from.zip(destination.from).all { (sourceParam, destParam) ->
+                        isTypeAssignableTo(source = destParam, destination = sourceParam)
+                    }
             }
             destination is Type.Closure && source is Type.Closure -> {
-                destination.from.size == source.from.size
-                        && isTypeAssignableTo(source = source.to, destination = destination.to)
-                        && source.from.zip(destination.from).all { (sourceParam, destParam) ->
-                    isTypeAssignableTo(source = destParam, destination = sourceParam)
-                }
+                destination.from.size == source.from.size &&
+                    isTypeAssignableTo(source = source.to, destination = destination.to) &&
+                    source.from.zip(destination.from).all { (sourceParam, destParam) ->
+                        isTypeAssignableTo(source = destParam, destination = sourceParam)
+                    }
             }
             source is Type.Select && destination is Type.Select -> {
-                source.associatedTypeName == destination.associatedTypeName
-                        && source.traitName == destination.traitName
-                        && source.traitArgs.size == destination.traitArgs.size
-                        && source.traitArgs.zip(destination.traitArgs).all { (source, destination) ->
-                            isTypeAssignableTo(source = source, destination = destination)
-                        }
+                source.associatedTypeName == destination.associatedTypeName &&
+                    source.traitName == destination.traitName &&
+                    source.traitArgs.size == destination.traitArgs.size &&
+                    source.traitArgs.zip(destination.traitArgs).all { (source, destination) ->
+                        isTypeAssignableTo(source = source, destination = destination)
+                    }
             }
             else -> false
         }
@@ -95,13 +94,13 @@ class TypeAnalyzer {
         val id = makeGenericInstanceId
         makeGenericInstanceId++
         return Type.GenericInstance(
-                binder.name,
-                binder.location,
-                id = id)
+            binder.name,
+            binder.location,
+            id = id
+        )
     }
 
     fun makeParamSubstitution(params: List<Type.Param>): Substitution {
         return params.associate { it.binder.location to makeGenericInstance(it.binder) }.toSubstitution()
     }
-
 }

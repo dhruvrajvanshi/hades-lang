@@ -7,19 +7,19 @@ import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.path
-import hadesc.context.BuildTarget
 import hadesc.BuildCLIOptions
+import hadesc.context.BuildTarget
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import kotlinx.serialization.ExperimentalSerializationApi
-import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
+import java.io.File
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
-class BuildCommand: CliktCommand(
+class BuildCommand : CliktCommand(
     invokeWithoutSubcommand = true,
     epilog = "Build complete"
 ) {
@@ -46,10 +46,13 @@ class BuildCommand: CliktCommand(
 
     fun execute(): List<Diagnostic> {
         val options = buildOptions.toBuildOptions()
-        val ctx = Context(options, BuildTarget.Executable(
-            mainSourcePath = main,
-            output = output
-        ))
+        val ctx = Context(
+            options,
+            BuildTarget.Executable(
+                mainSourcePath = main,
+                output = output
+            )
+        )
         log.debug("Building")
         ctx.build()
 

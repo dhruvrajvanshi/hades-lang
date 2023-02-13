@@ -5,7 +5,7 @@ import hadesc.location.HasLocation
 
 sealed interface Binding {
     val binder: Binder
-    sealed interface Local: Binding
+    sealed interface Local : Binding
 
     data class GlobalFunction(
         val declaration: Declaration.FunctionDef
@@ -15,7 +15,7 @@ sealed interface Binding {
     }
 
     data class ExternFunction(
-            val declaration: Declaration.ExternFunctionDef
+        val declaration: Declaration.ExternFunctionDef
     ) : Binding {
         override val binder: Binder get() = declaration.binder
     }
@@ -27,8 +27,8 @@ sealed interface Binding {
     }
 
     data class FunctionParam(
-            val index: Int,
-            val declaration: Declaration.FunctionDef
+        val index: Int,
+        val declaration: Declaration.FunctionDef
     ) : Binding, Local {
         val param get() = declaration.params[index]
         override val binder: Binder
@@ -36,19 +36,19 @@ sealed interface Binding {
     }
 
     data class ValBinding(
-            val statement: Statement.Val
+        val statement: Statement.Val
     ) : Binding, Local {
         override val binder get() = statement.binder
     }
 
     data class Struct(
-            val declaration: Declaration.Struct
+        val declaration: Declaration.Struct
     ) : Binding {
         override val binder get() = declaration.binder
     }
 
     data class GlobalConst(
-            val declaration: Declaration.ConstDefinition
+        val declaration: Declaration.ConstDefinition
     ) : Binding {
         override val binder get() = declaration.name
     }
@@ -63,7 +63,7 @@ sealed interface Binding {
         override val binder: Binder get() = declaration.name
     }
 
-    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int): Binding, Local {
+    data class MatchArmEnumCaseArg(val topLevelPattern: Pattern.EnumCase, val argIndex: Int) : Binding, Local {
         init {
             requireNotNull(topLevelPattern.args)
             require(argIndex < topLevelPattern.args.size)
@@ -78,7 +78,7 @@ sealed interface Binding {
 
     fun isLocalTo(scope: HasLocation) = binder.location.isWithin(scope.location)
 
-    fun isGlobal() = when(this) {
+    fun isGlobal() = when (this) {
         is ClosureParam -> false
         is ExternFunction -> true
         is FunctionParam -> false
@@ -96,7 +96,7 @@ sealed class WhereBindingDeclaration {
     data class FunctionDef(val declaration: Declaration.FunctionDef) : WhereBindingDeclaration()
     data class ImplementationDef(val declaration: Declaration.ImplementationDef) : WhereBindingDeclaration()
 
-    val traitRequirements get() = when(this) {
+    val traitRequirements get() = when (this) {
         is FunctionDef -> declaration.signature.whereClause?.traitRequirements ?: listOf()
         is ImplementationDef -> declaration.whereClause?.traitRequirements ?: listOf()
     }

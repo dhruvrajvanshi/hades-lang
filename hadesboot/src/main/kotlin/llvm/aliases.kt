@@ -8,4 +8,3 @@ typealias Context = LLVMContextRef
 typealias Builder = LLVMBuilderRef
 typealias BasicBlock = LLVMBasicBlockRef
 typealias FunctionValue = LLVMValueRef
-

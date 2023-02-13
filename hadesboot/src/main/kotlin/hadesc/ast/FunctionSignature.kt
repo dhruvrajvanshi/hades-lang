@@ -15,12 +15,12 @@ data class FunctionSignature(
 ) : HasLocation {
     init {
         check(
-            thisParamBinder == null && thisParamFlags == null
-                    || thisParamBinder != null && thisParamFlags != null
+            thisParamBinder == null && thisParamFlags == null ||
+                thisParamBinder != null && thisParamFlags != null
         )
     }
     data class ThisParamFlags(
-            val isPointer: Boolean,
-            val isMutable: Boolean
+        val isPointer: Boolean,
+        val isMutable: Boolean
     )
 }

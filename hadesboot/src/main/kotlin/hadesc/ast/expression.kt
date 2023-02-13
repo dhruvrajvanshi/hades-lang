@@ -54,7 +54,6 @@ sealed interface Expression : HasLocation {
         val expression: Expression
     ) : Expression
 
-
     data class BinaryOperation(
         override val location: SourceLocation,
         val lhs: Expression,
@@ -70,7 +69,7 @@ sealed interface Expression : HasLocation {
     data class AlignOf(
         override val location: SourceLocation,
         val type: TypeAnnotation
-    ): Expression
+    ) : Expression
 
     data class AddressOf(
         override val location: SourceLocation,
@@ -107,7 +106,7 @@ sealed interface Expression : HasLocation {
     ) : Expression
 
     data class This(
-            override val location: SourceLocation
+        override val location: SourceLocation
     ) : Expression
 
     data class Closure(
@@ -120,7 +119,7 @@ sealed interface Expression : HasLocation {
     data class As(
         override val location: SourceLocation,
         val lhs: Expression,
-        val rhs: TypeAnnotation,
+        val rhs: TypeAnnotation
     ) : Expression
 
     data class BlockExpression(val block: Block) : Expression {
@@ -135,7 +134,7 @@ sealed interface Expression : HasLocation {
 
     data class UnaryMinus(
         override val location: SourceLocation,
-        val expression: Expression,
+        val expression: Expression
     ) : Expression
 
     data class Match(
@@ -146,7 +145,7 @@ sealed interface Expression : HasLocation {
         data class Arm(
             val pattern: Pattern,
             val value: Expression
-        ): ScopeTree {
+        ) : ScopeTree {
             override val location: SourceLocation
                 get() = SourceLocation.between(pattern, value)
         }
@@ -154,11 +153,11 @@ sealed interface Expression : HasLocation {
 
     data class Uninitialized(
         override val location: SourceLocation
-    ): Expression
+    ) : Expression
 
     data class FloatLiteral(override val location: SourceLocation, val value: Double) : Expression
 
-    data class Move(override val location: SourceLocation, val name: Identifier): Expression
+    data class Move(override val location: SourceLocation, val name: Identifier) : Expression
 }
 
 enum class IntrinsicType {
@@ -171,7 +170,7 @@ enum class IntrinsicType {
 
     MEMCPY,
 
-    ERROR,
+    ERROR
 }
 
 sealed class ClosureBody : HasLocation {
