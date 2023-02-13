@@ -24,3 +24,4 @@ test_build
 /stdlib/libhdc.o
 /libhdc.o
 /.hades
+/.distribution_smoke_test

@@ -52,7 +52,7 @@ java {
 
 tasks.test {
     workingDir = File("..")
-    environment["HADES_HOME"] = "."
+    environment["HADES_HOME"] = hadesHome
     useJUnitPlatform()
 }
 
@@ -66,12 +66,37 @@ tasks.compileTestKotlin {
     kotlinOptions.jvmTarget = "15"
 }
 
+val hadesHome = "$buildDir/HADES_HOME"
+
+val copyStdlib = tasks.register<Copy>("copyStdlib") {
+    from("../stdlib")
+    into("$hadesHome/stdlib")
+}
+
+val assembleHadesHome = tasks.register("assembleHadesHome") {
+    dependsOn(copyStdlib, installGC)
+}
+
+val cleanHadesHome = tasks.register("cleanHadesHome") {
+    delete(hadesHome)
+}
+
+tasks.classes {
+    dependsOn(assembleHadesHome)
+}
 
 distributions {
     main {
         contents {
             from("../stdlib") {
                 into("stdlib")
+            }
+
+            from("$hadesHome/lib") {
+                into("lib")
+            }
+            from("$hadesHome/include") {
+                into("include")
             }
         }
     }
@@ -125,4 +150,33 @@ kotlinter {
 detekt {
     config = files("${projectDir}/detekt.yml")
     buildUponDefaultConfig = true
+}
+
+val configureGC = tasks.register<Exec>("configureGC") {
+    workingDir = File("../bdwgc")
+    commandLine(
+        "cmake",
+        "-DCMAKE_INSTALL_PREFIX=${hadesHome}",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-S", ".", "-B", "out")
+}
+val buildGC = tasks.register<Exec>("buildGC") {
+    dependsOn(configureGC)
+    inputs.dir("../bdwgc")
+    workingDir = File("../bdwgc")
+    commandLine("cmake", "--build", "out", "--config", "Release")
+}
+val installGC = tasks.register<Exec>("installGC") {
+    dependsOn(buildGC)
+    inputs.dir("../bdwgc")
+    workingDir = File("../bdwgc")
+    commandLine("cmake", "--install", "out")
+}
+
+val cleanGCBuild = tasks.register("cleanGCBuild") {
+    delete("../bdwgc/out")
+}
+
+tasks.clean {
+    dependsOn(cleanGCBuild, cleanHadesHome)
 }
