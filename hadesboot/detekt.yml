@@ -1,4 +1,14 @@
 complexity:
   active: false
+  ComplexCondition:
+    active: true
+
 style:
-  active: false
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    active: false
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: false

@@ -123,5 +123,6 @@ kotlinter {
 }
 
 detekt {
-    config = files("$projectDir/detekt.yml")
+    config = files("${projectDir}/detekt.yml")
+    buildUponDefaultConfig = true
 }
