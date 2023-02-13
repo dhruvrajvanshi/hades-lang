@@ -28,7 +28,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Lint
-        run: ./gradlew check
+        run: ./gradlew check -x test
 
       - name: Upload lint results
         uses: jwgmeligmeyling/checkstyle-github-action@master
