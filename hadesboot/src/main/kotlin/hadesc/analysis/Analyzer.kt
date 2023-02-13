@@ -373,12 +373,7 @@ class Analyzer(
     private fun getStructDeclOfType(lhsType: Type): Declaration.Struct? {
         return when (lhsType) {
             is Type.Constructor -> {
-                val decl = ctx.resolver.resolveDeclaration(lhsType.name)
-                if (decl is Declaration.Struct) {
-                    decl
-                } else {
-                    null
-                }
+                ctx.resolver.resolveDeclaration(lhsType.name) as? Declaration.Struct
             }
             is Type.Application -> {
                 getStructDeclOfType(lhsType.callee)
@@ -389,12 +384,7 @@ class Analyzer(
     private fun getTraitDefOfType(lhsType: Type): Declaration.TraitDef? {
         return when (lhsType) {
             is Type.Constructor -> {
-                val decl = ctx.resolver.resolveDeclaration(lhsType.name)
-                if (decl is Declaration.TraitDef) {
-                    decl
-                } else {
-                    null
-                }
+                ctx.resolver.resolveDeclaration(lhsType.name) as? Declaration.TraitDef
             }
             is Type.Application -> {
                 getTraitDefOfType(lhsType.callee)
@@ -1760,11 +1750,7 @@ class Analyzer(
         when (expression) {
             is Expression.Property -> {
                 val binding = resolvePropertyBinding(expression)
-                if (binding is PropertyBinding.EnumTypeCaseConstructor) {
-                    binding
-                } else {
-                    null
-                }
+                binding as? PropertyBinding.EnumTypeCaseConstructor
             }
             is Expression.TypeApplication -> getEnumConstructorBinding(expression.lhs)
             else -> null
@@ -1997,11 +1983,7 @@ class Analyzer(
 
     fun getTraitDef(traitRequirement: TraitRequirement): Declaration.TraitDef? {
         val declaration = ctx.resolver.resolveDeclaration(traitRequirement.traitRef)
-        return if (declaration is Declaration.TraitDef) {
-            declaration
-        } else {
-            null
-        }
+        return declaration as? Declaration.TraitDef
     }
 
     fun isEnumType(type: Type): Boolean = getEnumTypeDeclaration(type) != null
