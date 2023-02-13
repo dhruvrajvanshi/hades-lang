@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  Test:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os == 'windows-latest'
+
+      - uses: actions/checkout@v2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Lint
+        run: ./gradlew check
+
+      - name: Upload lint results
+        uses: jwgmeligmeyling/checkstyle-github-action@master
+        if: always()
+        with:
+          path: '**/*-lint.xml'
+
+      - name: Test
+        run: ./gradlew test
+
+      - name: Build distribution
+        run: ./gradlew installDist
+
+      - name: Archive Test Results
+        if: always() # Even on failures
+        uses: actions/upload-artifact@v1
+        with:
+          name: test-results
+          path: hadesboot/build/reports/tests/test
