@@ -12,6 +12,11 @@ import hadesc.BuildCLIOptions
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
+import kotlinx.serialization.ExperimentalSerializationApi
+import java.io.File
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToStream
+import java.nio.file.Paths
 import kotlin.system.exitProcess
 
 class BuildCommand: CliktCommand(
@@ -47,6 +52,31 @@ class BuildCommand: CliktCommand(
         ))
         log.debug("Building")
         ctx.build()
+
+        if (options.jsonDiagnostics) {
+            emitJSONDiagnostics(ctx.diagnosticReporter.errors)
+        }
         return ctx.diagnosticReporter.errors
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    private fun emitJSONDiagnostics(errors: List<Diagnostic>) {
+        val dotHadesDir = File(".hades")
+        if (dotHadesDir.exists() && !dotHadesDir.isDirectory) {
+            dotHadesDir.delete()
+        }
+        if (!dotHadesDir.exists()) {
+            dotHadesDir.mkdir()
+        }
+
+        val diagnosticsJSONFile = Paths.get(dotHadesDir.path, "diagnostics.json").toFile()
+
+        if (diagnosticsJSONFile.exists()) {
+            diagnosticsJSONFile.delete()
+        }
+
+        diagnosticsJSONFile.outputStream().buffered().use {
+            Json.encodeToStream(errors, it)
+        }
     }
 }

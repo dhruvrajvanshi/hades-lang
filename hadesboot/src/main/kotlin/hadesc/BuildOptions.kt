@@ -23,6 +23,7 @@ data class YamlBuildOptions(
     val cFlags: List<String> = emptyList(),
     val libs: List<String> = emptyList(),
     val directories: List<String> = emptyList(),
+    val jsonDiagnostics: Boolean = false
 )
 
 data class BuildOptions(
@@ -36,6 +37,7 @@ data class BuildOptions(
     val enableHIRVerifier: Boolean,
     val dumpHIRGen: Boolean,
     val enableLLVMVerifier: Boolean,
+    val jsonDiagnostics: Boolean,
 ) : Options
 
 class BuildCLIOptions: OptionGroup() {
@@ -56,6 +58,9 @@ class BuildCLIOptions: OptionGroup() {
     private val libs by option("-l").multiple()
     private val enableHIRVerifier by option("--enable-hir-verifier").flag(default = false)
     private val enableLLVMVerifier by option("--enable-llvm-verifier").flag(default = false)
+    private val jsonDiagnostics by option("--json-diagnostics")
+        .flag(default = false)
+        .help("Emit errors and warnings to .hades/diagnostics.json")
 
     private val fromProjectYML = if (File("hades.yml").exists()) {
         val text = File("hades.yml").readText()
@@ -88,6 +93,7 @@ class BuildCLIOptions: OptionGroup() {
             enableHIRVerifier = enableHIRVerifier,
             dumpHIRGen = dumpHIRGen,
             enableLLVMVerifier = enableLLVMVerifier,
+            jsonDiagnostics = jsonDiagnostics,
         )
     }
 }
