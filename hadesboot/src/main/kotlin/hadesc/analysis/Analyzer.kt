@@ -182,6 +182,7 @@ class Analyzer(
 
     private fun findExtensionMethodBinding(extensionDef: Declaration.ExtensionDef, expression: Expression.Property): PropertyBinding.ExtensionDef? {
         var index = -1
+        @Suppress("LoopWithTooManyJumpStatements")
         for (functionDef in extensionDef.functionDefs) {
             index++
             if (functionDef.signature.thisParamFlags == null) {
