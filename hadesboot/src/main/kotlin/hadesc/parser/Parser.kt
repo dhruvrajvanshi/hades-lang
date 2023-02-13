@@ -101,6 +101,7 @@ class Parser(
 
     private fun parseDeclarations(): List<Declaration> = makeList {
         while (currentToken.kind != tt.EOF) {
+            @Suppress("SwallowedException")
             try {
                 add(parseDeclaration())
             } catch (e: SyntaxError) {
@@ -563,6 +564,7 @@ class Parser(
 
     private fun parseBlockMembers(): List<Block.Member> = makeList {
         while (!(at(tt.RBRACE) || at(tt.EOF))) {
+            @Suppress("SwallowedException")
             try {
                 add(parseBlockMember())
             } catch (e: SyntaxError) {
@@ -1219,6 +1221,7 @@ class Parser(
         val params = makeList {
             lparen ?: expect(tt.LPAREN)
             var first = true
+            @Suppress("LoopWithTooManyJumpStatements")
             while (!(at(tt.RPAREN) || at(tt.EOF))) {
                 if (!first) {
                     expect(tt.COMMA)
@@ -1439,6 +1442,7 @@ class Parser(
         stopBefore: Set<tt> = declarationRecoveryTokens
     ) {
         advance()
+        @Suppress("LoopWithTooManyJumpStatements")
         while (true) {
             if (isEOF()) {
                 break
