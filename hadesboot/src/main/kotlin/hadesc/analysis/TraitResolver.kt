@@ -7,7 +7,7 @@ import hadesc.types.emptySubstitution
 
 class TraitResolver<Def>(private val env: Env<Def>, private val typeAnalyzer: TypeAnalyzer) {
     data class Env<Def>(val clauses: List<TraitClause<Def>>) {
-        constructor(vararg clauses: TraitClause<Def>) : this(listOf(*clauses))
+        constructor(vararg clauses: TraitClause<Def>) : this(clauses.toList())
     }
 
     fun getImplementationClauseAndSubstitution(traitRef: QualifiedName, arguments: List<Type>): Pair<TraitClause<Def>, Substitution>? {
