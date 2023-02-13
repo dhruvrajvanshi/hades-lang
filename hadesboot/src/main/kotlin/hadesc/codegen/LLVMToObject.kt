@@ -3,7 +3,6 @@ package hadesc.codegen
 import hadesc.BuildOptions
 import hadesc.context.BuildTarget
 import hadesc.logging.logger
-import hadesc.profile
 import llvm.ref
 import org.apache.commons.lang3.SystemUtils
 import org.bytedeco.javacpp.BytePointer
@@ -32,7 +31,7 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         Path.of(objectFilePath).deleteExisting()
     }
 
-    private fun linkWithRuntime() = profile("LLVMGen::linkWithRuntime") {
+    private fun linkWithRuntime() {
         log.debug("Linking using $cc")
         val commandParts = mutableListOf(cc)
         if (options.debugSymbols) {

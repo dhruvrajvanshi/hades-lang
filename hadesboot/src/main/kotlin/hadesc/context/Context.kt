@@ -16,7 +16,6 @@ import hadesc.hirgen.HIRGen
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
-import hadesc.profile
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
@@ -58,7 +57,7 @@ class Context(
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
-    fun build() = profile("Context::build") {
+    fun build() {
         Checker(this).checkProgram()
 
         if (this.diagnosticReporter.hasErrors) {
