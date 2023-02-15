@@ -65,6 +65,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: latest
           prerelease: true
           files: |
             hades-linux-x86_64.tar
@@ -76,7 +77,6 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
-          automatic_release_tag: latest
           files: |
             hades-linux-x86_64.tar
             hades-macos-x86_64.tar
