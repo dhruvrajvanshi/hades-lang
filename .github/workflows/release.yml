@@ -1,5 +1,5 @@
 ---
-name: Release Latest
+name: Release
 
 on:
   push:
@@ -62,21 +62,21 @@ jobs:
           name: hades-macos-x86_64.tar
       - uses: "marvinpinto/action-automatic-releases@latest"
         name: Release latest tag
+        if: github.ref == 'refs/heads/master'
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
-          if: github.ref == 'refs/heads/master'
           files: |
             hades-linux-x86_64.tar
             hades-macos-x86_64.tar
             hades-windows-x86_64.tar
       - uses: "marvinpinto/action-automatic-releases@latest"
         name: Release specific version
+        if: github.ref != 'refs/heads/master'
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           automatic_release_tag: latest
-          if: github.ref != 'refs/heads/master'
           files: |
             hades-linux-x86_64.tar
             hades-macos-x86_64.tar
