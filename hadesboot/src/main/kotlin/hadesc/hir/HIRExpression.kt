@@ -62,20 +62,3 @@ sealed interface HIRExpression : HIRNode {
         is HIRConstant.AlignOf -> "align_of[${type.prettyPrint()}]"
     }
 }
-fun HIRExpression.withType(type: Type): HIRExpression = when (this) {
-    is HIRExpression.GlobalRef -> copy(type = type)
-    is HIRConstant.BoolValue -> copy(type = type)
-    is HIRConstant.ByteString -> copy(type = type)
-    is HIRConstant.SizeOf -> copy(type = type)
-    is HIRExpression.LocalRef -> copy(type = type)
-    is HIRExpression.ParamRef -> copy(type = type)
-    is HIRExpression.TraitMethodRef -> copy(type = type)
-    is HIRConstant.AlignOf -> copy(type = type)
-    is HIRConstant.NullPtr -> {
-        require(type is Type.Ptr)
-        copy(type = type)
-    }
-    is HIRConstant.Void,
-    is HIRConstant.FloatValue,
-    is HIRConstant.IntValue -> requireUnreachable()
-}
