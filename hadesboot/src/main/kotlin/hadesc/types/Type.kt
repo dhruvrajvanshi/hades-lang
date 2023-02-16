@@ -41,7 +41,24 @@ sealed interface Type {
         val to: Type
     ) : Type
 
-    data class Constructor(val name: QualifiedName) : Type
+    sealed interface Constructor : Type {
+        val name: QualifiedName
+        val typeParams: List<Type.Param>?
+
+        data class Struct(
+            override val name: QualifiedName,
+            override val typeParams: List<Param>?,
+            val fields: List<Pair<Name, Type>>
+        ) : Constructor
+
+        data class Enum(
+            override val name: QualifiedName,
+            override val typeParams: List<Param>?,
+            val cases: List<EnumCase>
+        ) : Constructor
+    }
+
+    data class EnumCase(val name: Name, val params: List<Type>?)
 
     data class ParamRef(val name: Binder) : Type
 

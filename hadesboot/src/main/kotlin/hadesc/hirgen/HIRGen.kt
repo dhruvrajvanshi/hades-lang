@@ -623,13 +623,22 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
         }
     }
 
-    override fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion {
+    private fun getEnumCaseStructConstructor(declaration: Declaration.Enum, case: Declaration.Enum.Case): Type.Constructor.Struct {
         val enumName = ctx.resolver.qualifiedName(declaration.name)
+        val caseStructName = enumName.append(case.name.identifier.name)
+        return Type.Constructor.Struct(
+            caseStructName,
+            typeParams = declaration.typeParams?.map { Type.Param(it.binder) },
+            fields = case.params?.mapIndexed { index, param ->
+                ctx.makeName("$index") to ctx.analyzer.annotationToType(param.annotation)
+            } ?: emptyList()
+        )
+    }
+
+    override fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion {
         return Type.UntaggedUnion(
             declaration.cases.map { case ->
-                val constructorType = Type.Constructor(
-                    enumName.append(case.name.identifier.name)
-                )
+                val constructorType = getEnumCaseStructConstructor(declaration, case)
                 if (declaration.typeParams != null) {
                     Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
                 } else {
@@ -1153,8 +1162,9 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
     }
 
     private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
-        val constructorType = Type.Constructor(
-            name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.caseName)
+        val constructorType = getEnumCaseStructConstructor(
+            binding.declaration,
+            checkNotNull(binding.declaration.getCase(binding.caseName)?.first)
         )
         return if (binding.typeArgs.isEmpty()) {
             constructorType

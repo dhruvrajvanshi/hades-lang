@@ -106,11 +106,56 @@ class Analyzer(
         return PropertyBinding.EnumTypeCaseConstructor(binding.declaration, case, type)
     }
 
+    private fun Declaration.Enum.getTypeConstructor(): Type.Constructor.Enum {
+        return Type.Constructor.Enum(
+            name = ctx.resolver.qualifiedName(name),
+            typeParams = typeParams?.map { Type.Param(it.binder) },
+            cases = cases.map { case ->
+                Type.EnumCase(case.name.name, case.params?.map { annotationToType(it.annotation) })
+            }
+        )
+    }
+
+    private val structTypeConstructorCache = MutableNodeMap<Declaration.Struct, Type>()
+
+    /**
+     * Structs may be recursive,
+     * for example
+     * struct Node\[T] {
+     *   val next: *mut Node\[T]
+     * }
+     * to break the recursive cycle of evaluating field types,
+     * we use `structTypeConstructorCache`.
+     */
+    private fun Declaration.Struct.getTypeConstructor(): Type {
+        val cached = structTypeConstructorCache[this]
+        if (cached != null) {
+            return cached
+        }
+        val ty = makeGenericInstance(binder)
+        structTypeConstructorCache[this] = ty
+        val result = Type.Constructor.Struct(
+            name = ctx.resolver.qualifiedName(binder),
+            typeParams = typeParams?.map { Type.Param(it.binder) },
+            fields = members
+                .filterIsInstance<Declaration.Struct.Member.Field>()
+                .map {
+                    it.binder.name to annotationToType(it.typeAnnotation)
+                }
+        )
+        typeAnalyzer.isTypeAssignableTo(result, ty)
+        val substitutedResult = result.copy(
+            fields = result.fields.map { it.first to reduceGenericInstances(it.second) }
+        )
+        structTypeConstructorCache[this] = substitutedResult
+        return substitutedResult
+    }
+
     private fun typeOfEnumCase(
         declaration: Declaration.Enum,
         case: Declaration.Enum.Case
     ): Type {
-        val typeConstructor = Type.Constructor(ctx.resolver.qualifiedName(declaration.name))
+        val typeConstructor = declaration.getTypeConstructor()
         val instanceType = if (declaration.typeParams == null) {
             typeConstructor
         } else {
@@ -1116,8 +1161,7 @@ class Analyzer(
     }
 
     private fun typeOfStructValueRef(binding: Binding.Struct): Type {
-        val name = ctx.resolver.resolveGlobalName(binding.declaration.binder)
-        val constrType = Type.Constructor(name)
+        val constrType = binding.declaration.getTypeConstructor()
         val instanceType = if (binding.declaration.typeParams == null) {
             constrType
         } else {
@@ -1566,8 +1610,7 @@ class Analyzer(
     }
 
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
-        val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
+        val typeConstructor = binding.declaration.getTypeConstructor()
 
         return if (binding.declaration.typeParams == null) {
             typeConstructor
@@ -1582,8 +1625,7 @@ class Analyzer(
         }
     }
     private fun typeOfEnumBinding(binding: TypeBinding.Enum): Type {
-        val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
+        val typeConstructor = binding.declaration.getTypeConstructor()
 
         return if (binding.declaration.typeParams == null) {
             typeConstructor
@@ -1697,7 +1739,6 @@ class Analyzer(
             )
         }
     }
-
 
     fun isValidPropertyAccess(expression: Expression.Property): Boolean {
         typeOfExpression(expression)

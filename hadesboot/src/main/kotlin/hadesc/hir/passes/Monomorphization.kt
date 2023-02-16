@@ -12,6 +12,7 @@ import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Substitution
 import hadesc.types.Type
+import hadesc.types.emptySubstitution
 import hadesc.types.toSubstitution
 import java.util.concurrent.LinkedBlockingQueue
 
@@ -245,9 +246,21 @@ class Monomorphization(
         val typeName = type.callee.name
         val definition = oldModule.findGlobalDefinition(typeName)
         require(definition is HIRDefinition.Struct)
-        val specializedName = getSpecializedName(typeName, type.args.map { lowerType(it) })
-        specializedTypes[specializedName] = type.copy(args = type.args.map { lowerType(it) })
-        return Type.Constructor(specializedName)
+        val args = type.args.map { lowerType(it) }
+        val specializedName = getSpecializedName(typeName, args)
+        specializedTypes[specializedName] = type.copy(args = args)
+        val subst = definition.typeParams
+            ?.map { Type.Param(it.toBinder()) }
+            ?.zip(args)?.map { it }
+            ?.toSubstitution()
+            ?: emptySubstitution()
+        return Type.Constructor.Struct(
+            specializedName,
+            typeParams = null,
+            fields = definition.fields.map {
+                it.first to it.second.applySubstitution(subst)
+            }
+        )
     }
 
     override fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {

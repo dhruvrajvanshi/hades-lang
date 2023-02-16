@@ -88,7 +88,7 @@ interface TypeTransformer {
     fun lowerParamRefType(type: Type.ParamRef): Type = type
 
     fun lowerTypeApplication(type: Type.Application): Type = Type.Application(
-        callee = lowerType(type.callee) as Type.Constructor,
+        callee = lowerType(type.callee),
         args = type.args.map { lowerType(it) }
     )
 

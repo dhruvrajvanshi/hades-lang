@@ -113,8 +113,14 @@ sealed class HIRDefinition : HasLocation {
         val fields: List<Pair<Name, Type>>
     ) : HIRDefinition() {
 
+        private val typeConstructor get(): Type.Constructor.Struct =
+            Type.Constructor.Struct(
+                name = name,
+                typeParams = typeParams?.map { Type.Param(it.toBinder()) },
+                fields = fields
+            )
         val constructorType get(): Type {
-            val instanceConstructorType = Type.Constructor(name)
+            val instanceConstructorType = typeConstructor
             val instanceType =
                 if (typeParams == null) {
                     instanceConstructorType
@@ -139,11 +145,11 @@ sealed class HIRDefinition : HasLocation {
 
         fun instanceType(typeArgs: List<Type> = emptyList()): Type {
             return if (typeParams == null) {
-                Type.Constructor(name)
+                typeConstructor
             } else {
                 check(typeParams.size == typeArgs.size)
                 Type.Application(
-                    Type.Constructor(name),
+                    typeConstructor,
                     typeArgs
                 )
             }
