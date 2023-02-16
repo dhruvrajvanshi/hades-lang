@@ -447,7 +447,7 @@ class Checker(val ctx: Context) {
 
         checkExpressionHasType(statement.value, statement.lhs.type)
 
-        val lhsType = statement.lhs.type
+        val lhsType = statement.lhs.lhs.type
 
         // TODO: Handle mutability checking
         if (ctx.analyzer.isRefStructType(lhsType)) {
