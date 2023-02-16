@@ -133,6 +133,7 @@ data class Diagnostic(
         object CantMoveNonLocal : Kind(Severity.ERROR)
         object CopyOfNoCopyTypeNotAllowed : Kind(Severity.ERROR)
         object AssigningToFieldOfAStructPassedByValueNotAllowed : Kind(Severity.ERROR)
+        data class InvalidMutParam(val paramType: Type): Kind(Severity.ERROR)
 
         fun prettyPrint(): String = when (this) {
             DeclarationExpected -> "Declaration expected"
@@ -221,7 +222,9 @@ data class Diagnostic(
             CopyOfNoCopyTypeNotAllowed -> "Copying a NoCopy type is not allowed. Only moving is allowed."
             AssigningToFieldOfAStructPassedByValueNotAllowed ->
                 "Assigning to a field of a struct passed by value is not allowed. Did you mean to pass this as a pointer?"
+            is InvalidMutParam -> "Only params which are ref structs can be marked as mut. ${paramType.prettyPrint()} is not a ref struct type."
         }
+
     }
 }
 
