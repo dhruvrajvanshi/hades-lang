@@ -7,6 +7,7 @@ import hadesc.types.Type
 
 data class Param(
     val binder: Binder,
+    val isMutable: Boolean,
     val annotation: TypeAnnotation?
 ) : HasLocation {
     override val location: SourceLocation

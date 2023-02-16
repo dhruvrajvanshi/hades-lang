@@ -1268,10 +1268,16 @@ class Parser(
     }
 
     private fun parseParam(): Param {
+        val isMutable =
+            if (at(tt.MUT)) {
+                advance()
+                true
+            } else false
         val binder = parseBinder()
         val annotation = parseOptionalAnnotation()
         return Param(
             binder = binder,
+            isMutable = isMutable,
             annotation = annotation
         )
     }
