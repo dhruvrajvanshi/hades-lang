@@ -414,7 +414,7 @@ class Parser(
             binder,
             typeParams,
             members,
-            isRef = isRef,
+            isRef = isRef
         )
     }
 
@@ -1272,7 +1272,9 @@ class Parser(
             if (at(tt.MUT)) {
                 advance()
                 true
-            } else false
+            } else {
+                false
+            }
         val binder = parseBinder()
         val annotation = parseOptionalAnnotation()
         return Param(

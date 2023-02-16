@@ -45,7 +45,7 @@ val KEYWORDS = mapOf(
     "@" to tt.AT_SYMBOL,
     "@intrinsic" to tt.AT_INTRINSIC,
     "move" to tt.MOVE,
-    "ref" to tt.REF,
+    "ref" to tt.REF
 )
 
 val SINGLE_CHAR_TOKENS = mapOf(
