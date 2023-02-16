@@ -447,6 +447,14 @@ class Checker(val ctx: Context) {
 
         checkExpressionHasType(statement.value, statement.lhs.type)
 
+        val lhsType = statement.lhs.type
+
+        // TODO: Handle mutability checking
+        if (ctx.analyzer.isRefStructType(lhsType)) {
+            // ref struct fields can be assigned to even if they're function params
+            return
+        }
+
         val field = ctx.analyzer.resolvePropertyBinding(statement.lhs)
         if (field !is PropertyBinding.StructField && field !is PropertyBinding.StructPointerFieldLoad) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
