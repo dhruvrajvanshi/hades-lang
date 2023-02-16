@@ -1095,11 +1095,18 @@ class Checker(val ctx: Context) {
     private fun checkFunctionParams(params: List<Param>) {
         val binders = mutableMapOf<Name, Binder>()
         for (param in params) {
-            if (param.annotation == null) {
-                if (ctx.analyzer.getInferredParamType(param) == null) {
-                    error(param, Diagnostic.Kind.MissingTypeAnnotation)
+            val paramType =
+                if (param.annotation == null) {
+                    ctx.analyzer.getInferredParamType(param)
+                } else {
+                    ctx.analyzer.annotationToType(param.annotation)
                 }
-            } else {
+
+            if (paramType == null) {
+                error(param, Diagnostic.Kind.MissingTypeAnnotation)
+            }
+
+            if (param.annotation != null) {
                 checkTypeAnnotation(param.annotation)
             }
 
