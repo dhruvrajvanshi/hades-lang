@@ -895,6 +895,10 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkValueIsAddressable(expression: Expression) {
+        if (ctx.analyzer.isRefStructType(expression.type)) {
+            error(expression, Diagnostic.Kind.NotAnAddressableValue)
+            return
+        }
         when (expression) {
             is Expression.Property -> {
                 when (ctx.analyzer.resolvePropertyBinding(expression)) {

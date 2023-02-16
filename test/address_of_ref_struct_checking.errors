@@ -1,0 +1,2 @@
+test/address_of_ref_struct_checking.hds:4: NotAnAddressableValue
+test/address_of_ref_struct_checking.hds:5: NotAnAddressableValue
