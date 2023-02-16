@@ -393,6 +393,13 @@ class Parser(
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
 
+        val isRef =
+            if (at(tt.REF)) {
+                advance()
+                true
+            } else {
+                false
+            }
         expect(tt.LBRACE)
         val members = makeList {
             while (!isEOF() && !at(tt.RBRACE)) {
@@ -406,7 +413,8 @@ class Parser(
             decorators,
             binder,
             typeParams,
-            members
+            members,
+            isRef = isRef,
         )
     }
 

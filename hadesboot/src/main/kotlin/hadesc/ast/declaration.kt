@@ -78,7 +78,8 @@ sealed interface Declaration : HasLocation {
         val decorators: List<Decorator>,
         val binder: Binder,
         val typeParams: List<TypeParam>? = null,
-        val members: List<Member>
+        val members: List<Member>,
+        val isRef: Boolean,
     ) : Declaration, ScopeTree {
         override val startLoc: SourceLocation
             get() = binder.location
