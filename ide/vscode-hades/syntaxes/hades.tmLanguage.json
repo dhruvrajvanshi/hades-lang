@@ -38,6 +38,12 @@
 					}
 				},
 				{
+					"match": "\\b(ref)\\b",
+					"captures": {
+						"1": { "name": "storage.modifier" }
+					}
+				},
+				{
 					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for|where|test)\\b",
 					"captures": {
 						"0": { "name": "keyword" }
