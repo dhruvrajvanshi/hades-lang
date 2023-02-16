@@ -237,7 +237,7 @@ internal class HIRGenExpression(
                 type
             }
 
-        val payloadUnionType = applyTypeArgs(ctx.analyzer.getEnumPayloadType(enumDef))
+        val payloadUnionType = applyTypeArgs(getEnumPayloadType(enumDef))
         check(payloadUnionType is Type.UntaggedUnion)
         val arms = expression.arms.mapNotNull { arm ->
             when (arm.pattern) {

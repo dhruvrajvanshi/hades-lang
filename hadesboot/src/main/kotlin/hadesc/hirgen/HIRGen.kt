@@ -41,6 +41,7 @@ internal interface HIRGenModuleContext {
      *        callers don't have to know about ExternFunctionDef.
      */
     fun getExternDef(declaration: Declaration.ExternFunctionDef): HIRDefinition.ExternFunction
+    fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion
 }
 
 internal interface HIRGenFunctionContext : HIRBuilder {
@@ -263,7 +264,7 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
                 typeParams = declaration.typeParams?.map { lowerTypeParam(it) },
                 fields = listOf(
                     enumTagFieldName to ctx.enumTagType(),
-                    enumPayloadFieldName to ctx.analyzer.getEnumPayloadType(declaration)
+                    enumPayloadFieldName to getEnumPayloadType(declaration)
                 )
             )
         )
@@ -620,6 +621,22 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
                 emit(statement)
             }
         }
+    }
+
+    override fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion {
+        val enumName = ctx.resolver.qualifiedName(declaration.name)
+        return Type.UntaggedUnion(
+            declaration.cases.map { case ->
+                val constructorType = Type.Constructor(
+                    enumName.append(case.name.identifier.name)
+                )
+                if (declaration.typeParams != null) {
+                    Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
+                } else {
+                    constructorType
+                }
+            }
+        )
     }
 
     override fun lowerExpression(expression: Expression): HIRExpression {

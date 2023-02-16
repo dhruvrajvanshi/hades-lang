@@ -1698,21 +1698,6 @@ class Analyzer(
         }
     }
 
-    fun getEnumPayloadType(declaration: Declaration.Enum): Type.UntaggedUnion {
-        val enumName = ctx.resolver.qualifiedName(declaration.name)
-        return Type.UntaggedUnion(
-            declaration.cases.map { case ->
-                val constructorType = Type.Constructor(
-                    enumName.append(case.name.identifier.name)
-                )
-                if (declaration.typeParams != null) {
-                    Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
-                } else {
-                    constructorType
-                }
-            }
-        )
-    }
 
     fun isValidPropertyAccess(expression: Expression.Property): Boolean {
         typeOfExpression(expression)
