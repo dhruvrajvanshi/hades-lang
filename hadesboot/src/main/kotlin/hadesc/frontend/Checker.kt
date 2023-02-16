@@ -1116,6 +1116,10 @@ class Checker(val ctx: Context) {
             } else {
                 binders[param.binder.name] = param.binder
             }
+
+            if (paramType != null && param.isMutable && !ctx.analyzer.isRefStructType(paramType)) {
+                error(param, Diagnostic.Kind.InvalidMutParam(paramType))
+            }
         }
     }
 

@@ -1,0 +1,3 @@
+test/mut_param_checking.hds:4: InvalidMutParam
+test/mut_param_checking.hds:7: InvalidMutParam
+test/mut_param_checking.hds:10: InvalidMutParam

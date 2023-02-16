@@ -2010,6 +2010,9 @@ class Analyzer(
         return ctx.resolver.getEnclosingClosure(this)
             ?: checkNotNull(ctx.resolver.getEnclosingFunction(this))
     }
+
+    fun isRefStructType(type: Type): Boolean =
+        getStructDeclOfType(type)?.isRef ?: false
 }
 
 data class ClosureCaptures(
