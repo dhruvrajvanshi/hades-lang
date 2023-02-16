@@ -1565,18 +1565,6 @@ class Analyzer(
         }
     }
 
-    private fun typeOfTraitTypeBinding(binding: TypeBinding.Trait): Type {
-        val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
-
-        return Type.TypeFunction(
-            params = binding.declaration.params.map { Type.Param(it.binder) },
-            body = Type.Application(
-                typeConstructor,
-                args = binding.declaration.params.map { Type.ParamRef(it.binder) }
-            )
-        )
-    }
     private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
         val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
         val typeConstructor = Type.Constructor(name = qualifiedName)
@@ -1625,7 +1613,7 @@ class Analyzer(
             is TypeBinding.Struct -> typeOfStructBinding(binding)
             is TypeBinding.TypeParam -> typeOfTypeParam(binding)
             is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
-            is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
+            is TypeBinding.Trait -> requireUnreachable()
             is TypeBinding.Enum -> typeOfEnumBinding(binding)
             is TypeBinding.Builtin -> binding.type
             is TypeBinding.AssociatedType -> typeOfAssociatedTypeBinding(binding)
