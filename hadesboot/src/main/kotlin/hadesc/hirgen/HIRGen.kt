@@ -1242,7 +1242,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     }
 
     private fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return ctx.analyzer.reduceGenericInstances(ctx.analyzer.annotationToType(annotation))
+        return lowerType(ctx.analyzer.reduceGenericInstances(ctx.analyzer.annotationToType(annotation)))
     }
 
     private fun lowerParam(param: Param): HIRParam {
