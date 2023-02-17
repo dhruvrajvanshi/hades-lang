@@ -69,7 +69,8 @@ class HIRGenScopeStack {
         return stack.removeLast().first
     }
 }
-class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder {
+class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx)) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder, TypeTransformer by typeTransformer {
+
     private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()
     override val namingCtx: NamingContext get() = ctx
@@ -377,7 +378,7 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
         scopeStack.push(declaration)
         defer { check(scopeStack.pop() === declaration) }
 
-        val returnType = lowerTypeAnnotation(declaration.signature.returnType)
+        val returnType = lowerType(lowerTypeAnnotation(declaration.signature.returnType))
         val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
         val body = lowerBlock(
@@ -395,7 +396,7 @@ class HIRGen(private val ctx: Context) : ASTContext by ctx, HIRGenModuleContext,
         signature: FunctionSignature,
         qualifiedName: QualifiedName? = null
     ): HIRFunctionSignature {
-        val returnType = lowerTypeAnnotation(signature.returnType)
+        val returnType = lowerType(lowerTypeAnnotation(signature.returnType))
         val name = qualifiedName ?: lowerGlobalName(signature.name)
         val params = mutableListOf<HIRParam>()
         if (signature.thisParamFlags != null) {
