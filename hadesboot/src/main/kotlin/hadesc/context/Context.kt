@@ -20,6 +20,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
 import hadesc.types.Type
 import hadesc.unit
+import java.io.File
 import java.nio.file.Path
 
 interface ASTContext {
@@ -45,7 +46,8 @@ sealed interface BuildTarget {
 
 class Context(
     val options: BuildOptions,
-    val target: BuildTarget
+    val target: BuildTarget,
+    private val fileTextProvider: FileTextProvider = FileSystemFileTextProvider
 ) : ASTContext, NamingContext, GlobalConstantContext {
     private val log = logger(Context::class.java)
     val analyzer = Analyzer(this)
@@ -101,7 +103,7 @@ class Context(
     private val parsedSourceFiles = mutableMapOf<Path, SourceFile>()
     private fun sourceFile(moduleName: QualifiedName, path: SourcePath) =
         parsedSourceFiles.computeIfAbsent(path.path.toAbsolutePath()) {
-            Parser(this, moduleName, path).parseSourceFile()
+            Parser(this, moduleName, path, fileTextProvider).parseSourceFile()
         }
 
     fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
@@ -194,4 +196,13 @@ class Context(
     }
 
     fun enumTagType(): Type = enumTagType
+}
+
+interface FileTextProvider {
+    fun getFileText(path: Path): String
+}
+object FileSystemFileTextProvider: FileTextProvider {
+    override fun getFileText(path: Path): String {
+        return File(path.toUri()).readText()
+    }
 }

@@ -1,6 +1,7 @@
 package hadesc.parser
 
 import hadesc.ast.Token
+import hadesc.context.FileTextProvider
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -65,9 +66,9 @@ val SINGLE_CHAR_TOKENS = mapOf(
     '%' to tt.PERCENT
 )
 
-class Lexer(private val file: SourcePath) {
+class Lexer(private val file: SourcePath, fileTextProvider: FileTextProvider) {
     // TODO: Handle this during lexing instead of string replace
-    private val text: String = File(file.path.toUri()).readText().replace("\r", "")
+    private val text: String = fileTextProvider.getFileText(file.path).replace("\r", "")
     private val state = State()
 
     data class State(
