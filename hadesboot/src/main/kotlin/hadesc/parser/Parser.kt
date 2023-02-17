@@ -2,6 +2,7 @@ package hadesc.parser
 
 import hadesc.ast.*
 import hadesc.context.Context
+import hadesc.context.FileTextProvider
 import hadesc.diagnostics.Diagnostic
 import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
@@ -85,9 +86,10 @@ object SyntaxError : Error()
 class Parser(
     private val ctx: Context,
     private val moduleName: QualifiedName,
-    private val file: SourcePath
+    private val file: SourcePath,
+    fileTextProvider: FileTextProvider
 ) {
-    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file))
+    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file, fileTextProvider))
     private val currentToken get() = tokenBuffer.currentToken
 
     fun parseSourceFile(): SourceFile {
