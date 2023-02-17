@@ -1249,7 +1249,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         return HIRParam(
             param.location,
             binder = param.binder,
-            type = ctx.analyzer.typeOfBinder(param.binder)
+            type = lowerType(ctx.analyzer.typeOfBinder(param.binder))
         )
     }
 
