@@ -103,6 +103,26 @@ class HIRGenForRefStructsTest {
     ) {
         assertRefStructsAreLoweredToRefType(hir, "Boxed")
     }
+
+    @Test
+    fun `lowering of types in match expressions`() = withTestCtx(
+        """
+        struct Boxed[T] ref {
+          val value: T
+        }
+        enum ContainsBox[T] {
+          Foo(Boxed[T])
+        }
+        
+        def main(): Void {
+            val tr = match ContainsBox.Foo(Boxed(true)) {
+                Foo(val box) -> box.value
+            }
+        }
+        """.trimIndent()
+    ) {
+        assertRefStructsAreLoweredToRefType(hir, "Boxed")
+    }
 }
 
 fun TestBuilder.assertRefStructsAreLoweredToRefType(hir: HIRModule, name: String) {
