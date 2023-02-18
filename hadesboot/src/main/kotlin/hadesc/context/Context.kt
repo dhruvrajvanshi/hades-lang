@@ -161,28 +161,16 @@ class Context(
                 visitSourceFile(sourceFile(QualifiedName(), makeSourcePath(target.mainSourcePath)))
         }
 
-        visitSourceFile(
-            resolveSourceFile(
-                QualifiedName(
-                    listOf(
-                        makeName("hades"),
-                        makeName("marker")
-                    )
-                )
-            )
-        )
-        visitSourceFile(
-            resolveSourceFile(
-                QualifiedName(
-                    listOf(
-                        makeName("hades"),
-                        makeName("libhdc")
-                    )
-                )
-            )
-        )
+        visitSourceFile(stdlibSource("hades.marker"))
+        visitSourceFile(stdlibSource("hades.libhdc"))
+        visitSourceFile(stdlibSource("hades.internal.gc"))
         collectedFiles.values.forEach(action)
     }
+
+    private fun stdlibSource(name: String) =
+        resolveSourceFile(
+            QualifiedName(name.split(".").map { makeName(it) })
+        )
 
     fun qn(vararg names: String) = QualifiedName(names.map { makeName(it) })
 

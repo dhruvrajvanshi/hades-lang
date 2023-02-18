@@ -156,6 +156,7 @@ interface HIRBuilder {
                 currentLocation,
                 name,
                 ref,
+                fieldType,
                 fieldName,
                 fieldIndex
             )

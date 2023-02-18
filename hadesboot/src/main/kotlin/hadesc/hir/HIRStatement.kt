@@ -326,6 +326,10 @@ sealed interface HIRStatement : HIRNode {
         override val location: SourceLocation,
         override val name: Name,
         val ref: HIRExpression,
+        /**
+         * Type of the loaded field
+         */
+        val type: Type,
         val memberName: Name,
         val memberIndex: Int
     ) : HIRStatement, NameBinder, StraightLineInstruction
@@ -374,7 +378,7 @@ sealed interface HIRStatement : HIRNode {
 
         is IntToPtr -> "int-to-ptr[${type.prettyPrint()}] ${expression.prettyPrint()}"
         is PtrToInt -> "ptr-to-int[${type.prettyPrint()}] ${expression.prettyPrint()}"
-        is LoadRefField -> "%${name.text} = load ${ref.prettyPrint()}.${memberName.text}"
+        is LoadRefField -> "%${name.text}: ${type.prettyPrint()} = load ${ref.prettyPrint()}.${memberName.text}"
         is StoreRefField -> "${ref.prettyPrint()}.${memberName.text} = ${rhs.prettyPrint()}"
     }
 
