@@ -121,12 +121,14 @@ interface HIRBuilder {
         return currentModule.findStructDef(structName)
     }
 
-    fun Type.fieldInfo(name: Name): Pair<Type, Int> =
-        getStructDef().getField(name)
+    fun Type.fieldInfo(name: Name, typeArgs: List<Type>?): Pair<Type, Int> =
+        getStructDef().getField(name, typeArgs)
 
     fun HIRExpression.storeRefField(fieldName: Name, value: HIRExpression) {
         val ref = this
-        val (fieldType, fieldIndex) = ref.type.fieldInfo(fieldName)
+        val refType = ref.type
+        check(refType is Type.Ref)
+        val (fieldType, fieldIndex) = ref.type.fieldInfo(fieldName, refType.inner.typeArgs())
         check(
             typeAnalyzer.isTypeAssignableTo(source = value.type, destination = fieldType)
         )

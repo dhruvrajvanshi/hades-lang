@@ -91,6 +91,8 @@ sealed interface Declaration : HasLocation {
                 val typeAnnotation: TypeAnnotation
             ) : Member()
         }
+
+        val fields get() = members.filterIsInstance<Member.Field>()
     }
 
     data class TypeAlias(
