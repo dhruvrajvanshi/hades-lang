@@ -66,6 +66,12 @@ sealed interface HIRStatement : HIRNode {
             type.ptr(isMutable)
     }
 
+    data class AllocRef(
+        override val location: SourceLocation,
+        override val name: Name,
+        val type: Type.Ref
+    ) : HIRStatement, NameBinder, StraightLineInstruction
+
     data class Call(
         override val location: SourceLocation,
         val resultType: Type,
@@ -330,6 +336,7 @@ sealed interface HIRStatement : HIRNode {
         }
         is Return -> "return ${expression.prettyPrint()}"
         is Alloca -> "%${name.text}: ${pointerType.prettyPrint()} = alloca ${type.prettyPrint()}"
+        is AllocRef -> "%${name.text}: ${type.prettyPrint()} = alloc_ref ${type.inner.prettyPrint()}"
         is MatchInt -> "match ${value.prettyPrint()} {\n    " +
             arms.joinToString("\n    ") { it.value.prettyPrint() + " -> ${it.block.prettyPrint().prependIndent("    ").trimStart()}" } +
             "\n    otherwise -> ${otherwise.prettyPrint().prependIndent("    ").trimStart()}\n" +

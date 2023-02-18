@@ -169,6 +169,17 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
         is HIRStatement.PtrToInt -> transformPtrToIntStatement(statement)
         is HIRStatement.LoadRefField -> transformLoadRefField(statement)
         is HIRStatement.StoreRefField -> transformStoreRefField(statement)
+        is HIRStatement.AllocRef -> transformAllocRef(statement)
+    }
+
+    fun transformAllocRef(statement: HIRStatement.AllocRef): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.AllocRef(
+                statement.location,
+                statement.name,
+                Type.Ref(lowerType(statement.type.inner))
+            )
+        )
     }
 
     fun transformStoreRefField(statement: HIRStatement.StoreRefField): Collection<HIRStatement> {
