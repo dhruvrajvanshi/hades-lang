@@ -18,7 +18,11 @@ interface HIRModuleVisitor : HIRBlockVisitor {
         is HIRDefinition.Struct -> visitStructDef(definition)
     }
 
-    fun visitStructDef(definition: HIRDefinition.Struct) = unit
+    fun visitStructDef(definition: HIRDefinition.Struct) {
+        for (field in definition.fields) {
+            visitType(field.second)
+        }
+    }
 
     fun visitImplementationDef(definition: HIRDefinition.Implementation) {
         for (function in definition.functions) {
