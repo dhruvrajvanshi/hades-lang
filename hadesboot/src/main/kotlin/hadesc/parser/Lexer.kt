@@ -5,7 +5,6 @@ import hadesc.context.FileTextProvider
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
-import java.io.File
 
 private const val EOF_CHAR = Char.MIN_VALUE
 

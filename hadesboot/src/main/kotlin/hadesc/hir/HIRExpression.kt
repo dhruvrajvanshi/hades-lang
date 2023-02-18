@@ -1,7 +1,6 @@
 package hadesc.hir
 
 import hadesc.Name
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
