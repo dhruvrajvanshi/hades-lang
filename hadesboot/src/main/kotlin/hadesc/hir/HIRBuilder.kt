@@ -141,10 +141,14 @@ interface HIRBuilder {
         )
     }
 
-    fun HIRExpression.loadRefField(fieldName: Name, value: HIRExpression, asName: String? = null) {
+    fun HIRExpression.loadRefField(fieldName: Name, asName: String? = null): HIRExpression {
         val name = namingCtx.makeUniqueName(asName ?: "")
         val ref = this
-        val fieldIndex = ref.type.getStructDef().getField(fieldName).second
+        val refType = ref.type
+        check(refType is Type.Ref)
+        val structDef = refType.getStructDef()
+        val (fieldType, fieldIndex) = structDef.getField(fieldName, refType.inner.typeArgs())
+
         emit(
             HIRStatement.LoadRefField(
                 currentLocation,
@@ -153,6 +157,12 @@ interface HIRBuilder {
                 fieldName,
                 fieldIndex
             )
+        )
+
+        return HIRExpression.LocalRef(
+            currentLocation,
+            fieldType,
+            name
         )
     }
 
