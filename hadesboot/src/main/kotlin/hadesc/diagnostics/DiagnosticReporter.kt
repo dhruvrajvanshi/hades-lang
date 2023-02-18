@@ -8,6 +8,7 @@ import hadesc.ast.Binder
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
 import hadesc.ast.Token
+import hadesc.context.FileTextProvider
 import hadesc.hir.BinaryOperator
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -227,7 +228,7 @@ data class Diagnostic(
     }
 }
 
-class DiagnosticReporter {
+class DiagnosticReporter(private val fileTextProvider: FileTextProvider) {
     var hasErrors = false
     private val fileLines = mutableMapOf<SourcePath, List<String>>()
     val errors = mutableListOf<Diagnostic>()
@@ -289,7 +290,7 @@ class DiagnosticReporter {
     }
     private fun printLocationLine(location: SourceLocation, vararg attribute: Attribute) {
         val lines = fileLines.computeIfAbsent(location.file) {
-            it.path.toFile().readLines()
+            fileTextProvider.getFileText(it.path).lines()
         }
         val startLine = lines[location.start.line - 1]
         val lineno = colorize(location.start.line.toString(), Attribute.DIM())

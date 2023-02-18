@@ -55,7 +55,7 @@ class Context(
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
     override val enumTagType: Type = Type.u8
 
-    val diagnosticReporter = DiagnosticReporter()
+    val diagnosticReporter = DiagnosticReporter(fileTextProvider)
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
