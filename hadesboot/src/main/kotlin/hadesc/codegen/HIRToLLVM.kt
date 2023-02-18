@@ -245,6 +245,8 @@ class HIRToLLVM(
         is Type.AssociatedTypeRef,
         is Type.Closure,
         is Type.Select -> requireUnreachable()
+
+        is Type.Ref -> TODO()
     }
 
     private fun lowerFunction(definition: HIRDefinition.Function) {
@@ -837,6 +839,8 @@ class HIRToLLVM(
         is Type.AssociatedTypeRef,
         is Type.Closure,
         is Type.Select -> requireUnreachable()
+
+        is Type.Ref -> TODO()
     }
 
     private fun sizeOfType(type: llvm.Type): Long {

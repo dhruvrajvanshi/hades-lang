@@ -60,6 +60,19 @@ sealed interface Type {
 
     data class Select(val traitName: QualifiedName, val traitArgs: List<Type>, val associatedTypeName: Name) : Type
 
+    /**
+     * A GC managed pointer to [inner] type.
+     * This type never exists in source code.
+     * If Foo is a reference struct, then
+     * it will be lowered to a ref Foo, where
+     * Foo becomes a normal struct.
+     *
+     * The runtime representation of ref types
+     * is unspecified, but you can think of it
+     * as a pointer to the inner type.
+     */
+    data class Ref(val inner: Type) : Type
+
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
         Void -> "Void"
@@ -90,6 +103,8 @@ sealed interface Type {
             val params = from.joinToString(",") { it.prettyPrint() }
             "|$params| -> $returnTy"
         }
+
+        is Ref -> "ref ${inner.prettyPrint()}"
     }
 
     fun isIntegral() = when (this) {
@@ -142,6 +157,8 @@ sealed interface Type {
                 from = from.map { it.recurse() },
                 to = to.recurse()
             )
+
+            is Ref -> copy(inner.recurse())
         }
     }
 
