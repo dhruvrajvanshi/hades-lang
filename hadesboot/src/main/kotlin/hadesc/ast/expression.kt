@@ -190,3 +190,8 @@ data class Arg(
     override val location: SourceLocation
         get() = expression.location
 }
+
+fun Expression.withoutTypeArgs() = when (this) {
+    is Expression.TypeApplication -> this.lhs
+    else -> this
+}
