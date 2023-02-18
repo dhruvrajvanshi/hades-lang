@@ -204,6 +204,22 @@ class Substitution(ofMap: Map<SourceLocation, Type>) {
     operator fun get(location: SourceLocation): Type? = map[location]
 
     fun mapValues(transform: (Map.Entry<SourceLocation, Type>) -> Type) = Substitution(ofMap = map.mapValues(transform))
+
+    companion object {
+        fun of(params: List<HIRTypeParam>?, args: List<Type>?): Substitution {
+            if (params == null) {
+                return emptySubstitution()
+            }
+            check(args != null)
+            check(params.size == args.size)
+
+            return Substitution(
+                ofMap = params.zip(args).associate {
+                    it.first.location to it.second
+                }
+            )
+        }
+    }
 }
 fun Map<SourceLocation, Type>.toSubstitution() = Substitution(ofMap = this)
 fun Iterable<Pair<Type.Param, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.binder.location to it.second })
