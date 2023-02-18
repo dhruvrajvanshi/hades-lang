@@ -23,7 +23,10 @@ interface TypeTransformer {
         is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
         is Type.Select -> lowerSelectType(type)
         is Type.Closure -> lowerClosureType(type)
+        is Type.Ref -> lowerRefType(type)
     }
+
+    fun lowerRefType(type: Type.Ref): Type = Type.Ref(lowerType(type.inner))
 
     fun lowerClosureType(type: Type.Closure): Type {
         return Type.Closure(
@@ -118,6 +121,11 @@ interface TypeVisitor {
         is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
         is Type.Select -> visitSelectType(type)
         is Type.Closure -> visitClosureType(type)
+        is Type.Ref -> visitRefType(type)
+    }
+
+    fun visitRefType(type: Type.Ref) {
+        visitType(type.inner)
     }
 
     fun visitClosureType(type: Type.Closure) {
