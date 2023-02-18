@@ -494,6 +494,11 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     }
 
     private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment) {
+        val lhsType = statement.lhs.lhs.type
+        if (ctx.analyzer.isRefStructType(lhsType)) {
+            lowerRefStructMemberAssignment(statement)
+            return
+        }
         when (statement.lhs.lhs) {
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
@@ -523,6 +528,14 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             }
             else -> requireUnreachable()
         }
+    }
+
+    private fun lowerRefStructMemberAssignment(statement: Statement.MemberAssignment) {
+        val ref = lowerExpression(statement.lhs.lhs)
+        ref.storeRefField(
+            statement.lhs.property.name,
+            lowerExpression(statement.value)
+        )
     }
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
@@ -1198,6 +1211,10 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     private fun lowerStructFieldBinding(
         expression: Expression.Property
     ): HIROperand {
+        if (ctx.analyzer.isRefStructType(expression.lhs.type)) {
+            return lowerExpression(expression.lhs)
+                .loadRefField(expression.property.name)
+        }
         return lowerExpression(expression.lhs)
             .getStructField(expression.property.name)
     }

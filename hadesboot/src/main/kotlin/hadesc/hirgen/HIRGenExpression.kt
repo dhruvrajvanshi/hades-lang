@@ -1,10 +1,7 @@
 package hadesc.hirgen
 
 import hadesc.assertions.requireUnreachable
-import hadesc.ast.Expression
-import hadesc.ast.IntrinsicType
-import hadesc.ast.Param
-import hadesc.ast.Pattern
+import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.hir.*
@@ -52,7 +49,7 @@ internal class HIRGenExpression(
                         lowerParamRef(expression, binding.param)
                     is Binding.ValBinding -> HIRExpression.LocalRef(
                         expression.location,
-                        typeOfExpression(expression).ptr(),
+                        lowerType(typeOfExpression(expression)).ptr(),
                         lowerLocalBinder(binding.statement.binder)
                     ).load()
                     is Binding.MatchArmEnumCaseArg ->
@@ -66,20 +63,20 @@ internal class HIRGenExpression(
         }
         is Binding.GlobalFunction -> HIRExpression.GlobalRef(
             expression.location,
-            typeOfExpression(expression),
+            lowerType(typeOfExpression(expression)),
             lowerGlobalName(binding.declaration.name)
         )
         is Binding.ExternFunction -> {
             getExternDef(binding.declaration)
             HIRExpression.GlobalRef(
                 expression.location,
-                typeOfExpression(expression),
+                lowerType(typeOfExpression(expression)),
                 lowerGlobalName(binding.declaration.binder)
             )
         }
         is Binding.Struct -> HIRExpression.GlobalRef(
             expression.location,
-            typeOfExpression(expression),
+            lowerType(typeOfExpression(expression)),
             lowerGlobalName(binding.declaration.binder)
         )
         is Binding.GlobalConst -> HIRExpression.GlobalRef(
@@ -98,7 +95,7 @@ internal class HIRGenExpression(
     private fun lowerParamRef(expression: Expression, param: Param): HIROperand {
         return HIRExpression.ParamRef(
             expression.location,
-            typeOfExpression(expression),
+            lowerType(typeOfExpression(expression)),
             lowerLocalBinder(param.binder),
             param.binder
         )
@@ -167,6 +164,12 @@ internal class HIRGenExpression(
         if (isIntrinsicCall(expression)) {
             return lowerIntrinsicCall(expression)
         }
+
+        val calleeWithoutTypeArgs = expression.callee.withoutTypeArgs()
+        val calleeStructDecl = ctx.analyzer.getStructDeclaration(calleeWithoutTypeArgs)
+        if (calleeStructDecl != null && calleeStructDecl.isRef) {
+            return lowerRefStructConstructorCall(calleeStructDecl, expression)
+        }
         val callee = lowerExpression(expression.callee)
         if (callee.type is Type.Closure) {
             return emit(
@@ -194,6 +197,22 @@ internal class HIRGenExpression(
             args = args
         ).result()
     }
+
+    private fun lowerRefStructConstructorCall(structDecl: Declaration.Struct, expression: Expression.Call): HIRExpression {
+        check(ctx.analyzer.isRefStructType(expression.type))
+        val loweredType = lowerType(expression.type)
+        check(loweredType is Type.Ref)
+        val ref = emitAllocRef(ofType = loweredType.inner).ref()
+        val fields = structDecl.fields
+        check(fields.size == expression.args.size)
+
+        for ((field, arg) in fields.zip(expression.args)) {
+            ref.storeRefField(field.binder.name, lowerExpression(arg.expression))
+        }
+
+        return ref
+    }
+
     private fun isIntrinsicCall(expression: Expression.Call): Boolean {
         return expression.callee is Expression.Intrinsic ||
             (expression.callee is Expression.TypeApplication && expression.callee.lhs is Expression.Intrinsic)
