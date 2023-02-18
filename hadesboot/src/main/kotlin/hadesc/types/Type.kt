@@ -170,6 +170,7 @@ sealed interface Type {
     fun nominalName(): QualifiedName = when (this) {
         is Constructor -> name
         is Application -> callee.nominalName()
+        is Ref -> inner.nominalName()
         else -> requireUnreachable { prettyPrint() }
     }
 

@@ -116,6 +116,46 @@ interface HIRBuilder {
         )
     }
 
+    fun Type.getStructDef(): HIRDefinition.Struct {
+        val structName = nominalName()
+        return currentModule.findStructDef(structName)
+    }
+
+    fun Type.fieldInfo(name: Name): Pair<Type, Int> =
+        getStructDef().getField(name)
+
+    fun HIRExpression.storeRefField(fieldName: Name, value: HIRExpression) {
+        val ref = this
+        val (fieldType, fieldIndex) = ref.type.fieldInfo(fieldName)
+        check(
+            typeAnalyzer.isTypeAssignableTo(source = value.type, destination = fieldType)
+        )
+        emit(
+            HIRStatement.StoreRefField(
+                currentLocation,
+                ref,
+                fieldName,
+                fieldIndex,
+                value
+            )
+        )
+    }
+
+    fun HIRExpression.loadRefField(fieldName: Name, value: HIRExpression, asName: String? = null) {
+        val name = namingCtx.makeUniqueName(asName ?: "")
+        val ref = this
+        val fieldIndex = ref.type.getStructDef().getField(fieldName).second
+        emit(
+            HIRStatement.LoadRefField(
+                currentLocation,
+                name,
+                ref,
+                fieldName,
+                fieldIndex
+            )
+        )
+    }
+
     fun HIRDefinition.Function.ref(): HIRExpression.GlobalRef {
         return HIRExpression.GlobalRef(
             currentLocation,
