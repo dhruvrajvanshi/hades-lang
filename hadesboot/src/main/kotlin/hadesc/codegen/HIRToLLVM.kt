@@ -340,6 +340,7 @@ class HIRToLLVM(
                 }
                 is HIRStatement.Jump -> TODO()
                 is HIRStatement.Memcpy -> lowerMemcpy(statement)
+                is HIRStatement.StoreRefField -> TODO()
             }
         )
         errorStack.pop()
@@ -374,6 +375,7 @@ class HIRToLLVM(
             is HIRStatement.PtrToInt -> lowerPtrToInt(statement)
             is HIRStatement.AllocateClosure -> requireUnreachable()
             is HIRStatement.InvokeClosure -> requireUnreachable()
+            is HIRStatement.LoadRefField -> TODO()
         }
 
         if (value != null) {

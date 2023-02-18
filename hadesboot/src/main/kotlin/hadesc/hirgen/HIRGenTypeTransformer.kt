@@ -25,5 +25,4 @@ class HIRGenTypeTransformer(private val ctx: Context) : TypeTransformer {
 
         else -> requireUnreachable()
     }
-
 }
