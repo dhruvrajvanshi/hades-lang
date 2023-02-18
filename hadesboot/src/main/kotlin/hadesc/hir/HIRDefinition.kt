@@ -149,7 +149,7 @@ sealed class HIRDefinition : HasLocation {
             }
         }
 
-        private fun getField(fieldName: Name): Pair<Type, Int> {
+        fun getField(fieldName: Name): Pair<Type, Int> {
             val index = fields.indexOfFirst {
                 fieldName == it.first
             }
