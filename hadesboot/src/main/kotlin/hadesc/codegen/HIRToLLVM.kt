@@ -43,6 +43,23 @@ class HIRToLLVM(
     @Suppress("unused")
     private val metadataTy = LLVM.LLVMMetadataTypeInContext(llvmCtx)
     private val errorStack = Stack<HIRStatement>()
+    private val voidTy = voidType(llvmCtx)
+    private val boolTy = intType(1, llvmCtx)
+    private val trueValue = constantInt(boolTy, 1, false)
+    private val falseValue = constantInt(boolTy, 0, false)
+    private val sizeTy = intType(64, llvmCtx) // FIXME: This isn't portable
+    private val byteTy = intType(8, llvmCtx)
+
+    private val gcAllocFnType = functionType(
+        types = listOf(sizeTy),
+        returns = ptrTy(voidTy),
+        variadic = false
+    )
+    private val gcAlloc = llvmModule.addFunction(
+        "__hades_gc_alloc",
+        from = listOf(sizeTy),
+        to = ptrTy(voidTy)
+    )
 
     fun lower(): LLVMModuleRef {
         if (shouldEmitDebugSymbols) {
@@ -340,7 +357,7 @@ class HIRToLLVM(
                 }
                 is HIRStatement.Jump -> TODO()
                 is HIRStatement.Memcpy -> lowerMemcpy(statement)
-                is HIRStatement.StoreRefField -> TODO()
+                is HIRStatement.StoreRefField -> lowerStoreRefField(statement)
             }
         )
         errorStack.pop()
@@ -375,13 +392,33 @@ class HIRToLLVM(
             is HIRStatement.PtrToInt -> lowerPtrToInt(statement)
             is HIRStatement.AllocateClosure -> requireUnreachable()
             is HIRStatement.InvokeClosure -> requireUnreachable()
-            is HIRStatement.LoadRefField -> TODO()
-            is HIRStatement.AllocRef -> TODO()
+            is HIRStatement.LoadRefField -> lowerLoadRefField(statement)
+            is HIRStatement.AllocRef -> lowerAllocRef(statement)
         }
 
         if (value != null) {
             localValues[statement.name] = value
         }
+    }
+
+    private fun lowerLoadRefField(statement: HIRStatement.LoadRefField): Value {
+        return builder.buildLoad(
+            lowerType(statement.type),
+            statement.ref.getRefFieldPtr(statement.memberIndex),
+            name = statement.name.text
+        )
+    }
+
+    private fun lowerAllocRef(statement: HIRStatement.AllocRef): Value {
+        val innerTy = lowerType(statement.type.inner)
+        return builder.buildCall(
+            gcAllocFnType,
+            gcAlloc,
+            args = listOf(
+                LLVM.LLVMSizeOf(innerTy)
+            ),
+            name = statement.name.text
+        )
     }
 
     private fun lowerPtrToInt(statement: HIRStatement.PtrToInt): Value {
@@ -512,6 +549,23 @@ class HIRToLLVM(
             pointer = lowerExpression(expression.lhs),
             name = ctx.makeUniqueName().text,
             index = expression.memberIndex
+        )
+    }
+
+    private fun lowerStoreRefField(statement: HIRStatement.StoreRefField) {
+        val fieldPtr = statement.ref.getRefFieldPtr(statement.memberIndex)
+        builder.buildStore(fieldPtr, lowerExpression(statement.rhs))
+    }
+
+    private fun HIRExpression.getRefFieldPtr(memberIndex: Int): Value {
+        val refTy = type
+        check(refTy is Type.Ref)
+        val structType = lowerType(refTy.inner)
+        return builder.buildStructGEP(
+            structType = structType,
+            pointer = lowerExpression(this),
+            name = ctx.makeUniqueName().text,
+            index = memberIndex
         )
     }
 
@@ -781,13 +835,6 @@ class HIRToLLVM(
         )
     }
 
-    private val voidTy = voidType(llvmCtx)
-    private val boolTy = intType(1, llvmCtx)
-    private val trueValue = constantInt(boolTy, 1, false)
-    private val falseValue = constantInt(boolTy, 0, false)
-    private val sizeTy = intType(64, llvmCtx) // FIXME: This isn't portable
-    private val byteTy = intType(8, llvmCtx)
-
     private fun ptrTy(to: llvm.Type): llvm.Type {
         return pointerType(to)
     }
@@ -800,6 +847,7 @@ class HIRToLLVM(
         Type.Void -> voidTy
         is Type.Bool -> boolTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
+        is Type.Ref -> ptrTy(lowerType(type.inner))
         is Type.FunctionPtr -> {
             ptrTy(
                 functionType(
@@ -842,8 +890,6 @@ class HIRToLLVM(
         is Type.AssociatedTypeRef,
         is Type.Closure,
         is Type.Select -> requireUnreachable()
-
-        is Type.Ref -> TODO()
     }
 
     private fun sizeOfType(type: llvm.Type): Long {

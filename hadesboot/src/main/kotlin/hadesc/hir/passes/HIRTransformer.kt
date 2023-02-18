@@ -200,6 +200,7 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
                 location = statement.location,
                 name = statement.name,
                 ref = transformExpression(statement.ref),
+                type = lowerType(statement.type),
                 memberIndex = statement.memberIndex,
                 memberName = statement.memberName
             )
