@@ -51,19 +51,22 @@ class HIRGenForRefStructsTest {
     }
 
     @Test
-    fun `should lower fields with ref structs`() = withTestCtx("""
+    fun `should lower fields with ref structs`() = withTestCtx(
+        """
         struct Boxed[T] ref {
             val value: T
          }
         struct ContainsBox {
             val value: Boxed[u32]
         }
-    """.trimIndent()){
+        """.trimIndent()
+    ) {
         assertRefStructsAreLoweredToRefType(hir, "Boxed")
     }
 
     @Test
-    fun `should lower enums with ref structs`() = withTestCtx("""
+    fun `should lower enums with ref structs`() = withTestCtx(
+        """
         struct Boxed[T] ref {
           val value: T
         }
@@ -71,14 +74,40 @@ class HIRGenForRefStructsTest {
           Foo(Boxed[T])
           Bar(Boxed[u32])
         }
-    """.trimIndent()) {
+        """.trimIndent()
+    ) {
+        assertRefStructsAreLoweredToRefType(hir, "Boxed")
+    }
+
+    @Test
+    fun `should lower struct field assignments to ref types`() = withTestCtx(
+        """
+        struct Boxed[T] ref {
+          val value: T
+        }
+        
+        struct ContainsBox[T] {
+            val box: Boxed[T]
+        }
+        
+        def main(): Void {
+            val boxed_bool = Boxed(true)
+            val mut wrapper = ContainsBox(boxed_bool)
+            
+            wrapper.box = Boxed(false)
+            
+            val wrapper_box = wrapper.box
+            wrapper_box.value = true
+        }
+        """.trimIndent()
+    ) {
         assertRefStructsAreLoweredToRefType(hir, "Boxed")
     }
 }
 
-fun assertRefStructsAreLoweredToRefType(hir: HIRModule, name: String) {
+fun TestBuilder.assertRefStructsAreLoweredToRefType(hir: HIRModule, name: String) {
     hir.visit(object : HIRModuleVisitor {
-        override fun visitType(type: Type): Unit = when(type) {
+        override fun visitType(type: Type): Unit = when (type) {
             is Type.Constructor -> assert(type.name.mangle() != name)
             is Type.Ref -> {
                 when (val inner = type.inner) {
@@ -93,6 +122,8 @@ fun assertRefStructsAreLoweredToRefType(hir: HIRModule, name: String) {
             else -> super.visitType(type)
         }
     })
+
+    assertEquals(ctx.diagnosticReporter.errors, emptyList())
 }
 fun HIRModule.visit(visitor: HIRModuleVisitor) {
     visitor.visitModule(this)
