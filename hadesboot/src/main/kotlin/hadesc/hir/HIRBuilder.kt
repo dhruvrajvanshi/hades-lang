@@ -357,6 +357,11 @@ fun HIRBuilder.emitAlloca(name: Name, type: Type, location: SourceLocation = cur
     return emit(HIRStatement.Alloca(location, name, isMutable = true, type))
 }
 
+fun HIRBuilder.emitAllocRef(namePrefix: String = "", ofType: Type): HIRStatement.AllocRef {
+    val name = namingCtx.makeUniqueName(namePrefix)
+    return emit(HIRStatement.AllocRef(currentLocation, name, Type.Ref(ofType)))
+}
+
 fun HIRBuilder.emitCall(
     callee: HIROperand,
     args: List<HIRExpression>,
@@ -428,3 +433,10 @@ fun HIRBuilder.emitDumpCStr(operand: HIROperand) {
         listOf(operand)
     )
 }
+
+fun HIRStatement.AllocRef.ref(): HIRExpression =
+    HIRExpression.LocalRef(
+        location = location,
+        type = type,
+        name = name
+    )
