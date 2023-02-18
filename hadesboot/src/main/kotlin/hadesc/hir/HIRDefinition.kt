@@ -7,6 +7,7 @@ import hadesc.ast.Identifier
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
+import hadesc.types.Substitution
 import hadesc.types.Type
 import hadesc.types.ptr
 
@@ -149,20 +150,31 @@ sealed class HIRDefinition : HasLocation {
             }
         }
 
-        fun getField(fieldName: Name): Pair<Type, Int> {
+        fun getField(fieldName: Name, typeArgs: List<Type>? = null): Pair<Type, Int> {
             val index = fields.indexOfFirst {
                 fieldName == it.first
             }
             val field = fields[index]
-            return field.second to index
+            val ty =
+                if (typeArgs != null) {
+                    field.second.applySubstitution(
+                        Substitution.of(
+                            typeParams,
+                            typeArgs
+                        )
+                    )
+                } else {
+                    field.second
+                }
+            return ty to index
         }
 
         fun fieldIndex(fieldName: Name): Int {
             return getField(fieldName).second
         }
 
-        fun fieldType(fieldName: Name): Type {
-            return getField(fieldName).first
+        fun fieldType(fieldName: Name, typeArgs: List<Type>? = null): Type {
+            return getField(fieldName, typeArgs).first
         }
     }
 
