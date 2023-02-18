@@ -35,7 +35,12 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.PtrToInt -> visitPtrToInt(statement)
             is HIRStatement.LoadRefField -> visitLoadRefField(statement)
             is HIRStatement.StoreRefField -> visitStoreRefField(statement)
+            is HIRStatement.AllocRef -> visitAllocRef(statement)
         }
+    }
+
+    fun visitAllocRef(statement: HIRStatement.AllocRef) {
+        visitType(statement.type)
     }
 
     fun visitLoadRefField(statement: HIRStatement.LoadRefField) {

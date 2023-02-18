@@ -376,6 +376,7 @@ class HIRToLLVM(
             is HIRStatement.AllocateClosure -> requireUnreachable()
             is HIRStatement.InvokeClosure -> requireUnreachable()
             is HIRStatement.LoadRefField -> TODO()
+            is HIRStatement.AllocRef -> TODO()
         }
 
         if (value != null) {
