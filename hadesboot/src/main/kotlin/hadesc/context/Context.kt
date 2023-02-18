@@ -201,7 +201,7 @@ class Context(
 interface FileTextProvider {
     fun getFileText(path: Path): String
 }
-object FileSystemFileTextProvider: FileTextProvider {
+object FileSystemFileTextProvider : FileTextProvider {
     override fun getFileText(path: Path): String {
         return File(path.toUri()).readText()
     }

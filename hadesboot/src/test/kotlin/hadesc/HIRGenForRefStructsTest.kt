@@ -14,7 +14,8 @@ import kotlin.test.assertIs
 
 class HIRGenForRefStructsTest {
     @Test
-    fun `should lower ref struct return type`() = withTestCtx("""
+    fun `should lower ref struct return type`() = withTestCtx(
+        """
         struct BoxedU32 ref {
             val value: u32
         }
@@ -22,23 +23,24 @@ class HIRGenForRefStructsTest {
         def returns_boxed_u32(): BoxedU32 {
             return BoxedU32(1)
         }       
-    """.trimIndent()) {
-
+        """.trimIndent()
+    ) {
         val fn = findGlobalFunction("returns_boxed_u32")
 
         val returnType = fn.returnType
         assertIs<Type.Ptr>(returnType)
-
     }
 
     @Test
-    fun `should lower ref struct param type`() = withTestCtx("""
+    fun `should lower ref struct param type`() = withTestCtx(
+        """
         struct BoxedU32 ref {
             val value: u32
         }
         def takes_boxed_u32(param: BoxedU32): Void {
         }
-    """.trimIndent()) {
+        """.trimIndent()
+    ) {
         val fn = findGlobalFunction("takes_boxed_u32")
 
         val ty = fn.params[0].type
@@ -71,7 +73,7 @@ fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
             jsonDiagnostics = false
         ),
         BuildTarget.Executable(Path.of("main.hds"), Path.of("")),
-        fileTextProvider = object: FileTextProvider {
+        fileTextProvider = object : FileTextProvider {
             override fun getFileText(path: Path): String {
                 check(path == Path.of("main.hds"))
                 return source
@@ -84,7 +86,7 @@ fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
 
     val module = hirGen.lowerSourceFiles(listOf(sourceFile))
 
-    val testCtx = object: TestBuilder {
+    val testCtx = object : TestBuilder {
         override val ctx: Context = ctx
         override val hir: HIRModule = module
     }
