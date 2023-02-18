@@ -28,7 +28,7 @@ import hadesc.types.ptr
 import libhades.collections.Stack
 import java.nio.file.Path
 
-internal interface HIRGenModuleContext {
+internal interface HIRGenModuleContext : TypeTransformer {
     val enumTagFieldName: Name
     val currentModule: HIRModule
 
