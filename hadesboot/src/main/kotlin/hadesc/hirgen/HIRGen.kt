@@ -378,9 +378,9 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         scopeStack.push(declaration)
         defer { check(scopeStack.pop() === declaration) }
 
-        val returnType = lowerType(lowerTypeAnnotation(declaration.signature.returnType))
-        val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val signature = lowerFunctionSignature(declaration.signature, qualifiedName)
+        val returnType = signature.returnType
+        val addReturnVoid = returnType is Type.Void && !hasTerminator(declaration.body)
         val body = lowerBlock(
             declaration.body,
             addReturnVoid
@@ -396,7 +396,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         signature: FunctionSignature,
         qualifiedName: QualifiedName? = null
     ): HIRFunctionSignature {
-        val returnType = lowerType(lowerTypeAnnotation(signature.returnType))
+        val returnType = lowerTypeAnnotation(signature.returnType)
         val name = qualifiedName ?: lowerGlobalName(signature.name)
         val params = mutableListOf<HIRParam>()
         if (signature.thisParamFlags != null) {

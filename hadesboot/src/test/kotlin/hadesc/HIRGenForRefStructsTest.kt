@@ -10,7 +10,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import org.junit.jupiter.api.Test
 import java.nio.file.Path
-import kotlin.test.assertIs
+import kotlin.test.assertEquals
 
 class HIRGenForRefStructsTest {
     @Test
@@ -28,7 +28,8 @@ class HIRGenForRefStructsTest {
         val fn = findGlobalFunction("returns_boxed_u32")
 
         val returnType = fn.returnType
-        assertIs<Type.Ptr>(returnType)
+
+        assertEquals(actual = returnType, expected = Type.Ref(tycon("BoxedU32")))
     }
 
     @Test
@@ -45,9 +46,10 @@ class HIRGenForRefStructsTest {
 
         val ty = fn.params[0].type
 
-        assertIs<Type.Ptr>(ty)
+        assertEquals(actual = ty, expected = Type.Ref(tycon("BoxedU32")))
     }
 }
+
 interface TestBuilder {
     val ctx: Context
     val hir: HIRModule
@@ -56,6 +58,8 @@ interface TestBuilder {
         val qn = QualifiedName(name.split(".").map { ctx.makeName(it) })
         return hir.findGlobalFunction(qn)
     }
+
+    fun tycon(name: String) = Type.Constructor(QualifiedName(name.split(".").map { ctx.makeName(it) }))
 }
 fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
     val ctx = Context(
