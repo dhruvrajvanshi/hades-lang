@@ -277,7 +277,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
                     fields = (
                         case.params?.mapIndexed { caseParamIndex, caseParam ->
-                            ctx.makeName("$caseParamIndex") to ctx.analyzer.annotationToType(requireNotNull(caseParam.annotation))
+                            ctx.makeName("$caseParamIndex") to lowerTypeAnnotation(requireNotNull(caseParam.annotation))
                         } ?: emptyList()
                         )
                 )
@@ -326,8 +326,8 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         } ?: emptyList()
         val fnName = enumCaseStructDef.name.append(ctx.makeName("constructor"))
         val typeArgs = enumStructDef.typeParams?.map { Type.ParamRef(it.toBinder()) } ?: emptyList()
-        val instanceType = enumStructDef.instanceType(typeArgs)
-        val payloadType = enumCaseStructDef.instanceType(typeArgs)
+        val instanceType = lowerType(enumStructDef.instanceType(typeArgs))
+        val payloadType = lowerType(enumCaseStructDef.instanceType(typeArgs))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
             currentLocation = case.name.location
             val resultRef = emitAlloca("result", instanceType)

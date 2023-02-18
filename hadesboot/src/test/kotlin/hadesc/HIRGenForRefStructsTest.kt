@@ -5,6 +5,7 @@ import hadesc.context.Context
 import hadesc.context.FileTextProvider
 import hadesc.hir.HIRDefinition
 import hadesc.hir.HIRModule
+import hadesc.hir.HIRModuleVisitor
 import hadesc.hirgen.HIRGen
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -48,6 +49,53 @@ class HIRGenForRefStructsTest {
 
         assertEquals(actual = ty, expected = Type.Ref(tycon("BoxedU32")))
     }
+
+    @Test
+    fun `should lower fields with ref structs`() = withTestCtx("""
+        struct Boxed[T] ref {
+            val value: T
+         }
+        struct ContainsBox {
+            val value: Boxed[u32]
+        }
+    """.trimIndent()){
+        assertRefStructsAreLoweredToRefType(hir, "Boxed")
+    }
+
+    @Test
+    fun `should lower enums with ref structs`() = withTestCtx("""
+        struct Boxed[T] ref {
+          val value: T
+        }
+        enum ContainsBox[T] {
+          Foo(Boxed[T])
+          Bar(Boxed[u32])
+        }
+    """.trimIndent()) {
+        assertRefStructsAreLoweredToRefType(hir, "Boxed")
+    }
+}
+
+fun assertRefStructsAreLoweredToRefType(hir: HIRModule, name: String) {
+    hir.visit(object : HIRModuleVisitor {
+        override fun visitType(type: Type): Unit = when(type) {
+            is Type.Constructor -> assert(type.name.mangle() != name)
+            is Type.Ref -> {
+                when (val inner = type.inner) {
+                    is Type.Constructor -> unit
+                    is Type.Application -> {
+                        // This type is wrapped by ref, we don't need to our callee
+                        inner.args.forEach { visitType(it) }
+                    }
+                    else -> super.visitType(type.inner)
+                }
+            }
+            else -> super.visitType(type)
+        }
+    })
+}
+fun HIRModule.visit(visitor: HIRModuleVisitor) {
+    visitor.visitModule(this)
 }
 
 interface TestBuilder {
