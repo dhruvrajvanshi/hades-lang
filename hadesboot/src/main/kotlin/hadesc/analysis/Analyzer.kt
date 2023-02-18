@@ -2013,6 +2013,31 @@ class Analyzer(
 
     fun isRefStructType(type: Type): Boolean =
         getStructDeclOfType(type)?.isRef ?: false
+
+    /**
+     * Returns the struct declaration that this expression refers to,
+     * null if it is not a reference to a struct def.
+     */
+    fun getStructDeclaration(expresssion: Expression): Declaration.Struct? = when (expresssion) {
+        is Expression.Var ->
+            ctx.resolver.resolve(expresssion.name)?.let {
+                if (it is Binding.Struct) {
+                    it.declaration
+                } else {
+                    null
+                }
+            }
+        is Expression.Property -> {
+            val moduleSourceFile = resolveModuleRef(expresssion.lhs)
+            if (moduleSourceFile != null) {
+                val binding = ctx.resolver.findInSourceFile(expresssion.property.name, moduleSourceFile)
+                if (binding is Binding.Struct) binding.declaration else null
+            } else {
+                null
+            }
+        }
+        else -> null
+    }
 }
 
 data class ClosureCaptures(
