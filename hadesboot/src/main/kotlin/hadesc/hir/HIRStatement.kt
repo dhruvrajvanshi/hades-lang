@@ -296,6 +296,34 @@ sealed interface HIRStatement : HIRNode {
         }
     }
 
+    /**
+     * Stores a field into a GC ref.
+     * Equivalent to
+     * [ref].[memberName] = [rhs]
+     *
+     * Note that while [ref] must be a GC ref,
+     * [rhs] can be a primitive value.
+     */
+    data class StoreRefField(
+        override val location: SourceLocation,
+        val ref: HIRExpression,
+        val memberName: Name,
+        val memberIndex: Int,
+        val rhs: HIRExpression
+    ) : HIRStatement, StraightLineInstruction {
+        init {
+            require(ref.type is Type.Ref)
+        }
+    }
+
+    data class LoadRefField(
+        override val location: SourceLocation,
+        override val name: Name,
+        val ref: HIRExpression,
+        val memberName: Name,
+        val memberIndex: Int
+    ) : HIRStatement, NameBinder, StraightLineInstruction
+
     private fun prettyPrintInternal(): String = when (this) {
         is Call -> {
             "%${name.text}: ${resultType.prettyPrint()} = ${callee.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() } })"
@@ -339,6 +367,8 @@ sealed interface HIRStatement : HIRNode {
 
         is IntToPtr -> "int-to-ptr[${type.prettyPrint()}] ${expression.prettyPrint()}"
         is PtrToInt -> "ptr-to-int[${type.prettyPrint()}] ${expression.prettyPrint()}"
+        is LoadRefField -> "$name = load ${ref.prettyPrint()}.${memberName.text}"
+        is StoreRefField -> "${ref.prettyPrint()}.${memberName.text} = ${rhs.prettyPrint()}"
     }
 
     companion object {

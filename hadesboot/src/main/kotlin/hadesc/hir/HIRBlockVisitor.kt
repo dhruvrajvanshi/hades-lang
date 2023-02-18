@@ -33,7 +33,18 @@ interface HIRBlockVisitor : TypeVisitor {
             is HIRStatement.Memcpy -> visitMemcpyStatement(statement)
             is HIRStatement.IntToPtr -> visitIntToPtr(statement)
             is HIRStatement.PtrToInt -> visitPtrToInt(statement)
+            is HIRStatement.LoadRefField -> visitLoadRefField(statement)
+            is HIRStatement.StoreRefField -> visitStoreRefField(statement)
         }
+    }
+
+    fun visitLoadRefField(statement: HIRStatement.LoadRefField) {
+        visitExpression(statement.ref)
+    }
+
+    fun visitStoreRefField(statement: HIRStatement.StoreRefField) {
+        visitExpression(statement.ref)
+        visitExpression(statement.rhs)
     }
 
     fun visitPtrToInt(statement: HIRStatement.PtrToInt) {

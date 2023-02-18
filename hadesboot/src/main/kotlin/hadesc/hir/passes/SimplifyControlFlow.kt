@@ -259,23 +259,7 @@ class SimplifyControlFlow(private val ctx: Context) {
         val last = statements.lastOrNull() ?: return false
 
         return when (last) {
-            is HIRStatement.Store,
-            is HIRStatement.Alloca,
-            is HIRStatement.Call,
-            is HIRStatement.Load,
-            is HIRStatement.GetStructField,
-            is HIRStatement.GetStructFieldPointer,
-            is HIRStatement.Not,
-            is HIRStatement.IntegerConvert,
-            is HIRStatement.TypeApplication,
-            is HIRStatement.PointerCast,
-            is HIRStatement.BinOp,
-            is HIRStatement.AllocateClosure,
-            is HIRStatement.InvokeClosure,
-            is HIRStatement.Move,
-            is HIRStatement.Memcpy,
-            is HIRStatement.PtrToInt,
-            is HIRStatement.IntToPtr
+            is HIRStatement.StraightLineInstruction
             -> false
 
             is HIRStatement.Return,

@@ -167,6 +167,32 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
         is HIRStatement.Memcpy -> transformMemcpyStatement(statement)
         is HIRStatement.IntToPtr -> transformIntToPtrStatement(statement)
         is HIRStatement.PtrToInt -> transformPtrToIntStatement(statement)
+        is HIRStatement.LoadRefField -> transformLoadRefField(statement)
+        is HIRStatement.StoreRefField -> transformStoreRefField(statement)
+    }
+
+    fun transformStoreRefField(statement: HIRStatement.StoreRefField): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.StoreRefField(
+                location = statement.location,
+                ref = transformExpression(statement.ref),
+                memberName = statement.memberName,
+                memberIndex = statement.memberIndex,
+                rhs = transformExpression(statement.rhs)
+            )
+        )
+    }
+
+    fun transformLoadRefField(statement: HIRStatement.LoadRefField): Collection<HIRStatement> {
+        return listOf(
+            HIRStatement.LoadRefField(
+                location = statement.location,
+                name = statement.name,
+                ref = transformExpression(statement.ref),
+                memberIndex = statement.memberIndex,
+                memberName = statement.memberName
+            )
+        )
     }
 
     fun transformPtrToIntStatement(statement: HIRStatement.PtrToInt): Collection<HIRStatement> {
