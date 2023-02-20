@@ -55,7 +55,7 @@ internal class HIRGenExpression(
                     is Binding.MatchArmEnumCaseArg ->
                         HIRExpression.LocalRef(
                             expression.location,
-                            typeOfExpression(expression).ptr(),
+                            lowerType(typeOfExpression(expression)).ptr(),
                             lowerLocalBinder(binding.arg.binder)
                         ).load()
                 }
@@ -271,10 +271,12 @@ internal class HIRGenExpression(
                                 currentLocation = arg.location
                                 when (arg) {
                                     is Pattern.Val -> {
-                                        val type = ctx.analyzer.typeOfMatchArmEnumCaseArgBinding(
-                                            Binding.MatchArmEnumCaseArg(
-                                                arm.pattern,
-                                                argIndex
+                                        val type = lowerType(
+                                            ctx.analyzer.typeOfMatchArmEnumCaseArgBinding(
+                                                Binding.MatchArmEnumCaseArg(
+                                                    arm.pattern,
+                                                    argIndex
+                                                )
                                             )
                                         )
                                         val argPatternValRef = emitAlloca(arg.binder.name, type)

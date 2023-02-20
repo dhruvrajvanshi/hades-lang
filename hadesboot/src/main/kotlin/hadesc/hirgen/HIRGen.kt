@@ -1167,7 +1167,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         require(expression.lhs is Expression.Var)
         val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name).append(ctx.makeName("constructor"))
 
-        val originalTy = typeOfExpression(expression)
+        val originalTy = lowerType(typeOfExpression(expression))
         // if this is a case constructor without parameters,
         // its type is actually a parameterless function that
         // returns the instance, instead of the instance itself
