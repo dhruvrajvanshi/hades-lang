@@ -638,7 +638,12 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkArrayLiteral(expression: Expression.ArrayLiteral) {
-        TODO()
+        checkTypeAnnotation(expression.type)
+        if (expression.items.isEmpty()) {
+            error(expression, Diagnostic.Kind.ZeroLengthArray)
+            return
+        }
+        expression.items.forEach { checkExpression(it) }
     }
 
     private fun checkMoveExpression(expression: Expression.Move) {

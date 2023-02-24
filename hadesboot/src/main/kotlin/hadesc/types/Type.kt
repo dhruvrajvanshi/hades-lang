@@ -106,7 +106,7 @@ sealed interface Type {
         }
 
         is Ref -> "ref ${inner.prettyPrint()}"
-        is Array -> "array[$itemType, $length]"
+        is Array -> "array[${itemType.prettyPrint()}, $length]"
     }
 
     fun isIntegral() = when (this) {

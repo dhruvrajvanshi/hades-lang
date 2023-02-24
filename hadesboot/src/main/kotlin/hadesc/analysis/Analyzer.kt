@@ -805,8 +805,27 @@ class Analyzer(
                 is Expression.FloatLiteral -> Type.f64
                 is Expression.Uninitialized -> Type.Error(expression.location) // uninitialized expression must be checked, not inferred
                 is Expression.Move -> inferIdentifier(expression.name)
-                is Expression.ArrayLiteral -> TODO()
+                is Expression.ArrayLiteral -> inferArrayLiteral(expression)
             }
+        )
+    }
+
+    private fun inferArrayLiteral(expression: Expression.ArrayLiteral): Type {
+        if (expression.items.isEmpty()) {
+            return Type.Array(
+                itemType = Type.Error(expression.location),
+                length = 0U
+            )
+        }
+        val firstItem = expression.items.first()
+        val remainingItems = expression.items.drop(1)
+        val itemType = inferExpression(firstItem)
+        for (item in remainingItems) {
+            checkExpression(item, itemType)
+        }
+        return Type.Array(
+            itemType,
+            expression.items.size.toUInt()
         )
     }
 
@@ -1012,10 +1031,18 @@ class Analyzer(
     }
 
     private fun inferAddressOfMut(expression: Expression.AddressOfMut): Type {
-        return Type.Ptr(inferExpression(expression.expression), isMutable = true)
+        val innerType = inferExpression(expression.expression)
+        if (innerType is Type.Array) {
+            return Type.Ptr(innerType.itemType, isMutable = true)
+        }
+        return Type.Ptr(innerType, isMutable = true)
     }
 
     private fun inferAddressOf(expression: Expression.AddressOf): Type {
+        val innerType = inferExpression(expression.expression)
+        if (innerType is Type.Array) {
+            return Type.Ptr(innerType.itemType, isMutable = false)
+        }
         return Type.Ptr(inferExpression(expression.expression), isMutable = false)
     }
 
