@@ -909,6 +909,7 @@ class Parser(
             tt.BYTE_CHAR_LITERAL -> parseByteCharLiteral()
             tt.MATCH -> parseMatchExpression()
             tt.MOVE -> parseMoveExpression()
+            tt.ARRAY -> parseArrayLiteral()
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.ExpressionExpected)
@@ -916,6 +917,28 @@ class Parser(
         }
         if (!withTail) return head
         return parseExpressionTail(head, allowCalls)
+    }
+
+    private fun parseArrayLiteral(): Expression {
+        val start = expect(tt.ARRAY)
+        expect(tt.LSQB)
+        val type = parseTypeAnnotation()
+        val length = if (at(tt.COMMA)) {
+            advance()
+            expect(tt.INT_LITERAL).text.toUInt()
+        } else {
+            null
+        }
+        expect(tt.RSQB)
+        expect(tt.LBRACE)
+        val items = parseSeperatedList(tt.COMMA, terminator = tt.RBRACE) { parseExpression() }
+        val end = expect(tt.RBRACE)
+        return Expression.ArrayLiteral(
+            makeLocation(start, end),
+            type,
+            length,
+            items
+        )
     }
 
     private fun parseMoveExpression(): Expression {

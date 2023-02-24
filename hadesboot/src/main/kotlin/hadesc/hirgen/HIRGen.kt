@@ -674,6 +674,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             is Expression.Uninitialized -> lowerUninitialized(expression)
             is Expression.Move -> lowerMoveExpression(expression)
             is Expression.AlignOf -> lowerAlignOfExpression(expression)
+            is Expression.ArrayLiteral -> TODO()
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
         val exprType = lowered.type

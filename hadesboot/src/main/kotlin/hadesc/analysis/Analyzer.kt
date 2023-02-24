@@ -805,6 +805,7 @@ class Analyzer(
                 is Expression.FloatLiteral -> Type.f64
                 is Expression.Uninitialized -> Type.Error(expression.location) // uninitialized expression must be checked, not inferred
                 is Expression.Move -> inferIdentifier(expression.name)
+                is Expression.ArrayLiteral -> TODO()
             }
         )
     }

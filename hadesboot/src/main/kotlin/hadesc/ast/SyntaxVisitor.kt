@@ -86,6 +86,14 @@ interface SyntaxVisitor {
         is Expression.Uninitialized -> visitUninitializedLiteral(expression)
         is Expression.Move -> visitMoveExpression(expression)
         is Expression.AlignOf -> visitAlignOfExpression(expression)
+        is Expression.ArrayLiteral -> visitArrayLiteral(expression)
+    }
+
+    fun visitArrayLiteral(expression: Expression.ArrayLiteral) {
+        expression.type?.let { visitType(it) }
+        expression.items.forEach {
+            visitExpression(it)
+        }
     }
 
     fun visitAlignOfExpression(expression: Expression.AlignOf) {

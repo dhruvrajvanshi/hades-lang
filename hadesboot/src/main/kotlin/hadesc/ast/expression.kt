@@ -158,6 +158,13 @@ sealed interface Expression : HasLocation {
     data class FloatLiteral(override val location: SourceLocation, val value: Double) : Expression
 
     data class Move(override val location: SourceLocation, val name: Identifier) : Expression
+
+    data class ArrayLiteral(
+        override val location: SourceLocation,
+        val type: TypeAnnotation?,
+        val length: UInt?,
+        val items: List<Expression>
+    ) : Expression
 }
 
 enum class IntrinsicType {

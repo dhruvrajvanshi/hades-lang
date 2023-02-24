@@ -630,8 +630,13 @@ class Checker(val ctx: Context) {
                 is Expression.Match -> checkMatchExpression(expression)
                 is Expression.Uninitialized -> unit
                 is Expression.Move -> checkMoveExpression(expression)
+                is Expression.ArrayLiteral -> checkArrayLiteral(expression)
             }
         )
+    }
+
+    private fun checkArrayLiteral(expression: Expression.ArrayLiteral) {
+        TODO()
     }
 
     private fun checkMoveExpression(expression: Expression.Move) {
