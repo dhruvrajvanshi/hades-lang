@@ -341,6 +341,9 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkReturnType(node: HasLocation, type: Type) {
+        if (type is Type.Array) {
+            error(node, Diagnostic.Kind.ArrayTypeNotAllowedAsReturnType)
+        }
         checkReturnTypeWorker(node, ctx.analyzer.reduceGenericInstances(type))
     }
     private fun checkReturnTypeWorker(node: HasLocation, unreducedType: Type, typeArguments: List<Type>? = null): Unit = when (val type = ctx.analyzer.reduceGenericInstances(unreducedType)) {
@@ -1137,6 +1140,10 @@ class Checker(val ctx: Context) {
 
             if (paramType != null && param.isMutable && !ctx.analyzer.isRefStructType(paramType)) {
                 error(param, Diagnostic.Kind.InvalidMutParam(paramType))
+            }
+
+            if (paramType is Type.Array) {
+                error(param, Diagnostic.Kind.ArrayTypeNotAllowedAsParam)
             }
         }
     }

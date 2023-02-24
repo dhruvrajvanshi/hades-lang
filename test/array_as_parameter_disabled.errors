@@ -1,0 +1,2 @@
+test/array_as_parameter_disabled.hds:2: ArrayTypeNotAllowedAsParam
+test/array_as_parameter_disabled.hds:3: ArrayTypeNotAllowedAsReturnType
