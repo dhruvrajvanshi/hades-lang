@@ -161,7 +161,7 @@ sealed interface Expression : HasLocation {
 
     data class ArrayLiteral(
         override val location: SourceLocation,
-        val type: TypeAnnotation?,
+        val type: TypeAnnotation,
         val items: List<Expression>
     ) : Expression
 }
