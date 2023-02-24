@@ -1,0 +1,18 @@
+import hades.memory.{offset}
+def main(): Void {
+    val mut x = array[u8] {
+        3,
+        2,
+        3
+    }
+    val x_ptr = &mut x
+    *x_ptr = 1
+
+    val sum = offset(x_ptr, 0).* + offset(x_ptr, 1).* + offset(x_ptr, 2).*
+
+    if sum == 6 {
+        puts(b"PASS")
+    }
+}
+
+extern def puts(*u8): Void = puts
