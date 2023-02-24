@@ -313,6 +313,8 @@ class Checker(val ctx: Context) {
         is TypeAnnotation.Closure -> {
             checkClosureTypeAnnotation(annotation)
         }
+
+        is TypeAnnotation.Array -> TODO()
     }
 
     private fun checkClosureTypeAnnotation(annotation: TypeAnnotation.Closure) {

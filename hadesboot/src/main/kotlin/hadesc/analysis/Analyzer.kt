@@ -1477,8 +1477,15 @@ class Analyzer(
             is TypeAnnotation.Closure -> closureAnnotationToType(annotation)
             is TypeAnnotation.Union -> unionAnnotationToType(annotation)
             is TypeAnnotation.Select -> selectAnnotationToType(annotation)
+            is TypeAnnotation.Array -> arrayTypeAnnotationToType(annotation)
         }
     }
+
+    private fun arrayTypeAnnotationToType(annotation: TypeAnnotation.Array): Type =
+        Type.Array(
+            annotationToType(annotation.itemType),
+            annotation.length
+        )
 
     private fun closureAnnotationToType(annotation: TypeAnnotation.Closure): Type {
         return Type.Closure(
