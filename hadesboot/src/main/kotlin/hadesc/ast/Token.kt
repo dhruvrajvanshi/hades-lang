@@ -40,6 +40,7 @@ data class Token(
         MATCH,
         MOVE,
         REF,
+        ARRAY,
 
         NOT,
         AND,

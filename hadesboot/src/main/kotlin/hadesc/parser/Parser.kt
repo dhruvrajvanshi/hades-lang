@@ -1378,6 +1378,19 @@ class Parser(
                     args
                 )
             }
+            tt.ARRAY -> {
+                val start = advance()
+                expect(tt.LSQB)
+                val itemType = parseTypeAnnotation()
+                expect(tt.COMMA)
+                val itemLength = expect(tt.INT_LITERAL).text.toInt()
+                val stop = expect(tt.RSQB)
+                return TypeAnnotation.Array(
+                    makeLocation(start, stop),
+                    itemType,
+                    itemLength
+                )
+            }
             else -> {
                 val location = advance().location
                 syntaxError(location, Diagnostic.Kind.TypeAnnotationExpected)

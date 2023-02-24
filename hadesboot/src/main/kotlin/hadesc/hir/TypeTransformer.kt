@@ -24,7 +24,13 @@ interface TypeTransformer {
         is Type.Select -> lowerSelectType(type)
         is Type.Closure -> lowerClosureType(type)
         is Type.Ref -> lowerRefType(type)
+        is Type.Array -> lowerArrayType(type)
     }
+
+    fun lowerArrayType(type: Type.Array): Type = Type.Array(
+        lowerType(type.itemType),
+        type.length
+    )
 
     fun lowerRefType(type: Type.Ref): Type = Type.Ref(lowerType(type.inner))
 
@@ -122,6 +128,11 @@ interface TypeVisitor {
         is Type.Select -> visitSelectType(type)
         is Type.Closure -> visitClosureType(type)
         is Type.Ref -> visitRefType(type)
+        is Type.Array -> visitArrayType(type)
+    }
+
+    fun visitArrayType(type: Type.Array) {
+        visitType(type.itemType)
     }
 
     fun visitRefType(type: Type.Ref) {
