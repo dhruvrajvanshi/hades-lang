@@ -923,12 +923,6 @@ class Parser(
         val start = expect(tt.ARRAY)
         expect(tt.LSQB)
         val type = parseTypeAnnotation()
-        val length = if (at(tt.COMMA)) {
-            advance()
-            expect(tt.INT_LITERAL).text.toUInt()
-        } else {
-            null
-        }
         expect(tt.RSQB)
         expect(tt.LBRACE)
         val items = parseSeperatedList(tt.COMMA, terminator = tt.RBRACE) { parseExpression() }
@@ -936,7 +930,6 @@ class Parser(
         return Expression.ArrayLiteral(
             makeLocation(start, end),
             type,
-            length,
             items
         )
     }
