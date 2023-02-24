@@ -53,4 +53,10 @@ sealed class TypeAnnotation : HasLocation {
         val lhs: TypeAnnotation,
         val rhs: Identifier
     ) : TypeAnnotation()
+
+    data class Array(
+        override val location: SourceLocation,
+        val itemType: TypeAnnotation,
+        val length: Int
+    ) : TypeAnnotation()
 }

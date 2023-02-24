@@ -1,0 +1,26 @@
+import hades.memory.{offset_mut}
+struct Foo {
+    val items: array[u8, 3]
+}
+def main(): Void {
+    val mut foo = Foo(#uninitialized)
+
+    val items: *mut u8 = pointer_cast[u8](foo.&mut)
+
+    val item_1 = items
+    val item_2 = offset_mut(items, 1)
+    val item_3 = offset_mut(items, 2)
+
+    *item_1 = 1
+    *item_2 = 2
+    *item_3 = 2
+
+    val six = item_1.* + item_2.* + item_3.*
+
+    if six == 6 {
+        puts(b"PASS")
+    }
+
+}
+
+extern def puts(*u8): Void = puts

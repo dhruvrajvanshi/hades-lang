@@ -252,6 +252,16 @@ class HIRToLLVM(
             null as BytePointer?,
             0
         )
+        is Type.Ref -> LLVM.LLVMDIBuilderCreatePointerType(
+            diBuilder,
+            inner.debugInfo,
+            sizeInBits,
+            8,
+            0,
+            null as BytePointer?,
+            0
+        )
+        is Type.Array -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder) // TODO
         is Type.FunctionPtr -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
         is Type.UntaggedUnion -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
@@ -262,8 +272,6 @@ class HIRToLLVM(
         is Type.AssociatedTypeRef,
         is Type.Closure,
         is Type.Select -> requireUnreachable()
-
-        is Type.Ref -> TODO()
     }
 
     private fun lowerFunction(definition: HIRDefinition.Function) {
@@ -884,6 +892,7 @@ class HIRToLLVM(
                 clampToPowerOfTwo(maxSize.toInt())
             )
         }
+        is Type.Array -> arrayType(lowerType(type.itemType), type.length)
         is Type.Integral -> intType(type.size, llvmCtx)
         is Type.FloatingPoint -> floatType(type.size, llvmCtx)
         is Type.TypeFunction,
