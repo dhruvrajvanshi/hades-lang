@@ -72,6 +72,7 @@ sealed interface Type {
      * as a pointer to the inner type.
      */
     data class Ref(val inner: Type) : Type
+    data class Array(val itemType: Type, val length: UInt) : Type
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
@@ -105,6 +106,7 @@ sealed interface Type {
         }
 
         is Ref -> "ref ${inner.prettyPrint()}"
+        is Array -> "array[$itemType, $length]"
     }
 
     fun isIntegral() = when (this) {
@@ -159,6 +161,7 @@ sealed interface Type {
             )
 
             is Ref -> copy(inner.recurse())
+            is Array -> Array(itemType = itemType.recurse(), length = length)
         }
     }
 
