@@ -63,7 +63,7 @@ def process_file(in_file: str, index: Index, builder: HadesBuilder):
             case TypeKind.DOUBLE:
                 result = NamedType('i64')
             case TypeKind.VOID:
-                result = NamedType('void')
+                result = NamedType('Void')
             case TypeKind.TYPEDEF:
                 result = NamedType(ty.get_typedef_name())
             case TypeKind.CONSTANTARRAY:
