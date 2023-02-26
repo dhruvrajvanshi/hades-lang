@@ -60,6 +60,25 @@ class HadesStructDef(HadesDef):
 
 
 @dataclass
+class HadesExternFunctionDef(HadesDef):
+    name: str
+    param_types: list[HadesType]
+    return_type: HadesType
+    extern_name: str
+
+    def pretty_print(self) -> str:
+        ...
+
+
+@dataclass
+class HadesExternConstDef(HadesDef):
+    name: str
+    type: HadesType
+
+    def pretty_print(self) -> str: ...
+
+
+@dataclass
 class HadesTypeAlias(HadesDef):
     name: str
     rhs: HadesType
@@ -112,6 +131,8 @@ def process_file(in_file: str, index: Index):
                 result = NamedType('u64')
             case TypeKind.LONG:
                 result = NamedType('i64')
+            case TypeKind.DOUBLE:
+                result = NamedType('i64')
             case TypeKind.VOID:
                 result = NamedType('void')
             case TypeKind.TYPEDEF:
@@ -126,7 +147,7 @@ def process_file(in_file: str, index: Index):
                     result = HadesPointerType(pointee)
                 else:
                     result = HadesMutPointerType(pointee)
-            case TypeKind.ELABORATED:
+            case TypeKind.ELABORATED | TypeKind.RECORD:
                 decl = ty.get_declaration()
                 match decl.kind:
                     case CursorKind.STRUCT_DECL:
@@ -160,6 +181,28 @@ def process_file(in_file: str, index: Index):
         ))
         return name
 
+    def visitFunctionDecl(node: Cursor):
+        param_types: list[HadesType] = []
+        for arg in node.get_arguments():
+            assert arg.kind == CursorKind.PARM_DECL
+            param_types.append(lowerType(arg.type))
+        builder.emitDef(
+            HadesExternFunctionDef(
+                name=node.mangled_name,
+                param_types=param_types,
+                return_type=lowerType(node.result_type),
+                extern_name=node.mangled_name
+            )
+        )
+
+    def visitVarDecl(node: Cursor):
+        builder.emitDef(
+            HadesExternConstDef(
+                node.mangled_name,
+                lowerType(node.type)
+            )
+        )
+
     for _node in tu.cursor.get_children():
         node: Cursor = _node
         match node.kind:
@@ -167,6 +210,10 @@ def process_file(in_file: str, index: Index):
                 visitTypedef(node)
             case CursorKind.STRUCT_DECL:
                 visitStructDecl(node)
+            case CursorKind.FUNCTION_DECL:
+                visitFunctionDecl(node)
+            case CursorKind.VAR_DECL:
+                visitVarDecl(node)
             case kind:
                 raise Exception(f"Unhandled node kind: {kind}")
 
