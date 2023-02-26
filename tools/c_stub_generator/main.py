@@ -65,7 +65,7 @@ def process_file(in_file: str, index: Index, builder: HadesBuilder):
             case TypeKind.VOID:
                 result = NamedType('void')
             case TypeKind.TYPEDEF:
-                result = NamedType(ty.spelling)
+                result = NamedType(ty.get_typedef_name())
             case TypeKind.CONSTANTARRAY:
                 result = HadesArrayType(
                     lowerType(ty.element_type), ty.element_count)
