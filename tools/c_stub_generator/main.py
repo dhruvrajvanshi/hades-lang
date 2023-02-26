@@ -49,7 +49,7 @@ def process_file(in_file: str, index: Index, out):
                         after += decl
 
                     elif field.kind == CursorKind.ENUM_DECL:
-                        pass
+                        raise Exception('')
                     elif field.kind == CursorKind.UNION_DECL:
                         members = []
                         for _member in field.get_children():
@@ -66,15 +66,31 @@ def process_file(in_file: str, index: Index, out):
 
             out.write(f'}}\n')
 
-        if node.kind == CursorKind.FUNCTION_DECL:
+        elif node.kind == CursorKind.FUNCTION_DECL:
             params = ', '.join([print_type(arg.type) for arg in node.get_arguments()])
             out.write(f'extern def {node.spelling}({params}): {print_type(node.result_type)} = {node.spelling};\n')
             pass
-        if node.kind == CursorKind.TYPEDEF_DECL:
+        elif node.kind == CursorKind.TYPEDEF_DECL:
             if node.underlying_typedef_type.kind == TypeKind.ELABORATED:
                 assert AssertionError()
             else:
                 out.write(f'type {node.spelling} = {print_type(node.underlying_typedef_type)};\n')
+        elif node.kind == CursorKind.VAR_DECL:
+            out.write(f'extern const {node.mangled_name}: {print_type(node.type)}\n')
+        elif node.kind == CursorKind.ENUM_DECL:
+            out.write(f'enum {node.spelling} {{\n')
+
+            members = []
+
+            for _member in node.get_children():
+                member: Cursor = _member
+                members.append(f'  {member.displayname} = {member.enum_value}')
+
+            out.write('\n'.join(members))
+
+            out.write('\n}\n\n')
+        else:
+            raise Exception(f'Unhandled decl: {node.kind}')
 
         out.write(after)
 
@@ -133,7 +149,7 @@ def print_type(typ: Type) -> str:
         else:
             return f'*mut {inner}'
     elif typ.kind == TypeKind.ENUM:
-        return typ.spelling
+        return typ.spelling.replace('enum ', '')
     elif typ.kind == TypeKind.FUNCTIONPROTO:
         args = ', '.join([print_type(t) for t in typ.argument_types()])
         return f'def ({args}) -> {print_type(typ.get_result())}'
