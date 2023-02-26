@@ -11,6 +11,21 @@ class HadesType(ABC):
 
 
 @dataclass
+class HadesConst(ABC):
+    type: HadesType
+    @abstractmethod
+    def pretty_print(self) -> str: ...
+
+
+@dataclass
+class HadesIntLiteral(HadesConst):
+    type: HadesType
+    value: int
+
+    def pretty_print(self) -> str: ...
+
+
+@dataclass
 class NamedType(HadesType):
     name: str
 
@@ -79,6 +94,15 @@ class HadesExternConstDef(HadesDef):
 
 
 @dataclass
+class HadesConstDef(HadesDef):
+    name: str
+    type: HadesType
+    value: HadesConst
+
+    def pretty_print(self) -> str: ...
+
+
+@dataclass
 class HadesTypeAlias(HadesDef):
     name: str
     rhs: HadesType
@@ -90,8 +114,15 @@ class HadesTypeAlias(HadesDef):
 class HadesBuilder:
     defs: list[HadesDef] = []
 
+    _unique_names = 0
+
     def emitDef(self, d: HadesDef):
         self.defs.append(d)
+
+    def unique_name(self) -> str:
+        name = f'__hades_stub_generated_{self._unique_names}'
+        self._unique_names += 1
+        return name
 
 
 def main():
@@ -153,6 +184,9 @@ def process_file(in_file: str, index: Index):
                     case CursorKind.STRUCT_DECL:
                         name = visitStructDecl(decl)
                         result = NamedType(name)
+                    case CursorKind.ENUM_DECL:
+                        name = visitEnumDecl(decl)
+                        result = NamedType(name)
                     case _: raise Exception(f'Unhandled elaborated type: {decl.kind}')
             case _:
                 raise Exception(f'Unhandled type: {ty.kind}')
@@ -165,7 +199,8 @@ def process_file(in_file: str, index: Index):
 
     def visitStructDecl(node: Cursor) -> str:
         name = node.displayname
-        assert name is not None
+        if name == '':
+            name = builder.unique_name()
         fields: list[tuple[str, HadesType]] = []
         for field in node.get_children():
             assert field.kind == CursorKind.FIELD_DECL or field.kind == CursorKind.STRUCT_DECL
@@ -203,6 +238,40 @@ def process_file(in_file: str, index: Index):
             )
         )
 
+    def visitEnumDecl(node: Cursor) -> str:
+        name = node.displayname
+        if name == '':
+            name = builder.unique_name()
+
+        type = lowerType(node.enum_type)
+        builder.emitDef(
+            HadesTypeAlias(
+                name,
+                type
+            )
+        )
+
+        for member in node.get_children():
+            assert member.kind == CursorKind.ENUM_CONSTANT_DECL
+            assert isinstance(member.enum_value, int)
+            builder.emitDef(
+                HadesConstDef(
+                    member.mangled_name,
+                    type,
+                    HadesIntLiteral(
+                        type,
+                        member.enum_value
+                    )
+                )
+            )
+
+        return name
+        # builder.emitDef(
+        #     HadesConstDef(
+        #         name=node.mangled_name
+        #     )
+        # )
+
     for _node in tu.cursor.get_children():
         node: Cursor = _node
         match node.kind:
@@ -214,6 +283,8 @@ def process_file(in_file: str, index: Index):
                 visitFunctionDecl(node)
             case CursorKind.VAR_DECL:
                 visitVarDecl(node)
+            case CursorKind.ENUM_DECL:
+                visitEnumDecl(node)
             case kind:
                 raise Exception(f"Unhandled node kind: {kind}")
 
