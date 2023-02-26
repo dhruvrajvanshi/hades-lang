@@ -9,22 +9,18 @@ def main():
     index = Index.create()
     [*in_files] = sys.argv[1:]
 
-    out.write('import c_types as c_types;\n\n')
+    out.write('import hades.ffi.c as c\n\n')
     for in_file in in_files:
         process_file(in_file, index, out)
 
 
 def process_file(in_file: str, index: Index, out):
-    infile = Path(in_file)
+    print(f'Generating {in_file}')
     tu = index.parse(in_file, [])
-
+    counter = 0
     for _node in tu.cursor.get_children():
         node: Cursor = _node
-        location: SourceLocation = node.location
-        filename = Path(str(location.file.name))
-
-        if filename.absolute() != infile.absolute():
-            continue
+        after = ''
 
         if node.kind == CursorKind.STRUCT_DECL:
             if node.spelling == '':
@@ -37,14 +33,28 @@ def process_file(in_file: str, index: Index, out):
                 for _field in node.get_definition().get_children():
                     field: Cursor = _field
 
-                    assert field.kind == CursorKind.FIELD_DECL, f"Expected Struct field, found {field.kind}"
-                    typ: Type = field.type
-                    name = field.spelling
-                    out.write(f'  val f{name}: {print_type(typ)};\n')
+                    if field.kind == CursorKind.FIELD_DECL:
+                        typ: Type = field.type
+                        name = field.spelling
+                        out.write(f'  val f{name}: {print_type(typ)};\n')
+                    elif field.kind == CursorKind.UNION_DECL:
+                        members = []
+                        for _member in field.get_children():
+                            member: Cursor = _member
+                            members.append(print_type(member.type))
+                        
+                        name = f'__hades_stubs_{counter}'
+                        counter += 1
+                        fields = ', '.join(members)
+                        union_decl = f'\ntype {name} = Union[{fields}]\n'
+                        after += union_decl
+                    else:
+                        raise Exception(f'Unexpected kind: {field.kind}')
 
             out.write(f'}}\n')
 
         if node.kind == CursorKind.FUNCTION_DECL:
+            print('FUNCDECL')
             params = ', '.join([print_type(arg.type) for arg in node.get_arguments()])
             out.write(f'extern def {node.spelling}({params}): {print_type(node.result_type)} = {node.spelling};\n')
             pass
@@ -54,41 +64,43 @@ def process_file(in_file: str, index: Index, out):
             else:
                 out.write(f'type {node.spelling} = {print_type(node.underlying_typedef_type)};\n')
 
+        out.write(after)
+
 
 def print_type(typ: Type) -> str:
-    assert isinstance(typ, Type)
+    assert isinstance(typ, Type), f'{typ.__class__}'
     if typ.kind == TypeKind.INT:
-        return 'c_types.int'
+        return 'c.int'
     elif typ.kind == TypeKind.UINT:
-        return 'c_types.uint'
+        return 'c.uint'
     elif typ.kind == TypeKind.USHORT:
-        return 'c_types.ushort'
+        return 'c.ushort'
     elif typ.kind == TypeKind.SHORT:
-        return 'c_types.short'
+        return 'c.short'
     elif typ.kind == TypeKind.FLOAT:
-        return 'c_types.float'
+        return 'c.float'
     elif typ.kind == TypeKind.LONG:
-        return 'c_types.long'
+        return 'c.long'
     elif typ.kind == TypeKind.CHAR_S:
-        return 'c_types.char'
+        return 'c.char'
     elif typ.kind == TypeKind.SCHAR:
-        return 'c_types.schar'
+        return 'c.schar'
     elif typ.kind == TypeKind.UCHAR:
-        return 'c_types.uchar'
+        return 'c.uchar'
     elif typ.kind == TypeKind.DOUBLE:
-        return 'c_types.double'
+        return 'c.double'
     elif typ.kind == TypeKind.LONGLONG:
-        return 'c_types.long_long'
+        return 'c.long_long'
     elif typ.kind == TypeKind.LONGDOUBLE:
-        return 'c_types.long_double'
+        return 'c.long_double'
     elif typ.kind == TypeKind.ULONG:
-        return 'c_types.ulong'
+        return 'c.ulong'
     elif typ.kind == TypeKind.ULONGLONG:
-        return 'c_types.ulonglong'
+        return 'c.ulonglong'
     elif typ.kind == TypeKind.USHORT:
-        return 'c_types.ushort'
+        return 'c.ushort'
     elif typ.kind == TypeKind.VOID:
-        return 'Void'
+        return 'c.void'
     elif typ.kind == TypeKind.ELABORATED:
         if typ.get_named_type().kind == TypeKind.RECORD:
             return f'Struct_{typ.get_named_type().spelling.replace("struct ", "")}'
@@ -101,7 +113,7 @@ def print_type(typ: Type) -> str:
     elif typ.kind == TypeKind.CONSTANTARRAY:
         size = typ.get_array_size()
         inner = print_type(typ.get_array_element_type())
-        return f'Array[{size}, {inner}]'
+        return f'array[{inner}, {size}]'
     elif typ.kind == TypeKind.POINTER:
         inner = print_type(typ.get_pointee())
         if typ.is_const_qualified:
@@ -112,9 +124,11 @@ def print_type(typ: Type) -> str:
         return typ.spelling
     elif typ.kind == TypeKind.FUNCTIONPROTO:
         args = ', '.join([print_type(t) for t in typ.argument_types()])
-        return f'({args}) -> {print_type(typ.get_result())}'
+        return f'def ({args}) -> {print_type(typ.get_result())}'
     elif typ.kind == TypeKind.TYPEDEF:
         return typ.spelling
+    elif typ.kind == TypeKind.INCOMPLETEARRAY:
+        return f'{print_type(typ.element_type)}'
     else:
         raise AssertionError(f'Unhandled type kind {typ.kind} at {typ}')
 
