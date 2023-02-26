@@ -30,6 +30,11 @@ class HadesIntLiteral(HadesConst):
 class NamedType(HadesType):
     name: str
 
+    def __init__(self, name: str) -> None:
+        assert name != ''
+        assert ' ' not in name
+        self.name = name
+
     def pretty_print(self) -> str:
         return self.name
 
