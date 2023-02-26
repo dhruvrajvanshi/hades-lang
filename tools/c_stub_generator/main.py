@@ -160,6 +160,8 @@ def process_file(in_file: str, index: Index):
                 result = NamedType('i32')
             case TypeKind.ULONG:
                 result = NamedType('u64')
+            case TypeKind.ULONGLONG:
+                result = NamedType('u64')
             case TypeKind.LONG:
                 result = NamedType('i64')
             case TypeKind.DOUBLE:
