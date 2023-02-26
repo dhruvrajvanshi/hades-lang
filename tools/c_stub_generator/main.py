@@ -1,116 +1,6 @@
 import sys
 from clang.cindex import Index, CursorKind, Cursor, Type, TypeKind
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-
-
-class HadesType(ABC):
-    @abstractmethod
-    def pretty_print(self) -> str:
-        ...
-
-
-@dataclass
-class HadesConst(ABC):
-    type: HadesType
-    @abstractmethod
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesIntLiteral(HadesConst):
-    type: HadesType
-    value: int
-
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class NamedType(HadesType):
-    name: str
-
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesArrayType(HadesType):
-    inner: HadesType
-    length: int
-
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesPointerType(HadesType):
-    inner: HadesType
-
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesMutPointerType(HadesType):
-    inner: HadesType
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesDefType(HadesType):
-    arg_types: list[HadesType]
-    return_type: HadesType
-
-    def pretty_print(self) -> str: ...
-
-
-class HadesDef(ABC):
-    @abstractmethod
-    def pretty_print(self) -> str:
-        ...
-
-
-@dataclass
-class HadesStructDef(HadesDef):
-    name: str
-    fields: list[tuple[str, HadesType]]
-
-    def pretty_print(self) -> str:
-        ...
-
-
-@dataclass
-class HadesExternFunctionDef(HadesDef):
-    name: str
-    param_types: list[HadesType]
-    return_type: HadesType
-    extern_name: str
-
-    def pretty_print(self) -> str:
-        ...
-
-
-@dataclass
-class HadesExternConstDef(HadesDef):
-    name: str
-    type: HadesType
-
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesConstDef(HadesDef):
-    name: str
-    type: HadesType
-    value: HadesConst
-
-    def pretty_print(self) -> str: ...
-
-
-@dataclass
-class HadesTypeAlias(HadesDef):
-    name: str
-    rhs: HadesType
-
-    def pretty_print(self) -> str:
-        raise Exception("Unimplemented")
+from syntax import *
 
 
 class HadesBuilder:
@@ -126,6 +16,9 @@ class HadesBuilder:
         self._unique_names += 1
         return name
 
+    def pretty_print(self) -> str:
+        return '\n\n'.join(d.pretty_print() for d in self.defs)
+
 
 def main():
     out = open("out.hds", "w")
@@ -133,15 +26,16 @@ def main():
     index = Index.create()
     [*in_files] = sys.argv[1:]
 
-    out.write("import hades.ffi.c as c\n\n")
+    builder = HadesBuilder()
     for in_file in in_files:
-        process_file(in_file, index)
+        process_file(in_file, index, builder)
+
+    out.write(builder.pretty_print())
 
 
-def process_file(in_file: str, index: Index):
+def process_file(in_file: str, index: Index, builder: HadesBuilder):
     print(f"Generating {in_file}")
     tu = index.parse(in_file, [])
-    builder = HadesBuilder()
 
     def lowerType(ty: Type) -> HadesType:
         result: HadesType
@@ -268,9 +162,12 @@ def process_file(in_file: str, index: Index):
         for member in node.get_children():
             assert member.kind == CursorKind.ENUM_CONSTANT_DECL
             assert isinstance(member.enum_value, int)
+            member_name = member.displayname
+            assert member_name is not None
+            assert member_name != ''
             builder.emitDef(
                 HadesConstDef(
-                    member.mangled_name,
+                    member_name,
                     type,
                     HadesIntLiteral(
                         type,
