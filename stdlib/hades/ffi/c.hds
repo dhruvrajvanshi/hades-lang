@@ -1,0 +1,19 @@
+
+type void = Void
+
+type size_t = usize
+type ssize_t = isize
+
+type char = u8
+
+type short = i16
+type ushort = u16
+
+type int = i32
+type uint = u32
+
+type long = i64
+type ulong = u64
+
+type float = f32
+type double = f64
