@@ -109,7 +109,7 @@ class HadesExternConstDef(HadesDef):
     type: HadesType
 
     def pretty_print(self) -> str:
-        return f'extern const {self.name}: {self.type.pretty_print()}'
+        return f'extern const {self.name}: {self.type.pretty_print()} = {self.name}'
 
 
 @dataclass
