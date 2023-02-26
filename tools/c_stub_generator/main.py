@@ -1,10 +1,10 @@
 import sys
 from pathlib import Path
-from clang.cindex import Index, CursorKind, Cursor, Type, TypeKind, SourceLocation
+from clang.cindex import Index, CursorKind, Cursor, Type, TypeKind, SourceLocation, Config
 
 
 def main():
-    out = sys.stdout
+    out = open('out.hds', 'w')
 
     index = Index.create()
     [*in_files] = sys.argv[1:]
@@ -21,14 +21,13 @@ def process_file(in_file: str, index: Index, out):
     for _node in tu.cursor.get_children():
         node: Cursor = _node
         after = ''
-
         if node.kind == CursorKind.STRUCT_DECL:
             if node.spelling == '':
                 continue
             if node.get_definition() is None:
-                out.write(f'opaque type Struct_{node.spelling};\n')
+                out.write(f'type {node.spelling};\n')
                 continue
-            out.write(f'struct Struct_{node.spelling} {{\n')
+            out.write(f'struct {node.spelling} {{\n')
             if node.get_definition() is not None:
                 for _field in node.get_definition().get_children():
                     field: Cursor = _field
@@ -37,6 +36,20 @@ def process_file(in_file: str, index: Index, out):
                         typ: Type = field.type
                         name = field.spelling
                         out.write(f'  val f{name}: {print_type(typ)};\n')
+                    elif field.kind == CursorKind.STRUCT_DECL:
+                        members = []
+                        for _member in field.get_children():
+                            member: Cursor = _member
+                            members.append(f'  val {member.displayname}: ')
+                            members.append(print_type(member.type))
+                        name = f'__hades_stubs_{counter}'
+                        counter += 1
+                        fields = '\n'.join(members)
+                        decl = f'struct {name} {{\n{fields}\n}}'
+                        after += decl
+
+                    elif field.kind == CursorKind.ENUM_DECL:
+                        pass
                     elif field.kind == CursorKind.UNION_DECL:
                         members = []
                         for _member in field.get_children():
@@ -54,7 +67,6 @@ def process_file(in_file: str, index: Index, out):
             out.write(f'}}\n')
 
         if node.kind == CursorKind.FUNCTION_DECL:
-            print('FUNCDECL')
             params = ', '.join([print_type(arg.type) for arg in node.get_arguments()])
             out.write(f'extern def {node.spelling}({params}): {print_type(node.result_type)} = {node.spelling};\n')
             pass
@@ -103,9 +115,9 @@ def print_type(typ: Type) -> str:
         return 'c.void'
     elif typ.kind == TypeKind.ELABORATED:
         if typ.get_named_type().kind == TypeKind.RECORD:
-            return f'Struct_{typ.get_named_type().spelling.replace("struct ", "")}'
+            return f'{typ.get_named_type().spelling.replace("struct ", "")}'
         elif typ.get_named_type().kind == TypeKind.ENUM:
-            return f'Enum_{typ.get_named_type().spelling}'
+            return f'{typ.get_named_type().spelling}'
         else:
             raise AssertionError()
     elif typ.kind == TypeKind.RECORD:
