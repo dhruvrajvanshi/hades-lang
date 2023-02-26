@@ -54,9 +54,11 @@ class HadesMutPointerType(HadesType):
 
 
 @dataclass
-class FnPtr(HadesType):
-    arg_types: list[Type]
-    return_type: Type
+class HadesDefType(HadesType):
+    arg_types: list[HadesType]
+    return_type: HadesType
+
+    def pretty_print(self) -> str: ...
 
 
 class HadesDef(ABC):
@@ -173,6 +175,13 @@ def process_file(in_file: str, index: Index):
             case TypeKind.CONSTANTARRAY:
                 result = HadesArrayType(
                     lowerType(ty.element_type), ty.element_count)
+            case TypeKind.POINTER if ty.get_pointee().kind == TypeKind.FUNCTIONPROTO:
+                fn_ty = ty.get_pointee()
+                result = HadesDefType(
+                    arg_types=[lowerType(arg)
+                               for arg in fn_ty.argument_types()],
+                    return_type=lowerType(fn_ty.get_result())
+                )
             case TypeKind.POINTER:
                 pointee = lowerType(ty.get_pointee())
                 is_const = ty.is_const_qualified()
@@ -245,7 +254,10 @@ def process_file(in_file: str, index: Index):
         if name == '':
             name = builder.unique_name()
 
-        type = lowerType(node.enum_type)
+        if node.enum_type.kind == TypeKind.INVALID:
+            type = NamedType('i32')
+        else:
+            type = lowerType(node.enum_type)
         builder.emitDef(
             HadesTypeAlias(
                 name,
