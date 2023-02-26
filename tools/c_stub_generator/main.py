@@ -109,11 +109,11 @@ def process_file(in_file: str, index: Index, builder: HadesBuilder):
         fields: list[tuple[str, HadesType]] = []
         for field in node.get_children():
             assert field.kind == CursorKind.FIELD_DECL or field.kind == CursorKind.STRUCT_DECL
-            name = field.spelling
-            assert name is not None
-            assert name != ''
+            field_name = field.spelling
+            assert field_name is not None
+            assert field_name != ''
             type = lowerType(field.type)
-            fields.append((name, type))
+            fields.append((field_name, type))
 
         builder.emitDef(HadesStructDef(
             name=name,
