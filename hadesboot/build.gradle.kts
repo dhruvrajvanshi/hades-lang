@@ -1,3 +1,5 @@
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
 plugins {
     java
     application
@@ -12,6 +14,19 @@ val logbackVersion = "1.4.5"
 val slf4jVersion = "2.0.6"
 val junitVersion = "5.9.2"
 val kotlinxSerializationVersion = "1.4.1"
+val llvmPlatformVersion = "15.0.3-1.5.8"
+
+val llvmJars by configurations.creating
+
+val os = DefaultNativePlatform.getCurrentOperatingSystem()
+val architecture = DefaultNativePlatform.getCurrentArchitecture()
+if (!os.isWindows && !os.isLinux && !os.isMacOsX) {
+    throw UnsupportedOperationException("Unsupported OS: $os")
+}
+
+if (!architecture.isAmd64) {
+    throw UnsupportedOperationException("Unsupported architecture: $architecture")
+}
 
 application {
     group = "org.hades"
@@ -31,7 +46,7 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.12.0")
     implementation("com.diogonunes:JColor:5.5.1")
     implementation("com.github.ajalt.clikt:clikt:3.5.1")
-    implementation("org.bytedeco:llvm-platform:15.0.3-1.5.8")
+    llvmJars("org.bytedeco:llvm-platform:$llvmPlatformVersion")
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
     implementation("com.charleskorn.kaml:kaml:0.51.0")
@@ -73,8 +88,13 @@ val copyStdlib = tasks.register<Copy>("copyStdlib") {
     into("$hadesHome/stdlib")
 }
 
+val copyLLVMDLL = tasks.register<Copy>("copyLLVMDLL") {
+    from(zipTree(findLLVMJarForPlatform()))
+    destinationDir = file("$hadesHome/lib/llvm")
+}
+
 val assembleHadesHome = tasks.register("assembleHadesHome") {
-    dependsOn(copyStdlib, installGC)
+    dependsOn(copyStdlib, installGC, copyLLVMDLL)
 }
 
 val cleanHadesHome = tasks.register("cleanHadesHome") {
@@ -179,4 +199,23 @@ val cleanGCBuild = tasks.register("cleanGCBuild") {
 
 tasks.clean {
     dependsOn(cleanGCBuild, cleanHadesHome)
+}
+
+
+fun findLLVMJarForPlatform(): File {
+    val osShortName = when {
+        os.isWindows -> "windows"
+        os.isLinux -> "linux"
+        os.isMacOsX -> "macosx"
+        else -> throw UnsupportedOperationException("Unsupported os: $os")
+    }
+
+    val architectureName = when {
+        architecture.isAmd64 -> "x86_64"
+        else -> throw UnsupportedOperationException("Unsupported architecture: $architecture")
+    }
+
+    val jarFileName = "llvm-$llvmPlatformVersion-$osShortName-$architectureName.jar"
+    return llvmJars.files.find { it.name == jarFileName }
+        ?: throw AssertionError("Can't find llvm jar file: $jarFileName")
 }
