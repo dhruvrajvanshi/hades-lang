@@ -8,7 +8,7 @@ plugins {
     id("io.gitlab.arturbosch.detekt").version("1.22.0")
 }
 
-val logbackVersion = "1.4.5"
+val logbackVersion = "1.4.6"
 val slf4jVersion = "2.0.6"
 val junitVersion = "5.9.2"
 val kotlinxSerializationVersion = "1.4.1"
