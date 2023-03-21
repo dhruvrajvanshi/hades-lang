@@ -8,7 +8,14 @@ class TextTest {
     @Test
     fun `offsetOf for string with one line`() {
         val str = Text.from("foo")
-        assertEquals(str.offsetOf(1, 1), 0)
-        assertEquals(str.offsetOf(1, 2), 1)
+        assertEquals(0, str.offsetOf(1, 1))
+        assertEquals(1, str.offsetOf(1, 2), )
+    }
+
+    @Test
+    fun `offsetOf for string with multiple lines`() {
+        val str = Text.from("foo\nbar\nbax")
+        assertEquals(4, str.offsetOf(2, 1))
+        assertEquals(5, str.offsetOf(2, 2))
     }
 }
