@@ -56,13 +56,11 @@ tasks.test {
 }
 
 tasks.compileKotlin {
-    kotlinOptions.jvmTarget = "15"
     kotlinOptions {
         freeCompilerArgs = listOf("-Xinline-classes")
     }
 }
 tasks.compileTestKotlin {
-    kotlinOptions.jvmTarget = "15"
 }
 
 val hadesHome = "$buildDir/HADES_HOME"
