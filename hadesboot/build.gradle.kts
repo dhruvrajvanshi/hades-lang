@@ -4,7 +4,6 @@ plugins {
     kotlin("jvm") version "1.8.10"
     kotlin("plugin.serialization") version "1.8.10"
     jacoco
-    id("org.jmailen.kotlinter") version "3.14.0"
     id("io.gitlab.arturbosch.detekt").version("1.22.0")
 }
 
@@ -138,18 +137,6 @@ distributions {
             exclude("**/llvm-*-macos-x86.jar")
         }
     }
-}
-
-kotlinter {
-    ignoreFailures = false
-    reporters = arrayOf("checkstyle", "plain")
-    experimentalRules = false
-    disabledRules = arrayOf("no-wildcard-imports", "filename")
-}
-
-detekt {
-    config = files("${projectDir}/detekt.yml")
-    buildUponDefaultConfig = true
 }
 
 val configureGC = tasks.register<Exec>("configureGC") {
