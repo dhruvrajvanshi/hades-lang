@@ -37,7 +37,8 @@ sealed interface Text {
                     linesSkipped++
                 }
             }
-            offset += column - 1
+            assert(linesSkipped == line - 1)
+            offset += column
             check(offset >= 0)
             check(offset < string.length)
             return offset
