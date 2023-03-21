@@ -8,7 +8,5 @@ interface VFS {
 }
 
 class FileSystemVFS : VFS {
-    override fun read(path: Path): Text {
-        return Text(path.toFile().readText())
-    }
+    override fun read(path: Path): Text = TODO()
 }
