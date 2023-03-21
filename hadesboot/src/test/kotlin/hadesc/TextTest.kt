@@ -9,7 +9,7 @@ class TextTest {
     fun `offsetOf for string with one line`() {
         val str = Text.from("foo")
         assertEquals(0, str.offsetOf(1, 1))
-        assertEquals(1, str.offsetOf(1, 2), )
+        assertEquals(1, str.offsetOf(1, 2))
     }
 
     @Test
