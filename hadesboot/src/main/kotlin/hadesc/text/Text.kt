@@ -58,8 +58,28 @@ sealed interface Text {
         val EMPTY: Text = Leaf("")
 
         fun from(charSequence: CharSequence): Text {
-            check(charSequence.length <= Config.maxChunkSize)
-            return Leaf(charSequence)
+
+            // build up a Tree of nodes bottom up
+            // The algorithm here is
+            // 1. Break the initial text into n leaf nodes
+            // 2. roots = leaf nodes are chunked into groups of branching factor and made into interior nodes
+            // loop while roots is not empty
+            //   take previous set of roots in chunks of branchingFactor and convert them into interior nodes
+
+
+            /// Example for a chunk size of 2 and branching factor of 1
+            ///  012345678901234567
+            ///  leaves = ['01', '23', '45', '67', ...]
+            ///  roots = [ Interior('01, '23', '45'), Interior('67', '89', '01'), ... ]
+            ///  after 1 iteration
+            ///  roots = [Interior(Interior('01, '23', '45'), Interior('67', '89', '01'), Interior('23, '45', '67')), ...]
+            val leaves = charSequence.chunked(Config.maxChunkSize).map { Leaf(it) }
+            var roots = leaves.chunked(Config.branchingFactor).map { Interior(it) }
+
+            while (roots.size != 1) {
+                roots = roots.chunked(Config.branchingFactor).map { Interior(it) }
+            }
+            return roots[0]
         }
     }
 }
