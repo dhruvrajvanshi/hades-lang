@@ -70,6 +70,13 @@ sealed interface Text: CharSequence {
                 throw IndexOutOfBoundsException(index)
             }
 
+            val chunk = findChildForIndex(index)
+
+            return chunk.first[index - chunk.second]
+        }
+
+        private fun findChildForIndex(index: Int): Pair<Text, Int> {
+
             var childStartIndex = 0
             /// '012', '34', '5678'
             /// index = 6
@@ -81,8 +88,8 @@ sealed interface Text: CharSequence {
             /// 3:
             ///   childStartIndex = 5
 
-            var chunkContainingChild: Text? = null
-            var chunkContainingChildStartIndex: Int? = null
+            var resultChild: Text? = null
+            var resultChildIndex: Int? = null
             for (child in children) {
                 val thisChildStartIndex = childStartIndex
                 val isIndexAfterOrWithinChild = index >= childStartIndex
@@ -90,14 +97,13 @@ sealed interface Text: CharSequence {
                 val isIndexWithinChild = isIndexAfterOrWithinChild && index < childStartIndex
 
                 if (isIndexWithinChild) {
-                    chunkContainingChild = child
-                    chunkContainingChildStartIndex = thisChildStartIndex
+                    resultChild = child
+                    resultChildIndex = thisChildStartIndex
                 }
             }
-            checkNotNull(chunkContainingChild)
-            checkNotNull(chunkContainingChildStartIndex)
-
-            return chunkContainingChild[index - chunkContainingChildStartIndex]
+            checkNotNull(resultChild)
+            checkNotNull(resultChildIndex)
+            return resultChild to resultChildIndex
         }
 
         override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
