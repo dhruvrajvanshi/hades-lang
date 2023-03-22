@@ -107,7 +107,11 @@ sealed interface Text: CharSequence {
         }
 
         override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
-            TODO("Not yet implemented")
+            var result = ""
+            for (i in startIndex until endIndex) {
+                result += this[i]
+            }
+            return result
         }
     }
 
