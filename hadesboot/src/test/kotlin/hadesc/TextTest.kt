@@ -36,4 +36,11 @@ class TextTest {
         assertEquals('0', str[10])
         assertEquals('1', str[11])
     }
+
+    @Test
+    fun subSequence() {
+        val str = Text.from("01234567890123456789")
+
+        assertEquals("3456789012345", str.slice(3..15))
+    }
 }
