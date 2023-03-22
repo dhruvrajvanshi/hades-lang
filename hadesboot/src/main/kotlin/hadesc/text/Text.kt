@@ -4,7 +4,7 @@ internal object Config {
     var maxChunkSize: Int = 128
     var branchingFactor: Int = 64
 }
-sealed interface Text {
+sealed interface Text: CharSequence {
     val newlineCount: Int
     fun size(): Int
     fun insert(line: Int, column: Int, text: CharSequence): Text {
@@ -20,7 +20,7 @@ sealed interface Text {
      */
     fun offsetOf(line: Int, column: Int): Int
 
-    private data class Leaf(val string: CharSequence) : Text {
+    private data class Leaf(val string: CharSequence) : Text, CharSequence by string {
         override val newlineCount = string.count { it == '\n' }
         override fun size(): Int = string.length
         override fun offsetOf(line: Int, column: Int): Int {
@@ -45,11 +45,62 @@ sealed interface Text {
         }
     }
 
-    private data class Interior(val children: List<Text>) : Text {
+    private data class Interior(val children: List<Text>) : Text, CharSequence {
         val size: Int = children.sumOf { it.size() }
         override val newlineCount = children.sumOf { it.newlineCount }
         override fun size(): Int = size
         override fun offsetOf(line: Int, column: Int): Int {
+            TODO("Not yet implemented")
+        }
+
+        override val length: Int get() = size
+
+        /**
+         * This operation has complexity O(n / maxChunkSize)
+         * The worst case is finding the last index of this string.
+         * It will recursively scan each node untill it finds the
+         * bottom-right most leaf node
+         * Don't iterate over a Text node by doing a simple for loop
+         * from 0...length and calling this inside the loop.
+         * There are better ways to iterate if you want to iterate over
+         * a sub-range.
+         */
+        override fun get(index: Int): Char {
+            if (index >= size) {
+                throw IndexOutOfBoundsException(index)
+            }
+
+            var childStartIndex = 0
+            /// '012', '34', '5678'
+            /// index = 6
+            /// iterations:
+            //  1:
+            ///   childStartIndex = 0
+            /// 2:
+            ///   childStartIndex = 3
+            /// 3:
+            ///   childStartIndex = 5
+
+            var chunkContainingChild: Text? = null
+            var chunkContainingChildStartIndex: Int? = null
+            for (child in children) {
+                val thisChildStartIndex = childStartIndex
+                val isIndexAfterOrWithinChild = index >= childStartIndex
+                childStartIndex += child.length
+                val isIndexWithinChild = isIndexAfterOrWithinChild && index < childStartIndex
+
+                if (isIndexWithinChild) {
+                    chunkContainingChild = child
+                    chunkContainingChildStartIndex = thisChildStartIndex
+                }
+            }
+            checkNotNull(chunkContainingChild)
+            checkNotNull(chunkContainingChildStartIndex)
+
+            return chunkContainingChild[index - chunkContainingChildStartIndex]
+        }
+
+        override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
             TODO("Not yet implemented")
         }
     }
@@ -82,4 +133,13 @@ sealed interface Text {
             return roots[0]
         }
     }
+}
+private inline fun <S, T> Iterable<T>.reduceWithAccumulator(initial: S, operation: (acc: S, T) -> S): S {
+    val iterator = this.iterator()
+    if (!iterator.hasNext()) throw UnsupportedOperationException("Empty collection can't be reduced.")
+    var accumulator: S = initial
+    while (iterator.hasNext()) {
+        accumulator = operation(accumulator, iterator.next())
+    }
+    return accumulator
 }
