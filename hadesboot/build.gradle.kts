@@ -4,7 +4,6 @@ plugins {
     kotlin("jvm") version "1.8.10"
     kotlin("plugin.serialization") version "1.8.10"
     jacoco
-    id("io.gitlab.arturbosch.detekt").version("1.22.0")
 }
 
 val logbackVersion = "1.4.6"

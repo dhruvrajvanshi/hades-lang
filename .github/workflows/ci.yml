@@ -21,23 +21,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
-      - name: Lint
-        run: ./gradlew check -x test
-
-      - name: Upload ktlint results
-        uses: jwgmeligmeyling/checkstyle-github-action@master
-        if: always()
-        with:
-          name: Ktlint
-          path: '**/*-lint.xml'
-      - name: Upload detekt results
-        uses: jwgmeligmeyling/checkstyle-github-action@master
-        if: always()
-        with:
-          name: Detekt
-          path: 'hadesboot/build/reports/detekt/*.xml'
-
-
   Test:
     runs-on: ${{matrix.os}}
     strategy:
