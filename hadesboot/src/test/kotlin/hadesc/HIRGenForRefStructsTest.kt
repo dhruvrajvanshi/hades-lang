@@ -8,6 +8,7 @@ import hadesc.hir.HIRModule
 import hadesc.hir.HIRModuleVisitor
 import hadesc.hirgen.HIRGen
 import hadesc.qualifiedname.QualifiedName
+import hadesc.text.Text
 import hadesc.types.Type
 import org.junit.jupiter.api.Test
 import java.nio.file.Path
@@ -177,9 +178,9 @@ fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
         ),
         BuildTarget.Executable(Path.of("main.hds"), Path.of("")),
         fileTextProvider = object : FileTextProvider {
-            override fun getFileText(path: Path): String {
+            override fun getFileText(path: Path): Text {
                 check(path == Path.of("main.hds"))
-                return source
+                return Text.from(source)
             }
         }
     )

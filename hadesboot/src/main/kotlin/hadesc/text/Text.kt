@@ -152,7 +152,7 @@ sealed interface Text: CharSequence, Iterable<Char> {
     override operator fun iterator(): CharIterator {
         val text = this
         if (text is Leaf) {
-            return text.iterator()
+            return (text as CharSequence).iterator()
         }
         val self = this
         val leafNodes = buildList {
