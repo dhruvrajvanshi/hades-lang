@@ -154,9 +154,7 @@ sealed interface Text: CharSequence, Iterable<Char> {
                     }
                 }
                 is Leaf -> {
-                    for (c in node.string) {
-                        yield(c)
-                    }
+                    yieldAll(node.string.iterator())
                 }
             }
             visit(text)
