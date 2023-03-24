@@ -295,4 +295,4 @@ class Lexer(private val file: SourcePath, text: Text) {
         get() = state.currentChar
 }
 
-private fun CharIterator.nextOrEOFChar(): Char = if (hasNext()) nextChar() else EOF_CHAR
+private fun Iterator<Char>.nextOrEOFChar(): Char = if (hasNext()) next() else EOF_CHAR
