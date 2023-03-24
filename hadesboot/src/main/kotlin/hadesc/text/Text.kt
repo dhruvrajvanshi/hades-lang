@@ -4,7 +4,7 @@ internal object Config {
     var maxChunkSize: Int = 128
     var branchingFactor: Int = 64
 }
-sealed interface Text: CharSequence {
+sealed interface Text: CharSequence, Iterable<Char> {
     val newlineCount: Int
     fun size(): Int
     fun insert(line: Int, column: Int, text: CharSequence): Text {
@@ -142,6 +142,26 @@ sealed interface Text: CharSequence {
             }
             return roots[0]
         }
+    }
+
+    override operator fun iterator(): Iterator<Char> {
+        val text = this
+        val seq = sequence {
+            suspend fun SequenceScope<Char>.visit(node: Text): Unit = when(node) {
+                is Interior -> {
+                    for (child in node.children) {
+                        visit(child)
+                    }
+                }
+                is Leaf -> {
+                    for (c in node.string) {
+                        yield(c)
+                    }
+                }
+            }
+            visit(text)
+        }
+        return seq.iterator()
     }
 }
 private inline fun <S, T> Iterable<T>.reduceWithAccumulator(initial: S, operation: (acc: S, T) -> S): S {
