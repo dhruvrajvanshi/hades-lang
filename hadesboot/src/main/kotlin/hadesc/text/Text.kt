@@ -1,5 +1,8 @@
 package hadesc.text
 
+import hadesc.unit
+import java.text.StringCharacterIterator
+
 internal object Config {
     var maxChunkSize: Int = 128
     var branchingFactor: Int = 64
@@ -20,7 +23,7 @@ sealed interface Text: CharSequence, Iterable<Char> {
      */
     fun offsetOf(line: Int, column: Int): Int
 
-    private data class Leaf(val string: CharSequence) : Text, CharSequence by string {
+    private data class Leaf(val string: String) : Text, CharSequence by string {
         override val newlineCount = string.count { it == '\n' }
         override fun size(): Int = string.length
         override fun offsetOf(line: Int, column: Int): Int {
@@ -144,22 +147,47 @@ sealed interface Text: CharSequence, Iterable<Char> {
         }
     }
 
-    override operator fun iterator(): Iterator<Char> {
+    override operator fun iterator(): CharIterator {
         val text = this
-        val seq = sequence {
-            suspend fun SequenceScope<Char>.visit(node: Text): Unit = when(node) {
+        if (text is Leaf) {
+            return text.iterator()
+        }
+        val self = this
+        val leafNodes = buildList {
+            fun visit(t: Text): Unit = when (t) {
                 is Interior -> {
-                    for (child in node.children) {
-                        visit(child)
-                    }
+                    t.children.forEach { visit(it) }
                 }
                 is Leaf -> {
-                    yieldAll(node.string.iterator())
+                    add(t)
+                    unit
                 }
             }
-            visit(text)
+            visit(self)
         }
-        return seq.iterator()
+        return object : CharIterator() {
+            var leafIndex = 0
+            var charIndex = 0
+            override fun hasNext(): Boolean =
+                leafIndex < leafNodes.size
+                        && charIndex < leafNodes[leafIndex].string.length
+
+            override fun nextChar(): Char {
+                if (leafIndex >= leafNodes.size) {
+                    return StringCharacterIterator.DONE
+                }
+                val leaf = leafNodes[leafIndex]
+                val result = leaf.string[charIndex]
+                if (charIndex == leaf.string.length - 1) {
+                    charIndex = 0
+                    leafIndex++
+                } else {
+                    charIndex++
+                }
+
+                return result
+            }
+        }
     }
 }
 private inline fun <S, T> Iterable<T>.reduceWithAccumulator(initial: S, operation: (acc: S, T) -> S): S {
