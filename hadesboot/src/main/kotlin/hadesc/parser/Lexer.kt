@@ -5,6 +5,7 @@ import hadesc.context.FileTextProvider
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.text.Text
 
 private const val EOF_CHAR = Char.MIN_VALUE
 
@@ -69,9 +70,7 @@ val SINGLE_CHAR_TOKENS = mapOf(
 class Lexer(private val file: SourcePath, text: Text) {
     private val state = State(text)
 
-    class State(
-        input: CharSequence,
-    ) {
+    class State(input: Text) {
         private val iter = input.iterator()
         var currentChar = iter.nextOrEOFChar()
         // Parsing // comments needs one token of lookahead

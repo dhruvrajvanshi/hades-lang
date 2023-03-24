@@ -18,6 +18,7 @@ import hadesc.logging.logger
 import hadesc.parser.Parser
 import hadesc.qualifiedname.QualifiedName
 import hadesc.resolver.Resolver
+import hadesc.text.Text
 import hadesc.types.Type
 import hadesc.unit
 import java.io.File
@@ -187,10 +188,10 @@ class Context(
 }
 
 interface FileTextProvider {
-    fun getFileText(path: Path): String
+    fun getFileText(path: Path): Text
 }
 object FileSystemFileTextProvider : FileTextProvider {
-    override fun getFileText(path: Path): String {
-        return File(path.toUri()).readText()
+    override fun getFileText(path: Path): Text {
+        return Text.from(File(path.toUri()).readText())
     }
 }
