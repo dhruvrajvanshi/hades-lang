@@ -68,26 +68,48 @@ val SINGLE_CHAR_TOKENS = mapOf(
 
 class Lexer(private val file: SourcePath, fileTextProvider: FileTextProvider) {
     // TODO: Handle this during lexing instead of string replace
-    private val text: String = fileTextProvider.getFileText(file.path).replace("\r", "")
-    private val state = State()
+    private val state = State(fileTextProvider.getFileText(file.path))
 
-    data class State(
-        var startOffset: Int = 0,
-        var currentOffset: Int = 0,
-        var startLine: Int = 1,
-        var lastLine: Int = 1,
-        var currentLine: Int = 1,
-        var startColumn: Int = 1,
-        var lastColumn: Int = 1,
-        var currentColumn: Int = 1
+    class State(
+        input: CharSequence,
     ) {
+        private val iter = input.iterator()
+        var currentChar = iter.nextOrEOFChar()
+        // Parsing // comments needs one token of lookahead
+        var nextChar = iter.nextOrEOFChar()
+        var lexeme = ""
+        private var startLine: Int = 1
+        private var startColumn: Int = 1
+        private var currentLine: Int = 1
+        private var currentColumn: Int = 2
+
         fun startPosition(): Position = Position(startLine, startColumn)
-        fun stopPosition(): Position = Position(lastLine, lastColumn)
+        fun stopPosition(): Position = Position(currentLine, currentColumn)
+
+        fun startToken() {
+            startLine = currentLine
+            startColumn = currentColumn
+            lexeme = ""
+        }
+
+        fun advance(): Char {
+            val result = currentChar
+            currentChar = nextChar
+            nextChar = iter.nextOrEOFChar()
+            if (result == '\n') {
+                currentLine++
+                currentColumn = 1
+            } else {
+                currentColumn++
+            }
+            lexeme += result
+            return result
+        }
     }
 
     fun nextToken(): Token {
         skipWhitespace()
-        if (currentChar == '/' && state.currentOffset < text.length && text[state.currentOffset + 1] == '/') {
+        if (currentChar == '/' && state.nextChar == '/') {
             advance()
             advance()
             while (currentChar != '\n' && currentChar != EOF_CHAR) {
@@ -253,32 +275,9 @@ class Lexer(private val file: SourcePath, fileTextProvider: FileTextProvider) {
         }
     }
 
-    private fun startToken() {
-        state.startLine = state.currentLine
-        state.startColumn = state.currentColumn
-        state.startOffset = state.currentOffset
-    }
+    private fun startToken() = state.startToken()
 
-    private fun advance(): Char {
-        val lastChar = currentChar
-        if (currentChar == EOF_CHAR) {
-            return lastChar
-        }
-        state.lastLine = state.currentLine
-        state.lastColumn = state.currentColumn
-
-        state.currentOffset++
-
-        if (lastChar == '\n') {
-            if (currentChar != EOF_CHAR) {
-                state.currentLine++
-                state.currentColumn = 1
-            }
-        } else {
-            state.currentColumn++
-        }
-        return lastChar
-    }
+    private fun advance(): Char = state.advance()
 
     private fun makeToken(kind: Token.Kind): Token {
         return Token(
@@ -292,14 +291,10 @@ class Lexer(private val file: SourcePath, fileTextProvider: FileTextProvider) {
         )
     }
 
-    private fun lexeme(): String {
-        return text.slice(state.startOffset until state.currentOffset)
-    }
+    private fun lexeme(): String = state.lexeme
 
     private val currentChar
-        get() = if (state.currentOffset < text.length) {
-            text[state.currentOffset]
-        } else {
-            EOF_CHAR
-        }
+        get() = state.currentChar
 }
+
+private fun CharIterator.nextOrEOFChar(): Char = if (hasNext()) nextChar() else EOF_CHAR
