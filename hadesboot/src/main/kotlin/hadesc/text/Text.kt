@@ -1,7 +1,6 @@
 package hadesc.text
 
 import hadesc.unit
-import java.text.StringCharacterIterator
 
 internal object Config {
     var maxChunkSize: Int = 128
