@@ -56,6 +56,10 @@ class TextTest {
         }
 
         assertEquals(expected = str, actual)
+    }
 
+    @Test
+    fun `Text from empty string`() {
+        assertEquals(Text.from(""), Text.EMPTY)
     }
 }
