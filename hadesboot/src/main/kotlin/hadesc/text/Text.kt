@@ -149,47 +149,25 @@ sealed interface Text: CharSequence, Iterable<Char> {
         }
     }
 
-    override operator fun iterator(): CharIterator {
+    override operator fun iterator(): Iterator<Char> {
         val text = this
         if (text is Leaf) {
             return (text as CharSequence).iterator()
         }
         val self = this
-        val leafNodes = buildList {
-            fun visit(t: Text): Unit = when (t) {
+        val s = sequence {
+            suspend fun SequenceScope<Char>.visit(t: Text): Unit = when (t) {
                 is Interior -> {
                     t.children.forEach { visit(it) }
                 }
                 is Leaf -> {
-                    add(t)
+                    yieldAll(t.string.iterator())
                     unit
                 }
             }
             visit(self)
         }
-        return object : CharIterator() {
-            var leafIndex = 0
-            var charIndex = 0
-            override fun hasNext(): Boolean =
-                leafIndex < leafNodes.size
-                        && charIndex < leafNodes[leafIndex].string.length
-
-            override fun nextChar(): Char {
-                if (leafIndex >= leafNodes.size) {
-                    return StringCharacterIterator.DONE
-                }
-                val leaf = leafNodes[leafIndex]
-                val result = leaf.string[charIndex]
-                if (charIndex == leaf.string.length - 1) {
-                    charIndex = 0
-                    leafIndex++
-                } else {
-                    charIndex++
-                }
-
-                return result
-            }
-        }
+        return s.iterator()
     }
 }
 private inline fun <S, T> Iterable<T>.reduceWithAccumulator(initial: S, operation: (acc: S, T) -> S): S {
