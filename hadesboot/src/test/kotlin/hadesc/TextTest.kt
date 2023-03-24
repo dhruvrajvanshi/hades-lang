@@ -43,4 +43,19 @@ class TextTest {
 
         assertEquals("3456789012345", str.slice(3..15))
     }
+
+
+    @Test
+    fun `iterator iterates text in order`() {
+        val str = "012345678901234567890"
+        val text = Text.from(str)
+
+        var actual = ""
+        for (char in text) {
+            actual += char
+        }
+
+        assertEquals(expected = str, actual)
+
+    }
 }
