@@ -122,7 +122,9 @@ sealed interface Text: CharSequence, Iterable<Char> {
         val EMPTY: Text = Leaf("")
 
         fun from(charSequence: CharSequence): Text {
-
+            if (charSequence.isEmpty()) {
+                return EMPTY
+            }
             // build up a Tree of nodes bottom up
             // The algorithm here is
             // 1. Break the initial text into n leaf nodes
