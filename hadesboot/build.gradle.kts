@@ -52,6 +52,9 @@ tasks.test {
     workingDir = File("..")
     environment["HADES_HOME"] = hadesHome
     useJUnitPlatform()
+    jacoco {
+        enabled = true
+    }
 }
 
 tasks.compileKotlin {
@@ -64,12 +67,6 @@ tasks.withType<JacocoReport> {
     reports {
         xml.required.set(true)
         html.required.set(true)
-    }
-}
-
-tasks.test {
-    jacoco {
-        enabled = true
     }
 }
 
