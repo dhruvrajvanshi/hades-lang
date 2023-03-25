@@ -45,11 +45,12 @@ jobs:
 
       - name: Test
         run: ./gradlew test
-        if: always()
-
+      - name: Generate Code Coverage Report
+        run: ./gradlew jacocoTestReport
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
-        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Archive Test Results
         if: always() # Even on failures

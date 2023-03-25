@@ -59,7 +59,18 @@ tasks.compileKotlin {
         freeCompilerArgs = listOf("-Xinline-classes")
     }
 }
-tasks.compileTestKotlin {
+
+tasks.withType<JacocoReport> {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.test {
+    jacoco {
+        enabled = true
+    }
 }
 
 val hadesHome = "$buildDir/HADES_HOME"
