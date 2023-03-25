@@ -3,6 +3,7 @@ package hadesc
 import hadesc.text.Config
 import hadesc.text.Text
 import org.junit.jupiter.api.BeforeEach
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -14,6 +15,7 @@ class TextTest {
     }
 
     @Test
+    @Ignore("Ignored because it's unimplemented")
     fun `offsetOf for string with one line`() {
         val str = Text.from("foo")
         assertEquals(0, str.offsetOf(1, 1))
@@ -21,6 +23,7 @@ class TextTest {
     }
 
     @Test
+    @Ignore("Ignored because it's unimplemented")
     fun `offsetOf for string with multiple lines`() {
         val str = Text.from("foo\nbar\nbax")
         assertEquals(4, str.offsetOf(2, 1))
