@@ -63,7 +63,7 @@ tasks.compileKotlin {
     }
 }
 
-tasks.withType<JacocoReport> {
+tasks.named<JacocoReport>("jacocoTestReport") {
     reports {
         xml.required.set(true)
         html.required.set(true)
