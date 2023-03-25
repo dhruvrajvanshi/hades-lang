@@ -104,7 +104,7 @@ class Context(
     private val parsedSourceFiles = mutableMapOf<Path, SourceFile>()
     private fun sourceFile(moduleName: QualifiedName, path: SourcePath) =
         parsedSourceFiles.computeIfAbsent(path.path.toAbsolutePath()) {
-            Parser(this, moduleName, path, fileTextProvider).parseSourceFile()
+            Parser(this, moduleName, path, fileTextProvider.getFileText(path.path)).parseSourceFile()
         }
 
     fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {

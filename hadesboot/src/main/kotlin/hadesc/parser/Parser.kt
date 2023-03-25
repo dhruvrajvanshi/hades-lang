@@ -10,6 +10,7 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import hadesc.text.Text
 import llvm.makeList
 
 internal typealias tt = Token.Kind
@@ -87,9 +88,9 @@ class Parser(
     private val ctx: Context,
     private val moduleName: QualifiedName,
     private val file: SourcePath,
-    fileTextProvider: FileTextProvider
+    text: Text
 ) {
-    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file, fileTextProvider))
+    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file, text))
     private val currentToken get() = tokenBuffer.currentToken
 
     fun parseSourceFile(): SourceFile {
