@@ -79,7 +79,7 @@ class Lexer(private val file: SourcePath, text: Text) {
         private var startLine: Int = 1
         private var startColumn: Int = 1
         private var currentLine: Int = 1
-        private var currentColumn: Int = 2
+        private var currentColumn: Int = 1
 
         fun startPosition(): Position = Position(startLine, startColumn)
         fun stopPosition(): Position = Position(currentLine, currentColumn)
