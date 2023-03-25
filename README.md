@@ -1,5 +1,6 @@
 # Hades
  [![Build](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/dhruvrajvanshi/hades-lang/actions/workflows/ci.yml)
+ [![codecov](https://codecov.io/github/dhruvrajvanshi/hades-lang/branch/master/graph/badge.svg?token=Y3E81BS5OK)](https://codecov.io/github/dhruvrajvanshi/hades-lang)
  
  
 A systems level programming language that compiles to LLVM
