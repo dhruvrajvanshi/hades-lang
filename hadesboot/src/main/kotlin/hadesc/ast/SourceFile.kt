@@ -6,5 +6,6 @@ import hadesc.qualifiedname.QualifiedName
 data class SourceFile(
     override val location: SourceLocation,
     val moduleName: QualifiedName,
-    val declarations: List<Declaration>
+    val declarations: List<Declaration>,
+    val length: Int,
 ) : ScopeTree
