@@ -49,6 +49,7 @@ jobs:
         run: ./gradlew jacocoTestReport
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
+        if: matrix.os == 'ubuntu-latest'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
