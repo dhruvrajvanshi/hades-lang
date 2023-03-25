@@ -1,7 +1,6 @@
 package hadesc.parser
 
 import hadesc.ast.Token
-import hadesc.context.FileTextProvider
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -81,6 +80,8 @@ class Lexer(private val file: SourcePath, text: Text) {
         private var currentLine: Int = 1
         private var currentColumn: Int = 1
 
+        var offset: Int = 0
+
         fun startPosition(): Position = Position(startLine, startColumn)
         fun stopPosition(): Position = Position(currentLine, currentColumn)
 
@@ -94,6 +95,7 @@ class Lexer(private val file: SourcePath, text: Text) {
             val result = currentChar
             currentChar = nextChar
             nextChar = iter.nextOrEOFChar()
+            offset++
             if (result == '\n') {
                 currentLine++
                 currentColumn = 1
@@ -105,6 +107,7 @@ class Lexer(private val file: SourcePath, text: Text) {
         }
     }
 
+    val offset get() = state.offset
     fun nextToken(): Token {
         skipWhitespace()
         if (currentChar == '/' && state.nextChar == '/') {

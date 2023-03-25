@@ -2,7 +2,6 @@ package hadesc.parser
 
 import hadesc.ast.*
 import hadesc.context.Context
-import hadesc.context.FileTextProvider
 import hadesc.diagnostics.Diagnostic
 import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
@@ -90,14 +89,20 @@ class Parser(
     private val file: SourcePath,
     text: Text
 ) {
-    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file, text))
+    private val lexer = Lexer(file, text)
+
+    private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = lexer)
     private val currentToken get() = tokenBuffer.currentToken
 
     fun parseSourceFile(): SourceFile {
+        val startOffset = tokenBuffer.offset
         val declarations = parseDeclarations()
         val start = Position(1, 1)
         val location = SourceLocation(file, start, currentToken.location.stop)
-        val sourceFile = SourceFile(location, moduleName, declarations)
+        // consume remaining whitespace/comments by asking for the next token
+        tokenBuffer.advance()
+        val stopOffset = tokenBuffer.offset
+        val sourceFile = SourceFile(location, moduleName, declarations, length = stopOffset - startOffset)
         ctx.resolver.onParseSourceFile(sourceFile)
         return sourceFile
     }
@@ -1498,7 +1503,7 @@ class Parser(
 }
 
 class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
-    private val buffer: Array<Token> = Array(maxLookahead) { lexer.nextToken() }
+    private val buffer: Array<Pair<Int, Token>> = Array(maxLookahead) { lexer.offset to lexer.nextToken() }
 
     private var current = 0
 
@@ -1507,12 +1512,14 @@ class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
     val lastToken get() = _lastToken
 
     val currentToken: Token get() {
-        return buffer[current]
+        return buffer[current].second
     }
+
+    val offset get() = buffer[current].first
 
     fun advance(): Token {
         val result = currentToken
-        buffer[current] = lexer.nextToken()
+        buffer[current] = lexer.offset to lexer.nextToken()
         current = (current + 1) % maxLookahead
         _lastToken = result
         return result
@@ -1520,6 +1527,6 @@ class TokenBuffer(private val maxLookahead: Int, private val lexer: Lexer) {
 
     fun peek(offset: Int): Token {
         require(offset < maxLookahead) { "Tried to peek past max lookahead $maxLookahead" }
-        return buffer[(current + offset) % maxLookahead]
+        return buffer[(current + offset) % maxLookahead].second
     }
 }
