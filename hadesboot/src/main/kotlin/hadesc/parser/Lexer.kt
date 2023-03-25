@@ -66,9 +66,8 @@ val SINGLE_CHAR_TOKENS = mapOf(
     '%' to tt.PERCENT
 )
 
-class Lexer(private val file: SourcePath, fileTextProvider: FileTextProvider) {
-    // TODO: Handle this during lexing instead of string replace
-    private val state = State(fileTextProvider.getFileText(file.path))
+class Lexer(private val file: SourcePath, text: Text) {
+    private val state = State(text)
 
     class State(
         input: CharSequence,
