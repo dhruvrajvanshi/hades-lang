@@ -83,16 +83,83 @@ private val INTRINSIC_TYPE = mapOf(
 
 object SyntaxError : Error()
 
-class Parser(
+private typealias DeclarationCacheKey = Pair<Int, Int> // start offset to length
+private class ParserCache private constructor(
+    private val declarations: Map<DeclarationCacheKey, Declaration>
+) {
+    constructor(): this(mapOf())
+
+    fun applyEdit(edit: Parser.TextEdit): ParserCache {
+        val newDeclCache = mutableMapOf<DeclarationCacheKey, Declaration>()
+        for ((oldK, oldV) in declarations.entries) {
+            val (oldOffset, oldLength) =  oldK
+            val endOffset = (oldOffset + oldLength) - 1
+            if (edit.range.startOffset < endOffset) {
+                newDeclCache[oldK] = oldV
+            }
+        }
+        return ParserCache(
+            declarations = newDeclCache
+        )
+    }
+}
+class Parser private constructor(
     private val ctx: Context,
     private val moduleName: QualifiedName,
     private val file: SourcePath,
-    text: Text
+    private val cache: ParserCache = ParserCache(),
+    text: Text,
 ) {
     private val lexer = Lexer(file, text)
 
     private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = lexer)
     private val currentToken get() = tokenBuffer.currentToken
+
+    /**
+     * Old parser for backwards compatibility
+     */
+    constructor(ctx: Context, moduleName: QualifiedName, file: SourcePath, text: Text): this(
+        ctx,
+        moduleName,
+        file,
+        cache = ParserCache(),
+        text
+    )
+
+    data class TextEdit(
+        val range: Range,
+        val newText: String
+    )
+
+    data class Range(
+        val startOffset: Int,
+        /**
+         * Exclusive
+         */
+        val stopOffset: Int,
+    )
+
+    companion object {
+
+        fun incremental(
+            /**
+             * Full new text after edit
+             */
+            newText: Text,
+            /**
+             * The edit that was applied to the old text to get [newText]
+             */
+            edit: TextEdit,
+            oldParser: Parser,
+        ): Parser =
+            Parser(
+                oldParser.ctx,
+                oldParser.moduleName,
+                oldParser.file,
+                oldParser.cache.applyEdit(edit),
+                newText,
+            )
+    }
 
     fun parseSourceFile(): SourceFile {
         val startOffset = tokenBuffer.offset
