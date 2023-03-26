@@ -2,8 +2,13 @@ package hadesc.ast
 
 import hadesc.unit
 
-interface SyntaxVisitor {
-    fun visitType(type: TypeAnnotation): Unit = when (type) {
+interface SyntaxVisitorBase<Ty, Ex, St> {
+    fun visitType(type: TypeAnnotation): Ty
+    fun visitExpression(expression: Expression): Ex
+    fun visitStatement(statement: Statement): St
+}
+interface SyntaxVisitor: SyntaxVisitorBase<Unit, Unit, Unit> {
+    override fun visitType(type: TypeAnnotation): Unit = when (type) {
         is TypeAnnotation.Application -> visitTypeApplicationType(type)
         is TypeAnnotation.Error -> visitErrorType(type)
         is TypeAnnotation.FunctionPtr -> visitFunctionType(type)
@@ -61,7 +66,7 @@ interface SyntaxVisitor {
         type.args.forEach { visitType(it) }
     }
 
-    fun visitExpression(expression: Expression): Unit = when (expression) {
+    override fun visitExpression(expression: Expression): Unit = when (expression) {
         is Expression.AddressOf -> visitAddressOfExpr(expression)
         is Expression.AddressOfMut -> visitAddressOfMutExpr(expression)
         is Expression.BinaryOperation -> visitBinaryOperationExpr(expression)
@@ -160,7 +165,7 @@ interface SyntaxVisitor {
         }
     }
 
-    fun visitStatement(statement: Statement): Unit = when (statement) {
+    override fun visitStatement(statement: Statement): Unit = when (statement) {
         is Statement.Defer -> visitDeferStatement(statement)
         is Statement.Error -> visitErrorStatement(statement)
         is Statement.If -> visitIfStatement(statement)
