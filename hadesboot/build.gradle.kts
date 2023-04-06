@@ -40,6 +40,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("io.mockk:mockk:1.13.4")
 }
 
 java {
@@ -47,6 +48,11 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
+
+//tasks.withType<Jar> {
+//    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // NOCOMMIT
+//}
+
 
 tasks.test {
     workingDir = File("..")
