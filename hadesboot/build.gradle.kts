@@ -8,7 +8,7 @@ plugins {
 
 val logbackVersion = "1.4.6"
 val slf4jVersion = "2.0.7"
-val junitVersion = "5.9.2"
+val junitVersion = "5.9.3"
 val kotlinxSerializationVersion = "1.5.0"
 
 application {
