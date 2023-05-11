@@ -30,6 +30,16 @@ A systems level programming language that compiles to LLVM
     - [x] Debugger support:
           - Very basic support for gdb and lldb debug symbols is supported. This allows stepping through code using VS code. No local variables are shown yet.
 
+## Intro
+Hades is a language that I as an application developer would want to use.
+Things that it focuses on
+- Ergonomics: Should not be too low level like Rust or C++.
+- Interop: Should be easy to bridge to other languages (currently, writing bindings for C is relatively easy).
+- Performance: Should still be able to control memory layout to write high performance/allocation free code when required.
+- Library oriented: I want the generic system to be like Swift. i.e. by default, generics should be compiled down to regular parameters so that libraries can be separately compiled. As an optimization, the compiler should monomorphize the generic calls if required. Hades doesn't currently work like this. As of now, everything is monomorphized, and there's no way to compile libraries.
+- Modern: Algebraic data types, first class closures, 
+- IDE features: This is a stretch goal, but I'd like to have an LSP implementation.
+
 ## Getting started
 
 
@@ -85,33 +95,6 @@ You should now get basic syntax hilighting for .hds files.
 ### VS Code
 Plugin isn't published yet. It's in `ide/vscode-hades` Figure it out.
 Instructions to come in the future.
-
-## Why?
-I think there's a lot of room for experimentation in the systems languages space.
-This language aims to sit between C and Rust, hopefully leaning
-towards Rust in terms of safety and towards C in terms of simplicity.
-
-Takes inspiration from following languages:
-- C++
-- Rust
-- Haskell
-
-And a host of experimental and niche languages like Zig, Lobster, C3, and Odin.
-
-Here's a short list of things which I think Hades aims to improve over its influences
-
-### C++ 
-* Error messages: C++, due to the nature of templates, is very hard to produce good error messages for.
-C++ templates bodies are checked per use site. i.e. Template bodies don't show type errors. In fact it depends
-on this behaviour for overload resolution (SFINAE).
-
-Hades has constrained generics in the form of interfaces (similar to Rust/Haskell in this regard).
-
-### Rust
-* Ergonomics. I think it's worth sacrifising some performance to improve ergonomics. Hades doesn't aim
-  to provide the memory and aliasing safety guarantees that Rust provides. If we can enforce some of that with
-  runtime checks while being more ergonomic than lifetime annotations, that would be nice.
-
 
 ## Hello world
 ```scala
