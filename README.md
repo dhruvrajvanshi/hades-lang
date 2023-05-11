@@ -98,9 +98,9 @@ Instructions to come in the future.
 
 ## Hello world
 ```scala
-import libc as c;
+extern def puts(*u8): Void = puts // by default, programs are linked with libc. This means you can declare pre-existing C functions as extern
 def main(): Void {
-    c.puts(b"Hello world");
+    puts(b"Hello world");
 }
 ```
 
