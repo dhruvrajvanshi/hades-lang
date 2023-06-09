@@ -59,7 +59,7 @@ tasks.test {
 
 tasks.compileKotlin {
     kotlinOptions {
-        freeCompilerArgs = listOf("-Xinline-classes")
+        freeCompilerArgs = listOf("-Xinline-classes", "-Xcontext-receivers")
     }
 }
 
