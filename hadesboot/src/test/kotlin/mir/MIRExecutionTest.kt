@@ -5,6 +5,7 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
+import kotlin.jvm.Throws
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,6 +21,17 @@ class MIRExecutionTest {
         }
 
         assertEquals(0, main.execute())
+    }
+
+    @Test
+    fun `return one`() {
+        assertEquals(1, buildObject {
+            addValue("main", buildFunction(MIRType.I32) {
+                addBlock("entry") {
+                    emitReturn(MIRValue.I32(1))
+                }
+            })
+        }.execute())
     }
 
     private fun MIRValue.Object.execute(): Int {
