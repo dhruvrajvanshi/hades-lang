@@ -1,6 +1,9 @@
 package mir.backend
 
 import mir.*
+import java.nio.file.Path
+import kotlin.io.path.nameWithoutExtension
+import kotlin.io.path.writeText
 
 @JvmInline
 private value class CName(val text: String) {
@@ -60,7 +63,7 @@ private sealed interface CExpr {
     data class IntLiteral(val value: Int): CExpr
 }
 
-class EmitC(private val root: MIRValue.Object) {
+class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
     private val nodes = mutableListOf<CNode>()
 
     fun run() {
@@ -97,7 +100,15 @@ class EmitC(private val root: MIRValue.Object) {
             }
         }
         val text = nodes.joinToString("\n") { it.prettyPrint("") }
-        println(text)
+        val cFile = Path.of(outputFile.parent.toString(), outputFile.nameWithoutExtension + ".c")
+        cFile.writeText(text)
+
+        val exitCode = ProcessBuilder()
+            .command("clang", "-o", outputFile.toString(), cFile.toString())
+            .inheritIO()
+            .start()
+            .waitFor()
+        check(exitCode == 0)
     }
 
     private fun lowerFunctionBody(blocks: List<MIRBasicBlock>): CBlock {
@@ -133,6 +144,6 @@ class EmitC(private val root: MIRValue.Object) {
     }
 }
 
-fun MIRValue.Object.emitC() {
-    EmitC(this).run()
+fun MIRValue.Object.emitC(outputPath: Path) {
+    EmitC(this, outputPath).run()
 }

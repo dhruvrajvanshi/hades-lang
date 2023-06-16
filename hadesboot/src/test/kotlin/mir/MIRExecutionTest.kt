@@ -1,7 +1,12 @@
 package mir
 
 import mir.backend.emitC
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class MIRExecutionTest {
     @Test
@@ -13,6 +18,21 @@ class MIRExecutionTest {
                 }
             })
         }
-        main.emitC()
+
+        assertEquals(0, main.execute())
+    }
+
+    private fun MIRValue.Object.execute(): Int {
+        if (!Path.of("test_build", "mir").exists()) {
+            Path.of("test_build", "mir").createDirectories()
+        }
+        val outputPath = Path.of("test_build", "mir", "test")
+        emitC(outputPath)
+        check(outputPath.exists())
+
+        return ProcessBuilder()
+            .command(outputPath.toString())
+            .start()
+            .waitFor()
     }
 }
