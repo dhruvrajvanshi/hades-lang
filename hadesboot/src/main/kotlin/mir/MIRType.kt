@@ -6,8 +6,21 @@ sealed interface MIRType {
         val paramTypes: List<MIRType>,
         val returnType: MIRType,
     ): MIRType
+
     data class Interface(
-        val types: Map<String, MIRType>,
+        /**
+         * List of abstract type names required to
+         * implement this interface.
+         *
+         * E.g.
+         * interface List {
+         *    type Item
+         *    ...
+         * }
+         *
+         * will have types = setOf("Item")
+         */
+        val types: Set<String>,
         val values: Map<String, MIRType>,
-    )
+    ): MIRType
 }

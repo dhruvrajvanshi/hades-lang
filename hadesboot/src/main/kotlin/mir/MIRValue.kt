@@ -1,8 +1,16 @@
 package mir
 
 sealed interface MIRValue {
-    data class Object(val values: Map<String, MIRValue>): MIRValue
-    data class I32(val value: Int): MIRValue
+    val type: MIRType
+    data class Object(
+        override val type: MIRType,
+        val values: Map<String, MIRValue>
+    ): MIRValue
+    data class I32(
+        val value: Int
+    ): MIRValue {
+        override val type get(): MIRType.I32 = MIRType.I32
+    }
     data class Function(
         val params: List<MIRParam>,
         val returnType: MIRType,
@@ -13,6 +21,12 @@ sealed interface MIRValue {
                 "Function must have at least one basic block."
             }
         }
+
+        override val type: MIRType.Function
+            get() = MIRType.Function(
+                paramTypes = params.map { it.type },
+                returnType = returnType,
+            )
         val entryBlock get(): MIRBasicBlock = basicBlocks.first()
     }
 }
@@ -24,12 +38,23 @@ data class MIRParam(
 
 class MIRValueObjectBuilder {
     private val values = mutableMapOf<String, MIRValue>()
+    private val types = mutableMapOf<String, MIRType>()
 
     fun addValue(name: String, value: MIRValue) {
         values[name] = value
     }
 
-    internal fun build(): MIRValue.Object = MIRValue.Object(values)
+    fun addType(name: String, type: MIRType) {
+        types[name] = type
+    }
+
+    internal fun build(): MIRValue.Object = MIRValue.Object(
+        MIRType.Interface(
+            types = types.keys,
+            values = values.mapValues { it.value.type }
+        ),
+        values
+    )
 }
 
 fun buildObject(run: MIRValueObjectBuilder.() -> Unit): MIRValue.Object {
