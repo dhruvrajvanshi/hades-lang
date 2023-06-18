@@ -6,7 +6,4 @@ sealed interface MIRType {
         val paramTypes: List<MIRType>,
         val returnType: MIRType,
     ): MIRType
-    data class Struct(
-        val values: Map<String, MIRType>,
-    )
 }
