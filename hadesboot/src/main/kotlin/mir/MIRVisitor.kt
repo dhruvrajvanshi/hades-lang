@@ -24,5 +24,9 @@ interface MIRVisitor {
 
     fun visitInstruction(instruction: MIRInstruction): Unit = when(instruction) {
         is MIRInstruction.Return -> visitValue(instruction.value)
+        is MIRInstruction.IAdd -> {
+            visitValue(instruction.lhs)
+            visitValue(instruction.rhs)
+        }
     }
 }

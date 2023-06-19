@@ -125,6 +125,7 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
         for (instruction in block.instructions) {
             when (instruction) {
                 is MIRInstruction.Return -> myInstructions.add(CStatement.Return(instruction.value.toCExpr()))
+                is MIRInstruction.IAdd -> TODO()
             }
         }
 
