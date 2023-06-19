@@ -13,7 +13,10 @@ class MIRExecutionTest {
     @Test
     fun `return zero`() {
         val main = buildObject {
-            addValue("main", buildFunction(returnType = MIRType.I32) {
+            addValue("main", buildFunction(
+                returnType = MIRType.I32,
+                path = Path("main.mir")
+            ) {
                 addBlock("entry") {
                     emitReturn(MIRValue.I32(0))
                 }
@@ -26,7 +29,7 @@ class MIRExecutionTest {
     @Test
     fun `return one`() {
         assertEquals(1, buildObject {
-            addValue("main", buildFunction(MIRType.I32) {
+            addValue("main", buildFunction(Path("main.mir"), MIRType.I32) {
                 addBlock("entry") {
                     emitReturn(MIRValue.I32(1))
                 }

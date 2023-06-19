@@ -1,5 +1,7 @@
 package mir
 
+import java.nio.file.Path
+
 sealed interface MIRValue {
     val type: MIRType
     data class Object(
@@ -66,6 +68,7 @@ fun buildObject(run: MIRValueObjectBuilder.() -> Unit): MIRValue.Object {
 
 class MIRFunctionBuilder(
     val returnType: MIRType,
+    var location: MIRLocation,
 ) {
     private val params = mutableListOf<MIRParam>()
     private val blocks = mutableListOf<MIRBasicBlock>()
@@ -78,19 +81,21 @@ class MIRFunctionBuilder(
     }
 
     fun addBlock(name: String, runBlock: (MIRBasicBlockBuilder).() -> Unit) {
-        val builder = MIRBasicBlockBuilder(name)
+        val builder = MIRBasicBlockBuilder(name, location)
         builder.runBlock()
         addBlock(builder.build())
+        location = builder.location
     }
 
     internal fun build(): MIRValue.Function = MIRValue.Function(params, returnType, blocks)
 }
 
 fun buildFunction(
+    path: Path,
     returnType: MIRType,
     runEntryBlock: MIRFunctionBuilder.() -> Unit
 ): MIRValue.Function {
-    val fnBuilder = MIRFunctionBuilder(returnType)
+    val fnBuilder = MIRFunctionBuilder(returnType, MIRLocation(1, 1, path))
     fnBuilder.runEntryBlock()
     return fnBuilder.build()
 }
