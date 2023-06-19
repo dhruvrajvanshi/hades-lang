@@ -14,7 +14,10 @@ interface MIRVisitor {
         }
         is MIRValue.I32 -> Unit
         is MIRValue.Object -> visitObject(value)
+        is MIRValue.LocalRef -> visitLocalRef(value)
     }
+
+    fun visitLocalRef(value: MIRValue.LocalRef) = Unit
 
     fun visitBasicBlock(basicBlock: MIRBasicBlock) {
         for (instruction in basicBlock.instructions) {

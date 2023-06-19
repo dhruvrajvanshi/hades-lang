@@ -79,6 +79,7 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
                     )
                 is MIRValue.I32 -> TODO()
                 is MIRValue.Object -> TODO()
+                is MIRValue.LocalRef -> TODO()
             }
         }
 
@@ -97,6 +98,7 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
 
                 is MIRValue.I32 -> TODO()
                 is MIRValue.Object -> TODO()
+                is MIRValue.LocalRef -> TODO()
             }
         }
         val text = nodes.joinToString("\n") { it.prettyPrint("") }
@@ -136,6 +138,7 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
         is MIRValue.Function -> TODO()
         is MIRValue.I32 -> CExpr.IntLiteral(value)
         is MIRValue.Object -> TODO()
+        is MIRValue.LocalRef -> TODO()
     }
 
 
