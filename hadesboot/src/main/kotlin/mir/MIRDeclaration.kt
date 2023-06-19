@@ -36,6 +36,7 @@ class MIRFunctionBuilder(
 ) {
     private val params = mutableListOf<MIRParam>()
     private val blocks = mutableListOf<MIRBasicBlock>()
+    private val locals = mutableMapOf<String, MIRType>()
     fun addParam(name: String, type: MIRType) {
         params.add(MIRParam(name, type))
     }
@@ -45,7 +46,7 @@ class MIRFunctionBuilder(
     }
 
     fun addBlock(name: String, runBlock: (MIRBasicBlockBuilder).() -> Unit) {
-        val builder = MIRBasicBlockBuilder(name, location)
+        val builder = MIRBasicBlockBuilder(name, location, locals)
         builder.runBlock()
         addBlock(builder.build())
         location = builder.location

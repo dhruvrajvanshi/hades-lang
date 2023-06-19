@@ -33,6 +33,19 @@ class MIRExecutionTest {
         }.execute())
     }
 
+    @Test
+    fun `2 + 2`() {
+        assertEquals(4, buildModule("main.mir") {
+            addFunction("main", MIRType.I32) {
+                addBlock("entry") {
+                    emitIAdd("result", MIRValue.I32(2), MIRValue.I32(2))
+                    emitReturn(localRef("result"))
+                }
+            }
+        }.execute())
+    }
+
+
     private fun MIRModule.execute(): Int {
         if (!Path.of("test_build", "mir").exists()) {
             Path.of("test_build", "mir").createDirectories()
