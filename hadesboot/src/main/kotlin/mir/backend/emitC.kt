@@ -68,35 +68,30 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
 
     fun run() {
         // Forward declarations of functions
-        for ((name, value) in root.values.entries) {
-            when (value) {
-                is MIRValue.Function ->
+        for (declaration in root.declarations) {
+            when (declaration) {
+                is MIRDeclaration.Function ->
                     nodes.add(
                         CNode.FunctionDeclaration(
-                            name.mangle(),
-                            returnType = value.returnType.toCType(),
-                            params = value.params.map { CParam(it.name.mangle(), it.type.toCType()) })
+                            declaration.name.mangle(),
+                            returnType = declaration.returnType.toCType(),
+                            params = declaration.params.map { CParam(it.name.mangle(), it.type.toCType()) })
                     )
-                is MIRValue.I32 -> TODO()
-                is MIRValue.LocalRef -> TODO()
             }
         }
 
-        for ((name, value) in root.values.entries) {
-            when (value) {
-                is MIRValue.Function ->
+        for (declaration in root.declarations) {
+            when (declaration) {
+                is MIRDeclaration.Function ->
                     nodes.add(
                         CNode.FunctionDefinition(
-                            name.mangle(),
-                            returnType = value.returnType.toCType(),
-                            params = value.params.map { CParam(it.name.mangle(), it.type.toCType()) },
-                            body = lowerFunctionBody(value.basicBlocks)
+                            declaration.name.mangle(),
+                            returnType = declaration.returnType.toCType(),
+                            params = declaration.params.map { CParam(it.name.mangle(), it.type.toCType()) },
+                            body = lowerFunctionBody(declaration.basicBlocks)
                         ),
 
                     )
-
-                is MIRValue.I32 -> TODO()
-                is MIRValue.LocalRef -> TODO()
             }
         }
         val text = nodes.joinToString("\n") { it.prettyPrint("") }
@@ -133,7 +128,6 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
     }
 
     private fun MIRValue.toCExpr(): CExpr = when (this) {
-        is MIRValue.Function -> TODO()
         is MIRValue.I32 -> CExpr.IntLiteral(value)
         is MIRValue.LocalRef -> TODO()
     }

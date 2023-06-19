@@ -2,16 +2,20 @@ package mir
 
 interface MIRVisitor {
     fun visitModule(module: MIRModule) {
-        for ((_, value) in module.values.entries) {
-            visitValue(value)
+        for (declaration in module.declarations) {
+            visitDeclaration(declaration)
         }
     }
-    fun visitValue(value: MIRValue) = when(value) {
-        is MIRValue.Function -> {
-            for (basicBlock in value.basicBlocks) {
+
+    fun visitDeclaration(declaration: MIRDeclaration) = when(declaration) {
+        is MIRDeclaration.Function -> {
+            for (basicBlock in declaration.basicBlocks) {
                 visitBasicBlock(basicBlock)
             }
         }
+    }
+
+    fun visitValue(value: MIRValue) = when(value) {
         is MIRValue.I32 -> Unit
         is MIRValue.LocalRef -> visitLocalRef(value)
     }
