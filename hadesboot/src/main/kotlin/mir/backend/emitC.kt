@@ -45,6 +45,8 @@ private sealed interface CNode {
             val paramsStr = params.joinToString(",\n  ") { "${it.type.prettyPrint()} ${it.name}" }
             "${returnType.prettyPrint()} ${name}($paramsStr) ${body.prettyPrint("$indent  ")}"
         }
+
+        is CStatement.InitAssign -> "${type.prettyPrint()} ${name.text} = ${value.prettyPrint()};"
     }
 
     data class FunctionDeclaration(val name: CName, val params: List<CParam>, val returnType: CType): CNode
@@ -54,13 +56,18 @@ private sealed interface CNode {
 
 private sealed interface CStatement: CNode {
     data class Return(val expr: CExpr): CStatement
+    data class InitAssign(val name: CName, val type: CType, val value: CExpr): CStatement
 }
 private sealed interface CExpr {
     fun prettyPrint(): String = when(this) {
         is IntLiteral -> value.toString()
+        is Add -> "${lhs.prettyPrint()} + ${rhs.prettyPrint()}"
+        is Var -> name.text
     }
 
     data class IntLiteral(val value: Int): CExpr
+    data class Add(val lhs: CExpr, val rhs: CExpr): CExpr
+    data class Var(val name: CName) : CExpr
 }
 
 class EmitC(private val root: MIRModule, private val outputFile: Path) {
@@ -120,7 +127,18 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         for (instruction in block.instructions) {
             when (instruction) {
                 is MIRInstruction.Return -> myInstructions.add(CStatement.Return(instruction.value.toCExpr()))
-                is MIRInstruction.IAdd -> TODO()
+                is MIRInstruction.IAdd -> {
+                    myInstructions.add(
+                        CStatement.InitAssign(
+                            name = instruction.name.mangle(),
+                            type = instruction.type.toCType(),
+                            value = CExpr.Add(
+                                instruction.lhs.toCExpr(),
+                                instruction.rhs.toCExpr(),
+                            )
+                        )
+                    )
+                }
             }
         }
 
@@ -129,7 +147,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
 
     private fun MIRValue.toCExpr(): CExpr = when (this) {
         is MIRValue.I32 -> CExpr.IntLiteral(value)
-        is MIRValue.LocalRef -> TODO()
+        is MIRValue.LocalRef -> CExpr.Var(name.mangle())
     }
 
 
