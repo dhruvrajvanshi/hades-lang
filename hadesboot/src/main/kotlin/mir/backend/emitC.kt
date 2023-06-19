@@ -63,7 +63,7 @@ private sealed interface CExpr {
     data class IntLiteral(val value: Int): CExpr
 }
 
-class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
+class EmitC(private val root: MIRModule, private val outputFile: Path) {
     private val nodes = mutableListOf<CNode>()
 
     fun run() {
@@ -78,7 +78,6 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
                             params = value.params.map { CParam(it.name.mangle(), it.type.toCType()) })
                     )
                 is MIRValue.I32 -> TODO()
-                is MIRValue.Object -> TODO()
                 is MIRValue.LocalRef -> TODO()
             }
         }
@@ -97,7 +96,6 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
                     )
 
                 is MIRValue.I32 -> TODO()
-                is MIRValue.Object -> TODO()
                 is MIRValue.LocalRef -> TODO()
             }
         }
@@ -137,7 +135,6 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
     private fun MIRValue.toCExpr(): CExpr = when (this) {
         is MIRValue.Function -> TODO()
         is MIRValue.I32 -> CExpr.IntLiteral(value)
-        is MIRValue.Object -> TODO()
         is MIRValue.LocalRef -> TODO()
     }
 
@@ -149,6 +146,6 @@ class EmitC(private val root: MIRValue.Object, private val outputFile: Path) {
     }
 }
 
-fun MIRValue.Object.emitC(outputPath: Path) {
+fun MIRModule.emitC(outputPath: Path) {
     EmitC(this, outputPath).run()
 }

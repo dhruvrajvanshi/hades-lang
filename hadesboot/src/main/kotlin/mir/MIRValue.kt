@@ -1,13 +1,9 @@
 package mir
 
 import java.nio.file.Path
-
 sealed interface MIRValue {
     val type: MIRType
-    data class Object(
-        override val type: MIRType,
-        val values: Map<String, MIRValue>
-    ): MIRValue
+
     data class I32(
         val value: Int
     ): MIRValue {
@@ -41,34 +37,6 @@ data class MIRParam(
     val name: String,
     val type: MIRType,
 )
-
-class MIRValueObjectBuilder {
-    private val values = mutableMapOf<String, MIRValue>()
-    private val types = mutableMapOf<String, MIRType>()
-
-    fun addValue(name: String, value: MIRValue) {
-        values[name] = value
-    }
-
-    fun addType(name: String, type: MIRType) {
-        types[name] = type
-    }
-
-    internal fun build(): MIRValue.Object = MIRValue.Object(
-        MIRType.Interface(
-            types = types.keys,
-            values = values.mapValues { it.value.type }
-        ),
-        values
-    )
-}
-
-fun buildObject(run: MIRValueObjectBuilder.() -> Unit): MIRValue.Object {
-    val builder = MIRValueObjectBuilder()
-
-    builder.run()
-    return builder.build()
-}
 
 class MIRFunctionBuilder(
     val returnType: MIRType,

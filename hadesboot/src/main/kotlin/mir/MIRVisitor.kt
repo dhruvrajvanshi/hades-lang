@@ -1,7 +1,7 @@
 package mir
 
 interface MIRVisitor {
-    fun visitObject(module: MIRValue.Object) {
+    fun visitModule(module: MIRModule) {
         for ((_, value) in module.values.entries) {
             visitValue(value)
         }
@@ -13,7 +13,6 @@ interface MIRVisitor {
             }
         }
         is MIRValue.I32 -> Unit
-        is MIRValue.Object -> visitObject(value)
         is MIRValue.LocalRef -> visitLocalRef(value)
     }
 
