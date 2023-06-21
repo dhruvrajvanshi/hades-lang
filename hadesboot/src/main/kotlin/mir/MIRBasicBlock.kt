@@ -11,17 +11,6 @@ class MIRBasicBlockBuilder(
 ) {
     private val instructions = mutableListOf<MIRInstruction>()
 
-    fun emit(instruction: MIRInstruction) {
-        when (instruction) {
-            is MIRInstruction.MIRNameBinder -> {
-                check(instruction.name !in functionLocals)
-                functionLocals[instruction.name] = instruction.type
-            }
-            else -> Unit
-        }
-        instructions.add(instruction)
-    }
-
     fun emitReturn(value: MIRValue) {
         emit(MIRInstruction.Return(location, value))
     }
@@ -50,5 +39,16 @@ class MIRBasicBlockBuilder(
     }
 
     internal fun build(): MIRBasicBlock = MIRBasicBlock(name, instructions)
+
+    private fun emit(instruction: MIRInstruction) {
+        when (instruction) {
+            is MIRInstruction.MIRNameBinder -> {
+                check(instruction.name !in functionLocals)
+                functionLocals[instruction.name] = instruction.type
+            }
+            else -> Unit
+        }
+        instructions.add(instruction)
+    }
 
 }
