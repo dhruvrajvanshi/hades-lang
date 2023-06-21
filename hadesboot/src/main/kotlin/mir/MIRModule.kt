@@ -7,10 +7,6 @@ data class MIRModule(val declarations: List<MIRDeclaration>)
 class MIRModuleBuilder(val path: Path) {
     private val declarations = mutableListOf<MIRDeclaration>()
 
-    fun addDeclaration(declaration: MIRDeclaration) {
-        declarations.add(declaration)
-    }
-
     fun addFunction(name: String, returnType: MIRType, buildFunction: MIRFunctionBuilder.() -> Unit) {
         val f = buildFunction(name, path, returnType) {
             buildFunction()
@@ -19,6 +15,25 @@ class MIRModuleBuilder(val path: Path) {
         addDeclaration(f)
     }
 
+    fun addStatic(name: String, value: MIRValue) {
+        addDeclaration(
+            MIRDeclaration.StaticDefinition(
+                name,
+                value.type,
+                value,
+            )
+        )
+    }
+
+    internal fun getStaticDef(name: String): MIRDeclaration.StaticDefinition? {
+        return declarations
+            .filterIsInstance<MIRDeclaration.StaticDefinition>()
+            .find { it.name == name }
+    }
+
+    private fun addDeclaration(declaration: MIRDeclaration) {
+        declarations.add(declaration)
+    }
 
     internal fun build(): MIRModule = MIRModule(declarations)
 }

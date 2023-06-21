@@ -47,11 +47,17 @@ private sealed interface CNode {
         }
 
         is CStatement.InitAssign -> "${type.prettyPrint()} ${name.text} = ${value.prettyPrint()};"
+        is StaticDefinition -> "${type.prettyPrint()} ${name.text} = ${initializer.prettyPrint()};"
     }
 
     data class FunctionDeclaration(val name: CName, val params: List<CParam>, val returnType: CType): CNode
 
     data class FunctionDefinition(val name: CName, val params: List<CParam>, val returnType: CType, val body: CBlock): CNode
+    data class StaticDefinition(
+        val name: CName,
+        val type: CType,
+        val initializer: CExpr
+    ) : CNode
 }
 
 private sealed interface CStatement: CNode {
@@ -84,6 +90,15 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                             returnType = declaration.returnType.toCType(),
                             params = declaration.params.map { CParam(it.name.mangle(), it.type.toCType()) })
                     )
+
+                is MIRDeclaration.StaticDefinition ->
+                    nodes.add(
+                        CNode.StaticDefinition(
+                            declaration.name.mangle(),
+                            declaration.type.toCType(),
+                            declaration.initializer.toCExpr(),
+                        )
+                    )
             }
         }
 
@@ -99,6 +114,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                         ),
 
                     )
+                is MIRDeclaration.StaticDefinition -> Unit
             }
         }
         val text = nodes.joinToString("\n") { it.prettyPrint("") }
@@ -148,6 +164,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
     private fun MIRValue.toCExpr(): CExpr = when (this) {
         is MIRValue.I32 -> CExpr.IntLiteral(value)
         is MIRValue.LocalRef -> CExpr.Var(name.mangle())
+        is MIRValue.StaticRef -> CExpr.Var(name.mangle())
     }
 
 

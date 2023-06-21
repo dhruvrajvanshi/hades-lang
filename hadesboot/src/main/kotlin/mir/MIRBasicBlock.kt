@@ -7,6 +7,7 @@ class MIRBasicBlockBuilder(
     val name: String,
     var location: MIRLocation,
     private val functionLocals: MutableMap<String, MIRType>,
+    private val moduleBuilder: MIRModuleBuilder,
 ) {
     private val instructions = mutableListOf<MIRInstruction>()
 
@@ -41,6 +42,11 @@ class MIRBasicBlockBuilder(
         val localType = functionLocals[name] ?: error("Undeclared local: $name")
 
         return MIRValue.LocalRef(localType, name)
+    }
+
+    fun staticRef(name: String): MIRValue {
+        val staticDef = moduleBuilder.getStaticDef(name) ?: error("Undeclared static: $name")
+        return MIRValue.StaticRef(staticDef.type, name)
     }
 
     internal fun build(): MIRBasicBlock = MIRBasicBlock(name, instructions)

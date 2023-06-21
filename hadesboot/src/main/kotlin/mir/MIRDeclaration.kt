@@ -22,6 +22,12 @@ sealed interface MIRDeclaration {
             )
         val entryBlock get(): MIRBasicBlock = basicBlocks.first()
     }
+
+    data class StaticDefinition(
+        val name: String,
+        val type: MIRType,
+        val initializer: MIRValue,
+    ) : MIRDeclaration
 }
 
 data class MIRParam(
@@ -33,6 +39,7 @@ class MIRFunctionBuilder(
     val name: String,
     val returnType: MIRType,
     var location: MIRLocation,
+    private val moduleBuilder: MIRModuleBuilder,
 ) {
     private val params = mutableListOf<MIRParam>()
     private val blocks = mutableListOf<MIRBasicBlock>()
@@ -46,7 +53,7 @@ class MIRFunctionBuilder(
     }
 
     fun addBlock(name: String, runBlock: (MIRBasicBlockBuilder).() -> Unit) {
-        val builder = MIRBasicBlockBuilder(name, location, locals)
+        val builder = MIRBasicBlockBuilder(name, location, locals, moduleBuilder)
         builder.runBlock()
         addBlock(builder.build())
         location = builder.location
@@ -55,13 +62,13 @@ class MIRFunctionBuilder(
     internal fun build(): MIRDeclaration.Function = MIRDeclaration.Function(name, params, returnType, blocks)
 }
 
-fun buildFunction(
+fun MIRModuleBuilder.buildFunction(
     name: String,
     path: Path,
     returnType: MIRType,
     runEntryBlock: MIRFunctionBuilder.() -> Unit
 ): MIRDeclaration.Function {
-    val fnBuilder = MIRFunctionBuilder(name, returnType, MIRLocation(1, 1, path))
+    val fnBuilder = MIRFunctionBuilder(name, returnType, MIRLocation(1, 1, path), this)
     fnBuilder.runEntryBlock()
     return fnBuilder.build()
 }

@@ -13,14 +13,18 @@ interface MIRVisitor {
                 visitBasicBlock(basicBlock)
             }
         }
+
+        is MIRDeclaration.StaticDefinition -> {
+            visitValue(declaration.initializer)
+        }
     }
 
     fun visitValue(value: MIRValue) = when(value) {
         is MIRValue.I32 -> Unit
-        is MIRValue.LocalRef -> visitLocalRef(value)
+        is MIRValue.LocalRef -> Unit
+        is MIRValue.StaticRef -> Unit
     }
 
-    fun visitLocalRef(value: MIRValue.LocalRef) = Unit
 
     fun visitBasicBlock(basicBlock: MIRBasicBlock) {
         for (instruction in basicBlock.instructions) {

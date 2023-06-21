@@ -45,6 +45,18 @@ class MIRExecutionTest {
         }.execute())
     }
 
+    @Test
+    fun `return static`() = assertEquals(5, buildModule("main.mir"){
+        addStatic("foo", MIRValue.I32(5))
+
+        addFunction("main", MIRType.I32) {
+            addBlock("entry") {
+                emitReturn(staticRef("foo"))
+            }
+        }
+    }.execute())
+
+
 
     private fun MIRModule.execute(): Int {
         if (!Path.of("test_build", "mir").exists()) {
