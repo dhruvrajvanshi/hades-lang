@@ -197,7 +197,6 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
     private fun MIRType.toCType(): CType = when (this) {
         is MIRType.Function -> TODO()
         MIRType.I32 -> CType.I32
-        is MIRType.Interface -> TODO()
         MIRType.U8 -> CType.U8
     }
 }
