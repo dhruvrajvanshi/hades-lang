@@ -25,9 +25,9 @@ class MIRModuleBuilder(val path: Path) {
         )
     }
 
-    internal fun getStaticDef(name: String): MIRDeclaration.StaticDefinition? {
+    internal fun getGlobalDef(name: String): MIRDeclaration.GlobalDef? {
         return declarations
-            .filterIsInstance<MIRDeclaration.StaticDefinition>()
+            .filterIsInstance<MIRDeclaration.GlobalDef>()
             .find { it.name == name }
     }
 

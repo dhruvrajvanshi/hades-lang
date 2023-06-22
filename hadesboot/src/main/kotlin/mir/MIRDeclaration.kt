@@ -3,19 +3,23 @@ package mir
 import java.nio.file.Path
 
 sealed interface MIRDeclaration {
+    sealed interface GlobalDef {
+        val name: String
+        val type: MIRType
+    }
     data class Function(
-        val name: String,
+        override val name: String,
         val params: List<MIRParam>,
         val returnType: MIRType,
         val basicBlocks: List<MIRBasicBlock>,
-    ) : MIRDeclaration {
+    ) : MIRDeclaration, GlobalDef {
         init {
             require(basicBlocks.isNotEmpty()) {
                 "Function must have at least one basic block."
             }
         }
 
-        val type: MIRType.Function
+        override val type: MIRType.Function
             get() = MIRType.Function(
                 paramTypes = params.map { it.type },
                 returnType = returnType,
@@ -24,10 +28,10 @@ sealed interface MIRDeclaration {
     }
 
     data class StaticDefinition(
-        val name: String,
-        val type: MIRType,
+        override val name: String,
+        override val type: MIRType,
         val initializer: MIRValue,
-    ) : MIRDeclaration
+    ) : MIRDeclaration, GlobalDef
 }
 
 data class MIRParam(

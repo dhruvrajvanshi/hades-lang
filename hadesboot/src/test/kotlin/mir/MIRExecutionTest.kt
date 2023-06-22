@@ -51,7 +51,7 @@ class MIRExecutionTest {
 
         addFunction("main", MIRType.I32) {
             addBlock("entry") {
-                emitReturn(staticRef("foo"))
+                emitReturn(globalRef("foo"))
             }
         }
     }.execute())

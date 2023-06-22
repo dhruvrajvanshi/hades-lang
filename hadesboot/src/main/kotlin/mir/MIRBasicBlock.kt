@@ -44,8 +44,8 @@ class MIRBasicBlockBuilder(
         return MIRValue.LocalRef(localType, name)
     }
 
-    fun staticRef(name: String): MIRValue {
-        val staticDef = moduleBuilder.getStaticDef(name) ?: error("Undeclared static: $name")
+    fun globalRef(name: String): MIRValue {
+        val staticDef = moduleBuilder.getGlobalDef(name) ?: error("Undeclared static: $name")
         return MIRValue.StaticRef(staticDef.type, name)
     }
 
