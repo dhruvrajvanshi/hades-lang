@@ -28,7 +28,7 @@ class MIRBasicBlockBuilder(
         )
     }
 
-    fun emitIntWideningCast(value: MIRValue, type: MIRType, name: String) {
+    fun emitIntWideningCast(name: String, value: MIRValue, type: MIRType) {
         emit(
             MIRInstruction.IWidenCast(
                 location,

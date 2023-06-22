@@ -61,7 +61,7 @@ class MIRExecutionTest {
     fun `should be able to do a widening cast`() = buildModule("main.mir") {
         addFunction("main", MIRType.I32) {
             addBlock("entry") {
-                emitIntWideningCast(MIRValue.U8(6) , MIRType.I32, "result")
+                emitIntWideningCast("result", MIRValue.U8(6) , MIRType.I32)
                 emitReturn(localRef("result"))
             }
         }
