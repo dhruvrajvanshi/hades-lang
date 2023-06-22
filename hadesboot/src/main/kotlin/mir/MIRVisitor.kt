@@ -41,5 +41,9 @@ interface MIRVisitor {
             visitValue(instruction.rhs)
         }
         is MIRInstruction.IWidenCast -> visitValue(instruction.value)
+        is MIRInstruction.Call -> {
+            visitValue(instruction.function)
+            instruction.args.forEach { visitValue(it) }
+        }
     }
 }

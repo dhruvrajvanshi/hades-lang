@@ -77,6 +77,7 @@ private sealed interface CExpr {
         is Var -> name.text
         is Cast -> "(${toType.prettyPrint()}) ${value.prettyPrint()}"
         is StringLiteral -> "\"${text.escapeStringLiteral()}\""
+        is Call -> "${function.prettyPrint()}(${args.joinToString(", ") { it.prettyPrint() }})"
     }
 
     data class IntLiteral(val value: Int): CExpr
@@ -84,6 +85,7 @@ private sealed interface CExpr {
     data class Var(val name: CName) : CExpr
     data class Cast(val toType: CType, val value: CExpr) : CExpr
     data class StringLiteral(val text: String): CExpr
+    data class Call(val function: CExpr, val args: List<CExpr>) : CExpr
 }
 
 class EmitC(private val root: MIRModule, private val outputFile: Path) {
@@ -183,6 +185,18 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                             value = CExpr.Cast(
                                 instruction.toType.toCType(),
                                 instruction.value.toCExpr(),
+                            )
+                        )
+                    )
+
+                is MIRInstruction.Call ->
+                    myInstructions.add(
+                        CStatement.InitAssign(
+                            name = instruction.name.mangle(),
+                            type = instruction.type.toCType(),
+                            value = CExpr.Call(
+                                instruction.function.toCExpr(),
+                                instruction.args.map { it.toCExpr() }
                             )
                         )
                     )

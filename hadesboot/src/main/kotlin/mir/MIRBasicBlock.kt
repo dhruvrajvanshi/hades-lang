@@ -62,4 +62,19 @@ class MIRBasicBlockBuilder(
         instructions.add(instruction)
     }
 
+    fun emitCall(resultName: String, function: MIRValue, vararg args: MIRValue) {
+        val fnType = function.type
+        require(fnType is MIRType.Function)
+        val resultType = fnType.returnType
+        emit(
+            MIRInstruction.Call(
+                location,
+                resultName,
+                type = resultType,
+                function,
+                args.toList(),
+            )
+        )
+    }
+
 }

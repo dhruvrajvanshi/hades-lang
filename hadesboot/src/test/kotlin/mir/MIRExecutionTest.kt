@@ -68,6 +68,24 @@ class MIRExecutionTest {
         assertEquals(6, it)
     }
 
+    @Test
+    fun `should call function with no params`() = buildModule("main.mir") {
+        addFunction("foo", MIRType.I32) {
+            addBlock("entry") {
+                emitReturn(MIRValue.I32(5))
+            }
+        }
+
+        addFunction("main", MIRType.I32) {
+            addBlock("entry") {
+                emitCall("result", globalRef("foo"))
+                emitReturn(localRef("result"))
+            }
+        }
+
+    }.execute {
+        assertEquals(5, exitCode)
+    }
 
     private fun MIRModule.execute(): Int {
         if (!Path.of("test_build", "mir").exists()) {

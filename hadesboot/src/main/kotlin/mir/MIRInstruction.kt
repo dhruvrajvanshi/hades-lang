@@ -25,6 +25,14 @@ sealed interface MIRInstruction {
             get() = toType
     }
 
+    data class Call(
+        override val location: MIRLocation,
+        override val name: String,
+        override val type: MIRType,
+        val function: MIRValue,
+        val args: List<MIRValue>,
+    ): MIRNameBinder, MIRInstruction
+
     sealed interface MIRNameBinder {
         val type: MIRType
         val name: String
