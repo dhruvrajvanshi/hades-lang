@@ -25,6 +25,7 @@ interface MIRVisitor {
         is MIRValue.StaticRef -> Unit
         is MIRValue.U8 -> Unit
         is MIRValue.CStrLiteral -> Unit
+        is MIRValue.ParamRef -> Unit
     }
 
 

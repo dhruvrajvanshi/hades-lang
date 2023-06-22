@@ -16,6 +16,11 @@ sealed interface MIRValue {
         val name: String,
     ): MIRValue
 
+    data class ParamRef(
+        override val type: MIRType,
+        val name: String,
+    ): MIRValue
+
     data class StaticRef(
         override val type: MIRType,
         val name: String,

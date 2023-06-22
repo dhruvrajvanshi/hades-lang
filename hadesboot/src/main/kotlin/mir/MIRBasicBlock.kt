@@ -6,9 +6,10 @@ class MIRBasicBlock(val name: String, val instructions: List<MIRInstruction>)
 class MIRBasicBlockBuilder(
     val name: String,
     var location: MIRLocation,
-    private val functionLocals: MutableMap<String, MIRType>,
+    private val functionBuilder: MIRFunctionBuilder,
     private val moduleBuilder: MIRModuleBuilder,
 ) {
+    private val functionLocals get() = functionBuilder.locals
     private val instructions = mutableListOf<MIRInstruction>()
 
     fun emitReturn(value: MIRValue) {
@@ -42,6 +43,11 @@ class MIRBasicBlockBuilder(
         val localType = functionLocals[name] ?: error("Undeclared local: $name")
 
         return MIRValue.LocalRef(localType, name)
+    }
+
+    fun paramRef(name: String): MIRValue {
+        val param = functionBuilder.params.find { it.name == name } ?: error("Undeclared param: ${this.name}")
+        return MIRValue.ParamRef(param.type, name)
     }
 
     fun globalRef(name: String): MIRValue {

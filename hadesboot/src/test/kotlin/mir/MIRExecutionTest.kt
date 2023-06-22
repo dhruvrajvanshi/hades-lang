@@ -1,5 +1,6 @@
 package mir
 
+import mir.MIRValue.I32
 import mir.backend.emitC
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -13,7 +14,7 @@ class MIRExecutionTest {
         val main = buildModule("main.mir") {
             addFunction("main", MIRType.I32) {
                 addBlock("entry") {
-                    emitReturn(MIRValue.I32(0))
+                    emitReturn(I32(0))
                 }
             }
         }
@@ -27,7 +28,7 @@ class MIRExecutionTest {
         assertEquals(1, buildModule("main.mir") {
             addFunction("main", MIRType.I32) {
                 addBlock("entry") {
-                    emitReturn(MIRValue.I32(1))
+                    emitReturn(I32(1))
                 }
             }
         }.execute())
@@ -38,7 +39,7 @@ class MIRExecutionTest {
         assertEquals(4, buildModule("main.mir") {
             addFunction("main", MIRType.I32) {
                 addBlock("entry") {
-                    emitIAdd("result", MIRValue.I32(2), MIRValue.I32(2))
+                    emitIAdd("result", I32(2), I32(2))
                     emitReturn(localRef("result"))
                 }
             }
@@ -47,7 +48,7 @@ class MIRExecutionTest {
 
     @Test
     fun `return static`() = assertEquals(5, buildModule("main.mir"){
-        addStatic("foo", MIRValue.I32(5))
+        addStatic("foo", I32(5))
 
         addFunction("main", MIRType.I32) {
             addBlock("entry") {
@@ -72,13 +73,35 @@ class MIRExecutionTest {
     fun `should call function with no params`() = buildModule("main.mir") {
         addFunction("foo", MIRType.I32) {
             addBlock("entry") {
-                emitReturn(MIRValue.I32(5))
+                emitReturn(I32(5))
             }
         }
 
         addFunction("main", MIRType.I32) {
             addBlock("entry") {
                 emitCall("result", globalRef("foo"))
+                emitReturn(localRef("result"))
+            }
+        }
+
+    }.execute {
+        assertEquals(5, exitCode)
+    }
+
+    @Test
+    fun `should call function with params`() = buildModule("main.mir") {
+        addFunction("sum", MIRType.I32) {
+            addParam("a", MIRType.I32)
+            addParam("b", MIRType.I32)
+            addBlock("entry") {
+                emitIAdd("res", paramRef("a"), paramRef("b"))
+                emitReturn(localRef("res"))
+            }
+        }
+
+        addFunction("main", MIRType.I32) {
+            addBlock("entry") {
+                emitCall("result", globalRef("sum"), I32(2), I32(3))
                 emitReturn(localRef("result"))
             }
         }

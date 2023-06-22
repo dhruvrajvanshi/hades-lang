@@ -212,6 +212,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         is MIRValue.StaticRef -> CExpr.Var(name.mangle())
         is MIRValue.U8 -> CExpr.IntLiteral(value.toInt())
         is MIRValue.CStrLiteral -> CExpr.StringLiteral(text)
+        is MIRValue.ParamRef -> CExpr.Var(name.mangle())
     }
 
 
