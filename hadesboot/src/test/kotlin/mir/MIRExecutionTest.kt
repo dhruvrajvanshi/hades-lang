@@ -82,4 +82,10 @@ class MIRExecutionTest {
             .start()
             .waitFor()
     }
+
+    private fun MIRModule.execute(run: ExecuteTestScope.() -> Unit) {
+        val exitCode = execute()
+        ExecuteTestScope(exitCode).run()
+    }
 }
+private data class ExecuteTestScope(val exitCode: Int)
