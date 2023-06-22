@@ -21,4 +21,7 @@ sealed interface MIRValue {
         val name: String,
     ): MIRValue
 
+    data class CStrLiteral(val text: String): MIRValue {
+        override val type get(): MIRType.Pointer = MIRType.U8.ptr()
+    }
 }

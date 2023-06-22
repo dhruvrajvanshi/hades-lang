@@ -76,12 +76,14 @@ private sealed interface CExpr {
         is Add -> "${lhs.prettyPrint()} + ${rhs.prettyPrint()}"
         is Var -> name.text
         is Cast -> "(${toType.prettyPrint()}) ${value.prettyPrint()}"
+        is StringLiteral -> "\"${text.escapeStringLiteral()}\""
     }
 
     data class IntLiteral(val value: Int): CExpr
     data class Add(val lhs: CExpr, val rhs: CExpr): CExpr
     data class Var(val name: CName) : CExpr
     data class Cast(val toType: CType, val value: CExpr) : CExpr
+    data class StringLiteral(val text: String): CExpr
 }
 
 class EmitC(private val root: MIRModule, private val outputFile: Path) {
@@ -195,6 +197,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         is MIRValue.LocalRef -> CExpr.Var(name.mangle())
         is MIRValue.StaticRef -> CExpr.Var(name.mangle())
         is MIRValue.U8 -> CExpr.IntLiteral(value.toInt())
+        is MIRValue.CStrLiteral -> CExpr.StringLiteral(text)
     }
 
 
@@ -209,4 +212,17 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
 
 fun MIRModule.emitC(outputPath: Path) {
     EmitC(this, outputPath).run()
+}
+
+private fun String.escapeStringLiteral(): String {
+    return map {
+        when (it) {
+            '"' -> "\\\""
+            '\\' -> "\\\\"
+            '\n' -> "\\n"
+            '\t' -> "\\t"
+            '\b' -> "\\b"
+            else -> it
+        }
+    }.joinToString("")
 }
