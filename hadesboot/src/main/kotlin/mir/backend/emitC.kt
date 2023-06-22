@@ -126,7 +126,16 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         cFile.writeText(text)
 
         val exitCode = ProcessBuilder()
-            .command("clang", "-o", outputFile.toString(), cFile.toString())
+            .command("clang",
+                "-Wall",
+                "-Werror",
+                // The code generator generates a label for every block
+                // even if it's not a jump target. This means we have to
+                // silence this warning.
+                "-Wno-unused-label",
+                "-o", outputFile.toString(),
+                cFile.toString()
+            )
             .inheritIO()
             .start()
             .waitFor()
