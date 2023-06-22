@@ -27,6 +27,17 @@ class MIRBasicBlockBuilder(
         )
     }
 
+    fun emitIntWideningCast(value: MIRValue, type: MIRType, name: String) {
+        emit(
+            MIRInstruction.IWidenCast(
+                location,
+                name,
+                type,
+                value,
+            )
+        )
+    }
+
     fun localRef(name: String): MIRValue {
         val localType = functionLocals[name] ?: error("Undeclared local: $name")
 

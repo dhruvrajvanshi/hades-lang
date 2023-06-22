@@ -15,11 +15,13 @@ private fun String.mangle(): CName = CName(this)
 private sealed interface CType {
     fun prettyPrint(): String = when(this) {
         I32 -> "int32_t"
+        U8 -> "uint8_t"
         Void -> "void"
     }
 
     object Void: CType
     object I32: CType
+    object U8: CType
 }
 private data class CParam(
     val name: CName,
@@ -69,11 +71,13 @@ private sealed interface CExpr {
         is IntLiteral -> value.toString()
         is Add -> "${lhs.prettyPrint()} + ${rhs.prettyPrint()}"
         is Var -> name.text
+        is Cast -> "(${toType.prettyPrint()}) ${value.prettyPrint()}"
     }
 
     data class IntLiteral(val value: Int): CExpr
     data class Add(val lhs: CExpr, val rhs: CExpr): CExpr
     data class Var(val name: CName) : CExpr
+    data class Cast(val toType: CType, val value: CExpr) : CExpr
 }
 
 class EmitC(private val root: MIRModule, private val outputFile: Path) {
@@ -155,6 +159,18 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                         )
                     )
                 }
+
+                is MIRInstruction.IWidenCast ->
+                    myInstructions.add(
+                        CStatement.InitAssign(
+                            name = instruction.name.mangle(),
+                            type = instruction.toType.toCType(),
+                            value = CExpr.Cast(
+                                instruction.toType.toCType(),
+                                instruction.value.toCExpr(),
+                            )
+                        )
+                    )
             }
         }
 
@@ -165,6 +181,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         is MIRValue.I32 -> CExpr.IntLiteral(value)
         is MIRValue.LocalRef -> CExpr.Var(name.mangle())
         is MIRValue.StaticRef -> CExpr.Var(name.mangle())
+        is MIRValue.U8 -> CExpr.IntLiteral(value.toInt())
     }
 
 
@@ -172,6 +189,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         is MIRType.Function -> TODO()
         MIRType.I32 -> CType.I32
         is MIRType.Interface -> TODO()
+        MIRType.U8 -> CType.U8
     }
 }
 

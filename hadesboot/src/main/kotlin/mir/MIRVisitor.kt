@@ -23,6 +23,7 @@ interface MIRVisitor {
         is MIRValue.I32 -> Unit
         is MIRValue.LocalRef -> Unit
         is MIRValue.StaticRef -> Unit
+        is MIRValue.U8 -> Unit
     }
 
 
@@ -38,5 +39,6 @@ interface MIRVisitor {
             visitValue(instruction.lhs)
             visitValue(instruction.rhs)
         }
+        is MIRInstruction.IWidenCast -> visitValue(instruction.value)
     }
 }

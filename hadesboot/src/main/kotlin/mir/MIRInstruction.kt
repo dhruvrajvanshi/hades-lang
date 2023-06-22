@@ -15,6 +15,16 @@ sealed interface MIRInstruction {
         val rhs: MIRValue,
     ): MIRNameBinder, MIRInstruction
 
+    data class IWidenCast(
+        override val location: MIRLocation,
+        override val name: String,
+        val toType: MIRType,
+        val value: MIRValue,
+    ): MIRNameBinder, MIRInstruction {
+        override val type: MIRType
+            get() = toType
+    }
+
     sealed interface MIRNameBinder {
         val type: MIRType
         val name: String

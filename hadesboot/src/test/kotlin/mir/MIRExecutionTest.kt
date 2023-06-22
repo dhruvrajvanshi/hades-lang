@@ -56,6 +56,17 @@ class MIRExecutionTest {
         }
     }.execute())
 
+    @Test
+    fun `should be able to do a widening cast`() = buildModule("main.mir") {
+        addFunction("main", MIRType.I32) {
+            addBlock("entry") {
+                emitIntWideningCast(MIRValue.U8(6) , MIRType.I32, "result")
+                emitReturn(localRef("result"))
+            }
+        }
+    }.execute().let {
+        assertEquals(6, it)
+    }
 
 
     private fun MIRModule.execute(): Int {

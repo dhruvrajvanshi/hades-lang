@@ -8,6 +8,9 @@ sealed interface MIRValue {
     ): MIRValue {
         override val type get(): MIRType.I32 = MIRType.I32
     }
+    data class U8(val value: Byte): MIRValue {
+        override val type get(): MIRType.U8 = MIRType.U8
+    }
     data class LocalRef(
         override val type: MIRType,
         val name: String,
