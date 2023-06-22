@@ -14,7 +14,7 @@ private fun String.mangle(): CName = CName(this)
 
 private sealed interface CType {
     fun prettyPrint(): String = when(this) {
-        I32 -> "int"
+        I32 -> "int32_t"
         Void -> "void"
     }
 
@@ -117,7 +117,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                 is MIRDeclaration.StaticDefinition -> Unit
             }
         }
-        val text = nodes.joinToString("\n") { it.prettyPrint("") }
+        val text = "#include <stdint.h>\n" + nodes.joinToString("\n") { it.prettyPrint("") }
         val cFile = Path.of(outputFile.parent.toString(), outputFile.nameWithoutExtension + ".c")
         cFile.writeText(text)
 
