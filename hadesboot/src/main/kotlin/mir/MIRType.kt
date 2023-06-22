@@ -9,9 +9,13 @@ sealed interface MIRType {
     object U8: MIRType, Integral.Unsigned
 
     data class Pointer(val to: MIRType): MIRType
+    data class MutPointer(val to: MIRType): MIRType
 
     data class Function(
         val paramTypes: List<MIRType>,
         val returnType: MIRType,
     ): MIRType
 }
+
+fun MIRType.mutPtr(): MIRType.MutPointer = MIRType.MutPointer(this)
+fun MIRType.ptr(): MIRType.Pointer = MIRType.Pointer(this)

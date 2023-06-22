@@ -17,13 +17,15 @@ private sealed interface CType {
         I32 -> "int32_t"
         U8 -> "uint8_t"
         Void -> "void"
-        is Ptr -> "${to.prettyPrint()}*"
+        is MutPtr -> "${to.prettyPrint()}*"
+        is ConstPtr -> "const ${to.prettyPrint()}*"
     }
 
     object Void: CType
     object I32: CType
     object U8: CType
-    data class Ptr(val to: CType): CType
+    data class MutPtr(val to: CType): CType
+    data class ConstPtr(val to: CType): CType
 }
 private data class CParam(
     val name: CName,
@@ -200,7 +202,8 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
         is MIRType.Function -> TODO()
         MIRType.I32 -> CType.I32
         MIRType.U8 -> CType.U8
-        is MIRType.Pointer -> CType.Ptr(to.toCType())
+        is MIRType.Pointer -> CType.ConstPtr(to.toCType())
+        is MIRType.MutPointer -> CType.MutPtr(to.toCType())
     }
 }
 
