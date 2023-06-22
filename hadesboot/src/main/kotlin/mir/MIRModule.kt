@@ -15,6 +15,16 @@ class MIRModuleBuilder(val path: Path) {
         addDeclaration(f)
     }
 
+    fun addExternFunction(name: String, paramTypes: List<MIRType.Pointer>, returnType: MIRType.I32) {
+        addDeclaration(
+            MIRDeclaration.ExternFunction(
+                name,
+                paramTypes,
+                returnType,
+            )
+        )
+    }
+
     fun addStatic(name: String, value: MIRValue) {
         addDeclaration(
             MIRDeclaration.StaticDefinition(

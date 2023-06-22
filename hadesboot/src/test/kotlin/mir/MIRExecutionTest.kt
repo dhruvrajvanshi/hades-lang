@@ -2,6 +2,8 @@ package mir
 
 import mir.MIRValue.I32
 import mir.backend.emitC
+import org.apache.commons.io.IOUtils
+import java.io.InputStreamReader
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -110,7 +112,26 @@ class MIRExecutionTest {
         assertEquals(5, exitCode)
     }
 
+    @Test
+    fun `extern function call`() = buildModule("test.mir") {
+        addExternFunction("puts", paramTypes = listOf(MIRType.U8.ptr()), returnType = MIRType.I32)
+        addFunction("main", MIRType.I32) {
+            addBlock("entry") {
+                emitCall("_", globalRef("puts"), cstr("Hello world!"))
+                emitReturn(MIRValue.I32(0))
+            }
+        }
+    }.execute {
+        assertEquals("Hello world!\n", stdout)
+    }
+
+
+
     private fun MIRModule.execute(): Int {
+        return execute { exitCode }
+    }
+
+    private fun <T> MIRModule.execute(run: ExecuteTestScope.() -> T): T {
         if (!Path.of("test_build", "mir").exists()) {
             Path.of("test_build", "mir").createDirectories()
         }
@@ -118,15 +139,26 @@ class MIRExecutionTest {
         emitC(outputPath)
         check(outputPath.exists())
 
-        return ProcessBuilder()
+        val process = ProcessBuilder()
             .command(outputPath.toString())
             .start()
-            .waitFor()
-    }
 
-    private fun MIRModule.execute(run: ExecuteTestScope.() -> Unit) {
-        val exitCode = execute()
-        ExecuteTestScope(exitCode).run()
+
+        val exitCode = process
+            .waitFor()
+
+        val error = IOUtils.toString(process.errorReader())
+        val output = IOUtils.toString(process.inputReader())
+
+        return ExecuteTestScope(
+            exitCode,
+            output,
+            error
+        ).run()
     }
 }
-private data class ExecuteTestScope(val exitCode: Int)
+private data class ExecuteTestScope(
+    val exitCode: Int,
+    val stdout: String,
+    val stderr: String,
+)

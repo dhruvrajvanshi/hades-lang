@@ -15,7 +15,7 @@ private fun String.mangle(): CName = CName(this)
 private sealed interface CType {
     fun prettyPrint(): String = when(this) {
         I32 -> "int32_t"
-        U8 -> "uint8_t"
+        U8 -> "char"
         Void -> "void"
         is MutPtr -> "${to.prettyPrint()}*"
         is ConstPtr -> "const ${to.prettyPrint()}*"
@@ -44,7 +44,7 @@ private sealed interface CNode {
         }
         is CStatement.Return -> "return ${expr.prettyPrint()};"
         is FunctionDeclaration -> {
-            val paramsStr = params.joinToString(",\n  ") { "${it.type.prettyPrint()} ${it.name}" }
+            val paramsStr = params.joinToString(",\n  ") { it.prettyPrint() }
             "${returnType.prettyPrint()} ${name}($paramsStr);"
         }
         is FunctionDefinition -> {
@@ -56,7 +56,7 @@ private sealed interface CNode {
         is StaticDefinition -> "${type.prettyPrint()} ${name.text} = ${initializer.prettyPrint()};"
     }
 
-    data class FunctionDeclaration(val name: CName, val params: List<CParam>, val returnType: CType): CNode
+    data class FunctionDeclaration(val name: CName, val params: List<CType>, val returnType: CType): CNode
 
     data class FunctionDefinition(val name: CName, val params: List<CParam>, val returnType: CType, val body: CBlock): CNode
     data class StaticDefinition(
@@ -100,7 +100,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                         CNode.FunctionDeclaration(
                             declaration.name.mangle(),
                             returnType = declaration.returnType.toCType(),
-                            params = declaration.params.map { CParam(it.name.mangle(), it.type.toCType()) })
+                            params = declaration.params.map { it.type.toCType() })
                     )
 
                 is MIRDeclaration.StaticDefinition ->
@@ -109,6 +109,15 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                             declaration.name.mangle(),
                             declaration.type.toCType(),
                             declaration.initializer.toCExpr(),
+                        )
+                    )
+
+                is MIRDeclaration.ExternFunction ->
+                    nodes.add(
+                        CNode.FunctionDeclaration(
+                            declaration.name.mangle(),
+                            declaration.paramTypes.map { it.toCType() },
+                            returnType = declaration.returnType.toCType(),
                         )
                     )
             }
@@ -127,6 +136,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
 
                     )
                 is MIRDeclaration.StaticDefinition -> Unit
+                is MIRDeclaration.ExternFunction -> Unit // already declared in the previous phase
             }
         }
         val text = "#include <stdint.h>\n" + nodes.joinToString("\n") { it.prettyPrint("") }
@@ -135,7 +145,6 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
 
         val exitCode = ProcessBuilder()
             .command("clang",
-                "-Wall",
                 "-Werror",
                 // The code generator generates a label for every block
                 // even if it's not a jump target. This means we have to

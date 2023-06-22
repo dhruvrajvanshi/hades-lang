@@ -7,6 +7,15 @@ sealed interface MIRDeclaration {
         val name: String
         val type: MIRType
     }
+    data class ExternFunction(
+        override val name: String,
+        val paramTypes: List<MIRType>,
+        val returnType: MIRType,
+    ): MIRDeclaration, GlobalDef {
+        override val type: MIRType.Function
+            get() = MIRType.Function(paramTypes, returnType)
+    }
+
     data class Function(
         override val name: String,
         val params: List<MIRParam>,
@@ -61,6 +70,10 @@ class MIRFunctionBuilder(
         builder.runBlock()
         addBlock(builder.build())
         location = builder.location
+    }
+
+    fun cstr(text: String): MIRValue.CStrLiteral {
+        return MIRValue.CStrLiteral(text)
     }
 
     internal fun build(): MIRDeclaration.Function = MIRDeclaration.Function(name, params, returnType, blocks)

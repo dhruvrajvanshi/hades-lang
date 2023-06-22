@@ -17,6 +17,8 @@ interface MIRVisitor {
         is MIRDeclaration.StaticDefinition -> {
             visitValue(declaration.initializer)
         }
+
+        is MIRDeclaration.ExternFunction -> Unit
     }
 
     fun visitValue(value: MIRValue) = when(value) {

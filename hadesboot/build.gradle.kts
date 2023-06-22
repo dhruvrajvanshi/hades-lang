@@ -30,6 +30,8 @@ dependencies {
     implementation("com.diogonunes:JColor:5.5.1")
     implementation("com.github.ajalt.clikt:clikt:3.5.2")
     implementation("org.bytedeco:llvm-platform:15.0.3-1.5.8")
+    implementation("commons-io:commons-io:2.13.0")
+
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
     implementation("com.charleskorn.kaml:kaml:0.53.0")
