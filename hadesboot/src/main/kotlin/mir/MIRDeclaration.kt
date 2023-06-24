@@ -41,7 +41,17 @@ sealed interface MIRDeclaration {
         override val type: MIRType,
         val initializer: MIRValue,
     ) : MIRDeclaration, GlobalDef
+
+    data class StructDefinition(
+        val name: String,
+        val fields: List<MIRStructField>,
+    ): MIRDeclaration
 }
+
+data class MIRStructField(
+    val name: String,
+    val type: MIRType,
+)
 
 data class MIRParam(
     val name: String,

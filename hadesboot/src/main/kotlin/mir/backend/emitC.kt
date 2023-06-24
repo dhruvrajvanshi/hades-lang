@@ -54,6 +54,11 @@ private sealed interface CNode {
 
         is CStatement.InitAssign -> "${type.prettyPrint()} ${name.text} = ${value.prettyPrint()};"
         is StaticDefinition -> "${type.prettyPrint()} ${name.text} = ${initializer.prettyPrint()};"
+        is StructDefinition -> "struct ${name.text} {\n${fields.joinToString("\n  ") {
+            it.second.prettyPrint() + " " + it.first.text + ";"
+        }}\n};"
+
+        is StructDeclaration -> "struct ${name.text};"
     }
 
     data class FunctionDeclaration(val name: CName, val params: List<CType>, val returnType: CType): CNode
@@ -64,6 +69,11 @@ private sealed interface CNode {
         val type: CType,
         val initializer: CExpr
     ) : CNode
+    data class StructDeclaration(val name: CName): CNode
+    data class StructDefinition(
+        val name: CName,
+        val fields: List<Pair<CName, CType>>,
+    ): CNode
 }
 
 private sealed interface CStatement: CNode {
@@ -93,7 +103,7 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
 
     fun run() {
         // Forward declarations of functions
-        for (declaration in root.declarations) {
+        for (declaration in root.declarations.sortedBy { it.declarationOrder }) {
             when (declaration) {
                 is MIRDeclaration.Function ->
                     nodes.add(
@@ -120,6 +130,10 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                             returnType = declaration.returnType.toCType(),
                         )
                     )
+
+                is MIRDeclaration.StructDefinition -> nodes.add(
+                    CNode.StructDeclaration(declaration.name.mangle())
+                )
             }
         }
 
@@ -137,6 +151,11 @@ class EmitC(private val root: MIRModule, private val outputFile: Path) {
                     )
                 is MIRDeclaration.StaticDefinition -> Unit
                 is MIRDeclaration.ExternFunction -> Unit // already declared in the previous phase
+                is MIRDeclaration.StructDefinition ->
+                    CNode.StructDefinition(
+                        declaration.name.mangle(),
+                        declaration.fields.map { it.name.mangle() to it.type.toCType() }
+                    )
             }
         }
         val text = "#include <stdint.h>\n" + nodes.joinToString("\n") { it.prettyPrint("") }
@@ -249,4 +268,11 @@ private fun String.escapeStringLiteral(): String {
             else -> it
         }
     }.joinToString("")
+}
+
+private val MIRDeclaration.declarationOrder get(): Int = when(this) {
+    is MIRDeclaration.StructDefinition -> 0
+    is MIRDeclaration.ExternFunction -> 1
+    is MIRDeclaration.Function -> 2
+    is MIRDeclaration.StaticDefinition -> 3
 }
