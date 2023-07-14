@@ -2,6 +2,7 @@
 /.idea/modules
 /.idea/.name
 /.idea/*.xml
+/.idea/sonarlint
 .gradle
 test_build
 /build
