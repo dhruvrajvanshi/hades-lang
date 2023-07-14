@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-extern void hades_main();
+extern void hades_main(int, char**);
 
 int main(int argc, char** argv) {
     GC_init();
