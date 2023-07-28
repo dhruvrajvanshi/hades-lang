@@ -26,7 +26,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("ch.qos.logback:logback-core:$logbackVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
-    implementation("org.apache.commons:commons-lang3:3.12.0")
+    implementation("org.apache.commons:commons-lang3:3.13.0")
     implementation("com.diogonunes:JColor:5.5.1")
     implementation("com.github.ajalt.clikt:clikt:3.5.2")
     implementation("org.bytedeco:llvm-platform:15.0.3-1.5.8")
