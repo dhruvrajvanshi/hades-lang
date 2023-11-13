@@ -79,7 +79,6 @@ sealed interface Declaration : HasLocation {
         val binder: Binder,
         val typeParams: List<TypeParam>? = null,
         val members: List<Member>,
-        val isRef: Boolean
     ) : Declaration, ScopeTree {
         override val startLoc: SourceLocation
             get() = binder.location
@@ -100,55 +99,6 @@ sealed interface Declaration : HasLocation {
         val name: Binder,
         val typeParams: List<TypeParam>?,
         val rhs: TypeAnnotation
-    ) : Declaration, ScopeTree
-
-    data class ExtensionDef(
-        override val location: SourceLocation,
-        val name: Binder,
-        val typeParams: List<TypeParam>?,
-        val forType: TypeAnnotation,
-        val whereClause: WhereClause?,
-        val declarations: List<Declaration>
-    ) : Declaration, ScopeTree {
-        val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
-    }
-
-    data class TraitDef(
-        override val location: SourceLocation,
-        val name: Binder,
-        val params: List<TypeParam>,
-        val members: List<TraitMember>
-    ) : Declaration, ScopeTree {
-
-        val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
-
-        fun hasAssociatedType(name: Identifier): Boolean {
-            return members.filterIsInstance<TraitMember.AssociatedType>()
-                .any { it.binder.identifier.name == name.name }
-        }
-    }
-
-    sealed class TraitMember : HasLocation {
-        data class Function(
-            val signature: FunctionSignature
-        ) : TraitMember() {
-            override val location get() = signature.location
-        }
-
-        data class AssociatedType(
-            val binder: Binder
-        ) : TraitMember() {
-            override val location get() = binder.location
-        }
-    }
-
-    data class ImplementationDef(
-        override val location: SourceLocation,
-        val typeParams: List<TypeParam>?,
-        val traitRef: QualifiedPath,
-        val traitArguments: List<TypeAnnotation>,
-        val whereClause: WhereClause?,
-        val body: List<Declaration>
     ) : Declaration, ScopeTree
 
     data class Enum(

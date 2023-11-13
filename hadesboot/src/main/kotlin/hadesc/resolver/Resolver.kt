@@ -10,7 +10,6 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import llvm.makeList
 
 class Resolver(private val ctx: Context) {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeTree>>()
@@ -31,17 +30,6 @@ class Resolver(private val ctx: Context) {
             val binding = findInScope(ident, scopeNode)
             if (binding != null) {
                 return binding
-            }
-        }
-        return null
-    }
-
-    fun resolveTraitDef(name: Identifier): TraitDef? {
-        val scopeStack = getScopeStack(name)
-        for (scope in scopeStack.scopes) {
-            val typeBinding = findTypeInScope(name, scope)
-            if (typeBinding is TypeBinding.Trait) {
-                return typeBinding.declaration
             }
         }
         return null
@@ -122,39 +110,6 @@ class Resolver(private val ctx: Context) {
             }
             if (param != null) TypeBinding.TypeParam(param.binder) else null
         }
-        is ExtensionDef -> {
-            val param = scopeNode.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }
-            if (param != null) TypeBinding.TypeParam(param.binder) else null
-        }
-        is TraitDef -> {
-            if (scopeNode.name.identifier.name == ident.name) {
-                TypeBinding.Trait(scopeNode)
-            }
-
-            val associatedType = scopeNode.members.filterIsInstance<TraitMember.AssociatedType>()
-                .find { it.binder.name == ident.name }
-            if (associatedType != null) {
-                TypeBinding.AssociatedType(associatedType.binder)
-            } else {
-                scopeNode.params.find {
-                    it.binder.identifier.name == ident.name
-                }?.let { TypeBinding.TypeParam(it.binder) }
-            }
-        }
-        is ImplementationDef -> {
-            val aliasDef = scopeNode.body.filterIsInstance<TypeAlias>().find {
-                it.name.name == ident.name
-            }
-            if (aliasDef != null) {
-                TypeBinding.TypeAlias(aliasDef)
-            } else {
-                scopeNode.typeParams?.find {
-                    it.binder.identifier.name == ident.name
-                }?.let { TypeBinding.TypeParam(it.binder) }
-            }
-        }
         is Closure -> null
         is Match -> null
         is Match.Arm -> null
@@ -177,8 +132,6 @@ class Resolver(private val ctx: Context) {
                 TypeBinding.Struct(declaration)
             } else if (declaration is TypeAlias && declaration.name.identifier.name == ident.name) {
                 TypeBinding.TypeAlias(declaration)
-            } else if (declaration is TraitDef && declaration.name.identifier.name == ident.name) {
-                TypeBinding.Trait(declaration)
             } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
                 TypeBinding.Enum(declaration)
             } else if (declaration is ImportMembers) {
@@ -205,9 +158,6 @@ class Resolver(private val ctx: Context) {
         is Block -> findInBlock(ident, scope)
         is Struct -> null
         is TypeAlias -> null
-        is ExtensionDef -> null
-        is TraitDef -> null
-        is ImplementationDef -> null
         is Closure -> findInClosure(ident, scope)
         is Declaration.Enum -> null
         is Match -> null
@@ -308,9 +258,6 @@ class Resolver(private val ctx: Context) {
                     }
                 }
                 is TypeAlias -> null
-                is ExtensionDef -> null
-                is TraitDef -> null
-                is ImplementationDef -> null
                 is ImportMembers -> {
                     val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
                     if (importedSourceFile != null && declaration.names.any { it.name == name }) {
@@ -484,101 +431,12 @@ class Resolver(private val ctx: Context) {
                     is ExternFunctionDef -> decl.binder.identifier.name == declName
                     is Struct -> decl.binder.identifier.name == declName
                     is TypeAlias -> decl.name.identifier.name == declName
-                    is ExtensionDef -> false
-                    is TraitDef -> decl.name.identifier.name == declName
-                    is ImplementationDef -> false
                     is ImportMembers -> false
                     is Declaration.Enum -> decl.name.identifier.name == declName
                     is ExternConst -> decl.name.identifier.name == declName
                 }
             )
             if (match) {
-                return decl
-            }
-        }
-        return null
-    }
-
-    fun resolveDeclaration(path: QualifiedPath): Declaration? {
-        if (path.identifiers.size == 1) {
-            val name = path.identifiers.first()
-            return findDeclarationOf(sourceFileOf(name), name)
-        } else {
-            require(path.identifiers.size == 2)
-            val moduleName = path.identifiers.first()
-            val sourceFile = sourceFileOf(moduleName)
-            for (declaration in sourceFile.declarations) {
-                if (declaration is ImportAs && declaration.asName.identifier.name == moduleName.name) {
-                    val name = path.identifiers[1]
-                    val file = ctx.resolveSourceFile(declaration.modulePath) ?: return null
-                    return findDeclarationOf(file, name)
-                }
-            }
-            return null
-        }
-    }
-
-    private fun findDeclarationOf(sourceFile: SourceFile, name: Identifier): Declaration? {
-        for (declaration in sourceFile.declarations) {
-            val decl = when (declaration) {
-                is Declaration.Error -> null
-                is ImportAs -> null
-                is FunctionDef -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is ConstDefinition -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is ExternConst -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is ExternFunctionDef -> if (declaration.binder.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is Struct -> if (declaration.binder.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is TypeAlias -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is ExtensionDef -> null
-                is TraitDef -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is ImplementationDef -> null
-                is ImportMembers -> {
-                    if (declaration.names.map { it.name }.contains(name.name)) {
-                        val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                        if (importedSourceFile != null) {
-                            findDeclarationOf(importedSourceFile, name)
-                        } else {
-                            null
-                        }
-                    } else {
-                        null
-                    }
-                }
-                is Declaration.Enum -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-            }
-            if (decl != null) {
                 return decl
             }
         }
@@ -593,23 +451,7 @@ class Resolver(private val ctx: Context) {
         return getEnclosingScopeTree(node)
     }
 
-    fun getEnclosingWhileLoop(node: HasLocation): Statement.While? {
-        return getEnclosingScopeTree(node)
-    }
-
     fun getEnclosingMatchExpression(node: HasLocation): Match? {
-        return getEnclosingScopeTree(node)
-    }
-
-    fun getEnclosingTraitDef(node: HasLocation): TraitDef? {
-        return getEnclosingScopeTree(node)
-    }
-
-    fun getEnclosingExtensionDef(node: HasLocation): ExtensionDef? {
-        return getEnclosingScopeTree(node)
-    }
-
-    fun getEnclosingImpl(node: HasLocation): ImplementationDef? {
         return getEnclosingScopeTree(node)
     }
 
@@ -624,82 +466,6 @@ class Resolver(private val ctx: Context) {
 
     fun resolveGlobalName(binder: Binder): QualifiedName {
         return sourceFileOf(binder).moduleName.append(binder.identifier.name)
-    }
-
-    fun extensionDefsInScope(node: HasLocation): Sequence<ExtensionDef> = sequence {
-        val declarations = sourceFileOf(node).declarations
-        yieldAll(extensionDefsInDeclarations(declarations, includeImports = true))
-    }
-
-    private fun extensionDefsInDeclarations(declarations: List<Declaration>, includeImports: Boolean): Sequence<ExtensionDef> = sequence {
-        for (declaration in declarations) {
-            if (includeImports && declaration is ImportAs) {
-                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                if (sourceFile != null) {
-                    yieldAll(
-                        extensionDefsInDeclarations(
-                            sourceFile.declarations,
-                            // extensions are not transitively included
-                            includeImports = false
-                        )
-                    )
-                }
-            }
-            if (includeImports && declaration is ImportMembers) {
-                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                if (sourceFile != null) {
-                    yieldAll(
-                        extensionDefsInDeclarations(
-                            sourceFile.declarations,
-                            // extensions are not transitively included
-                            includeImports = false
-                        )
-                    )
-                }
-            }
-            if (declaration !is ExtensionDef) {
-                continue
-            }
-            yield(declaration)
-        }
-    }
-
-    val implementationDefs by lazy {
-        makeList {
-            ctx.forEachSourceFile {
-                addAll(implementationDefsInDeclarations(it.declarations))
-            }
-        }
-    }
-
-    private fun implementationDefsInDeclarations(declarations: List<Declaration>): Sequence<ImplementationDef> = sequence {
-        for (declaration in declarations) {
-            if (declaration is ImportAs) {
-                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                if (sourceFile != null) {
-                    yieldAll(
-                        implementationDefsInDeclarations(
-                            sourceFile.declarations
-                        )
-                    )
-                }
-            }
-            if (declaration !is ImplementationDef) {
-                continue
-            }
-            yield(declaration)
-        }
-    }
-
-    fun findTraitInSourceFile(name: Identifier, sourceFile: SourceFile): TraitDef? {
-        for (declaration in sourceFile.declarations) {
-            if (declaration is TraitDef) {
-                if (declaration.name.identifier.name == name.name) {
-                    return declaration
-                }
-            }
-        }
-        return null
     }
 
     fun onParseMatchArm(arm: Match.Arm) {

@@ -35,7 +35,6 @@ sealed class HIRDefinition : HasLocation {
             val functionPtrType = Type.FunctionPtr(
                 from = params.map { it.type },
                 to = returnType,
-                traitRequirements = null
             )
             return if (typeParams != null) {
                 Type.TypeFunction(
@@ -51,7 +50,6 @@ sealed class HIRDefinition : HasLocation {
             val functionPtrType = Type.FunctionPtr(
                 from = params.map { it.type },
                 to = returnType,
-                traitRequirements = null
             ).ptr()
             return if (typeParams != null) {
                 Type.TypeFunction(
@@ -82,7 +80,6 @@ sealed class HIRDefinition : HasLocation {
         val type get() = Type.FunctionPtr(
             from = params,
             to = returnType,
-            traitRequirements = null
         )
     }
 
@@ -125,7 +122,6 @@ sealed class HIRDefinition : HasLocation {
             val fnType = Type.FunctionPtr(
                 from = fields.map { it.second },
                 to = instanceType,
-                traitRequirements = null
             )
 
             return if (typeParams == null) {

@@ -78,13 +78,9 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
             commandParts.add("/MD")
             commandParts.add("-I")
             commandParts.add("$hadesHome/include")
-            commandParts.addAll(
-                sequenceOf("gc.lib", "cord.lib", "atomic_ops.lib").map { "$hadesHome/lib/$it" }
-            )
         } else {
             commandParts.add("-L$hadesHome/lib")
             commandParts.add("-I$hadesHome/include")
-            commandParts.add("-lgc")
         }
 
         val outputFile = target.output?.toFile()

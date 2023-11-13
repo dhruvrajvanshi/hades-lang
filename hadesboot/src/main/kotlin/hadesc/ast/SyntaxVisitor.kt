@@ -78,7 +78,6 @@ interface SyntaxVisitor {
         is Expression.PointerCast -> visitPointerCast(expression)
         is Expression.Property -> visitPropertyExpr(expression)
         is Expression.SizeOf -> visitSizeOfExpr(expression)
-        is Expression.This -> visitThisExpr(expression)
         is Expression.TypeApplication -> visitTypeApplicationExpr(expression)
         is Expression.Var -> visitVarExpr(expression)
         is Expression.As -> visitAsExpression(expression)
@@ -89,15 +88,12 @@ interface SyntaxVisitor {
         is Expression.Match -> visitMatchExpression(expression)
         is Expression.FloatLiteral -> visitFloatLiteral(expression)
         is Expression.Uninitialized -> visitUninitializedLiteral(expression)
-        is Expression.Move -> visitMoveExpression(expression)
         is Expression.AlignOf -> visitAlignOfExpression(expression)
     }
 
     fun visitAlignOfExpression(expression: Expression.AlignOf) {
         visitType(expression.type)
     }
-
-    fun visitMoveExpression(expression: Expression.Move) = unit
 
     fun visitUninitializedLiteral(expression: Expression.Uninitialized) = unit
 
@@ -256,9 +252,6 @@ interface SyntaxVisitor {
 
     fun visitSizeOfExpr(expression: Expression.SizeOf) {
         visitType(expression.type)
-    }
-
-    fun visitThisExpr(expression: Expression.This) {
     }
 
     fun visitTypeApplicationExpr(expression: Expression.TypeApplication) {

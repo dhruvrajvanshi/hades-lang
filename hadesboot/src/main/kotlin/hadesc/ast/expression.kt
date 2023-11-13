@@ -105,10 +105,6 @@ sealed interface Expression : HasLocation {
         val args: List<TypeAnnotation>
     ) : Expression
 
-    data class This(
-        override val location: SourceLocation
-    ) : Expression
-
     data class Closure(
         override val location: SourceLocation,
         val params: List<Param>,
@@ -156,8 +152,6 @@ sealed interface Expression : HasLocation {
     ) : Expression
 
     data class FloatLiteral(override val location: SourceLocation, val value: Double) : Expression
-
-    data class Move(override val location: SourceLocation, val name: Identifier) : Expression
 }
 
 enum class IntrinsicType {

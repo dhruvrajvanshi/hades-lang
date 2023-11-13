@@ -81,7 +81,6 @@ interface TypeTransformer {
     fun lowerFunctionType(type: Type.FunctionPtr): Type = Type.FunctionPtr(
         from = type.from.map { lowerType(it) },
         to = lowerType(type.to),
-        traitRequirements = type.traitRequirements?.map { lowerTraitRequirement(it) }
     )
 
     fun lowerTraitRequirement(requirement: TraitRequirement): TraitRequirement {
@@ -167,7 +166,6 @@ interface TypeVisitor {
     fun visitFunctionType(type: Type.FunctionPtr) {
         type.from.forEach { visitType(it) }
         visitType(type.to)
-        type.traitRequirements?.forEach { visitTraitRequirement(it) }
     }
 
     fun visitTraitRequirement(requirement: TraitRequirement) {

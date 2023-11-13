@@ -1,7 +1,6 @@
 package hadesc.parser
 
 import hadesc.ast.Token
-import hadesc.context.FileTextProvider
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -31,8 +30,6 @@ val KEYWORDS = mapOf(
     "align_of" to tt.ALIGN_OF,
     "pointer_cast" to tt.POINTER_CAST,
     "mut" to tt.MUT,
-    "trait" to tt.TRAIT,
-    "implementation" to tt.IMPLEMENTATION,
     "for" to tt.FOR,
     "is" to tt.IS,
     "enum" to tt.ENUM,
@@ -40,13 +37,8 @@ val KEYWORDS = mapOf(
     "defer" to tt.DEFER,
     "type" to tt.TYPE,
     "where" to tt.WHERE,
-    "this" to tt.THIS,
-    "extension" to tt.EXTENSION,
     "match" to tt.MATCH,
     "@" to tt.AT_SYMBOL,
-    "@intrinsic" to tt.AT_INTRINSIC,
-    "move" to tt.MOVE,
-    "ref" to tt.REF,
     "array" to tt.ARRAY
 )
 

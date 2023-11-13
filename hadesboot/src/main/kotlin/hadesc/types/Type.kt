@@ -33,7 +33,6 @@ sealed interface Type {
     data class FunctionPtr(
         val from: List<Type>,
         val to: Type,
-        val traitRequirements: List<TraitRequirement>? = null
     ) : Type
 
     data class Closure(
@@ -130,9 +129,6 @@ sealed interface Type {
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is FunctionPtr -> FunctionPtr(
                 from = this.from.map { it.recurse() },
-                traitRequirements = this.traitRequirements?.map {
-                    TraitRequirement(it.traitRef, it.arguments.map { t -> t.recurse() }, it.negated)
-                },
                 to = this.to.recurse()
             )
             is ParamRef -> {

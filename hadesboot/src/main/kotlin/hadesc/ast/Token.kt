@@ -26,8 +26,6 @@ data class Token(
         ALIGN_OF,
         POINTER_CAST,
         MUT,
-        TRAIT,
-        IMPLEMENTATION,
         FOR,
         IS,
         ENUM,
@@ -35,11 +33,7 @@ data class Token(
         DEFER,
         TYPE,
         WHERE,
-        THIS,
-        EXTENSION,
         MATCH,
-        MOVE,
-        REF,
         ARRAY,
 
         NOT,
@@ -84,7 +78,6 @@ data class Token(
         LSQB,
         RSQB,
         AT_SYMBOL,
-        AT_INTRINSIC,
         PRAGMA,
         VBAR,
 

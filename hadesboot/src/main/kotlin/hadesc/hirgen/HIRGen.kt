@@ -160,9 +160,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         is Declaration.ExternFunctionDef -> emptyList()
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.TypeAlias -> emptyList()
-        is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
-        is Declaration.TraitDef -> traitGen.lowerTraitDef(declaration)
-        is Declaration.ImplementationDef -> traitGen.lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
         is Declaration.Enum -> lowerEnumDef(declaration)
         is Declaration.ExternConst -> lowerExternConstDef(declaration)
@@ -177,27 +174,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 declaration.externName.name
             )
         )
-    }
-
-    private var currentExtensionDef: Declaration.ExtensionDef? = null
-    private fun lowerExtensionDef(declaration: Declaration.ExtensionDef): List<HIRDefinition> {
-        require(currentExtensionDef == null)
-        currentExtensionDef = declaration
-        val list = mutableListOf<HIRDefinition>()
-        for (functionDef in declaration.functionDefs) {
-            list.add(
-                lowerFunctionDef(
-                    functionDef,
-                    extensionMethodName(declaration, functionDef)
-                )
-            )
-        }
-        currentExtensionDef = null
-        return list
-    }
-
-    private fun extensionMethodName(declaration: Declaration.ExtensionDef, functionDef: Declaration.FunctionDef): QualifiedName {
-        return ctx.resolver.qualifiedName(declaration.name).append(functionDef.name.identifier.name)
     }
 
     private fun lowerConstDef(declaration: Declaration.ConstDefinition): List<HIRDefinition> {
@@ -369,29 +345,13 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         val returnType = lowerTypeAnnotation(signature.returnType)
         val name = qualifiedName ?: lowerGlobalName(signature.name)
         val params = mutableListOf<HIRParam>()
-        if (signature.thisParamFlags != null) {
-            require(qualifiedName != null)
-            params.add(
-                HIRParam(
-                    signature.location,
-                    binder = checkNotNull(signature.thisParamBinder),
-                    type = thisParamType()
-                )
-            )
-        }
         params.addAll(signature.params.map { lowerParam(it) })
 
         var typeParams: MutableList<HIRTypeParam>? = mutableListOf()
-        val extensionDef = currentExtensionDef
-        if (extensionDef != null) {
-            extensionDef.typeParams?.map { lowerTypeParam(it) }?.let {
-                typeParams?.addAll(it)
-            }
-        }
         signature.typeParams?.map { lowerTypeParam(it) }?.let {
             typeParams?.addAll(it)
         }
-        if (extensionDef?.typeParams == null && signature.typeParams == null) {
+        if (signature.typeParams == null) {
             typeParams = null
         }
 
@@ -464,11 +424,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     }
 
     private fun lowerMemberAssignmentStatement(statement: Statement.MemberAssignment) {
-        val lhsType = statement.lhs.lhs.type
-        if (ctx.analyzer.isRefStructType(lhsType)) {
-            lowerRefStructMemberAssignment(statement)
-            return
-        }
         when (statement.lhs.lhs) {
             is Expression.Var -> {
                 val binding = ctx.resolver.resolve(statement.lhs.lhs.name)
@@ -483,29 +438,8 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     )
                 )
             }
-            is Expression.This -> {
-                val enclosingExtension = checkNotNull(ctx.resolver.getEnclosingFunction(statement))
-                val thisFlags = checkNotNull(enclosingExtension.signature.thisParamFlags)
-                check(thisFlags.isPointer)
-                check(thisFlags.isMutable)
-
-                val thisValue = lowerThisExpression(statement.lhs.lhs)
-                emitStore(
-                    thisValue
-                        .fieldPtr(statement.lhs.property.name),
-                    lowerExpression(statement.value)
-                )
-            }
             else -> requireUnreachable()
         }
-    }
-
-    private fun lowerRefStructMemberAssignment(statement: Statement.MemberAssignment) {
-        val ref = lowerExpression(statement.lhs.lhs)
-        ref.storeRefField(
-            statement.lhs.property.name,
-            lowerExpression(statement.value)
-        )
     }
 
     private fun lowerPointerAssignment(statement: Statement.PointerAssignment) {
@@ -626,7 +560,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             is Expression.PointerCast -> lowerPointerCast(expression)
             is Expression.If -> lowerIfExpression(expression)
             is Expression.TypeApplication -> lowerTypeApplication(expression)
-            is Expression.This -> lowerThisExpression(expression)
             is Expression.Closure -> {
                 val oldDeferStack = deferStack
                 deferStack = Stack()
@@ -642,7 +575,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             is Expression.Match -> lowerMatchExpression(expression)
             is Expression.FloatLiteral -> lowerFloatLiteral(expression)
             is Expression.Uninitialized -> lowerUninitialized(expression)
-            is Expression.Move -> lowerMoveExpression(expression)
             is Expression.AlignOf -> lowerAlignOfExpression(expression)
         }
         val typeArgs = ctx.analyzer.getTypeArgs(expression)
@@ -688,35 +620,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             type = Type.usize,
             ofType = lowerTypeAnnotation(expression.type)
         )
-    }
-
-    private fun lowerMoveExpression(expression: Expression.Move): HIROperand {
-        val binding = ctx.resolver.resolve(expression.name)
-        check(binding != null)
-
-        // the basic idea here is this.
-        // This is the last time we should allow the use of this name
-        // Emitting a move instruction directly here doesn't work because
-        // that will flag this use as well.
-        // so we just create a new variable for this use, copy the original variable into
-        // the new one and then emit a move instruction
-
-        // / foo(move x, x)
-        // / This should emit the following:
-        // /
-        // / moveFrom = alloca typeof x
-        // / store moveFrom = x
-        // / move x
-        // / foo(
-        //      moveFrom, // this is fine
-        //      x,  // this is a move after use
-        //      )
-        val moveFrom = exprGen.lowerBinding(expression, binding)
-        val alloca = emitAlloca(namePrefix = expression.name.name.text + "_moved", expression.type)
-        emitStore(alloca.mutPtr(), moveFrom)
-        emit(HIRStatement.Move(currentLocation, binding.binder.name))
-
-        return alloca.ptr().load()
     }
 
     private fun lowerUninitialized(expression: Expression.Uninitialized): HIROperand {
@@ -876,27 +779,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
 
     private fun lowerTypeApplication(expression: Expression.TypeApplication): HIRExpression {
         return lowerExpression(expression.lhs)
-    }
-
-    private fun thisParamType(): Type {
-        val functionDef = requireNotNull(currentFunctionDef)
-        val extensionDef = requireNotNull(currentExtensionDef)
-        val extensionForType = lowerTypeAnnotation(extensionDef.forType)
-        val thisParamFlags = requireNotNull(functionDef.signature.thisParamFlags)
-        return if (thisParamFlags.isPointer) {
-            Type.Ptr(extensionForType, isMutable = thisParamFlags.isMutable)
-        } else {
-            extensionForType
-        }
-    }
-
-    private fun lowerThisExpression(expression: Expression.This): HIROperand {
-        return HIRExpression.ParamRef(
-            expression.location,
-            thisParamType(),
-            name = ctx.makeName("this"),
-            binder = Binder(Identifier(expression.location, ctx.makeName("this")))
-        )
     }
 
     private fun lowerPointerCast(expression: Expression.PointerCast): HIROperand {
@@ -1084,19 +966,8 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
         is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
         is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression)
-        is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
-        is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
         is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
-        is PropertyBinding.TraitFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
-    }
-
-    private fun lowerExtensionPropertyBinding(expression: Expression.Property, binding: PropertyBinding.ExtensionDef): HIROperand {
-        return HIRExpression.GlobalRef(
-            expression.location,
-            binding.type,
-            extensionMethodName(binding.extensionDef, binding.functionDef)
-        )
     }
 
     private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIROperand {
@@ -1171,10 +1042,6 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     private fun lowerStructFieldBinding(
         expression: Expression.Property
     ): HIROperand {
-        if (ctx.analyzer.isRefStructType(expression.lhs.type)) {
-            return lowerExpression(expression.lhs)
-                .loadRefField(expression.property.name)
-        }
         return lowerExpression(expression.lhs)
             .getStructField(expression.property.name)
     }

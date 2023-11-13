@@ -35,7 +35,6 @@ internal class HIRGenExpression(
     ): HIROperand = when (binding) {
         is Binding.Local -> {
             val name = when (expression) {
-                is Expression.Move -> expression.name
                 is Expression.Var -> expression.name
                 else -> requireUnreachable()
             }
@@ -167,9 +166,6 @@ internal class HIRGenExpression(
 
         val calleeWithoutTypeArgs = expression.callee.withoutTypeArgs()
         val calleeStructDecl = ctx.analyzer.getStructDeclaration(calleeWithoutTypeArgs)
-        if (calleeStructDecl != null && calleeStructDecl.isRef) {
-            return lowerRefStructConstructorCall(calleeStructDecl, expression)
-        }
         val callee = lowerExpression(expression.callee)
         if (callee.type is Type.Closure) {
             return emit(
@@ -185,32 +181,11 @@ internal class HIRGenExpression(
             val calleeType = callee.type
             check(calleeType is Type.FunctionPtr)
         }
-        val receiver = ctx.analyzer.getCallReceiver(expression)?.let { lowerExpression(it) }
-        val args =
-            if (receiver != null) {
-                listOf(receiver) + expression.args.map { lowerExpression(it.expression) }
-            } else {
-                expression.args.map { lowerExpression(it.expression) }
-            }
+        val args = expression.args.map { lowerExpression(it.expression) }
         return emitCall(
             callee = callee,
             args = args
         ).result()
-    }
-
-    private fun lowerRefStructConstructorCall(structDecl: Declaration.Struct, expression: Expression.Call): HIRExpression {
-        check(ctx.analyzer.isRefStructType(expression.type))
-        val loweredType = lowerType(expression.type)
-        check(loweredType is Type.Ref)
-        val ref = emitAllocRef(ofType = loweredType.inner).ref()
-        val fields = structDecl.fields
-        check(fields.size == expression.args.size)
-
-        for ((field, arg) in fields.zip(expression.args)) {
-            ref.storeRefField(field.binder.name, lowerExpression(arg.expression))
-        }
-
-        return ref
     }
 
     private fun isIntrinsicCall(expression: Expression.Call): Boolean {

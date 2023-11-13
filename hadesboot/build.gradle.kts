@@ -1,8 +1,8 @@
 plugins {
     java
     application
-    kotlin("jvm") version "1.9.0"
-    kotlin("plugin.serialization") version "1.9.0"
+    kotlin("jvm") version "1.9.20"
+    kotlin("plugin.serialization") version "1.9.20"
     jacoco
 }
 
@@ -78,7 +78,7 @@ val copyStdlib = tasks.register<Copy>("copyStdlib") {
 }
 
 val assembleHadesHome = tasks.register("assembleHadesHome") {
-    dependsOn(copyStdlib, installGC)
+    dependsOn(copyStdlib)
 }
 
 val cleanHadesHome = tasks.register("cleanHadesHome") {
@@ -98,9 +98,6 @@ distributions {
 
             from("$hadesHome/lib") {
                 into("lib")
-            }
-            from("$hadesHome/include") {
-                into("include")
             }
         }
     }
@@ -144,31 +141,6 @@ distributions {
     }
 }
 
-val configureGC = tasks.register<Exec>("configureGC") {
-    workingDir = File("../bdwgc")
-    commandLine(
-        "cmake",
-        "-DCMAKE_INSTALL_PREFIX=${hadesHome}",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-S", ".", "-B", "out")
-}
-val buildGC = tasks.register<Exec>("buildGC") {
-    dependsOn(configureGC)
-    inputs.dir("../bdwgc")
-    workingDir = File("../bdwgc")
-    commandLine("cmake", "--build", "out", "--config", "Release")
-}
-val installGC = tasks.register<Exec>("installGC") {
-    dependsOn(buildGC)
-    inputs.dir("../bdwgc")
-    workingDir = File("../bdwgc")
-    commandLine("cmake", "--install", "out")
-}
-
-val cleanGCBuild = tasks.register("cleanGCBuild") {
-    delete("../bdwgc/out")
-}
-
 tasks.clean {
-    dependsOn(cleanGCBuild, cleanHadesHome)
+    dependsOn(cleanHadesHome)
 }
