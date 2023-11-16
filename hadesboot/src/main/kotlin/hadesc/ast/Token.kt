@@ -87,5 +87,7 @@ data class Token(
         EOF,
         ERROR
     }
+
+    infix fun isA(kind: Token.Kind): Boolean = this.kind == kind
 }
 typealias TokenKind = Token.Kind

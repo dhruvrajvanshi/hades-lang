@@ -3,8 +3,8 @@ package hadesc.parser
 import hadesc.ast.Token
 import hadesc.location.Position
 import hadesc.location.SourceLocation
-import hadesc.location.SourcePath
 import hadesc.text.Text
+import java.nio.file.Path
 
 private const val EOF_CHAR = Char.MIN_VALUE
 
@@ -59,7 +59,7 @@ val SINGLE_CHAR_TOKENS = mapOf(
     '%' to tt.PERCENT
 )
 
-class Lexer(private val file: SourcePath, text: Text) {
+class Lexer(private val file: Path, text: Text) {
     private val state = State(text)
 
     class State(input: Text) {

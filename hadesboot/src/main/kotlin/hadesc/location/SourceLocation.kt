@@ -1,10 +1,11 @@
 package hadesc.location
 
 import kotlinx.serialization.Serializable
+import java.nio.file.Path
 
 @Serializable
 data class SourceLocation(
-    val file: SourcePath,
+    val file: Path,
     val start: Position,
     val stop: Position
 ) : Comparable<SourceLocation>, HasLocation {
