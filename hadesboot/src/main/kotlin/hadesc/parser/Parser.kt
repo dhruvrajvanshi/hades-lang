@@ -1,6 +1,8 @@
 package hadesc.parser
 
 import hadesc.ast.*
+import hadesc.location.HasLocation
+import hadesc.location.SourceLocation
 import hadesc.text.Text
 import llvm.makeList
 import java.nio.file.Path
@@ -18,11 +20,22 @@ class Parser(
     file: Path,
     text: Text
 ) {
+    private var _nextId = 0
     private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file, text))
-    val currentToken get() = tokenBuffer.currentToken
+    internal val currentToken get() = tokenBuffer.currentToken
 
+    internal fun nodeData(start: HasLocation, stop: HasLocation) = NodeData(
+        id = nextId(),
+        location = SourceLocation.between(start, stop)
+    )
 
-    inline fun <reified T> parseSeparatedList(
+    private fun nextId(): NodeId {
+        val id = _nextId
+        _nextId++
+        return NodeId(id)
+    }
+
+    internal inline fun <reified T> parseSeparatedList(
         separator: Token.Kind,
         terminator: Token.Kind,
         parseItem: () -> T
@@ -37,7 +50,7 @@ class Parser(
         }
     }
 
-    fun expect(kind: Token.Kind): Token {
+    internal fun expect(kind: Token.Kind): Token {
         return if (currentToken.kind == kind) {
             advance()
         } else {
@@ -49,12 +62,14 @@ class Parser(
             ) {
                 currentToken
             } else {
-                TODO("Unexpected token: ${currentToken.kind}; Expected $kind")
+                TODO("Unexpected token: ${currentToken.kind}; Expected $kind; ${currentToken.text} ${peek(1).text}")
             }
         }
     }
 
-    fun advance(): Token {
+    internal fun peek(offset: Int = 1) = tokenBuffer.peek(1)
+
+    internal fun advance(): Token {
         return tokenBuffer.advance()
     }
 

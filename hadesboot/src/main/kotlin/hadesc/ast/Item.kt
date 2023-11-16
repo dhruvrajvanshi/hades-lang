@@ -9,12 +9,13 @@ sealed interface Item : Node {
         override val nodeData: NodeData,
         override val name: Ident,
         val body: Expr.Block,
-        val signature: FnSignature,
+        val signature: FnSig,
     ): Item
 }
 
-data class FnSignature(
-    val params: ArrayList<Param>
+data class FnSig(
+    val params: List<Param>,
+    val output: Ty,
 )
 
 data class Param(

@@ -7,6 +7,15 @@ private fun Parser.parseExpression(): Expr {
     return parseExpressionMinPrecedence(0)
 }
 
+internal fun Parser.parseBlock(): Expr.Block {
+    val start = expect(t.LBRACE)
+    val stop = expect(t.RBRACE)
+
+    return Expr.Block(
+        nodeData(start, stop),
+    )
+}
+
 private fun Parser.parseExpressionMinPrecedence(minPrecedence: Int): Expr {
     return if (minPrecedence == OPERATORS.size) {
         parsePrimaryExpression()

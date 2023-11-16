@@ -11,6 +11,13 @@ data class Token(
     enum class Kind {
         PUB,
         FN,
+        ID,
+
+        ARROW,
+        LPAREN,
+        RPAREN,
+        LBRACE,
+        RBRACE,
 
         IMPORT,
         AS,
@@ -56,9 +63,7 @@ data class Token(
 
         EQEQ,
 
-        ARROW,
 
-        ID,
         INT_LITERAL,
         FLOAT_LITERAL,
         BYTE_CHAR_LITERAL,
@@ -69,10 +74,6 @@ data class Token(
 
         DOT,
         SEMICOLON,
-        LPAREN,
-        RPAREN,
-        LBRACE,
-        RBRACE,
         COMMA,
         COLON,
         STAR,
