@@ -67,7 +67,7 @@ class Parser(
         }
     }
 
-    internal fun peek(offset: Int = 1) = tokenBuffer.peek(1)
+    internal fun peek(offset: Int = 1) = tokenBuffer.peek(offset)
 
     internal fun advance(): Token {
         return tokenBuffer.advance()
