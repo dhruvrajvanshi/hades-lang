@@ -8,9 +8,6 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.path
 import hadesc.BuildCLIOptions
-import hadesc.context.BuildTarget
-import hadesc.context.Context
-import hadesc.diagnostics.Diagnostic
 import hadesc.logging.logger
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -33,53 +30,5 @@ class BuildCommand : CliktCommand(
         // as a List
         .help("Internal flag. To be used only by the implementation").flag()
 
-    override fun run() {
-        if (skipExec) {
-            return
-        }
-        val diagnostics = execute()
-        if (diagnostics.isNotEmpty()) {
-            println("Build failed with errors")
-            exitProcess(1)
-        }
-    }
-
-    fun execute(): List<Diagnostic> {
-        val options = buildOptions.toBuildOptions()
-        val ctx = Context(
-            options,
-            BuildTarget.Executable(
-                mainSourcePath = main,
-                output = output
-            )
-        )
-        log.debug("Building")
-        ctx.build()
-
-        if (options.jsonDiagnostics) {
-            emitJSONDiagnostics(ctx.diagnosticReporter.errors)
-        }
-        return ctx.diagnosticReporter.errors
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    private fun emitJSONDiagnostics(errors: List<Diagnostic>) {
-        val dotHadesDir = File(".hades")
-        if (dotHadesDir.exists() && !dotHadesDir.isDirectory) {
-            dotHadesDir.delete()
-        }
-        if (!dotHadesDir.exists()) {
-            dotHadesDir.mkdir()
-        }
-
-        val diagnosticsJSONFile = Paths.get(dotHadesDir.path, "diagnostics.json").toFile()
-
-        if (diagnosticsJSONFile.exists()) {
-            diagnosticsJSONFile.delete()
-        }
-
-        diagnosticsJSONFile.outputStream().buffered().use {
-            Json.encodeToStream(errors, it)
-        }
-    }
+    override fun run() = TODO()
 }

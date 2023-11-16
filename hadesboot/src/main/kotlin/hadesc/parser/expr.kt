@@ -1,16 +1,13 @@
 package hadesc.parser
 
+import hadesc.ast.Expr
 import hadesc.ast.TokenKind
-import hadesc.location.SourceLocation
 
-sealed interface Expression {
-    val location: SourceLocation
-}
-private fun Parser.parseExpression(): Expression {
+private fun Parser.parseExpression(): Expr {
     return parseExpressionMinPrecedence(0)
 }
 
-private fun Parser.parseExpressionMinPrecedence(minPrecedence: Int): Expression {
+private fun Parser.parseExpressionMinPrecedence(minPrecedence: Int): Expr {
     return if (minPrecedence == OPERATORS.size) {
         parsePrimaryExpression()
     } else {
@@ -31,8 +28,8 @@ private fun Parser.parseExpressionMinPrecedence(minPrecedence: Int): Expression 
     }
 }
 
-private fun makeBinOp(lhs: Expression, operatorToken: TokenKind, rhs: Expression): Expression = TODO()
-private fun parsePrimaryExpression(withTail: Boolean = true, allowCalls: Boolean = true): Expression = TODO()
+private fun makeBinOp(lhs: Expr, operatorToken: TokenKind, rhs: Expr): Expr = TODO()
+private fun parsePrimaryExpression(withTail: Boolean = true, allowCalls: Boolean = true): Expr = TODO()
 
 
 private val OPERATORS = listOf(

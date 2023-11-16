@@ -9,8 +9,10 @@ import java.nio.file.Path
 private const val EOF_CHAR = Char.MIN_VALUE
 
 val KEYWORDS = mapOf(
+    "pub" to tt.PUB,
+    "fn" to tt.FN,
+
     "import" to tt.IMPORT,
-    "def" to tt.DEF,
     "as" to tt.AS,
     "extern" to tt.EXTERN,
     "return" to tt.RETURN,

@@ -9,8 +9,10 @@ data class Token(
     val text: String
 ) : HasLocation {
     enum class Kind {
+        PUB,
+        FN,
+
         IMPORT,
-        DEF,
         AS,
         EXTERN,
         RETURN,
