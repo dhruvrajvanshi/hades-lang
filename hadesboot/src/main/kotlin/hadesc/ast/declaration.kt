@@ -75,6 +75,7 @@ sealed interface Declaration : HasLocation {
 
     data class Struct(
         override val location: SourceLocation,
+        val id: DefId,
         val decorators: List<Decorator>,
         val binder: Binder,
         val typeParams: List<TypeParam>? = null,
@@ -153,6 +154,7 @@ sealed interface Declaration : HasLocation {
 
     data class Enum(
         override val location: SourceLocation,
+        val id: DefId,
         val decorators: List<Decorator>,
         val name: Binder,
         val typeParams: List<TypeParam>?,

@@ -2,7 +2,6 @@ package hadesc.parser
 
 import hadesc.ast.*
 import hadesc.context.Context
-import hadesc.context.FileTextProvider
 import hadesc.diagnostics.Diagnostic
 import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
@@ -169,6 +168,7 @@ class Parser(
         val stop = expect(tt.RBRACE)
         return Declaration.Enum(
             makeLocation(start, stop),
+            ctx.makeDefId(),
             decorators,
             name,
             typeParams,
@@ -413,6 +413,7 @@ class Parser(
 
         return Declaration.Struct(
             makeLocation(start, stop),
+            ctx.makeDefId(),
             decorators,
             binder,
             typeParams,

@@ -185,6 +185,9 @@ class Context(
     }
 
     fun enumTagType(): Type = enumTagType
+
+    private var nextDefId = 0
+    fun makeDefId(): DefId = DefId(nextDefId).also { nextDefId++ }
 }
 
 interface FileTextProvider {
