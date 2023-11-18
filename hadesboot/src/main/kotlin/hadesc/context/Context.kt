@@ -190,7 +190,7 @@ class Context(
     fun makeDefId(): DefId = DefId(nextDefId).also { nextDefId++ }
 
     private var nextSourceFileId = 0
-    fun makeSourceFileId(): SourceFile.Id = SourceFile.Id(nextSourceFileId).also { nextSourceFileId++ }
+    fun makeSourceFileId() = SourceFileId(nextSourceFileId).also { nextSourceFileId++ }
 }
 
 interface FileTextProvider {
