@@ -13,7 +13,7 @@ interface TypeTransformer {
         is Type.Ptr -> lowerRawPtrType(type)
         is Type.FunctionPtr -> lowerFunctionType(type)
         is Type.Constructor -> lowerTypeConstructor(type)
-        is Type.ParamRef -> lowerParamRefType(type)
+        is Type.Param -> lowerParamRefType(type)
         is Type.GenericInstance -> lowerGenericInstance(type)
         is Type.Application -> lowerTypeApplication(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
@@ -94,7 +94,7 @@ interface TypeTransformer {
 
     fun lowerTypeConstructor(type: Type.Constructor): Type = type
 
-    fun lowerParamRefType(type: Type.ParamRef): Type = type
+    fun lowerParamRefType(type: Type.Param): Type = type
 
     fun lowerTypeApplication(type: Type.Application): Type = Type.Application(
         callee = lowerType(type.callee) as Type.Constructor,
@@ -117,7 +117,7 @@ interface TypeVisitor {
         is Type.Ptr -> visitRawPtrType(type)
         is Type.FunctionPtr -> visitFunctionType(type)
         is Type.Constructor -> visitTypeConstructor(type)
-        is Type.ParamRef -> visitParamRefType(type)
+        is Type.Param -> visitParamRefType(type)
         is Type.GenericInstance -> visitGenericInstance(type)
         is Type.Application -> visitTypeApplication(type)
         is Type.UntaggedUnion -> visitUntaggedUnionType(type)
@@ -180,7 +180,7 @@ interface TypeVisitor {
 
     fun visitTypeConstructor(type: Type.Constructor) = Unit
 
-    fun visitParamRefType(type: Type.ParamRef) = Unit
+    fun visitParamRefType(type: Type.Param) = Unit
 
     fun visitTypeApplication(type: Type.Application) {
         visitType(type.callee)

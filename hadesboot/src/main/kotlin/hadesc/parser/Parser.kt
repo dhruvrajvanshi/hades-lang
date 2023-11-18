@@ -234,6 +234,7 @@ class Parser(
         val stop = expect(tt.RBRACE)
         return Declaration.ImplementationDef(
             makeLocation(start, stop),
+            ctx.makeDefId(),
             typeParams,
             traitRef,
             traitArguments,
@@ -256,6 +257,7 @@ class Parser(
         val stop = expect(tt.RBRACE)
         return Declaration.TraitDef(
             makeLocation(start, stop),
+            ctx.makeDefId(),
             binder,
             typeParams,
             signatures
@@ -287,6 +289,7 @@ class Parser(
         val end = expect(tt.RBRACE)
         return Declaration.ExtensionDef(
             makeLocation(start, end),
+            ctx.makeDefId(),
             binder,
             typeParams,
             forType,
@@ -350,6 +353,7 @@ class Parser(
         val whereClause = parseOptionalWhereClause()
         return FunctionSignature(
             makeLocation(start, returnType),
+            ctx.makeDefId(),
             binder,
             typeParams,
             thisParam,
@@ -385,6 +389,7 @@ class Parser(
 
         return Declaration.TypeAlias(
             makeLocation(start, body),
+            ctx.makeDefId(),
             binder,
             params,
             body
@@ -1289,7 +1294,7 @@ class Parser(
     }
 
     private fun parseBinder(tokenKind: TokenKind = tt.ID): Binder {
-        return Binder(parseIdentifier(tokenKind))
+        return Binder(parseIdentifier(tokenKind), ctx.makeBinderId())
     }
 
     private fun parseOptionalAnnotation(): TypeAnnotation? = if (at(tt.COLON)) {

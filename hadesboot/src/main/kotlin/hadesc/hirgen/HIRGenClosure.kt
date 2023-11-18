@@ -41,7 +41,7 @@ internal class HIRGenClosure(
             if (captureStruct.typeParams == null) {
                 emptyList()
             } else {
-                captureInfo.types.map { Type.ParamRef(it) }
+                captureInfo.types.map { Type.Param(it) }
             }
         val contextRef = emitAlloca("closureCtxPtr", captureStruct.instanceType(captureTypeArgs))
 
@@ -107,7 +107,7 @@ internal class HIRGenClosure(
             HIRDefinition.Struct(
                 location = location,
                 name = namingCtx.makeUniqueName("ClosureCaptures").toQualifiedName(),
-                typeParams = captureInfo.types.map { HIRTypeParam(it.location, it.name) },
+                typeParams = captureInfo.types.map { HIRTypeParam(it.location, it.name, it.id) },
                 fields = captureInfo.values.map {
                     val captureTy = it.value.second
                     val capturedBinding = it.value.first
@@ -143,12 +143,12 @@ internal class HIRGenClosure(
             if (captureStruct.typeParams == null) {
                 emptyList()
             } else {
-                captureInfo.types.map { Type.ParamRef(it) }
+                captureInfo.types.map { Type.Param(it) }
             }
 
         val captureParam = HIRParam(
             expression.location,
-            Binder(Identifier(currentLocation, closureCtxParamName)),
+            Binder(Identifier(currentLocation, closureCtxParamName), ctx.makeBinderId()),
             captureStruct.instanceType(captureTypeArgs).ptr()
         )
         val returnType = ctx.analyzer.getReturnType(expression)
@@ -177,7 +177,7 @@ internal class HIRGenClosure(
         val signature = HIRFunctionSignature(
             currentLocation,
             fnName.toQualifiedName(),
-            typeParams = captureInfo.types.map { HIRTypeParam(it.location, it.name) }.ifEmpty { null },
+            typeParams = captureInfo.types.map { HIRTypeParam(it.location, it.name, it.id) }.ifEmpty { null },
             params = expression.params.map {
                 HIRParam(it.location, it.binder, ctx.analyzer.getParamType(it))
             } + listOf(

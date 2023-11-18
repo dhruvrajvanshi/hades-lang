@@ -1,5 +1,6 @@
 package hadesc.context
 
+import hadesc.BinderId
 import hadesc.BuildOptions
 import hadesc.Name
 import hadesc.analysis.Analyzer
@@ -13,6 +14,8 @@ import hadesc.hir.analysis.UseAfterMoveAnalyzer
 import hadesc.hir.passes.*
 import hadesc.hir.verifier.HIRVerifier
 import hadesc.hirgen.HIRGen
+import hadesc.location.Position
+import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -30,6 +33,9 @@ interface ASTContext {
 interface NamingContext {
     fun makeUniqueName(prefix: String = ""): Name
     fun makeName(text: String): Name = Name(text)
+
+    fun makeBinderId(): BinderId
+    val builtinSourceLocation: SourceLocation
 }
 interface GlobalConstantContext {
     val enumTagType: Type
@@ -57,6 +63,12 @@ class Context(
     override val enumTagType: Type = Type.u8
 
     val diagnosticReporter = DiagnosticReporter(fileTextProvider)
+
+    override val builtinSourceLocation: SourceLocation = SourceLocation(
+        SourcePath(Path.of("builtin")),
+        start = Position(0, 0),
+        stop = Position(0, 0),
+    )
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
@@ -191,6 +203,9 @@ class Context(
 
     private var nextSourceFileId = 0
     fun makeSourceFileId() = SourceFileId(nextSourceFileId).also { nextSourceFileId++ }
+
+    private var nextBinderId = 0U
+    override fun makeBinderId() = BinderId(nextBinderId).also { nextBinderId++ }
 }
 
 interface FileTextProvider {

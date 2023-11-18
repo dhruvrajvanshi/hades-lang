@@ -27,7 +27,7 @@ class TraitResolverTest {
     fun `should resolve impls with type params`() {
         val self = param("T")
         val resolver = makeResolver(
-            impl(params(self), qn("Printable"), forType(self.ref), requires())
+            impl(params(self), qn("Printable"), forType(self), requires())
         )
 
         assert(resolver.isTraitImplemented(qn("Printable"), forType(Type.Bool)))
@@ -48,10 +48,10 @@ class TraitResolverTest {
                 params(t),
                 qn("Printable"),
                 forType(
-                    tycon("Box").ap(t.ref)
+                    tycon("Box").ap(t)
                 ),
                 requires(
-                    requirement(qn("Printable"), t.ref)
+                    requirement(qn("Printable"), t)
                 )
             )
         )
@@ -88,11 +88,11 @@ class TraitResolverTest {
             impl(
                 params(t),
                 qn("Bar"),
-                forType(t.ref),
+                forType(t),
                 requires(
                     TraitRequirement(
                         qn("Foo"),
-                        listOf(t.ref),
+                        listOf(t),
                         negated = true
                     )
                 )
@@ -132,7 +132,8 @@ class TraitResolverTest {
                         Position(line, column)
                     ),
                     Name(name)
-                )
+                ),
+                BinderId(0U)
             )
         )
     }

@@ -68,13 +68,13 @@ class DesugarClosures(override val namingCtx: NamingContext) : AbstractHIRTransf
         )
         val structName = namingCtx.makeName("\$builtin.Closure")
         val typeParamName = namingCtx.makeName("T")
-        val typeParam = Binder(Identifier(location, typeParamName))
+        val typeParam = Binder(Identifier(location, typeParamName), namingCtx.makeBinderId())
         val def = HIRDefinition.Struct(
             location = location,
-            typeParams = listOf(HIRTypeParam(location, typeParamName)),
+            typeParams = listOf(HIRTypeParam(location, typeParamName, typeParam.id)),
             fields = listOf(
                 closureCtxFieldName to Type.Void.ptr(),
-                closureFunctionPtrName to fnTypeThatReturns(Type.ParamRef(typeParam)).ptr()
+                closureFunctionPtrName to fnTypeThatReturns(Type.Param(typeParam)).ptr()
             ),
             name = structName.toQualifiedName()
         )

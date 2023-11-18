@@ -249,7 +249,7 @@ internal class HIRGenExpression(
                 check(typeArgs.size == enumDef.typeParams.size)
                 type.applySubstitution(
                     enumDef.typeParams.zip(typeArgs).associate { (it, arg) ->
-                        it.location to arg
+                        it.binder.id to arg
                     }.toSubstitution()
                 )
             } else {

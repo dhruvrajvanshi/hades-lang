@@ -265,7 +265,7 @@ class HIRToLLVM(
         is Type.FunctionPtr -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
         is Type.UntaggedUnion -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
-        is Type.ParamRef,
+        is Type.Param,
         is Type.TypeFunction,
         is Type.GenericInstance,
         is Type.Application,
@@ -879,7 +879,7 @@ class HIRToLLVM(
                 checkNotNull(structTypes[type.name])
             }
         }
-        is Type.ParamRef -> requireUnreachable()
+        is Type.Param -> requireUnreachable()
         is Type.GenericInstance -> requireUnreachable()
         is Type.Application -> requireUnreachable()
         is Type.Size -> sizeTy

@@ -143,10 +143,10 @@ class Monomorphization(
         requireUnreachable()
     }
 
-    override fun lowerParamRefType(type: Type.ParamRef): Type {
+    override fun lowerParamRefType(type: Type.Param): Type {
         val specialization = currentSpecialization
         requireNotNull(specialization)
-        return requireNotNull(specialization[type.name.location])
+        return requireNotNull(specialization[type.name.id])
     }
 
     override fun transformFunctionDef(definition: HIRDefinition.Function, newName: QualifiedName?): Collection<HIRDefinition> {
@@ -186,7 +186,7 @@ class Monomorphization(
             check(definition is HIRDefinition.Struct || definition is HIRDefinition.Function)
             val exprType = expression.type
             check(exprType is Type.TypeFunction)
-            val substitution = makeSubstitution(exprType.params.map { HIRTypeParam(it.binder.location, it.binder.name) }, typeArgs)
+            val substitution = makeSubstitution(exprType.params.map { HIRTypeParam(it.binder.location, it.binder.name, it.binder.id) }, typeArgs)
             val type = lowerType(exprType.body.applySubstitution(substitution))
             HIRExpression.GlobalRef(
                 expression.location,
@@ -201,7 +201,7 @@ class Monomorphization(
         require(typeParams != null)
         require(typeParams.size == typeArgs.size)
         return typeParams.zip(typeArgs).associate {
-            it.first.location to lowerType(it.second)
+            it.first.id to lowerType(it.second)
         }.toSubstitution()
     }
 
@@ -305,7 +305,7 @@ class Monomorphization(
             val typeAnalyzer = TypeAnalyzer()
             if (candidate.traitName != traitName) continue
             val substitutionMap =
-                candidate.typeParams?.associate { it.location to typeAnalyzer.makeGenericInstance(it.toBinder()) }
+                candidate.typeParams?.associate { it.id to typeAnalyzer.makeGenericInstance(it.toBinder()) }
                     ?: emptyMap()
             val substitution = substitutionMap.toSubstitution()
             if (!traitArgs.zip(candidate.traitArgs).all { (requiredType, actualType) ->
@@ -363,7 +363,7 @@ class Monomorphization(
     }
 
     private fun generateImplMethodMap(impl: HIRDefinition.Implementation, substitution: Substitution): Map<Name, QualifiedName> {
-        val typeArgs = impl.typeParams?.map { requireNotNull(substitution[it.location]) } ?: emptyList()
+        val typeArgs = impl.typeParams?.map { requireNotNull(substitution[it.id]) } ?: emptyList()
 
         val implName = specializeName(QualifiedName(listOf(impl.name)), typeArgs)
 

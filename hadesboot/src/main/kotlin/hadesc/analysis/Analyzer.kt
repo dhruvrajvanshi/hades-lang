@@ -116,7 +116,7 @@ class Analyzer(
         } else {
             Type.Application(
                 typeConstructor,
-                declaration.typeParams.map { Type.ParamRef(it.binder) }
+                declaration.typeParams.map { Type.Param(it.binder) }
             )
         }
 
@@ -133,7 +133,7 @@ class Analyzer(
             withArgs
         } else {
             Type.TypeFunction(
-                params = declaration.typeParams.map { Type.Param(it.binder) },
+                params = declaration.makeTypeParams(),
                 body = withArgs
             )
         }
@@ -192,7 +192,8 @@ class Analyzer(
                 continue
             }
 
-            val thisType = instantiateType(annotationToType(extensionDef.forType), extensionDef.typeParams)
+            val thisType =
+                instantiateTypeAndSubstitution(annotationToType(extensionDef.forType), extensionDef.makeTypeParams()).first
             val expectedThisType = if (functionDef.signature.thisParamFlags.isPointer) {
                 Type.Ptr(
                     thisType,
@@ -201,7 +202,12 @@ class Analyzer(
             } else {
                 thisType
             }
-            if (!isTypeAssignableTo(expression, source = inferExpression(expression.lhs), destination = expectedThisType)) {
+            if (!isTypeAssignableTo(
+                    expression,
+                    source = inferExpression(expression.lhs),
+                    destination = expectedThisType
+                )
+            ) {
                 continue
             }
             val receiverType = if (functionDef.signature.thisParamFlags.isPointer) {
@@ -221,7 +227,7 @@ class Analyzer(
             )
             if (extensionDef.typeParams != null || functionDef.typeParams != null) {
                 methodType = Type.TypeFunction(
-                    ((extensionDef.typeParams ?: emptyList()) + (functionDef.typeParams ?: emptyList())).map { Type.Param(it.binder) },
+                    extensionDef.makeTypeParams() + functionDef.makeTypeParams(),
                     methodType
                 )
             }
@@ -234,12 +240,14 @@ class Analyzer(
         return null
     }
 
+    private fun Type.Param.toParamRef() = Type.Param(binder)
+
     private fun instantiateTypeAndSubstitution(
         type: Type,
-        typeParams: List<TypeParam>?
+        typeParams: List<Type.Param>?
     ): Pair<Type, Substitution> {
         if (typeParams == null) return type to emptySubstitution()
-        val substitution = instantiateSubstitution(typeParams.map { Type.Param(it.binder) })
+        val substitution = instantiateSubstitution(typeParams)
         return type.applySubstitution(substitution) to substitution
     }
 
@@ -249,10 +257,10 @@ class Analyzer(
         if (!hasRequiredMethodName) return false
         val forType = annotationToType(extensionDef.forType)
         val valueAssignmentSubstitution = extensionDef.typeParams?.associate {
-            it.location to typeAnalyzer.makeGenericInstance(it.binder)
+            it.binder.id to typeAnalyzer.makeGenericInstance(it.binder)
         }?.toSubstitution() ?: emptySubstitution()
         val pointerAssignmentSubstitution = extensionDef.typeParams?.associate {
-            it.location to typeAnalyzer.makeGenericInstance(
+            it.binder.id to typeAnalyzer.makeGenericInstance(
                 it.binder
             )
         }?.toSubstitution() ?: emptySubstitution()
@@ -315,10 +323,6 @@ class Analyzer(
                 )
             )
         }
-    }
-
-    private fun instantiateType(type: Type, typeParams: List<TypeParam>?): Type {
-        return instantiateTypeAndSubstitution(type, typeParams).first
     }
 
     private fun resolveElementPointerBinding(expression: Expression.Property): PropertyBinding.StructPointerFieldLoad? {
@@ -835,26 +839,31 @@ class Analyzer(
     private fun inferIntrinsicExpression(expression: Expression.Intrinsic): Type =
         when (expression.intrinsicType) {
             IntrinsicType.ADD, IntrinsicType.SUB, IntrinsicType.MUL -> {
-                val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
+                val typeParam = Binder(
+                    Identifier(expression.location, name = ctx.makeName("T")),
+                    ctx.makeBinderId(),
+                )
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
-                            Type.ParamRef(typeParam),
-                            Type.ParamRef(typeParam)
+                            Type.Param(typeParam),
+                            Type.Param(typeParam)
                         ),
-                        to = Type.ParamRef(typeParam),
+                        to = Type.Param(typeParam),
                         traitRequirements = null
                     )
                 )
             }
             IntrinsicType.PTR_TO_INT -> {
-                val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
+                val typeParam = Binder(
+                    Identifier(expression.location, name = ctx.makeName("T")),
+                    ctx.makeBinderId())
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
-                            Type.Ptr(Type.ParamRef(typeParam), isMutable = false)
+                            Type.Ptr(Type.Param(typeParam), isMutable = false)
                         ),
                         to = Type.Size(isSigned = false),
                         traitRequirements = null
@@ -862,28 +871,31 @@ class Analyzer(
                 )
             }
             IntrinsicType.INT_TO_PTR -> {
-                val typeParam = Binder(Identifier(expression.location, name = ctx.makeName("T")))
+                val typeParam = Binder(
+                    Identifier(expression.location, name = ctx.makeName("T")),
+                    ctx.makeBinderId(),
+                )
                 Type.TypeFunction(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
                             Type.Size(isSigned = false)
                         ),
-                        to = Type.ParamRef(typeParam),
+                        to = Type.Param(typeParam),
                         traitRequirements = null
                     )
                 )
             }
             IntrinsicType.MEMCPY -> {
                 val l1 = expression.location
-                val t1 = Type.Param(Binder(Identifier(l1, ctx.makeName("T1"))))
+                val t1 = Type.Param(Binder(Identifier(l1, ctx.makeName("T1")), ctx.makeBinderId()))
 
                 Type.TypeFunction(
                     listOf(t1),
                     Type.FunctionPtr(
                         from = listOf(
-                            Type.ParamRef(t1.binder).mutPtr(), // destination
-                            Type.ParamRef(t1.binder).ptr(), // source
+                            Type.Param(t1.binder).mutPtr(), // destination
+                            Type.Param(t1.binder).ptr(), // source
                             Type.usize // number of items to copy
                         ),
                         to = Type.Void
@@ -924,7 +936,7 @@ class Analyzer(
         val lhsType = inferExpression(expression.lhs)
         return if (lhsType is Type.TypeFunction) {
             val substitution = lhsType.params.zip(expression.args).associate { (param, annotation) ->
-                param.binder.location to annotationToType(annotation)
+                param.binder.id to annotationToType(annotation)
             }.toSubstitution()
             getTypeArgsCache[expression.lhs] = expression.args.map { annotationToType(it) }
             lhsType.body.applySubstitution(substitution)
@@ -1094,7 +1106,7 @@ class Analyzer(
         }
 
         val subst: Substitution = enumDecl.typeParams.zip(discriminantType.typeArgs()).associate { (param, arg) ->
-            param.location to arg
+            param.binder.id to arg
         }.toSubstitution()
         return declaredType.applySubstitution(subst)
     }
@@ -1123,7 +1135,7 @@ class Analyzer(
         } else {
             Type.Application(
                 constrType,
-                binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                binding.declaration.typeParams.map { Type.Param(it.binder) }
             )
         }
         val fieldTypes = structFieldTypes(binding.declaration).values.toList()
@@ -1133,7 +1145,7 @@ class Analyzer(
             functionPtrType
         } else {
             Type.TypeFunction(
-                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                params = binding.declaration.makeTypeParams(),
                 body = functionPtrType
             )
         }
@@ -1185,7 +1197,7 @@ class Analyzer(
         val typeParams = declaration.typeParams
         return if (typeParams != null) {
             Type.TypeFunction(
-                params = typeParams.map { Type.Param(it.binder) },
+                params = declaration.makeTypeParams(),
                 body = functionPtrType
             )
         } else {
@@ -1240,7 +1252,7 @@ class Analyzer(
                     else -> callee
                 }
                 getTypeArgsCache[genericCallee] = functionType.typeParams.map {
-                    requireNotNull(substitution[it.binder.location])
+                    requireNotNull(substitution[it.binder.id])
                 }
             }
             val receiver = getCallReceiver(callNode)
@@ -1275,7 +1287,7 @@ class Analyzer(
             } else {
                 TraitClause.Implementation(
                     def = implementationDef,
-                    params = implementationDef.typeParams?.map { p -> Type.Param(p.binder) } ?: emptyList(),
+                    params = implementationDef.makeTypeParams(),
                     traitRef = ctx.resolver.qualifiedName(traitDef.name),
                     arguments = implementationDef.traitArguments.map { annotationToType(it) },
                     requirements = implementationDef.whereClause?.traitRequirements?.mapNotNull { checkTraitRequirement(it) } ?: emptyList()
@@ -1386,7 +1398,7 @@ class Analyzer(
         typeParams: List<Type.Param>?
     ): Substitution {
         return typeParams?.associate {
-            it.binder.location to makeGenericInstance(
+            it.binder.id to makeGenericInstance(
                 it.binder
             )
         }?.toSubstitution() ?: emptySubstitution()
@@ -1401,7 +1413,7 @@ class Analyzer(
     ) {
         val length = min(functionType.from.size, args.size)
         typeArgs?.zip(functionType.typeParams ?: emptyList())?.forEach { (arg, param) ->
-            val expectedType = Type.ParamRef(param.binder).applySubstitution(substitution)
+            val expectedType = Type.Param(param.binder).applySubstitution(substitution)
             equateTypes(at = callNode, source = arg, destination = expectedType)
         }
 
@@ -1561,7 +1573,7 @@ class Analyzer(
     private fun typeOfTypeAlias(binding: TypeBinding.TypeAlias): Type {
         return if (binding.declaration.typeParams != null) {
             return Type.TypeFunction(
-                binding.declaration.typeParams.map { Type.Param(it.binder) },
+                binding.declaration.makeTypeParams(),
                 annotationToType(binding.declaration.rhs)
             )
         } else {
@@ -1574,10 +1586,10 @@ class Analyzer(
         val typeConstructor = Type.Constructor(name = qualifiedName)
 
         return Type.TypeFunction(
-            params = binding.declaration.params.map { Type.Param(it.binder) },
+            params = binding.declaration.makeTypeParams(),
             body = Type.Application(
                 typeConstructor,
-                args = binding.declaration.params.map { Type.ParamRef(it.binder) }
+                args = binding.declaration.params.map { Type.Param(it.binder) }
             )
         )
     }
@@ -1589,10 +1601,10 @@ class Analyzer(
             typeConstructor
         } else {
             Type.TypeFunction(
-                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                params = binding.declaration.makeTypeParams(),
                 body = Type.Application(
                     typeConstructor,
-                    args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                    args = binding.declaration.typeParams.map { Type.Param(it.binder) }
                 )
             )
         }
@@ -1605,14 +1617,20 @@ class Analyzer(
             typeConstructor
         } else {
             Type.TypeFunction(
-                params = binding.declaration.typeParams.map { Type.Param(it.binder) },
+                params = binding.declaration.makeTypeParams(),
                 body = Type.Application(
                     typeConstructor,
-                    args = binding.declaration.typeParams.map { Type.ParamRef(it.binder) }
+                    args = binding.declaration.typeParams.map { Type.Param(it.binder) }
                 )
             )
         }
     }
+
+    private fun <Def> Def.makeTypeParams(): List<Type.Param>
+        where Def: HasDefId, Def: HasTypeParams =
+        typeParams.let { it ?: emptyList() }.mapIndexed { index, it ->
+            Type.Param(it.binder)
+        }
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
         val resolved = resolveTypeVariable(annotation)
@@ -1641,13 +1659,13 @@ class Analyzer(
         requireNotNull(traitDef)
         return Type.Select(
             ctx.resolver.qualifiedName(traitDef.name),
-            traitArgs = traitDef.params.map { Type.ParamRef(it.binder) },
+            traitArgs = traitDef.params.map { Type.Param(it.binder) },
             associatedTypeName = binding.binder.name
         )
     }
 
     private fun typeOfTypeParam(binding: TypeBinding.TypeParam): Type {
-        return Type.ParamRef(binding.binder)
+        return Type.Param(binding.binder)
     }
 
     fun typeOfBinder(binder: Binder): Type = when (val binding = ctx.resolver.resolve(binder.identifier)) {
@@ -1722,7 +1740,7 @@ class Analyzer(
                     enumName.append(case.name.identifier.name)
                 )
                 if (declaration.typeParams != null) {
-                    Type.Application(constructorType, declaration.typeParams.map { Type.ParamRef(it.binder) })
+                    Type.Application(constructorType, declaration.typeParams.map { Type.Param(it.binder) })
                 } else {
                     constructorType
                 }
@@ -1801,7 +1819,7 @@ class Analyzer(
         val types = mutableSetOf<Binder>()
         object : SyntaxVisitor {
             val typeVisitor = object : TypeVisitor {
-                override fun visitParamRefType(type: Type.ParamRef) {
+                override fun visitParamRefType(type: Type.Param) {
                     if (!type.name.location.isWithin(closure.location)) {
                         types.add(type.name)
                     }

@@ -93,7 +93,7 @@ class Checker(val ctx: Context) {
         val foundAssociatedTypes = mutableSetOf<Name>()
         val associatedTypeSubstitution =
             implDef.body.filterIsInstance<Declaration.TypeAlias>().associate {
-                requireNotNull(expectedAssociatedTypes[it.name.name]).location to ctx.analyzer.annotationToType(it.rhs)
+                requireNotNull(expectedAssociatedTypes[it.name.name]).id to ctx.analyzer.annotationToType(it.rhs)
             }.toSubstitution()
 
         for (declaration in implDef.body) {
