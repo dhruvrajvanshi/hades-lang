@@ -35,4 +35,4 @@ data class TypeParam(
         return other is Binder && location == other.location
     }
 }
-fun Iterable<Pair<TypeParam, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.location to it.second })
+fun Iterable<Pair<TypeParam, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.binder.id to it.second })

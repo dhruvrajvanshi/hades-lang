@@ -48,9 +48,8 @@ class TypeAnalyzer {
                     }
             }
 
-            destination is Type.ParamRef && source is Type.ParamRef -> {
-                destination.name.identifier.name == source.name.identifier.name &&
-                    destination.name.location == source.name.location
+            destination is Type.Param && source is Type.Param -> {
+                destination.name.id == source.name.id
             }
             destination is Type.Ptr && source is Type.Ptr -> {
                 val ptrTypeAssignable = isTypeAssignableTo(source.to, destination.to)
@@ -101,6 +100,6 @@ class TypeAnalyzer {
     }
 
     fun makeParamSubstitution(params: List<Type.Param>): Substitution {
-        return params.associate { it.binder.location to makeGenericInstance(it.binder) }.toSubstitution()
+        return params.associate { it.binder.id to makeGenericInstance(it.binder) }.toSubstitution()
     }
 }

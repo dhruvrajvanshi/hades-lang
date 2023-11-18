@@ -37,9 +37,8 @@ sealed interface Declaration : HasLocation {
         val externName: Identifier?,
         val signature: FunctionSignature,
         val body: Block
-    ) : Declaration, ScopeTree {
+    ) : Declaration, ScopeTree, HasDefId by signature, HasTypeParams by signature {
         val name get() = signature.name
-        val typeParams get() = signature.typeParams
         val params get() = signature.params
         override val startLoc: SourceLocation
             get() = signature.name.location
@@ -75,13 +74,13 @@ sealed interface Declaration : HasLocation {
 
     data class Struct(
         override val location: SourceLocation,
-        val id: DefId,
+        override val defId: DefId,
         val decorators: List<Decorator>,
         val binder: Binder,
-        val typeParams: List<TypeParam>? = null,
+        override val typeParams: List<TypeParam>? = null,
         val members: List<Member>,
         val isRef: Boolean
-    ) : Declaration, ScopeTree {
+    ) : Declaration, ScopeTree, HasDefId, HasTypeParams {
         override val startLoc: SourceLocation
             get() = binder.location
 
@@ -98,28 +97,32 @@ sealed interface Declaration : HasLocation {
 
     data class TypeAlias(
         override val location: SourceLocation,
+        override val defId: DefId,
         val name: Binder,
-        val typeParams: List<TypeParam>?,
+        override val typeParams: List<TypeParam>?,
         val rhs: TypeAnnotation
-    ) : Declaration, ScopeTree
+    ) : Declaration, ScopeTree, HasTypeParams, HasDefId
 
     data class ExtensionDef(
         override val location: SourceLocation,
+        override val defId: DefId,
         val name: Binder,
-        val typeParams: List<TypeParam>?,
+        override val typeParams: List<TypeParam>?,
         val forType: TypeAnnotation,
         val whereClause: WhereClause?,
         val declarations: List<Declaration>
-    ) : Declaration, ScopeTree {
+    ) : Declaration, ScopeTree, HasTypeParams, HasDefId {
         val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
     }
 
     data class TraitDef(
         override val location: SourceLocation,
+        override val defId: DefId,
         val name: Binder,
         val params: List<TypeParam>,
         val members: List<TraitMember>
-    ) : Declaration, ScopeTree {
+    ) : Declaration, ScopeTree, HasDefId, HasTypeParams {
+        override val typeParams: List<TypeParam> = params
 
         val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
 
@@ -145,21 +148,22 @@ sealed interface Declaration : HasLocation {
 
     data class ImplementationDef(
         override val location: SourceLocation,
-        val typeParams: List<TypeParam>?,
+        override val defId: DefId,
+        override val typeParams: List<TypeParam>?,
         val traitRef: QualifiedPath,
         val traitArguments: List<TypeAnnotation>,
         val whereClause: WhereClause?,
         val body: List<Declaration>
-    ) : Declaration, ScopeTree
+    ) : Declaration, ScopeTree, HasDefId, HasTypeParams
 
     data class Enum(
         override val location: SourceLocation,
-        val id: DefId,
+        override val defId: DefId,
         val decorators: List<Decorator>,
         val name: Binder,
-        val typeParams: List<TypeParam>?,
+        override val typeParams: List<TypeParam>?,
         val cases: List<Case>
-    ) : Declaration, ScopeTree {
+    ) : Declaration, ScopeTree, HasDefId, HasTypeParams {
         fun getCase(name: Name): Pair<Case, Int>? {
             var result: Pair<Case, Int>? = null
             cases.forEachIndexed { index, case ->

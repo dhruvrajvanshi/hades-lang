@@ -478,7 +478,10 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
             location = expression.location,
             type = lowerType(expression.type),
             name = transformParamName(expression.name),
-            binder = Binder(Identifier(expression.binder.location, transformParamName(expression.name)))
+            binder = Binder(
+                Identifier(expression.binder.location, transformParamName(expression.name)),
+                expression.binder.id
+            )
         )
     }
 
@@ -520,7 +523,7 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
     }
 
     fun transformTypeParam(param: HIRTypeParam): HIRTypeParam {
-        return HIRTypeParam(param.location, param.name)
+        return HIRTypeParam(param.location, param.name, param.id)
     }
 
     fun transformParam(param: HIRParam): HIRParam {

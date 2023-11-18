@@ -1,5 +1,6 @@
 package hadesc.ast
 
+import hadesc.BinderId
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
@@ -10,7 +11,8 @@ import hadesc.location.SourceLocation
  * variables that refer to these bindings.
  */
 data class Binder(
-    val identifier: Identifier
+    val identifier: Identifier,
+    val id: BinderId,
 ) : HasLocation {
     override val location: SourceLocation
         get() = identifier.location

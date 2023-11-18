@@ -244,7 +244,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 HIRDefinition.Struct(
                     case.name.location,
                     enumName.append(case.name.identifier.name),
-                    typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name) },
+                    typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name, it.binder.id) },
                     fields = (
                         case.params?.mapIndexed { caseParamIndex, caseParam ->
                             ctx.makeName("$caseParamIndex") to lowerTypeAnnotation(requireNotNull(caseParam.annotation))
@@ -290,12 +290,15 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         val constructorParams = case.params?.mapIndexed { index, param ->
             HIRParam(
                 param.annotation.location,
-                Binder(Identifier(param.annotation.location, ctx.makeName("param_$index"))),
+                Binder(
+                    Identifier(param.annotation.location, ctx.makeName("param_$index")),
+                    param.binder?.id ?: ctx.makeBinderId(),
+                ),
                 lowerTypeAnnotation(checkNotNull(param.annotation))
             )
         } ?: emptyList()
         val fnName = enumCaseStructDef.name.append(ctx.makeName("constructor"))
-        val typeArgs = enumStructDef.typeParams?.map { Type.ParamRef(it.toBinder()) } ?: emptyList()
+        val typeArgs = enumStructDef.typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList()
         val instanceType = lowerType(enumStructDef.instanceType(typeArgs))
         val payloadType = lowerType(enumCaseStructDef.instanceType(typeArgs))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
@@ -891,11 +894,14 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     }
 
     private fun lowerThisExpression(expression: Expression.This): HIROperand {
+        val fn = ctx.resolver.getEnclosingFunction(expression)
+        checkNotNull(fn)
+        checkNotNull(fn.signature.thisParamBinder)
         return HIRExpression.ParamRef(
             expression.location,
             thisParamType(),
             name = ctx.makeName("this"),
-            binder = Binder(Identifier(expression.location, ctx.makeName("this")))
+            binder = fn.signature.thisParamBinder,
         )
     }
 
@@ -1231,7 +1237,11 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     }
 
     override fun lowerTypeParam(typeParam: TypeParam): HIRTypeParam {
-        return HIRTypeParam(location = typeParam.location, name = typeParam.binder.identifier.name)
+        return HIRTypeParam(
+            location = typeParam.location,
+            name = typeParam.binder.identifier.name,
+            id = typeParam.binder.id,
+        )
     }
 
     override fun lowerGlobalName(binder: Binder): QualifiedName {

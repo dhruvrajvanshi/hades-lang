@@ -1,5 +1,6 @@
 package hadesc.types
 
+import hadesc.BinderId
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
@@ -8,6 +9,7 @@ import hadesc.hir.HIRTypeParam
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 
+typealias ParamRef = Type.Param
 sealed interface Type {
     data class Error(val location: SourceLocation) : Type
     object Void : Type
@@ -22,12 +24,8 @@ sealed interface Type {
     }
     data class Size(val isSigned: Boolean) : Type
     data class Ptr(val to: Type, val isMutable: Boolean) : Type
-    data class Param(val binder: Binder) {
-        fun prettyPrint(): String {
-            return binder.identifier.name.text
-        }
-
-        val ref get() = ParamRef(binder)
+    data class Param(val binder: Binder): Type {
+        val name get() = binder
     }
 
     data class FunctionPtr(
@@ -42,8 +40,6 @@ sealed interface Type {
     ) : Type
 
     data class Constructor(val name: QualifiedName) : Type
-
-    data class ParamRef(val name: Binder) : Type
 
     data class TypeFunction(val params: List<Param>, val body: Type) : Type
 
@@ -88,7 +84,7 @@ sealed interface Type {
         is FunctionPtr -> {
             "def(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
-        is ParamRef -> this.name.identifier.name.text
+        is Param -> this.name.identifier.name.text
         is GenericInstance -> originalName.text
         is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
         is Constructor -> name.mangle()
@@ -136,7 +132,7 @@ sealed interface Type {
                 to = this.to.recurse()
             )
             is ParamRef -> {
-                substitution[this.name.location] ?: this
+                substitution[this.name.id] ?: this
             }
             is Application -> {
                 Application(callee.recurse(), args.map { it.recurse() })
@@ -150,7 +146,7 @@ sealed interface Type {
                 body.recurse()
             )
             is AssociatedTypeRef -> {
-                substitution[this.binder.location] ?: this
+                substitution[this.binder.id] ?: this
             }
             is Select -> copy(
                 traitArgs = traitArgs.map { it.recurse() }
@@ -201,12 +197,12 @@ sealed interface Type {
 
 private val emptySubstitutionValue = Substitution(ofMap = emptyMap())
 fun emptySubstitution() = emptySubstitutionValue
-class Substitution(ofMap: Map<SourceLocation, Type>) {
-    private val map: Map<SourceLocation, Type> = ofMap
+class Substitution(ofMap: Map<BinderId, Type>) {
+    private val map: Map<BinderId, Type> = ofMap
 
-    operator fun get(location: SourceLocation): Type? = map[location]
+    operator fun get(binderId: BinderId): Type? = map[binderId]
 
-    fun mapValues(transform: (Map.Entry<SourceLocation, Type>) -> Type) = Substitution(ofMap = map.mapValues(transform))
+    fun mapValues(transform: (Map.Entry<BinderId, Type>) -> Type) = Substitution(ofMap = map.mapValues(transform))
 
     companion object {
         fun of(params: List<HIRTypeParam>?, args: List<Type>?): Substitution {
@@ -218,14 +214,14 @@ class Substitution(ofMap: Map<SourceLocation, Type>) {
 
             return Substitution(
                 ofMap = params.zip(args).associate {
-                    it.first.location to it.second
+                    it.first.id to it.second
                 }
             )
         }
     }
 }
-fun Map<SourceLocation, Type>.toSubstitution() = Substitution(ofMap = this)
-fun Iterable<Pair<Type.Param, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.binder.location to it.second })
+fun Map<BinderId, Type>.toSubstitution() = Substitution(ofMap = this)
+fun Iterable<Pair<Type.Param, Type>>.toSubstitution() = Substitution(ofMap = associate { it.first.binder.id to it.second })
 
 fun Type.ptr(isMutable: Boolean = false) = Type.Ptr(this, isMutable = isMutable)
 fun Type.mutPtr() = Type.Ptr(this, isMutable = true)

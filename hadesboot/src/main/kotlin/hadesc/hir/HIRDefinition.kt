@@ -39,7 +39,7 @@ sealed class HIRDefinition : HasLocation {
             )
             return if (typeParams != null) {
                 Type.TypeFunction(
-                    params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
+                    params = typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
                     body = functionPtrType
                 )
             } else {
@@ -55,7 +55,7 @@ sealed class HIRDefinition : HasLocation {
             ).ptr()
             return if (typeParams != null) {
                 Type.TypeFunction(
-                    params = typeParams?.map { Type.Param(Binder(Identifier(it.location, it.name))) } ?: emptyList(),
+                    params = typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
                     body = functionPtrType
                 )
             } else {
@@ -120,7 +120,7 @@ sealed class HIRDefinition : HasLocation {
                 if (typeParams == null) {
                     instanceConstructorType
                 } else {
-                    Type.Application(instanceConstructorType, typeParams.map { Type.ParamRef(it.toBinder()) })
+                    Type.Application(instanceConstructorType, typeParams.map { Type.Param(it.toBinder()) })
                 }
             val fnType = Type.FunctionPtr(
                 from = fields.map { it.second },
