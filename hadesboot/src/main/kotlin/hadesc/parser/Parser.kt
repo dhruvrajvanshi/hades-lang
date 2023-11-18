@@ -96,7 +96,7 @@ class Parser(
         val declarations = parseDeclarations()
         val start = Position(1, 1)
         val location = SourceLocation(file, start, currentToken.location.stop)
-        val sourceFile = SourceFile(location, moduleName, declarations)
+        val sourceFile = SourceFile(location, ctx.makeSourceFileId(), moduleName, declarations)
         ctx.resolver.onParseSourceFile(sourceFile)
         return sourceFile
     }
