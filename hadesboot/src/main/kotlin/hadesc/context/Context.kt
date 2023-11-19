@@ -53,8 +53,8 @@ class Context(
     NamingCtx by namingCtx
 {
     private val log = logger(Context::class.java)
-    val analyzer = Analyzer(this)
     override val resolver = Resolver(this)
+    val analyzer = Analyzer(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
     override val diagnosticReporter = DiagnosticReporter(fileTextProvider)
