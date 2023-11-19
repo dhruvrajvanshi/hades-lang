@@ -36,6 +36,7 @@ class Analyzer<Ctx>(
 {
     val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
+    private val astConv = ASTConv(ctx.resolver)
 
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
@@ -1483,19 +1484,7 @@ class Analyzer<Ctx>(
 
     private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
     fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.getOrPut(annotation) {
-        when (annotation) {
-            is TypeAnnotation.Error -> Type.Error(annotation.location)
-            is TypeAnnotation.Var -> varAnnotationToType(annotation)
-            is TypeAnnotation.Ptr -> ptrAnnotationToType(annotation)
-            is TypeAnnotation.MutPtr -> mutPtrAnnotationToType(annotation)
-            is TypeAnnotation.Application -> typeApplicationAnnotationToType(annotation)
-            is TypeAnnotation.Qualified -> qualifiedAnnotationToType(annotation)
-            is TypeAnnotation.FunctionPtr -> functionAnnotationToType(annotation)
-            is TypeAnnotation.Closure -> closureAnnotationToType(annotation)
-            is TypeAnnotation.Union -> unionAnnotationToType(annotation)
-            is TypeAnnotation.Select -> selectAnnotationToType(annotation)
-            is TypeAnnotation.Array -> arrayTypeAnnotationToType(annotation)
-        }
+        astConv.typeAnnotationToType(annotation)
     }
 
     private fun arrayTypeAnnotationToType(annotation: TypeAnnotation.Array): Type =
@@ -1506,26 +1495,6 @@ class Analyzer<Ctx>(
             annotation.from.map { annotationToType(it) },
             annotationToType(annotation.to)
         )
-    }
-
-    private fun selectAnnotationToType(annotation: TypeAnnotation.Select): Type {
-        val traitResolver = makeTraitResolver(annotation)
-        val requirement = asTraitRequirement(annotation.lhs) ?: return Type.Error(annotation.location)
-        val clauseAndSubstitution = traitResolver.getImplementationClauseAndSubstitution(requirement.traitRef, requirement.arguments)
-            ?: return Type.Error(annotation.location)
-        val (clause, substitution) = clauseAndSubstitution
-        if (clause is TraitClause.Requirement) {
-            return Type.Select(clause.requirement.traitRef, clause.requirement.arguments, annotation.rhs.name)
-        }
-        require(clause is TraitClause.Implementation)
-        val def = clause.def ?: return Type.Error(annotation.location)
-        for (typeAlias in def.body.filterIsInstance<Declaration.TypeAlias>()) {
-            require(typeAlias.typeParams == null)
-            if (typeAlias.name.name == annotation.rhs.name) {
-                return annotationToType(typeAlias.rhs).applySubstitution(substitution)
-            }
-        }
-        return Type.Error(annotation.location)
     }
 
     private fun functionAnnotationToType(annotation: TypeAnnotation.FunctionPtr): Type {
@@ -1631,12 +1600,6 @@ class Analyzer<Ctx>(
             )
         }
     }
-
-    private fun <Def> Def.makeTypeParams(): List<Type.Param>
-        where Def: HasDefId, Def: HasTypeParams =
-        typeParams.let { it ?: emptyList() }.mapIndexed { index, it ->
-            Type.Param(it.binder)
-        }
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
         val resolved = resolveTypeVariable(annotation)

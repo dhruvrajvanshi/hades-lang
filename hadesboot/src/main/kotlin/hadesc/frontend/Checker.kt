@@ -398,17 +398,10 @@ class Checker(val ctx: Context) {
     }
 
     private fun checkTypeApplicationAnnotation(annotation: TypeAnnotation.Application) {
-        checkTypeAnnotation(annotation.callee)
         annotation.args.map { checkTypeAnnotation(it) }
-
-        val calleeType = ctx.analyzer.annotationToType(annotation.callee)
-        val args = annotation.args.map { ctx.analyzer.annotationToType(it) }
-        if (calleeType !is Type.TypeFunction) {
-            error(annotation.callee, Diagnostic.Kind.InvalidTypeApplication)
-        } else {
-            if (calleeType.params.size != args.size) {
-                error(annotation.callee, Diagnostic.Kind.InvalidTypeApplication)
-            }
+        val ty = ctx.analyzer.annotationToType(annotation)
+        if (ty is Type.Error) {
+            error(annotation, Diagnostic.Kind.InvalidTypeApplication)
         }
     }
 
@@ -1120,7 +1113,10 @@ class Checker(val ctx: Context) {
                 if (param.annotation == null) {
                     ctx.analyzer.getInferredParamType(param)
                 } else {
-                    ctx.analyzer.annotationToType(param.annotation)
+                    ctx.analyzer.reduceGenericInstances(
+                        ctx.analyzer.reduceAssociatedType(
+                            ctx.analyzer.annotationToType(param.annotation), at = param)
+                    )
                 }
 
             if (paramType == null) {
