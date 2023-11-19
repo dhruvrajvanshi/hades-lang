@@ -3,7 +3,9 @@ package hadesc.analysis
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.context.Context
+import hadesc.context.IdGenCtx
+import hadesc.context.NamingCtx
+import hadesc.context.ResolverCtx
 import hadesc.exhaustive
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.BinaryOperator
@@ -25,9 +27,13 @@ val ARITHMETIC_OPERATORS = setOf(
     BinaryOperator.TIMES,
     BinaryOperator.DIV
 )
-class Analyzer(
-    private val ctx: Context
-) {
+class Analyzer<Ctx>(
+    private val ctx: Ctx
+) where
+    Ctx: ResolverCtx,
+    Ctx: IdGenCtx,
+    Ctx: NamingCtx
+{
     val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
 
@@ -1302,7 +1308,7 @@ class Analyzer(
     }
 
     fun isCopyAllowed(callNode: HasLocation, type: Type): Boolean {
-        val reducedType = ctx.analyzer.reduceGenericInstances(type)
+        val reducedType = reduceGenericInstances(type)
         val isNoCopy = isTraitRequirementSatisfied(
             callNode,
             TraitRequirement(
@@ -1760,7 +1766,7 @@ class Analyzer(
             is Expression.ByteString,
             is Expression.Var -> true
             is Expression.Property -> {
-                val binding = ctx.analyzer.resolvePropertyBinding(initializer)
+                val binding = resolvePropertyBinding(initializer)
                 binding is PropertyBinding.Global
             }
             else -> {
