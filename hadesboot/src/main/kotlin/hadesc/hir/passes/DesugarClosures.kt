@@ -2,7 +2,8 @@ package hadesc.hir.passes
 
 import hadesc.ast.Binder
 import hadesc.ast.Identifier
-import hadesc.context.NamingContext
+import hadesc.context.IdGenCtx
+import hadesc.context.NamingCtx
 import hadesc.hir.*
 import hadesc.hir.HIRStatement.AllocateClosure
 import hadesc.hir.HIRStatement.InvokeClosure
@@ -13,7 +14,10 @@ import hadesc.types.Type
 import hadesc.types.ptr
 import java.nio.file.Path
 
-class DesugarClosures(override val namingCtx: NamingContext) : AbstractHIRTransformer() {
+class DesugarClosures(
+    override val namingCtx: NamingCtx,
+    private val idCtx: IdGenCtx,
+) : AbstractHIRTransformer() {
 
     override fun transformAllocateClosure(statement: AllocateClosure): Collection<HIRStatement> {
         val closureRef = emitAlloca(statement.name, closureStruct.instanceType(listOf(statement.type.to)))
@@ -68,7 +72,7 @@ class DesugarClosures(override val namingCtx: NamingContext) : AbstractHIRTransf
         )
         val structName = namingCtx.makeName("\$builtin.Closure")
         val typeParamName = namingCtx.makeName("T")
-        val typeParam = Binder(Identifier(location, typeParamName), namingCtx.makeBinderId())
+        val typeParam = Binder(Identifier(location, typeParamName), idCtx.makeBinderId())
         val def = HIRDefinition.Struct(
             location = location,
             typeParams = listOf(HIRTypeParam(location, typeParamName, typeParam.id)),

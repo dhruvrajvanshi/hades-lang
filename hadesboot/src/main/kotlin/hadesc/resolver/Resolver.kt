@@ -4,7 +4,7 @@ import hadesc.Name
 import hadesc.ast.*
 import hadesc.ast.Declaration.*
 import hadesc.ast.Expression.*
-import hadesc.context.Context
+import hadesc.context.SourceFileResolverCtx
 import hadesc.exhaustive
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
@@ -12,7 +12,7 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import llvm.makeList
 
-class Resolver(private val ctx: Context) {
+class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeTree>>()
     private val sourceFiles = mutableMapOf<SourcePath, SourceFile>()
 

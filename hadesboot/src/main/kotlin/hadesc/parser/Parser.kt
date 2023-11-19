@@ -1,14 +1,17 @@
 package hadesc.parser
 
 import hadesc.ast.*
-import hadesc.context.Context
+import hadesc.context.IdGenCtx
+import hadesc.context.NamingCtx
 import hadesc.diagnostics.Diagnostic
+import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
+import hadesc.resolver.Resolver
 import hadesc.text.Text
 import llvm.makeList
 
@@ -83,12 +86,14 @@ private val INTRINSIC_TYPE = mapOf(
 
 object SyntaxError : Error()
 
-class Parser(
-    private val ctx: Context,
+class Parser<Ctx>(
+    private val ctx: Ctx,
+    private val resolver: Resolver<*>,
+    private val diagnosticReporter: DiagnosticReporter,
     private val moduleName: QualifiedName,
     private val file: SourcePath,
     text: Text
-) {
+) where Ctx: IdGenCtx, Ctx: NamingCtx {
     private val tokenBuffer = TokenBuffer(maxLookahead = 4, lexer = Lexer(file, text))
     private val currentToken get() = tokenBuffer.currentToken
 
@@ -97,7 +102,7 @@ class Parser(
         val start = Position(1, 1)
         val location = SourceLocation(file, start, currentToken.location.stop)
         val sourceFile = SourceFile(location, ctx.makeSourceFileId(), moduleName, declarations)
-        ctx.resolver.onParseSourceFile(sourceFile)
+        resolver.onParseSourceFile(sourceFile)
         return sourceFile
     }
 
@@ -133,7 +138,7 @@ class Parser(
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
             }
         }
-        ctx.resolver.onParseDeclaration(decl)
+        resolver.onParseDeclaration(decl)
         return decl
     }
 
@@ -575,7 +580,7 @@ class Parser(
         val members = parseBlockMembers()
         val stop = expect(tt.RBRACE)
         val result = Block(makeLocation(start, stop), startToken = start, members)
-        ctx.resolver.onParseBlock(result)
+        resolver.onParseBlock(result)
         return result
     }
 
@@ -716,7 +721,7 @@ class Parser(
             condition,
             block
         )
-        ctx.resolver.onParseScopeNode(result)
+        resolver.onParseScopeNode(result)
         return result
     }
 
@@ -953,7 +958,7 @@ class Parser(
             }
             val arm = Expression.Match.Arm(pattern, armValue)
             arms.add(arm)
-            ctx.resolver.onParseMatchArm(arm)
+            resolver.onParseMatchArm(arm)
         }
 
         val end = expect(tt.RBRACE)
@@ -963,7 +968,7 @@ class Parser(
             value,
             arms
         )
-        ctx.resolver.onParseMatchExpression(match)
+        resolver.onParseMatchExpression(match)
         return match
     }
 
@@ -1016,7 +1021,7 @@ class Parser(
         val char = if (text[0] == '\\') {
             val escape = byteStringEscapes[text[1]]
             if (escape == null) {
-                ctx.diagnosticReporter.report(token.location, Diagnostic.Kind.InvalidEscape(text[1]))
+                diagnosticReporter.report(token.location, Diagnostic.Kind.InvalidEscape(text[1]))
                 '\u0000'
             } else {
                 escape
@@ -1047,7 +1052,7 @@ class Parser(
         val intrinsicName = ident.text
         val intrinsicType = INTRINSIC_TYPE[intrinsicName] ?: IntrinsicType.ERROR
         if (intrinsicType == IntrinsicType.ERROR) {
-            ctx.diagnosticReporter.report(ident.location, Diagnostic.Kind.InvalidIntrinsic)
+            diagnosticReporter.report(ident.location, Diagnostic.Kind.InvalidIntrinsic)
         }
         return Expression.Intrinsic(
             makeLocation(start, ident),
@@ -1078,7 +1083,7 @@ class Parser(
             returnType,
             body
         )
-        ctx.resolver.onParseClosure(closure)
+        resolver.onParseClosure(closure)
         return closure
     }
 
@@ -1407,7 +1412,7 @@ class Parser(
     }
 
     private fun <T> syntaxError(location: SourceLocation, kind: Diagnostic.Kind): T {
-        ctx.diagnosticReporter.report(location, kind)
+        diagnosticReporter.report(location, kind)
         throw SyntaxError
     }
 

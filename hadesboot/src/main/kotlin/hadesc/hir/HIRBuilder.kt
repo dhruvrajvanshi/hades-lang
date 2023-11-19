@@ -2,7 +2,7 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.analysis.TypeAnalyzer
-import hadesc.context.NamingContext
+import hadesc.context.NamingCtx
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -12,7 +12,7 @@ import hadesc.types.toSubstitution
 
 interface HIRBuilder {
     var currentLocation: SourceLocation
-    val namingCtx: NamingContext
+    val namingCtx: NamingCtx
     var currentStatements: MutableList<HIRStatement>?
     val currentModule: HIRModule
     val typeAnalyzer: TypeAnalyzer

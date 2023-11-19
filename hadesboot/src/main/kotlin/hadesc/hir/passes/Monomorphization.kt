@@ -6,7 +6,7 @@ import hadesc.analysis.TraitRequirement
 import hadesc.analysis.TraitResolver
 import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
-import hadesc.context.NamingContext
+import hadesc.context.NamingCtx
 import hadesc.hir.*
 import hadesc.logging.logger
 import hadesc.qualifiedname.QualifiedName
@@ -16,7 +16,7 @@ import hadesc.types.toSubstitution
 import java.util.concurrent.LinkedBlockingQueue
 
 class Monomorphization(
-    override val namingCtx: NamingContext
+    override val namingCtx: NamingCtx
 ) : AbstractHIRTransformer() {
     private val log = logger(Monomorphization::class.java)
     private lateinit var oldModule: HIRModule

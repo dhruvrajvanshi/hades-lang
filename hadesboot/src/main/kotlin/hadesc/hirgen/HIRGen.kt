@@ -6,7 +6,7 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
-import hadesc.context.NamingContext
+import hadesc.context.NamingCtx
 import hadesc.defer
 import hadesc.diagnostics.Diagnostic
 import hadesc.frontend.PropertyBinding
@@ -71,11 +71,11 @@ class HIRGenScopeStack {
         return stack.removeLast().first
     }
 }
-class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx)) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingContext by ctx, HIRBuilder, TypeTransformer by typeTransformer {
+class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx)) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingCtx by ctx, HIRBuilder, TypeTransformer by typeTransformer {
 
     private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()
-    override val namingCtx: NamingContext get() = ctx
+    override val namingCtx: NamingCtx get() = ctx
     override val enumTagFieldName = ctx.makeName("\$tag")
     private val enumPayloadFieldName = ctx.makeName("payload")
     override val currentModule = HIRModule(mutableListOf())

@@ -1,8 +1,6 @@
 package hadesc.context
 
-import hadesc.BinderId
 import hadesc.BuildOptions
-import hadesc.Name
 import hadesc.analysis.Analyzer
 import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
@@ -14,8 +12,6 @@ import hadesc.hir.analysis.UseAfterMoveAnalyzer
 import hadesc.hir.passes.*
 import hadesc.hir.verifier.HIRVerifier
 import hadesc.hirgen.HIRGen
-import hadesc.location.Position
-import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.logging.logger
 import hadesc.parser.Parser
@@ -29,16 +25,6 @@ import java.nio.file.Path
 
 interface ASTContext {
     val Expression.type: Type
-}
-interface NamingContext {
-    fun makeUniqueName(prefix: String = ""): Name
-    fun makeName(text: String): Name = Name(text)
-
-    fun makeBinderId(): BinderId
-    val builtinSourceLocation: SourceLocation
-}
-interface GlobalConstantContext {
-    val enumTagType: Type
 }
 
 sealed interface BuildTarget {
@@ -54,21 +40,25 @@ sealed interface BuildTarget {
 class Context(
     val options: BuildOptions,
     val target: BuildTarget,
-    private val fileTextProvider: FileTextProvider = FileSystemFileTextProvider
-) : ASTContext, NamingContext, GlobalConstantContext {
+    private val fileTextProvider: FileTextProvider = FileSystemFileTextProvider,
+    private val idGenCtx: IdGenCtx = IdGenCtxImpl(),
+    private val namingCtx: NamingCtx = NamingCtxImpl(),
+    private val globalConstantsCtx: GlobalConstantsCtx = GlobalConstantsCtxImpl()
+) : ASTContext,
+    SourceFileResolverCtx,
+    ResolverCtx,
+    DiagnosticReporterCtx,
+    GlobalConstantsCtx by globalConstantsCtx,
+    IdGenCtx by idGenCtx,
+    NamingCtx by namingCtx
+{
     private val log = logger(Context::class.java)
     val analyzer = Analyzer(this)
-    val resolver = Resolver(this)
+    override val resolver = Resolver(this)
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
-    override val enumTagType: Type = Type.u8
 
-    val diagnosticReporter = DiagnosticReporter(fileTextProvider)
+    override val diagnosticReporter = DiagnosticReporter(fileTextProvider)
 
-    override val builtinSourceLocation: SourceLocation = SourceLocation(
-        SourcePath(Path.of("builtin")),
-        start = Position(0, 0),
-        stop = Position(0, 0),
-    )
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
@@ -91,7 +81,7 @@ class Context(
             HIRVerifier(hirModule).verify()
         }
 
-        hirModule = DesugarClosures(this).transformModule(hirModule)
+        hirModule = DesugarClosures(this, this).transformModule(hirModule)
         log.debug("Desugar closures:\n${hirModule.prettyPrint()}")
 
         hirModule = SimplifyControlFlow(this).transformModule(hirModule)
@@ -116,10 +106,17 @@ class Context(
     private val parsedSourceFiles = mutableMapOf<Path, SourceFile>()
     private fun sourceFile(moduleName: QualifiedName, path: SourcePath) =
         parsedSourceFiles.computeIfAbsent(path.path.toAbsolutePath()) {
-            Parser(this, moduleName, path, fileTextProvider.getFileText(path.path)).parseSourceFile()
+            Parser(
+                ctx = this,
+                moduleName = moduleName,
+                resolver = resolver,
+                diagnosticReporter = diagnosticReporter,
+                text = fileTextProvider.getFileText(path.path),
+                file = path,
+            ).parseSourceFile()
         }
 
-    fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
+    override fun resolveSourceFile(modulePath: QualifiedPath): SourceFile? {
         return resolveSourceFile(qualifiedPathToName(modulePath))
     }
 
@@ -127,7 +124,7 @@ class Context(
         return QualifiedName(modulePath.identifiers.map { it.name })
     }
 
-    fun resolveSourceFile(moduleName: QualifiedName): SourceFile? {
+    override fun resolveSourceFile(moduleName: QualifiedName): SourceFile? {
         if (moduleName.size == 0) {
             val path = target.mainSourcePath
             check(path != null)
@@ -150,7 +147,7 @@ class Context(
         return sourceFile(moduleName, makeSourcePath(paths[0]))
     }
 
-    fun forEachSourceFile(action: (SourceFile) -> Unit) {
+    override fun forEachSourceFile(action: (SourceFile) -> Unit) {
         fun visitSourceFile(sourceFile: SourceFile?) {
             if (sourceFile == null) {
                 return
@@ -185,27 +182,7 @@ class Context(
             QualifiedName(name.split(".").map { makeName(it) })
         )
 
-    fun qn(vararg names: String) = QualifiedName(names.map { makeName(it) })
-
-    private var _nameIndex = 0
-    override fun makeUniqueName(prefix: String): Name {
-        _nameIndex++
-        if (prefix.isNotBlank()) {
-            return makeName("\$$prefix\$$_nameIndex")
-        }
-        return makeName("\$$_nameIndex")
-    }
-
     fun enumTagType(): Type = enumTagType
-
-    private var nextDefId = 0
-    fun makeDefId(): DefId = DefId(nextDefId).also { nextDefId++ }
-
-    private var nextSourceFileId = 0
-    fun makeSourceFileId() = SourceFileId(nextSourceFileId).also { nextSourceFileId++ }
-
-    private var nextBinderId = 0U
-    override fun makeBinderId() = BinderId(nextBinderId).also { nextBinderId++ }
 }
 
 interface FileTextProvider {
