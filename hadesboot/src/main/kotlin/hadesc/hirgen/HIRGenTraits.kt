@@ -1,4 +1,4 @@
-package hadesc.hir
+package hadesc.hirgen
 
 import hadesc.analysis.TraitRequirement
 import hadesc.ast.Declaration
@@ -7,7 +7,9 @@ import hadesc.ast.TraitRequirementAnnotation
 import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.frontend.PropertyBinding
-import hadesc.hirgen.HIRGenModuleContext
+import hadesc.hir.HIRDefinition
+import hadesc.hir.HIRExpression
+import hadesc.hir.HIROperand
 import hadesc.qualifiedname.QualifiedName
 
 internal class HIRGenTraits(
