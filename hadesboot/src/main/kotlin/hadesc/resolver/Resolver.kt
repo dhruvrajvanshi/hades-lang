@@ -28,7 +28,7 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
 
     private fun resolveInScopeStack(ident: Identifier, scopeStack: ScopeStack): Binding? {
         for (scopeNode in scopeStack) {
-            val binding = findInScope(ident, scopeNode)
+            val binding = findInScope(ctx, ident, scopeNode)
             if (binding != null) {
                 return binding
             }
@@ -39,7 +39,7 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
     fun resolveTraitDef(name: Identifier): TraitDef? {
         val scopeStack = getScopeStack(name)
         for (scope in scopeStack.scopes) {
-            val typeBinding = findTypeInScope(name, scope)
+            val typeBinding = findTypeInScope(ctx, name, scope)
             if (typeBinding is TypeBinding.Trait) {
                 return typeBinding.declaration
             }
@@ -49,7 +49,7 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
 
     private fun findTypeInScopeStack(ident: Identifier, scopeStack: ScopeStack): TypeBinding? {
         for (scopeNode in scopeStack) {
-            val binding = findTypeInScope(ident, scopeNode)
+            val binding = findTypeInScope(ctx, ident, scopeNode)
             if (binding != null) {
                 return binding
             }
@@ -82,285 +82,10 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
         return null
     }
 
-    private fun findTypeInScope(ident: Identifier, scopeNode: ScopeTree): TypeBinding? = when (scopeNode) {
-        is FunctionDef -> {
-            findTypeInFunctionDef(ident, scopeNode)
-        }
-        is SourceFile -> {
-            findTypeInSourceFile(ident, scopeNode)
-        }
-        is Block -> null
-        is Struct -> {
-            val param = scopeNode.typeParams?.findLast {
-                it.binder.identifier.name == ident.name
-            }
-            when {
-                param != null -> {
-                    TypeBinding.TypeParam(param.binder)
-                }
-                ident.name == scopeNode.binder.identifier.name -> {
-                    TypeBinding.Struct(scopeNode)
-                }
-                else -> {
-                    null
-                }
-            }
-        }
-        is Declaration.Enum -> {
-            val param = scopeNode.typeParams?.findLast {
-                it.binder.identifier.name == ident.name
-            }
-            if (param != null) {
-                TypeBinding.TypeParam(param.binder)
-            } else {
-                null
-            }
-        }
-        is TypeAlias -> {
-            val param = scopeNode.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }
-            if (param != null) TypeBinding.TypeParam(param.binder) else null
-        }
-        is ExtensionDef -> {
-            val param = scopeNode.typeParams?.find {
-                it.binder.identifier.name == ident.name
-            }
-            if (param != null) TypeBinding.TypeParam(param.binder) else null
-        }
-        is TraitDef -> {
-            if (scopeNode.name.identifier.name == ident.name) {
-                TypeBinding.Trait(scopeNode)
-            }
 
-            val associatedType = scopeNode.members.filterIsInstance<TraitMember.AssociatedType>()
-                .find { it.binder.name == ident.name }
-            if (associatedType != null) {
-                TypeBinding.AssociatedType(associatedType.binder)
-            } else {
-                scopeNode.params.find {
-                    it.binder.identifier.name == ident.name
-                }?.let { TypeBinding.TypeParam(it.binder) }
-            }
-        }
-        is ImplementationDef -> {
-            val aliasDef = scopeNode.body.filterIsInstance<TypeAlias>().find {
-                it.name.name == ident.name
-            }
-            if (aliasDef != null) {
-                TypeBinding.TypeAlias(aliasDef)
-            } else {
-                scopeNode.typeParams?.find {
-                    it.binder.identifier.name == ident.name
-                }?.let { TypeBinding.TypeParam(it.binder) }
-            }
-        }
-        is Closure -> null
-        is Match -> null
-        is Match.Arm -> null
-        is Statement.While -> null
-    }
 
-    private fun findTypeInFunctionDef(ident: Identifier, declaration: FunctionDef): TypeBinding? {
-        val typeParams = declaration.typeParams ?: return null
-        typeParams.forEach {
-            if (it.binder.identifier.name == ident.name) {
-                return TypeBinding.TypeParam(it.binder)
-            }
-        }
-        return null
-    }
 
-    fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
-        for (declaration in sourceFile.declarations) {
-            val binding = if (declaration is Struct && declaration.binder.identifier.name == ident.name) {
-                TypeBinding.Struct(declaration)
-            } else if (declaration is TypeAlias && declaration.name.identifier.name == ident.name) {
-                TypeBinding.TypeAlias(declaration)
-            } else if (declaration is TraitDef && declaration.name.identifier.name == ident.name) {
-                TypeBinding.Trait(declaration)
-            } else if (declaration is Declaration.Enum && declaration.name.identifier.name == ident.name) {
-                TypeBinding.Enum(declaration)
-            } else if (declaration is ImportMembers) {
-                val binding = declaration.names.find { it.name == ident.name }
-                val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                if (importedSourceFile != null && binding != null) {
-                    findTypeInSourceFile(ident, importedSourceFile)
-                } else {
-                    null
-                }
-            } else {
-                null
-            }
-            if (binding != null) {
-                return binding
-            }
-        }
-        return null
-    }
 
-    private fun findInScope(ident: Identifier, scope: ScopeTree): Binding? = when (scope) {
-        is FunctionDef -> findInFunctionDef(ident, scope)
-        is SourceFile -> findInSourceFile(ident.name, scope)
-        is Block -> findInBlock(ident, scope)
-        is Struct -> null
-        is TypeAlias -> null
-        is ExtensionDef -> null
-        is TraitDef -> null
-        is ImplementationDef -> null
-        is Closure -> findInClosure(ident, scope)
-        is Declaration.Enum -> null
-        is Match -> null
-        is Match.Arm -> findInMatchArm(ident, scope)
-        is Statement.While -> findInBlock(ident, scope.body)
-    }
-
-    private fun findInMatchArm(ident: Identifier, scope: Match.Arm): Binding? {
-        return findInPattern(ident, scope.pattern)
-    }
-
-    private fun findInPattern(ident: Identifier, pattern: Pattern): Binding? = when (pattern) {
-        is Pattern.EnumCase ->
-            pattern.args
-                ?.asReversed() // last match wins
-                ?.mapIndexedNotNull { indexFromBack, arg ->
-                    val index = pattern.args.size - 1 - indexFromBack
-                    when (arg) {
-                        is Pattern.Val -> if (arg.binder.name == ident.name) {
-                            Binding.MatchArmEnumCaseArg(pattern, index)
-                        } else {
-                            null
-                        }
-                        else -> null
-                    }
-                }
-                ?.firstOrNull()
-        is Pattern.IntLiteral -> null
-        is Pattern.Val -> TODO()
-        is Pattern.Wildcard -> null
-    }
-
-    private fun findInBlock(ident: Identifier, scope: Block): Binding? {
-        for (member in scope.members) {
-            val binding = when (member) {
-                is Block.Member.Expression -> null
-                is Block.Member.Statement -> when (member.statement) {
-                    is Statement.Return -> null
-                    is Statement.Val -> if (ident.name == member.statement.binder.identifier.name) {
-                        Binding.ValBinding(member.statement)
-                    } else {
-                        null
-                    }
-                    is Statement.Error -> null
-                    is Statement.While -> null
-                    is Statement.If -> null
-                    is Statement.LocalAssignment -> null
-                    is Statement.MemberAssignment -> null
-                    is Statement.PointerAssignment -> null
-                    is Statement.Defer -> null
-                }
-            }
-            if (binding != null) {
-                return binding
-            }
-        }
-        return null
-    }
-
-    fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
-        for (declaration in sourceFile.declarations) {
-            val binding = when (declaration) {
-                is Declaration.Error -> null
-                is ImportAs -> null
-                is FunctionDef -> {
-                    if (declaration.name.identifier.name == name) {
-                        Binding.GlobalFunction(declaration)
-                    } else {
-                        null
-                    }
-                }
-                is ExternFunctionDef -> {
-                    if (declaration.binder.identifier.name == name) {
-                        Binding.ExternFunction(declaration)
-                    } else {
-                        null
-                    }
-                }
-                is Struct -> {
-                    if (declaration.binder.identifier.name == name) {
-                        Binding.Struct(declaration)
-                    } else {
-                        null
-                    }
-                }
-                is ConstDefinition -> {
-                    if (declaration.name.identifier.name == name) {
-                        Binding.GlobalConst(declaration)
-                    } else {
-                        null
-                    }
-                }
-                is ExternConst -> {
-                    if (declaration.name.identifier.name == name) {
-                        Binding.ExternConst(declaration)
-                    } else {
-                        null
-                    }
-                }
-                is TypeAlias -> null
-                is ExtensionDef -> null
-                is TraitDef -> null
-                is ImplementationDef -> null
-                is ImportMembers -> {
-                    val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                    if (importedSourceFile != null && declaration.names.any { it.name == name }) {
-                        findInSourceFile(name, importedSourceFile)
-                    } else {
-                        null
-                    }
-                }
-                is Declaration.Enum -> if (name == declaration.name.identifier.name) {
-                    Binding.Enum(declaration)
-                } else {
-                    null
-                }
-            }
-            if (binding != null) {
-                return binding
-            }
-        }
-        return null
-    }
-
-    private fun findInClosure(ident: Identifier, scope: Closure): Binding? {
-        var index = -1
-        for (param in scope.params) {
-            index++
-            if (param.binder.identifier.name == ident.name) {
-                return Binding.ClosureParam(index, scope)
-            }
-        }
-        return null
-    }
-
-    private fun findInFunctionDef(ident: Identifier, scope: FunctionDef): Binding? {
-        var index = -1
-        for (param in scope.params) {
-            index++
-            if (param.binder.identifier.name == ident.name) {
-                return Binding.FunctionParam(index, scope)
-            }
-        }
-
-        return if (
-            scope.typeParams == null &&
-            ident.name == scope.name.identifier.name
-        ) {
-            Binding.GlobalFunction(scope)
-        } else {
-            null
-        }
-    }
 
     private fun sourceFileOf(node: HasLocation): SourceFile {
         return requireNotNull(sourceFiles[node.location.file])
@@ -415,6 +140,13 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
         addScopeNode(scopeNode.location.file, scopeNode)
     }
 
+    fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
+        return findInSourceFile(ctx, name, sourceFile)
+    }
+    fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
+        return findTypeInSourceFile(ctx, ident, sourceFile)
+    }
+
     fun resolveModuleProperty(expression: Property): Binding? {
         val scopeStack = getScopeStack(expression.lhs)
         // TODO: Handle chained property calls
@@ -434,7 +166,7 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
                             is ImportAs -> if (declaration.asName.identifier.name == expression.lhs.name.name) {
                                 val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
                                 if (sourceFile != null) {
-                                    findInSourceFile(expression.property.name, sourceFile)
+                                    findInSourceFile(ctx, expression.property.name, sourceFile)
                                 } else {
                                     null
                                 }
@@ -464,7 +196,7 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
         for (decl in sourceFile.declarations) {
             if (decl is ImportAs && decl.asName.identifier.name == path.identifiers.first().name) {
                 val importedSourceFile = ctx.resolveSourceFile(decl.modulePath) ?: return null
-                return findTypeInSourceFile(path.identifiers.last(), importedSourceFile)
+                return findTypeInSourceFile(ctx, path.identifiers.last(), importedSourceFile)
             }
         }
         return null
