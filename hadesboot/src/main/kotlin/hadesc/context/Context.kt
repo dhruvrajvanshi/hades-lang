@@ -2,7 +2,9 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.analysis.Analyzer
+import hadesc.analysis.MutableTyCtx
 import hadesc.analysis.Typecheck
+import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
 import hadesc.ast.Expression
 import hadesc.ast.QualifiedPath
@@ -29,10 +31,7 @@ import hadesc.unit
 import java.io.File
 import java.nio.file.Path
 
-interface ASTContext {
-    val Expression.type: Type
-}
-
+private const val NEW_FRONTEND = false
 sealed interface BuildTarget {
 
     val mainSourcePath: Path?
@@ -49,11 +48,11 @@ class Context(
     private val fileTextProvider: FileTextProvider = FileSystemFileTextProvider,
     private val idGenCtx: IdGenCtx = IdGenCtxImpl(),
     private val namingCtx: NamingCtx = NamingCtxImpl(),
-    private val globalConstantsCtx: GlobalConstantsCtx = GlobalConstantsCtxImpl()
-) : ASTContext,
-    SourceFileResolverCtx,
+    private val globalConstantsCtx: GlobalConstantsCtx = GlobalConstantsCtxImpl(),
+) : SourceFileResolverCtx,
     ResolverCtx,
     DiagnosticReporterCtx,
+    MutableTyCtx,
     GlobalConstantsCtx by globalConstantsCtx,
     IdGenCtx by idGenCtx,
     NamingCtx by namingCtx
@@ -64,16 +63,27 @@ class Context(
     private val collectedFiles = mutableMapOf<SourcePath, SourceFile>()
 
     override val diagnosticReporter = DiagnosticReporter(fileTextProvider)
+    private val tyCtx = MutableTyCtx.make()
 
+    override fun setTypeOfExpression(expr: Expression, type: Type) =
+        if (NEW_FRONTEND) {
+            tyCtx.setTypeOfExpression(expr, type)
+        } else {
+            requireUnreachable()
+        }
 
-    override val Expression.type get() = analyzer.typeOfExpression(this)
+    override fun typeOfExpression(expr: Expression): Type =
+        if (NEW_FRONTEND) {
+            tyCtx.typeOfExpression(expr)
+        } else {
+            analyzer.typeOfExpression(expr)
+        }
 
     fun build() {
-        val newFrontend = true
-        var hirModule = if (newFrontend) {
+        var hirModule = if (NEW_FRONTEND) {
             val checker = Typecheck(this)
             checker.typecheck()
-            hadesc.analysis.HIRGen().lower()
+            hadesc.analysis.HIRGen(this).lower()
         } else {
             Checker(this).checkProgram()
             HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)

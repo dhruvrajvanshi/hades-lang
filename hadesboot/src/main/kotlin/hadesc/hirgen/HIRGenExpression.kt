@@ -2,7 +2,6 @@ package hadesc.hirgen
 
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.hir.*
 import hadesc.resolver.Binding
@@ -16,10 +15,11 @@ internal class HIRGenExpression(
     private val functionContext: HIRGenFunctionContext,
     private val closureGen: HIRGenClosure
 ) : HIRGenModuleContext by moduleContext,
-    HIRGenFunctionContext by functionContext,
-    ASTContext by ctx {
+    HIRGenFunctionContext by functionContext {
     override val currentModule: HIRModule
         get() = moduleContext.currentModule
+
+    private val Expression.type get() = ctx.typeOfExpression(this)
     internal fun lowerVarExpression(expression: Expression.Var): HIROperand {
         return when (val binding = ctx.resolver.resolve(expression.name)) {
             null -> requireUnreachable {
@@ -134,11 +134,12 @@ internal class HIRGenExpression(
                 )
             }
             IntrinsicType.INT_TO_PTR -> {
-                check(expression.type is Type.Ptr)
+                val exprType = expression.type
+                check(exprType is Type.Ptr)
                 check(expression.args.size == 1)
                 return emitIntToPtr(
                     lowerExpression(expression.args[0].expression).asOperand(),
-                    expression.type
+                    exprType
                 )
             }
             IntrinsicType.MEMCPY -> {

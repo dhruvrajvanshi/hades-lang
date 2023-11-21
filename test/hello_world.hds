@@ -1,4 +1,4 @@
-extern def puts(*Byte): Void = puts;
+extern def puts(*u8): Void = puts;
 
 def main(): Void {
     puts(b"Hello world");

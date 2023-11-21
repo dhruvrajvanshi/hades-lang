@@ -1,10 +1,10 @@
 package hadesc.hirgen
 
 import hadesc.Name
+import hadesc.analysis.TyCtx
 import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.context.NamingCtx
 import hadesc.defer
@@ -71,7 +71,7 @@ class HIRGenScopeStack {
         return stack.removeLast().first
     }
 }
-class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx)) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingCtx by ctx, HIRBuilder, TypeTransformer by typeTransformer {
+class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx)) : TyCtx by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingCtx by ctx, HIRBuilder, TypeTransformer by typeTransformer {
 
     private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()

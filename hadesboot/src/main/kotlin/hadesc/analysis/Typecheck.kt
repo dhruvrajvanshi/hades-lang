@@ -1,13 +1,12 @@
 package hadesc.analysis
 
-import hadesc.ast.Declaration
-import hadesc.ast.SyntaxVisitor
-import hadesc.ast.TypeAnnotation
+import hadesc.ast.*
 import hadesc.context.DiagnosticReporterCtx
 import hadesc.context.ResolverCtx
 import hadesc.context.SourceFileResolverCtx
 import hadesc.diagnostics.Diagnostic
 import hadesc.diagnostics.DiagnosticReporter
+import hadesc.types.Type
 import hadesc.unit
 
 class Typecheck<Ctx>(
@@ -16,6 +15,8 @@ class Typecheck<Ctx>(
         Ctx: DiagnosticReporterCtx,
         Ctx: ResolverCtx
 {
+    private val exprTypes = MutableNodeMap<Expression, Type>()
+    private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
     fun typecheck() {
         ctx.forEachSourceFile { sourceFile ->
             for (declaration in sourceFile.declarations) {
@@ -23,7 +24,9 @@ class Typecheck<Ctx>(
                 val checker = TypecheckImpl(
                     ctx,
                     infer,
-                    ctx.diagnosticReporter
+                    ctx.diagnosticReporter,
+                    exprTypes,
+                    annotationTypes,
                 )
                 val errors = checker(declaration)
                 errors.forEach {
@@ -34,10 +37,20 @@ class Typecheck<Ctx>(
     }
 }
 
+/**
+ * Typechecker for a single declaration.
+ * A new one must be created for each declaration because it creates
+ * a new inference context.
+ */
 private class TypecheckImpl<Ctx>(
     private val ctx: Ctx,
     private val infer: Infer,
     private val diagnostic: DiagnosticReporter,
+    /**
+     * out parameter to put types into
+     */
+    private val exprTypes: MutableNodeMap<Expression, Type>,
+    private val annotationTypes: MutableNodeMap<TypeAnnotation, Type>,
 ) : SyntaxVisitor where Ctx: ResolverCtx {
     private val errors = mutableListOf<Diagnostic>()
     private val astConv = ASTConv(
@@ -60,7 +73,12 @@ private class TypecheckImpl<Ctx>(
         else -> super.visitDeclaration(def)
     }
 
-    private fun TypeAnnotation.type() = astConv.typeAnnotationToType(this)
+    private fun TypeAnnotation.type() = annotationTypes.getOrPut(this) {
+        astConv.typeAnnotationToType(this)
+    }
+    private fun Expression.type() = exprTypes.getOrPut(this) {
+        infer.inferExpression(this)
+    }
     private fun List<TypeAnnotation>.types() = map { it.type() }
 
 }

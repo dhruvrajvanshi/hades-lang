@@ -3,7 +3,6 @@ package hadesc.hirgen
 import hadesc.Name
 import hadesc.analysis.ClosureCaptures
 import hadesc.ast.*
-import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.defer
 import hadesc.hir.*
@@ -20,8 +19,7 @@ internal class HIRGenClosure(
     private val moduleContext: HIRGenModuleContext,
     private val functionContext: HIRGenFunctionContext
 ) : HIRGenModuleContext by moduleContext,
-    HIRGenFunctionContext by functionContext,
-    ASTContext by ctx {
+    HIRGenFunctionContext by functionContext {
     override val currentModule: HIRModule
         get() = moduleContext.currentModule
     internal fun lowerClosure(expression: Expression.Closure): HIROperand = scoped {
@@ -57,7 +55,7 @@ internal class HIRGenClosure(
             HIRStatement.AllocateClosure(
                 currentLocation,
                 ctx.makeUniqueName("closure"),
-                ctx.analyzer.reduceGenericInstances(expression.type) as Type.Closure,
+                ctx.analyzer.reduceGenericInstances(ctx.typeOfExpression(expression)) as Type.Closure,
                 fnRef,
                 contextRef.ptr()
             )
