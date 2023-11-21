@@ -2,14 +2,20 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.analysis.Analyzer
-import hadesc.ast.*
+import hadesc.analysis.Typecheck
+import hadesc.ast.Declaration
+import hadesc.ast.Expression
+import hadesc.ast.QualifiedPath
+import hadesc.ast.SourceFile
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.analysis.MissingReturnAnalyzer
 import hadesc.hir.analysis.UseAfterMoveAnalyzer
-import hadesc.hir.passes.*
+import hadesc.hir.passes.DesugarClosures
+import hadesc.hir.passes.Monomorphization
+import hadesc.hir.passes.SimplifyControlFlow
 import hadesc.hir.verifier.HIRVerifier
 import hadesc.hirgen.HIRGen
 import hadesc.location.SourcePath
@@ -63,13 +69,19 @@ class Context(
     override val Expression.type get() = analyzer.typeOfExpression(this)
 
     fun build() {
-        Checker(this).checkProgram()
-
+        val newFrontend = true
+        var hirModule = if (newFrontend) {
+            val checker = Typecheck(this)
+            checker.typecheck()
+            hadesc.analysis.HIRGen().lower()
+        } else {
+            Checker(this).checkProgram()
+            HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
+        }
         if (this.diagnosticReporter.hasErrors) {
             return
         }
 
-        var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
         if (this.diagnosticReporter.hasErrors) {
             return
         }

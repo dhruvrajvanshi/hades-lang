@@ -1,14 +1,18 @@
 package hadesc.analysis
 
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
 import hadesc.ast.TypeAnnotation
+import hadesc.diagnostics.Diagnostic
+import hadesc.location.SourceLocation
 import hadesc.resolver.Resolver
 import hadesc.resolver.TypeBinding
 import hadesc.types.Type
 import hadesc.types.toSubstitution
 
-class ASTConv(val resolver: Resolver<*>) {
+class ASTConv(
+    private val resolver: Resolver<*>,
+    private val report: (Diagnostic.Kind, SourceLocation) -> Unit = { _, _ -> }
+) {
     fun typeAnnotationToType(annotation: TypeAnnotation): Type = annotation.type()
 
     private fun TypeAnnotation.type(): Type = when(this) {
