@@ -13,7 +13,9 @@ class Typecheck<Ctx>(
     private val ctx: Ctx,
 ) where Ctx: SourceFileResolverCtx,
         Ctx: DiagnosticReporterCtx,
-        Ctx: ResolverCtx
+        Ctx: ResolverCtx,
+        // Typecheck assigns types to Expressions and TypeAnnotations
+        Ctx: MutableTyCtx
 {
     private val exprTypes = MutableNodeMap<Expression, Type>()
     private val annotationTypes = MutableNodeMap<TypeAnnotation, Type>()
@@ -28,8 +30,8 @@ class Typecheck<Ctx>(
                     exprTypes,
                     annotationTypes,
                 )
-                val errors = checker(declaration)
-                errors.forEach {
+                checker.visitDeclaration(declaration)
+                checker.errors.forEach {
                     ctx.diagnosticReporter.report(it.sourceLocation, it.kind)
                 }
             }
@@ -51,8 +53,8 @@ private class TypecheckImpl<Ctx>(
      */
     private val exprTypes: MutableNodeMap<Expression, Type>,
     private val annotationTypes: MutableNodeMap<TypeAnnotation, Type>,
-) : SyntaxVisitor where Ctx: ResolverCtx {
-    private val errors = mutableListOf<Diagnostic>()
+) : SyntaxVisitor where Ctx: ResolverCtx, Ctx: MutableTyCtx {
+    val errors = mutableListOf<Diagnostic>()
     private val astConv = ASTConv(
         resolver = ctx.resolver,
         report = { kind, location ->
@@ -60,25 +62,16 @@ private class TypecheckImpl<Ctx>(
         }
     )
 
-    operator fun invoke(def: Declaration): List<Diagnostic> {
-        visitDeclaration(def)
-        return errors
-    }
-    override fun visitDeclaration(def: Declaration): Unit = when (def) {
-        is Declaration.FunctionDef -> {
-            visitBlock(def.body)
-            def.params.map { visitParam(it) }
-            unit
-        }
-        else -> super.visitDeclaration(def)
+    override fun visitType(type: TypeAnnotation) {
+        // trigger the side effect of converting it into a type and also reporting errors
+        // if required.
+        // We don't want to recursively visit type annotations here because
+        // astConv already does that.
+        // if we call super.visitType here, we'll get duplicate type errors.
+        astConv.typeAnnotationToType(type)
     }
 
-    private fun TypeAnnotation.type() = annotationTypes.getOrPut(this) {
-        astConv.typeAnnotationToType(this)
-    }
     private fun Expression.type() = exprTypes.getOrPut(this) {
         infer.inferExpression(this)
     }
-    private fun List<TypeAnnotation>.types() = map { it.type() }
-
 }

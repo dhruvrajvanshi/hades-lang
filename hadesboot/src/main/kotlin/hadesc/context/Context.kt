@@ -31,7 +31,7 @@ import hadesc.unit
 import java.io.File
 import java.nio.file.Path
 
-private const val NEW_FRONTEND = false
+private const val NEW_FRONTEND = true
 sealed interface BuildTarget {
 
     val mainSourcePath: Path?

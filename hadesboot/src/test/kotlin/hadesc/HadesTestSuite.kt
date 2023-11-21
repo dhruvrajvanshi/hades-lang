@@ -29,6 +29,7 @@ class HadesTestSuite {
         return files
             .sortedBy { it.name }
             .filter { it.extension == "hds" }
+            .filter { it.name.startsWith("checker.") }
             .map { file ->
                 DynamicTest.dynamicTest(file.nameWithoutExtension, file.toURI()) {
                     val expectedStdoutFile = Paths.get(

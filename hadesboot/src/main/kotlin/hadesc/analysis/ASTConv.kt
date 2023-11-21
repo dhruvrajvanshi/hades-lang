@@ -22,11 +22,11 @@ class ASTConv(
         is TypeAnnotation.FunctionPtr -> Type.FunctionPtr(from.types(), to.type(), traitRequirements = null)
         is TypeAnnotation.MutPtr -> Type.Ptr(to.type(), isMutable = true)
         is TypeAnnotation.Ptr -> Type.Ptr(to.type(), isMutable = false)
-        is TypeAnnotation.Error -> Type.Error(location)
         is TypeAnnotation.Qualified -> qualifiedAnnotationToType(this)
         is TypeAnnotation.Select -> selectAnnotationToType(this)
         is TypeAnnotation.Union -> Type.UntaggedUnion(args.types())
         is TypeAnnotation.Var -> varAnnotationToType(this)
+        is TypeAnnotation.Error -> Type.Error(location)
     }
 
     private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
@@ -67,18 +67,34 @@ class ASTConv(
     }
 
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
-        val binding = resolver.resolveTypeVariable(annotation.name) ?: return Type.Error(annotation.location)
-        return when (binding) {
+        return when (val binding = resolver.resolveTypeVariable(annotation.name)) {
             is TypeBinding.Enum ->
                 Type.Constructor(resolver.qualifiedName(binding.declaration.name))
-            is TypeBinding.Struct ->
-                Type.Constructor(resolver.qualifiedName(binding.declaration.binder))
+            is TypeBinding.Struct -> structTypeBindingToType(annotation, binding)
             is TypeBinding.TypeAlias -> binding.declaration.rhs.type()
             is TypeBinding.Builtin -> binding.type
-            is TypeBinding.AssociatedType -> Type.Error(binding.binder.location)
-            is TypeBinding.Trait -> Type.Error(binding.declaration.location)
             is TypeBinding.TypeParam -> Type.Param(binding.binder)
+            is TypeBinding.Trait -> {
+                report(Diagnostic.Kind.UnboundType(annotation.name.name), annotation.location)
+                Type.Error(binding.declaration.location)
+            }
+            is TypeBinding.AssociatedType -> {
+                report(TODO(), annotation.location)
+                Type.Error(binding.binder.location)
+            }
+            null -> {
+                report(Diagnostic.Kind.UnboundType(annotation.name.name), annotation.location)
+                Type.Error(annotation.location)
+            }
         }
+    }
+
+    private fun structTypeBindingToType(annotation: TypeAnnotation.Var, binding: TypeBinding.Struct): Type {
+        if (binding.declaration.typeParams != null) {
+            report(Diagnostic.Kind.TooFewTypeArgs, annotation.location)
+            return Type.Error(annotation.location)
+        }
+        return Type.Constructor(resolver.qualifiedName(binding.declaration.binder))
     }
 
     private fun typeApplicationToType(application: TypeAnnotation.Application): Type {
@@ -87,7 +103,7 @@ class ASTConv(
             is TypeAnnotation.Qualified -> resolver.resolveQualifiedType(application.callee.qualifiedPath)
            else -> return Type.Error(application.location)
         }
-        val (name, _) = when (lhsBinding) {
+        val (name, typeParams) = when (lhsBinding) {
            is TypeBinding.Struct -> Pair(lhsBinding.declaration.binder, lhsBinding.declaration.typeParams)
            is TypeBinding.Enum -> Pair(lhsBinding.declaration.name, lhsBinding.declaration.typeParams)
             is TypeBinding.TypeAlias -> {
@@ -103,8 +119,19 @@ class ASTConv(
             }
            else -> return Type.Error(application.location)
         }
+        if (typeParams == null) {
+            report(Diagnostic.Kind.TooManyTypeArgs, application.location)
+            return Type.Error(application.location)
+        }
         val qualifiedName = resolver.qualifiedName(name)
         val constr = Type.Constructor(qualifiedName)
+
+        if (application.args.size > typeParams.size) {
+            report(Diagnostic.Kind.TooManyTypeArgs, application.location)
+        }
+        if (application.args.size < typeParams.size) {
+            report(Diagnostic.Kind.TooFewTypeArgs, application.location)
+        }
 
         return Type.Application(
             constr,
@@ -113,21 +140,4 @@ class ASTConv(
     }
 
     private fun List<TypeAnnotation>.types() = map { it.type() }
-
-    private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
-        val qualifiedName = resolver.qualifiedStructName(binding.declaration)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
-
-        return if (binding.declaration.typeParams == null) {
-            typeConstructor
-        } else {
-            Type.TypeFunction(
-                params = binding.declaration.makeTypeParams(),
-                body = Type.Application(
-                    typeConstructor,
-                    args = binding.declaration.typeParams.map { Type.Param(it.binder) }
-                )
-            )
-        }
-    }
 }

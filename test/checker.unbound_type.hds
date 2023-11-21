@@ -1,0 +1,4 @@
+
+def main(): Void {
+    val x: Unbound = 4
+}

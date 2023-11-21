@@ -1,0 +1,3 @@
+test/checker.type_arg_length_checking.hds:6: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:7: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:9: TooManyTypeArgs
