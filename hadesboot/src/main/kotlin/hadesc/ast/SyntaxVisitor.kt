@@ -3,6 +3,32 @@ package hadesc.ast
 import hadesc.unit
 
 interface SyntaxVisitor {
+    fun visitDeclaration(def: Declaration): Unit = when(def) {
+        is Declaration.ConstDefinition -> {
+            def.annotation?.let { visitType(it) }
+            visitExpression(def.initializer)
+        }
+        is Declaration.Enum -> unit
+        is Declaration.Error -> unit
+        is Declaration.ExtensionDef -> {
+            def.declarations.forEach {
+                visitDeclaration(it)
+            }
+        }
+        is Declaration.ExternConst -> unit
+        is Declaration.ExternFunctionDef -> unit
+        is Declaration.FunctionDef -> {
+            def.params.forEach { visitParam(it) }
+            visitType(def.signature.returnType)
+            visitBlock(def.body)
+        }
+        is Declaration.ImplementationDef -> TODO()
+        is Declaration.ImportAs -> unit
+        is Declaration.ImportMembers -> unit
+        is Declaration.Struct -> unit
+        is Declaration.TraitDef -> unit
+        is Declaration.TypeAlias -> visitType(def.rhs)
+    }
     fun visitType(type: TypeAnnotation): Unit = when (type) {
         is TypeAnnotation.Application -> visitTypeApplicationType(type)
         is TypeAnnotation.Error -> visitErrorType(type)
