@@ -1,10 +1,19 @@
 
 struct Foo[T, U] {}
 
+type Alias = Foo[u32, u8] // must not error
+type T[U, V] = Foo[u32] // must error
+
 def main(): Void {
-    val a: u32[u8] = #uninitialized
-    val x: Foo = #uninitialized
-    val y: Foo[u32] = #uninitialized
-    val z: Foo[u32, u8] = #uninitialized
-    val b: Foo[u32, u8, u8] = #uninitialized
+    val a: u32[u8] = #uninitialized // must error
+
+    val x: Foo = #uninitialized // must error
+    val y: Foo[u32] = #uninitialized // must error
+    val z: Foo[u32, u8] = #uninitialized // must not error
+    val b: Foo[u32, u8, u8] = #uninitialized // must error
+
+    val t1: T = #uninitialized // must error
+    val t2: T[u32] = #uninitialized // must error
+    val t3: T[u32, u8] = #uninitialized // must not error
+    val t4: T[u32, u8, u8] = #uninitialized // must error
 }

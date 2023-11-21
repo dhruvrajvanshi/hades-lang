@@ -1,3 +1,8 @@
-test/checker.type_arg_length_checking.hds:6: TooFewTypeArgs
-test/checker.type_arg_length_checking.hds:7: TooFewTypeArgs
-test/checker.type_arg_length_checking.hds:9: TooManyTypeArgs
+test/checker.type_arg_length_checking.hds:5: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:8: InvalidTypeApplication
+test/checker.type_arg_length_checking.hds:10: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:11: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:13: TooManyTypeArgs
+test/checker.type_arg_length_checking.hds:15: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:16: TooFewTypeArgs
+test/checker.type_arg_length_checking.hds:18: TooManyTypeArgs

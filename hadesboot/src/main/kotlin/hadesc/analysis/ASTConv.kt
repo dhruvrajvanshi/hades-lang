@@ -2,6 +2,7 @@ package hadesc.analysis
 
 import hadesc.ast.Declaration
 import hadesc.ast.TypeAnnotation
+import hadesc.ast.TypeParam
 import hadesc.diagnostics.Diagnostic
 import hadesc.location.SourceLocation
 import hadesc.resolver.Resolver
@@ -71,7 +72,12 @@ class ASTConv(
             is TypeBinding.Enum ->
                 Type.Constructor(resolver.qualifiedName(binding.declaration.name))
             is TypeBinding.Struct -> structTypeBindingToType(annotation, binding)
-            is TypeBinding.TypeAlias -> binding.declaration.rhs.type()
+            is TypeBinding.TypeAlias -> {
+                if (binding.declaration.typeParams != null) {
+                    report(Diagnostic.Kind.TooFewTypeArgs, annotation.location)
+                }
+                binding.declaration.rhs.type()
+            }
             is TypeBinding.Builtin -> binding.type
             is TypeBinding.TypeParam -> Type.Param(binding.binder)
             is TypeBinding.Trait -> {
@@ -107,6 +113,7 @@ class ASTConv(
            is TypeBinding.Struct -> Pair(lhsBinding.declaration.binder, lhsBinding.declaration.typeParams)
            is TypeBinding.Enum -> Pair(lhsBinding.declaration.name, lhsBinding.declaration.typeParams)
             is TypeBinding.TypeAlias -> {
+                checkTypeArgs(application, lhsBinding.declaration.typeParams)
                 if (lhsBinding.declaration.typeParams == null) {
                     return Type.Error(application.callee.location)
                 } else if (lhsBinding.declaration.typeParams.size != application.args.size) {
@@ -117,7 +124,10 @@ class ASTConv(
                     return lhsBinding.declaration.rhs.type().applySubstitution(subst)
                 }
             }
-           else -> return Type.Error(application.location)
+           else -> {
+               report(Diagnostic.Kind.InvalidTypeApplication, application.location)
+               return Type.Error(application.location)
+           }
         }
         if (typeParams == null) {
             report(Diagnostic.Kind.TooManyTypeArgs, application.location)
@@ -126,17 +136,26 @@ class ASTConv(
         val qualifiedName = resolver.qualifiedName(name)
         val constr = Type.Constructor(qualifiedName)
 
+        checkTypeArgs(application, typeParams)
+
+        return Type.Application(
+            constr,
+            application.args.types()
+        )
+    }
+
+    private fun checkTypeArgs(application: TypeAnnotation.Application, typeParams: List<TypeParam>?) {
+        check(application.args.isNotEmpty()) // Parser should never produce this
+        if (typeParams == null) {
+            report(Diagnostic.Kind.TooFewTypeArgs, application.location)
+            return
+        }
         if (application.args.size > typeParams.size) {
             report(Diagnostic.Kind.TooManyTypeArgs, application.location)
         }
         if (application.args.size < typeParams.size) {
             report(Diagnostic.Kind.TooFewTypeArgs, application.location)
         }
-
-        return Type.Application(
-            constr,
-            application.args.types()
-        )
     }
 
     private fun List<TypeAnnotation>.types() = map { it.type() }
