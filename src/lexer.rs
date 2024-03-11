@@ -14,12 +14,14 @@ pub enum TokenKind {
     LBRACE,
     RBRACE,
 
+    // Non punctuation Operators
+    ARROW,
+
     EOF,
 }
 #[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
-    pub path: Rc<PathBuf>,
     pub start_position: usize,
     pub text: String,
 }
@@ -45,11 +47,12 @@ lazy_static! {
     };
 }
 
+#[derive(Debug)]
 pub(crate) struct Lexer<'chars> {
     current_char: char,
     text: Chars<'chars>,
     lexeme: String,
-    path: Rc<PathBuf>,
+    _path: Rc<PathBuf>,
     position: usize,
 }
 impl<'chars> Lexer<'chars> {
@@ -59,7 +62,7 @@ impl<'chars> Lexer<'chars> {
         Lexer {
             current_char,
             text: chars,
-            path: Rc::new(path),
+            _path: Rc::new(path),
             lexeme: String::new(),
             position: 0,
         }
@@ -70,6 +73,11 @@ impl<'chars> Lexer<'chars> {
         self.start_token();
         match self.current_char {
             '\0' => self.make_token(TokenKind::EOF),
+            '-' => {
+                self.advance();
+                self.expect('>', "Expected `>` after `-`");
+                self.make_token(TokenKind::ARROW)
+            }
             c if is_ident_starter(c) => self.ident_or_keyword(),
             c if SINGLE_CHAR_TOKENS.contains_key(&c) => {
                 self.advance();
@@ -79,7 +87,7 @@ impl<'chars> Lexer<'chars> {
                         .expect("Should not panic because of `contains_key` check above"),
                 )
             }
-            _ => todo!(),
+            c => todo!("Unexpected character: {}", c),
         }
     }
 
@@ -103,7 +111,6 @@ impl<'chars> Lexer<'chars> {
         let text = std::mem::replace(&mut self.lexeme, String::new());
         Token {
             kind,
-            path: Rc::clone(&self.path),
             start_position: self.position - text.len(),
             text,
         }
@@ -126,6 +133,16 @@ impl<'chars> Lexer<'chars> {
         self.lexeme.push(current_char);
         self.position += 1;
         current_char
+    }
+    fn expect(&mut self, c: char, message: &str) -> char {
+        if self.current_char != c {
+            eprintln!("Current position: {}", self.position);
+            panic!(
+                "{}; Expected: '{}'; Found: '{}'",
+                message, c, self.current_char
+            );
+        }
+        self.advance()
     }
 }
 
@@ -189,6 +206,24 @@ mod test {
         assert_eq!(t.next_token().kind, k::RPAREN);
         assert_eq!(t.next_token().kind, k::LBRACE);
         assert_eq!(t.next_token().kind, k::RBRACE);
+    }
+
+    #[test]
+    fn tokenize_function_header_with_no_args() {
+        let mut t = mk_tokenizer("fn main() {}");
+        use TokenKind as k;
+        assert_eq!(t.next_token().kind, k::FN);
+        assert_eq!(t.next_token().kind, k::IDENT);
+        assert_eq!(t.next_token().kind, k::LPAREN);
+        assert_eq!(t.next_token().kind, k::RPAREN);
+        assert_eq!(t.next_token().kind, k::LBRACE);
+        assert_eq!(t.next_token().kind, k::RBRACE);
+    }
+
+    #[test]
+    fn tokenizes_arrow() {
+        let mut t = mk_tokenizer("->");
+        assert_eq!(t.next_token().kind, TokenKind::ARROW);
     }
 
     fn mk_tokenizer(s: &str) -> Lexer<'_> {

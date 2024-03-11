@@ -1,52 +1,66 @@
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct SourceFile {
-    path: PathBuf,
-    items: Vec<Item>,
+    pub path: PathBuf,
+    pub items: Vec<Item>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct NodeId(usize);
+pub struct NodeId(pub usize);
 
 #[derive(Debug)]
 pub struct Item {
-    id: NodeId,
-    kind: ItemKind,
+    pub id: NodeId,
+    pub kind: ItemKind,
 }
 
 #[derive(Debug)]
 pub struct Fn {
-    id: NodeId,
-    name: String,
-    body: Expr,
+    pub id: NodeId,
+    pub name: String,
+    pub body: Expr,
+    pub return_ty: Option<Ty>,
 }
 #[derive(Debug)]
 pub struct Expr {
-    id: NodeId,
-    kind: ExprKind,
+    pub id: NodeId,
+    pub kind: ExprKind,
 }
 #[derive(Debug)]
-enum ExprKind {
+pub enum ExprKind {
     Block(Block),
+    Unit,
 }
 
 #[derive(Debug)]
-struct Block {
-    id: NodeId,
-    stmts: Vec<Stmt>,
+pub struct Block {
+    pub id: NodeId,
+    pub stmts: Vec<Stmt>,
 }
 
 #[derive(Debug)]
-enum ItemKind {
+pub enum ItemKind {
     Fn(Box<Fn>),
 }
 
 #[derive(Debug)]
-struct Stmt {
-    id: NodeId,
-    kind: StmtKind,
+pub struct Stmt {
+    pub id: NodeId,
+    pub kind: StmtKind,
 }
 
 #[derive(Debug)]
-enum StmtKind {
+pub enum StmtKind {
     Item(Item),
+    Expr(Box<Expr>),
+}
+
+#[derive(Debug)]
+pub struct Ty {
+    pub id: NodeId,
+    pub kind: TyKind,
+}
+#[derive(Debug)]
+pub enum TyKind {
+    Unit,
 }

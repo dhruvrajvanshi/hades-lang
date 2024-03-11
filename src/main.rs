@@ -4,7 +4,7 @@ mod parser;
 use anyhow::Result;
 use std::{io::Read, path::PathBuf};
 
-use crate::lexer::Lexer;
+use crate::parser::Parser;
 
 fn main() -> Result<()> {
     let path = PathBuf::from("./test/empty_main.hds");
@@ -13,9 +13,9 @@ fn main() -> Result<()> {
     file.read_to_end(&mut buffer)?;
     let text = String::from_utf8(buffer)?;
 
-    let mut lexer = Lexer::new(&text, path);
+    let parser = Parser::new(&text, path);
 
-    lexer.next_token();
+    eprintln!("{:?}", parser.parse_source_file());
 
     panic!();
 }
