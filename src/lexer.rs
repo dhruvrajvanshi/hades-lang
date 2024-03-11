@@ -7,6 +7,13 @@ use lazy_static::lazy_static;
 pub enum TokenKind {
     FN,
     IDENT,
+
+    // Punctuation
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    RBRACE,
+
     EOF,
 }
 #[derive(Debug)]
@@ -21,6 +28,19 @@ lazy_static! {
     static ref TOKEN_KINDS: HashMap<&'static str, TokenKind> = {
         let mut m = HashMap::new();
         m.insert("fn", TokenKind::FN);
+        m
+    };
+}
+
+lazy_static! {
+    static ref SINGLE_CHAR_TOKENS: HashMap<char, TokenKind> = {
+        let mut m = HashMap::new();
+        let mut i = |k, v| m.insert(k, v);
+        use TokenKind as t;
+        i('(', t::LPAREN);
+        i(')', t::RPAREN);
+        i('{', t::LBRACE);
+        i('}', t::RBRACE);
         m
     };
 }
@@ -51,6 +71,14 @@ impl<'chars> Lexer<'chars> {
         match self.current_char {
             '\0' => self.make_token(TokenKind::EOF),
             c if is_ident_starter(c) => self.ident_or_keyword(),
+            c if SINGLE_CHAR_TOKENS.contains_key(&c) => {
+                self.advance();
+                self.make_token(
+                    *SINGLE_CHAR_TOKENS
+                        .get(&c)
+                        .expect("Should not panic because of `contains_key` check above"),
+                )
+            }
             _ => todo!(),
         }
     }
@@ -151,5 +179,19 @@ mod test {
         assert_eq!(token.text, "main");
 
         assert_eq!(lexer.next_token().kind, TokenKind::EOF);
+    }
+
+    #[test]
+    fn tokenizes_parens() {
+        let mut t = mk_tokenizer("(){};");
+        use TokenKind as k;
+        assert_eq!(t.next_token().kind, k::LPAREN);
+        assert_eq!(t.next_token().kind, k::RPAREN);
+        assert_eq!(t.next_token().kind, k::LBRACE);
+        assert_eq!(t.next_token().kind, k::RBRACE);
+    }
+
+    fn mk_tokenizer(s: &str) -> Lexer<'_> {
+        Lexer::new(s, PathBuf::from("test.hds"))
     }
 }
