@@ -1,4 +1,6 @@
+mod ast;
 mod lexer;
+mod parser;
 use anyhow::Result;
 use std::{io::Read, path::PathBuf};
 
