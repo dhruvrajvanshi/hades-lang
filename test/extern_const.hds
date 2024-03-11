@@ -1,8 +1,0 @@
-
-extern const MESSAGE: *Byte = MESSAGE
-
-extern def puts(*Byte): Void = puts
-
-def main(): Void {
-    puts(MESSAGE)
-}

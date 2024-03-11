@@ -1,2 +1,0 @@
-test/mutable_struct_fields_checking.hds:4: ValNotMutable
-test/mutable_struct_fields_checking.hds:6: TypeNotAssignable

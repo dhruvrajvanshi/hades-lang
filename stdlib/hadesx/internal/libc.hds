@@ -1,4 +1,0 @@
-type int = i32
-
-extern def fork(): int = fork
-extern def wait(int): Void = wait

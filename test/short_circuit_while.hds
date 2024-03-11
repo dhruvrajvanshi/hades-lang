@@ -1,7 +1,0 @@
-
-def main(): Void {
-    val mut break = false
-    while not break and true {
-        break = true
-    }
-}

@@ -1,4 +1,0 @@
-
-extern def to_double(Size): Double = hds_size_to_double;
-
-

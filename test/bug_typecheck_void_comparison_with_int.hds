@@ -1,8 +1,0 @@
-
-def main(): Void {
-    val x = void()
-
-    val z = x == 0
-}
-
-extern def void(): Void = void

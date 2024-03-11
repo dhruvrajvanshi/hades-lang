@@ -1,6 +1,0 @@
-import libc as c;
-
-def main(): Size {
-    defer c.puts(b"deferred");
-    return 0;
-}

@@ -1,8 +1,0 @@
-import libc as c;
-
-extern def bool_to_string(Bool): *Byte = bool_to_string;
-
-def main(): Void {
-    c.puts(bool_to_string(true));
-    c.puts(bool_to_string(false));
-}

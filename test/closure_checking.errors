@@ -1,3 +1,0 @@
-test/closure_checking.hds:10: ReturnTypeMustNotContainClosuresOrRefs
-test/closure_checking.hds:12: ReturnTypeMustNotContainClosuresOrRefs
-test/closure_checking.hds:17: TakingAddressOfClosureDisallowed

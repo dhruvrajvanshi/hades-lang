@@ -1,8 +1,0 @@
-import libc as c;
-
-def main(): Void {
-    val x = if (true) b"1" else b"2";
-    c.puts(x);
-    val y = if (false) b"1" else b"2";
-    c.puts(y);
-}
