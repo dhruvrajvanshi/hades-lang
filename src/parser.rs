@@ -138,9 +138,6 @@ impl<'text> Parser<'text> {
         self.tokens.current_kind()
     }
 
-    fn current(&self) -> &Token {
-        self.tokens.current()
-    }
     fn advance(&mut self) -> Token {
         self.tokens.advance()
     }
