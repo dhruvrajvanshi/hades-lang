@@ -134,11 +134,12 @@ internal class HIRGenExpression(
                 )
             }
             IntrinsicType.INT_TO_PTR -> {
-                check(expression.type is Type.Ptr)
+                val exprTy = expression.type
+                check(exprTy is Type.Ptr)
                 check(expression.args.size == 1)
                 return emitIntToPtr(
                     lowerExpression(expression.args[0].expression).asOperand(),
-                    expression.type
+                    exprTy
                 )
             }
             IntrinsicType.MEMCPY -> {
