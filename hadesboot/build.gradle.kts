@@ -15,7 +15,7 @@ java {
 val logbackVersion = "1.4.7"
 val slf4jVersion = "2.0.9"
 val junitVersion = "5.9.3"
-val kotlinxSerializationVersion = "1.6.1"
+val kotlinxSerializationVersion = "1.6.3"
 
 application {
     group = "org.hades"
