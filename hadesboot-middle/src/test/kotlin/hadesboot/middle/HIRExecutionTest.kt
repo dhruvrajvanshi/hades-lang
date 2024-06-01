@@ -8,8 +8,12 @@ class HIRExecutionTest {
         val module = buildModule("test") {
             addFn("main") {
                 returns(i32)
+                addEntry {
+                    emitReturn(i32(42))
+                }
             }
         }
-        println(module.prettyPrint())
+        val pretty = module.prettyPrint()
+        println(pretty)
     }
 }

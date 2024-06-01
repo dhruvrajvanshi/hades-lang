@@ -15,15 +15,20 @@ interface ConstantBuilderCtx: TypeBuilderCtx {
     fun isize(value: Long): Constant.Int = Constant.Int(Type.isize, value.toULong())
 }
 
-interface ModuleBuilderCtx: TypeBuilderCtx,  ConstantBuilderCtx {
+interface ModuleBuilderCtx: TypeBuilderCtx, ConstantBuilderCtx {
     fun addFn(name: String, build: FnBuilderCtx.() -> Unit): Fn
+}
+
+interface BlockBuilderCtx: FnBuilderCtx {
+    fun emitReturn(value: Value)
 }
 
 interface FnBuilderCtx: ModuleBuilderCtx {
     fun param(name: String, type: Type): Parameter
     fun returns(type: Type)
+    fun addEntry(build: BlockBuilderCtx.() -> Unit)
+    fun addBlock(label: String, build: BlockBuilderCtx.() -> Unit): Block
 }
-
 fun buildModule(name: String, build: ModuleBuilderCtx.() -> Unit): Module {
     val items = mutableListOf<Item>()
     val module = Module(name = name, items = items)
@@ -31,8 +36,9 @@ fun buildModule(name: String, build: ModuleBuilderCtx.() -> Unit): Module {
         override fun addFn(name: String, build: FnBuilderCtx.() -> Unit): Fn {
             val params = mutableListOf<Parameter>()
             var returnType: Type? = null
-            val entry = Block("entry", emptyList(), terminator = Terminator.Return)
-            val fnBuilder = object : FnBuilderCtx,  ModuleBuilderCtx by this {
+            var entry: Block? = null
+            val blocks = mutableListOf<Block>()
+            val fnBuilder = object : FnBuilderCtx, ModuleBuilderCtx by this {
                 override fun param(name: String, type: Type): Parameter {
                     val p = Parameter(name, type)
                     params.add(p)
@@ -45,17 +51,63 @@ fun buildModule(name: String, build: ModuleBuilderCtx.() -> Unit): Module {
                     }
                     returnType = type
                 }
+
+                override fun addEntry(build: BlockBuilderCtx.() -> Unit) {
+                    require(entry == null) {
+                        "entry must be set only once; Previous value: $entry; New value: Block"
+                    }
+                    val block = makeBlockBuilder("entry", this)
+                    block.build()
+                    entry = block.run()
+                }
+
+                override fun addBlock(label: String, build: BlockBuilderCtx.() -> Unit): Block {
+                    val builder = makeBlockBuilder(label, this)
+                    builder.build()
+                    val block = builder.run()
+                    blocks.add(block)
+                    return block
+                }
+
             }
             fnBuilder.build()
             val fn = Fn(
                 name = name,
                 returnType = returnType ?: Type.Tuple(emptyList()),
                 parameters = params,
-                entry = entry
+                entry = entry ?: throw IllegalStateException("entry must be set"),
+                blocks = blocks
             )
+            items.add(fn)
             return fn
         }
     }
     ctx.build()
     return module
+}
+
+private interface BlockBuilderCtxImpl: BlockBuilderCtx {
+    fun run(): Block
+}
+
+private fun makeBlockBuilder(label: String,  fnBuilderCtx: FnBuilderCtx): BlockBuilderCtxImpl {
+    val instructions = mutableListOf<Instruction>()
+    var terminator: Terminator? = null
+    val ctx = object: BlockBuilderCtxImpl, FnBuilderCtx by fnBuilderCtx {
+        override fun emitReturn(value: Value) {
+            require(terminator == null) {
+                "terminator must be set only once; Previous value: $terminator; New value: Return($value)"
+            }
+            terminator = Terminator.Return(value)
+        }
+
+        override fun run(): Block {
+            return Block(
+                label = label,
+                instructions = instructions,
+                terminator = terminator ?: throw IllegalStateException("terminator must be set")
+            )
+        }
+    }
+    return ctx
 }

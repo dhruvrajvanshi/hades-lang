@@ -11,7 +11,8 @@ data class Fn(
     val name: String,
     val returnType: Type,
     val parameters: List<Parameter>,
-    val entry: Block
+    val entry: Block,
+    val blocks: List<Block>,
 ): Item
 
 data class ExternFn(
@@ -35,4 +36,5 @@ data class Parameter(val name: String, val type: Type)
 sealed interface Value
 sealed interface Constant: Value {
     data class Int(val type: Type.Int, val value: ULong): Constant
+    data class Tuple(val members: List<Value>): Constant
 }
