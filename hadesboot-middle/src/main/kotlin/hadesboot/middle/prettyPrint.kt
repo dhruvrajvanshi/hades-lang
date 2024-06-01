@@ -15,10 +15,17 @@ fun Item.prettyPrint(): String = when (this) {
 }
 
 fun Type.prettyPrint(): String = when(this) {
-    Type.USize -> "usize"
-    Type.ISize -> "isize"
-    Type.U32 -> "u32"
-    Type.I32 -> "i32"
+    is Type.Int -> {
+        val signS = when(sign) {
+            Type.Sign.Signed -> "i"
+            Type.Sign.Unsigned -> "u"
+        }
+        val width = when(width) {
+            Type.Width.W32 -> "32"
+            Type.Width.Size -> "size"
+        }
+        signS + width
+    }
     is Type.Tuple ->
             members.joinToString( ", ", "(",  ")") { it.prettyPrint() }
 }

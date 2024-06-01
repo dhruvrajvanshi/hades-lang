@@ -1,11 +1,11 @@
 package hadesboot.middle
 
 interface TypeBuilderCtx {
-    val i32 get() = Type.I32
-    val u32 get() = Type.U32
-    val isize get() = Type.ISize
-    val usize get() = Type.USize
-    fun tuple(vararg of: Type): Type = Type.Tuple(of.toList())
+    val usize get() = Type.usize
+    val isize get() = Type.isize
+    val u32 get() = Type.u32
+    val i32 get() = Type.i32
+    fun tuple(vararg of: Type): Type.Tuple = Type.Tuple(of.toList())
 }
 
 interface ModuleBuilderCtx: TypeBuilderCtx {
