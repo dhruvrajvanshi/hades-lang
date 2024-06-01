@@ -5,6 +5,7 @@ plugins {
 rootProject.name = 'hades'
 
 include "hadesboot"
+include "hadesboot-middle"
 
 dependencyResolutionManagement {
     repositories {
