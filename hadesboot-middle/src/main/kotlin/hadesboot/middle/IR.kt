@@ -37,4 +37,9 @@ sealed interface Value
 sealed interface Constant: Value {
     data class Int(val type: Type.Int, val value: ULong): Constant
     data class Tuple(val members: List<Value>): Constant
+
+    companion object {
+        fun tuple(vararg members: Value) = Tuple(members.toList())
+        val unit = Tuple(emptyList())
+    }
 }

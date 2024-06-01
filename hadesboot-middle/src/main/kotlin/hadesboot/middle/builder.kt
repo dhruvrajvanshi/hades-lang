@@ -15,99 +15,110 @@ interface ConstantBuilderCtx: TypeBuilderCtx {
     fun isize(value: Long): Constant.Int = Constant.Int(Type.isize, value.toULong())
 }
 
-interface ModuleBuilderCtx: TypeBuilderCtx, ConstantBuilderCtx {
-    fun addFn(name: String, build: FnBuilderCtx.() -> Unit): Fn
+fun FnBuilderCtx.buildBlock(label: String, build: BlockBuilderCtx.() -> Unit): Block {
+    val builder = BlockBuilderImpl(label)
+    val ctx: BlockBuilderCtx = object: BlockBuilder by builder, FnBuilderCtx by this, BlockBuilderCtx {}
+    ctx.build()
+    return builder.run()
 }
 
-interface BlockBuilderCtx: FnBuilderCtx {
+class BlockBuilderImpl(private val label: String): BlockBuilder {
+    private var terminator: Terminator? = null
+    private var instructions = mutableListOf<Instruction>()
+
+    override fun emit(instruction: Instruction) {
+        instructions.add(instruction)
+    }
+    override fun emit(terminator: Terminator) {
+        terminate(terminator)
+    }
+
+    override fun emitReturn(value: Value) {
+        terminate(Terminator.Return(value))
+    }
+
+    private fun terminate(terminator: Terminator) {
+        require(this.terminator == null) {
+            "Tried to terminate an already terminated block: $label"
+        }
+        this.terminator = terminator
+    }
+
+    fun run(): Block {
+        return Block(
+            label = label,
+            instructions = instructions,
+            terminator = requireNotNull(terminator)
+        )
+    }
+}
+
+
+fun ModuleBuilderCtx.buildFn(name: String, build: FnBuilderCtx.() -> Unit): Fn {
+    val builder = FnBuilderImpl(name)
+    val ctx: FnBuilderCtx = object: ModuleBuilderCtx by this, FnBuilder by builder, FnBuilderCtx {}
+    ctx.build()
+    return builder.run()
+}
+
+interface FnBuilder {
+    fun addBlock(block: Block)
+    var returnType: Type
+    var entry: Block?
+}
+interface BlockBuilderCtx: BlockBuilder, FnBuilderCtx
+interface BlockBuilder {
+    fun emit(instruction: Instruction)
+    fun emit(terminator: Terminator)
     fun emitReturn(value: Value)
 }
+interface FnBuilderCtx: FnBuilder, ModuleBuilderCtx
 
-interface FnBuilderCtx: ModuleBuilderCtx {
-    fun param(name: String, type: Type): Parameter
-    fun returns(type: Type)
-    fun addEntry(build: BlockBuilderCtx.() -> Unit)
-    fun addBlock(label: String, build: BlockBuilderCtx.() -> Unit): Block
+class FnBuilderImpl(private val name: String): FnBuilder {
+    override var returnType: Type = Type.unit
+    override var entry: Block? = null
+    private val blocks = mutableListOf<Block>()
+    private val parameters = mutableListOf<Parameter>()
+    fun run(): Fn {
+        return Fn(
+            name = name,
+            returnType = returnType,
+            parameters = parameters,
+            entry = requireNotNull(entry) {
+                "Entry block not set"
+            },
+            blocks = blocks,
+        )
+    }
+
+    override fun addBlock(block: Block) {
+        blocks.add(block)
+    }
 }
+
+interface ModuleBuilderCtx: ModuleBuilder, TypeBuilderCtx, ConstantBuilderCtx
 fun buildModule(name: String, build: ModuleBuilderCtx.() -> Unit): Module {
-    val items = mutableListOf<Item>()
-    val module = Module(name = name, items = items)
-    val ctx = object : ModuleBuilderCtx {
-        override fun addFn(name: String, build: FnBuilderCtx.() -> Unit): Fn {
-            val params = mutableListOf<Parameter>()
-            var returnType: Type? = null
-            var entry: Block? = null
-            val blocks = mutableListOf<Block>()
-            val fnBuilder = object : FnBuilderCtx, ModuleBuilderCtx by this {
-                override fun param(name: String, type: Type): Parameter {
-                    val p = Parameter(name, type)
-                    params.add(p)
-                    return p
-                }
+    val builder = ModuleBuilderImpl(name)
 
-                override fun returns(type: Type) {
-                    require(returnType == null) {
-                        "return type must be set only once; Previous value: $returnType; New value: $type"
-                    }
-                    returnType = type
-                }
-
-                override fun addEntry(build: BlockBuilderCtx.() -> Unit) {
-                    require(entry == null) {
-                        "entry must be set only once; Previous value: $entry; New value: Block"
-                    }
-                    val block = makeBlockBuilder("entry", this)
-                    block.build()
-                    entry = block.run()
-                }
-
-                override fun addBlock(label: String, build: BlockBuilderCtx.() -> Unit): Block {
-                    val builder = makeBlockBuilder(label, this)
-                    builder.build()
-                    val block = builder.run()
-                    blocks.add(block)
-                    return block
-                }
-
-            }
-            fnBuilder.build()
-            val fn = Fn(
-                name = name,
-                returnType = returnType ?: Type.Tuple(emptyList()),
-                parameters = params,
-                entry = entry ?: throw IllegalStateException("entry must be set"),
-                blocks = blocks
-            )
-            items.add(fn)
-            return fn
-        }
-    }
-    ctx.build()
-    return module
+    builder.build()
+    return builder.run()
 }
 
-private interface BlockBuilderCtxImpl: BlockBuilderCtx {
-    fun run(): Block
+interface ModuleBuilder {
+    fun addFn(name: String, ctx: FnBuilderCtx.() -> Unit): Fn
 }
+class ModuleBuilderImpl(private val name: String): ModuleBuilderCtx {
+    private val items = mutableListOf<Item>()
 
-private fun makeBlockBuilder(label: String,  fnBuilderCtx: FnBuilderCtx): BlockBuilderCtxImpl {
-    val instructions = mutableListOf<Instruction>()
-    var terminator: Terminator? = null
-    val ctx = object: BlockBuilderCtxImpl, FnBuilderCtx by fnBuilderCtx {
-        override fun emitReturn(value: Value) {
-            require(terminator == null) {
-                "terminator must be set only once; Previous value: $terminator; New value: Return($value)"
-            }
-            terminator = Terminator.Return(value)
-        }
-
-        override fun run(): Block {
-            return Block(
-                label = label,
-                instructions = instructions,
-                terminator = terminator ?: throw IllegalStateException("terminator must be set")
-            )
-        }
+    private fun add(item: Item) {
+        items.add(item)
     }
-    return ctx
+
+    override fun addFn(name: String, ctx: FnBuilderCtx.() -> Unit): Fn {
+        val fn = buildFn(name, ctx)
+        add(fn)
+        return fn
+    }
+
+    fun run(): Module = Module(name, items)
 }

@@ -7,8 +7,8 @@ class HIRExecutionTest {
     fun `should execute hello world`() {
         val module = buildModule("test") {
             addFn("main") {
-                returns(i32)
-                addEntry {
+                returnType = i32
+                entry = buildBlock("entry") {
                     emitReturn(i32(42))
                 }
             }

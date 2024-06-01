@@ -17,5 +17,6 @@ sealed interface Type {
         val isize = Int(Width.Size, Sign.Signed)
         val u32 = Int(Width.W32, Sign.Unsigned)
         val i32 = Int(Width.W32, Sign.Signed)
+        val unit = Tuple(emptyList())
     }
 }
