@@ -40,6 +40,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    implementation(project(":hadesboot-middle"))
 }
 
 tasks.test {

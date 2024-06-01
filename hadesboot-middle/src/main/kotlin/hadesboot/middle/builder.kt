@@ -17,8 +17,8 @@ interface ConstantBuilder: TypeBuilder {
 
 fun buildBlock(label: String, build: BlockBuilder.() -> Unit): Block {
     val builder = BlockBuilderImpl(label)
-    builder.build()
-    return builder.run()
+    build(builder)
+    return builder.build()
 }
 
 private class BlockBuilderImpl(private val label: String): BlockBuilder {
@@ -43,7 +43,7 @@ private class BlockBuilderImpl(private val label: String): BlockBuilder {
         this.terminator = terminator
     }
 
-    fun run(): Block {
+    override fun build(): Block {
         return Block(
             label = label,
             instructions = instructions,
@@ -55,19 +55,21 @@ private class BlockBuilderImpl(private val label: String): BlockBuilder {
 
 fun buildFn(name: String, build: FnBuilder.() -> Unit): Fn {
     val builder = FnBuilderImpl(name)
-    builder.build()
-    return builder.run()
+    build(builder)
+    return builder.build()
 }
 
 interface FnBuilder {
     fun addBlock(block: Block)
     var returnType: Type
     var entry: Block?
+    fun build(): Fn
 }
 interface BlockBuilder {
     fun emit(instruction: Instruction)
     fun emit(terminator: Terminator)
     fun emitReturn(value: Value)
+    fun build(): Block
 }
 
 private class FnBuilderImpl(private val name: String): FnBuilder {
@@ -75,7 +77,7 @@ private class FnBuilderImpl(private val name: String): FnBuilder {
     override var entry: Block? = null
     private val blocks = mutableListOf<Block>()
     private val parameters = mutableListOf<Parameter>()
-    fun run(): Fn {
+    override fun build(): Fn {
         return Fn(
             name = name,
             returnType = returnType,
@@ -94,12 +96,13 @@ private class FnBuilderImpl(private val name: String): FnBuilder {
 
 fun buildModule(name: String, build: ModuleBuilder.() -> Unit): Module {
     val builder = ModuleBuilderImpl(name)
-    builder.build()
-    return builder.run()
+    build(builder)
+    return builder.build()
 }
 
 interface ModuleBuilder: TypeBuilder, ConstantBuilder {
     fun addFn(name: String, ctx: FnBuilder.() -> Unit): Fn
+    fun build(): Module
 }
 class ModuleBuilderImpl(private val name: String): ModuleBuilder {
     private val items = mutableListOf<Item>()
@@ -114,5 +117,5 @@ class ModuleBuilderImpl(private val name: String): ModuleBuilder {
         return fn
     }
 
-    fun run(): Module = Module(name, items)
+    override fun build(): Module = Module(name, items)
 }
