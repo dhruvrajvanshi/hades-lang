@@ -28,7 +28,7 @@ data class Block(
 
 sealed interface Instruction
 sealed interface Terminator {
-    data object Return: Terminator
+    data class Return(val value: Value): Terminator
 }
 data class Parameter(val name: String, val type: Type)
 
