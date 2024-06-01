@@ -8,7 +8,14 @@ interface TypeBuilderCtx {
     fun tuple(vararg of: Type): Type.Tuple = Type.Tuple(of.toList())
 }
 
-interface ModuleBuilderCtx: TypeBuilderCtx {
+interface ConstantBuilderCtx: TypeBuilderCtx {
+    fun u32(value: UInt): Constant.Int = Constant.Int(Type.u32, value.toULong())
+    fun i32(value: Int): Constant.Int = Constant.Int(Type.i32, value.toULong())
+    fun usize(value: ULong): Constant.Int = Constant.Int(Type.usize, value)
+    fun isize(value: Long): Constant.Int = Constant.Int(Type.isize, value.toULong())
+}
+
+interface ModuleBuilderCtx: TypeBuilderCtx,  ConstantBuilderCtx {
     fun addFn(name: String, build: FnBuilderCtx.() -> Unit): Fn
 }
 

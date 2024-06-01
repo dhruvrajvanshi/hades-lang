@@ -31,3 +31,8 @@ sealed interface Terminator {
     data object Return: Terminator
 }
 data class Parameter(val name: String, val type: Type)
+
+sealed interface Value
+sealed interface Constant: Value {
+    data class Int(val type: Type.Int, val value: ULong): Constant
+}
