@@ -11,7 +11,7 @@ data class Fn(
     val name: String,
     val returnType: Type,
     val parameters: List<Parameter>,
-    val body: Block
+    val entry: Block
 ): Item
 
 data class ExternFn(
@@ -27,5 +27,7 @@ data class Block(
 )
 
 sealed interface Instruction
-sealed interface Terminator
+sealed interface Terminator {
+    data object Return: Terminator
+}
 data class Parameter(val name: String, val type: Type)
