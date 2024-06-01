@@ -1,6 +1,6 @@
 package hadesboot.middle
 
-interface TypeBuilderCtx {
+interface TypeBuilder {
     val usize get() = Type.usize
     val isize get() = Type.isize
     val u32 get() = Type.u32
@@ -8,21 +8,20 @@ interface TypeBuilderCtx {
     fun tuple(vararg of: Type): Type.Tuple = Type.Tuple(of.toList())
 }
 
-interface ConstantBuilderCtx: TypeBuilderCtx {
+interface ConstantBuilder: TypeBuilder {
     fun u32(value: UInt): Constant.Int = Constant.Int(Type.u32, value.toULong())
     fun i32(value: Int): Constant.Int = Constant.Int(Type.i32, value.toULong())
     fun usize(value: ULong): Constant.Int = Constant.Int(Type.usize, value)
     fun isize(value: Long): Constant.Int = Constant.Int(Type.isize, value.toULong())
 }
 
-fun FnBuilderCtx.buildBlock(label: String, build: BlockBuilderCtx.() -> Unit): Block {
+fun buildBlock(label: String, build: BlockBuilder.() -> Unit): Block {
     val builder = BlockBuilderImpl(label)
-    val ctx: BlockBuilderCtx = object: BlockBuilder by builder, FnBuilderCtx by this, BlockBuilderCtx {}
-    ctx.build()
+    builder.build()
     return builder.run()
 }
 
-class BlockBuilderImpl(private val label: String): BlockBuilder {
+private class BlockBuilderImpl(private val label: String): BlockBuilder {
     private var terminator: Terminator? = null
     private var instructions = mutableListOf<Instruction>()
 
@@ -54,10 +53,9 @@ class BlockBuilderImpl(private val label: String): BlockBuilder {
 }
 
 
-fun ModuleBuilderCtx.buildFn(name: String, build: FnBuilderCtx.() -> Unit): Fn {
+fun buildFn(name: String, build: FnBuilder.() -> Unit): Fn {
     val builder = FnBuilderImpl(name)
-    val ctx: FnBuilderCtx = object: ModuleBuilderCtx by this, FnBuilder by builder, FnBuilderCtx {}
-    ctx.build()
+    builder.build()
     return builder.run()
 }
 
@@ -66,15 +64,13 @@ interface FnBuilder {
     var returnType: Type
     var entry: Block?
 }
-interface BlockBuilderCtx: BlockBuilder, FnBuilderCtx
 interface BlockBuilder {
     fun emit(instruction: Instruction)
     fun emit(terminator: Terminator)
     fun emitReturn(value: Value)
 }
-interface FnBuilderCtx: FnBuilder, ModuleBuilderCtx
 
-class FnBuilderImpl(private val name: String): FnBuilder {
+private class FnBuilderImpl(private val name: String): FnBuilder {
     override var returnType: Type = Type.unit
     override var entry: Block? = null
     private val blocks = mutableListOf<Block>()
@@ -96,25 +92,23 @@ class FnBuilderImpl(private val name: String): FnBuilder {
     }
 }
 
-interface ModuleBuilderCtx: ModuleBuilder, TypeBuilderCtx, ConstantBuilderCtx
-fun buildModule(name: String, build: ModuleBuilderCtx.() -> Unit): Module {
+fun buildModule(name: String, build: ModuleBuilder.() -> Unit): Module {
     val builder = ModuleBuilderImpl(name)
-
     builder.build()
     return builder.run()
 }
 
-interface ModuleBuilder {
-    fun addFn(name: String, ctx: FnBuilderCtx.() -> Unit): Fn
+interface ModuleBuilder: TypeBuilder, ConstantBuilder {
+    fun addFn(name: String, ctx: FnBuilder.() -> Unit): Fn
 }
-class ModuleBuilderImpl(private val name: String): ModuleBuilderCtx {
+class ModuleBuilderImpl(private val name: String): ModuleBuilder {
     private val items = mutableListOf<Item>()
 
     private fun add(item: Item) {
         items.add(item)
     }
 
-    override fun addFn(name: String, ctx: FnBuilderCtx.() -> Unit): Fn {
+    override fun addFn(name: String, ctx: FnBuilder.() -> Unit): Fn {
         val fn = buildFn(name, ctx)
         add(fn)
         return fn
