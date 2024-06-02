@@ -49,6 +49,8 @@ sealed interface Node {
      * Renders [ifTrue] if the Node with [id] needs to be wrapped, otherwise [ifFalse].
      */
     data class IfWrap(val id: Int, val ifTrue: Node, val ifFalse: Node) : Node
+
+    operator fun plus(other: Node): Node = Nodes(listOf(this, other))
 }
 
 private enum class Wrapping {
@@ -61,7 +63,7 @@ private val Wrapping.enabled get() = this == Wrapping.ENABLE
 private fun Node.width(wrappedGroupSet: Set<Int>): Int = when (this) {
     is Node.Text -> text.length
     is Node.SpaceOrLine -> 1
-    is Node.Line -> 1
+    is Node.Line -> 0
     is Node.Indent -> nodes.sumOf { it.width(wrappedGroupSet) }
     is Node.Nodes -> nodes.sumOf { it.width(wrappedGroupSet) }
     is Node.Group -> nodes.sumOf { it.width(wrappedGroupSet) }
@@ -155,5 +157,15 @@ data class PrettyPrintConfig(val lineWidth: Int, val indent: String) {
     }
 }
 
-fun Node.prettyPrint(config: PrettyPrintConfig = PrettyPrintConfig.DEFAULT): String =
+fun Node.prettyPrint(
+    lineWidth: Int = 80,
+    indent: String = "  ",
+): String =
+    Renderer(PrettyPrintConfig(
+        lineWidth = lineWidth,
+        indent = indent,
+    )).render(this)
+fun Node.prettyPrint(
+    config: PrettyPrintConfig,
+): String =
     Renderer(config).render(this)

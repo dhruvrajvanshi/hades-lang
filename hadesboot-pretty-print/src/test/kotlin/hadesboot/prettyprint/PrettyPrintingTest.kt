@@ -2,6 +2,7 @@ package hadesboot.prettyprint
 
 import hadesboot.prettyprint.Node.*
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.expect
 
 class PrettyPrintingTest {
@@ -15,19 +16,17 @@ class PrettyPrintingTest {
 
     @Test
     fun `should print a non wrapping json array`() {
-        val node =
 
         expect("[1, 2, 3]") {
-            jsonArray123.prettyPrint(PrettyPrintConfig(
+            listOf(1, 2, 3).toNode().prettyPrint(
                 lineWidth = 20,
                 indent = "  "
-            ))
+            )
         }
     }
 
     @Test
     fun `should wrap when needed`() {
-        val node =
 
         expect(
             """
@@ -38,30 +37,74 @@ class PrettyPrintingTest {
             ]
             """.trimIndent()
         ) {
-            jsonArray123.prettyPrint(PrettyPrintConfig(
+            listOf(1, 2, 3).toNode().prettyPrint(
                 lineWidth = 5,
                 indent = "  "
-            ))
+            )
         }
 
     }
 
+    @Test
+    fun `should wrap nested groups independently`() {
+        val node = listOf(
+            1,
+            2,
+            listOf(3, 4),
+            5,
+            6
+        ).toNode()
+        val actual = node.prettyPrint(
+            lineWidth = 10,
+            indent = "  "
+        )
+        val expected = """
+            [
+              1,
+              2,
+              [3, 4],
+              5,
+              6,
+            ]
+        """.trimIndent()
+        assertEquals(expected, actual)
+    }
+
 }
 
-val jsonArray123 = Group(
-    id = 0,
-    Text("["),
-    Line,
-    Indent(
-        Text("1"),
-        Text(","),
-        SpaceOrLine,
-        Text("2"),
-        Text(","),
-        SpaceOrLine,
-        Text("3"),
-        IfWrap(0, Text(","), Text("")),
-    ),
-    Line,
-    Text("]")
-)
+class IdGen {
+    private var nextId = 0
+    fun next() = nextId++
+}
+
+
+private fun Any?.toNode(): Node = toNodeHelper(IdGen())
+
+private fun Any?.toNodeHelper(idGen: IdGen): Node = when (this) {
+    is String -> Text(this)
+    is Int -> Text(this.toString())
+    is Float -> Text(this.toString())
+    is List<*> -> {
+        val id = idGen.next()
+        Group(
+            id = id,
+            Text("["),
+            Line,
+            Indent(
+                this.mapIndexed { index, it ->
+                    val comma =
+                        if (index == lastIndex) {
+                            IfWrap(id, Text(","), Text(""))
+                        } else {
+                            Text(",") + SpaceOrLine
+                        }
+                    it.toNodeHelper(idGen) + comma
+                }
+            ),
+            Line,
+            Text("]")
+        )
+    }
+    null -> Text("null")
+    else -> throw IllegalArgumentException("Unsupported type: $this")
+}
