@@ -19,7 +19,7 @@ sealed interface Node {
      * Renders to a new line if it resides in a group that needs wrapping,
      * otherwise it renders to nothing.
      */
-    data object Line : Node
+    data object LineIfWrapping : Node
 
     /**
      * Renders one or more [nodes], indenting each new line, but only if it resides
@@ -63,7 +63,7 @@ private val Wrapping.enabled get() = this == Wrapping.ENABLE
 private fun Node.width(wrappedGroupSet: Set<Int>): Int = when (this) {
     is Node.Text -> text.length
     is Node.SpaceOrLine -> 1
-    is Node.Line -> 0
+    is Node.LineIfWrapping -> 0
     is Node.Indent -> nodes.sumOf { it.width(wrappedGroupSet) }
     is Node.Nodes -> nodes.sumOf { it.width(wrappedGroupSet) }
     is Node.Group -> nodes.sumOf { it.width(wrappedGroupSet) }
@@ -94,7 +94,7 @@ private class Renderer(private val config: PrettyPrintConfig) {
     fun visitNode(node: Node, wrapping: Wrapping): Unit = when (node) {
         is Node.Text -> text(node.text)
 
-        Node.Line -> if (wrapping.enabled) newLine() else Unit
+        Node.LineIfWrapping -> if (wrapping.enabled) newLine() else Unit
 
         Node.SpaceOrLine -> if (wrapping.enabled) newLine() else text(" ")
 

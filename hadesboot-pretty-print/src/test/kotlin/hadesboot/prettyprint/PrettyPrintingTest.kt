@@ -89,7 +89,7 @@ private fun Any?.toNodeHelper(idGen: IdGen): Node = when (this) {
         Group(
             id = id,
             Text("["),
-            Line,
+            LineIfWrapping,
             Indent(
                 this.mapIndexed { index, it ->
                     val comma =
@@ -101,7 +101,7 @@ private fun Any?.toNodeHelper(idGen: IdGen): Node = when (this) {
                     it.toNodeHelper(idGen) + comma
                 }
             ),
-            Line,
+            LineIfWrapping,
             Text("]")
         )
     }
