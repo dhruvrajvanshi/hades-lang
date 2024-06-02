@@ -24,13 +24,17 @@ sealed interface PPNode {
      * Renders one or more [nodes], indenting each new line, but only if it resides
      * in a group that for which wrapping is needed.
      */
-    data class Indent(val nodes: List<PPNode>) : PPNode
+    data class Indent(val nodes: List<PPNode>) : PPNode {
+        constructor(vararg nodes: PPNode) : this(nodes.toList())
+    }
 
     /**
      * Renders one or more [nodes], without any special formatting.
      * Think of this as a simple concatenation operator.
      */
-    data class Nodes(val nodes: List<PPNode>) : PPNode
+    data class Nodes(val nodes: List<PPNode>) : PPNode {
+        constructor(vararg nodes: PPNode) : this(nodes.toList())
+    }
 
     /**
      * Renders many [nodes] into a single line if it can fit in the current line,

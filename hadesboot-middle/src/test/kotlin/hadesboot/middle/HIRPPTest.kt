@@ -1,8 +1,9 @@
 package hadesboot.middle
 
 import kotlin.test.Test
+import kotlin.test.expect
 
-class HIRExecutionTest {
+class HIRPPTest {
     @Test
     fun `should execute hello world`() {
         val module = buildModule("test") {
@@ -14,6 +15,13 @@ class HIRExecutionTest {
             }
         }
         val pretty = module.prettyPrint()
-        println(pretty)
+        expect(pretty) {
+            """
+            fn main() -> i32 {
+            entry:
+              return i32 42
+            }
+            """.trimIndent()
+        }
     }
 }
