@@ -5,9 +5,6 @@
  */
 package hadesboot.prettyprint
 
-import kotlin.math.min
-
-
 sealed interface Node {
     data class Text(val text: String) : Node
 
@@ -153,7 +150,9 @@ fun Node.prettyPrint(
     lineWidth: Int = 80,
     indent: String = "  ",
 ): String =
-    Renderer(PrettyPrintConfig(
-        lineWidth = lineWidth,
-        indent = indent,
-    )).render(this)
+    Renderer(
+        PrettyPrintConfig(
+            lineWidth = lineWidth,
+            indent = indent,
+        )
+    ).render(this)
