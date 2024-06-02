@@ -5,47 +5,47 @@
  */
 package hadesboot.prettyprint
 
-sealed interface Node {
-    data class Text(val text: String) : Node
+sealed interface PPNode {
+    data class Text(val text: String) : PPNode
 
     /**
      * Renders to a space if it resides in a group that doesn't need wrapping,
      * and renders to a line when wrapping is needed.
      */
-    data object SpaceOrLine : Node
+    data object SpaceOrLine : PPNode
 
     /**
      * Renders to a new line if it resides in a group that needs wrapping,
      * otherwise it renders to nothing.
      */
-    data object LineIfWrapping : Node
+    data object LineIfWrapping : PPNode
 
     /**
      * Renders one or more [nodes], indenting each new line, but only if it resides
      * in a group that for which wrapping is needed.
      */
-    data class Indent(val nodes: List<Node>) : Node
+    data class Indent(val nodes: List<PPNode>) : PPNode
 
     /**
      * Renders one or more [nodes], without any special formatting.
      * Think of this as a simple concatenation operator.
      */
-    data class Nodes(val nodes: List<Node>) : Node
+    data class Nodes(val nodes: List<PPNode>) : PPNode
 
     /**
      * Renders many [nodes] into a single line if it can fit in the current line,
      * otherwise into multiple lines.
      */
-    data class Group(val nodes: List<Node>) : Node {
-        constructor(vararg nodes: Node) : this(nodes.toList())
+    data class Group(val nodes: List<PPNode>) : PPNode {
+        constructor(vararg nodes: PPNode) : this(nodes.toList())
     }
 
     /**
-     * Renders [ifTrue] if the closest ancestor [Node.Group] needs to be wrapped, otherwise [ifFalse].
+     * Renders [ifTrue] if the closest ancestor [PPNode.Group] needs to be wrapped, otherwise [ifFalse].
      */
-    data class IfWrap(val ifTrue: Node, val ifFalse: Node) : Node
+    data class IfWrap(val ifTrue: PPNode, val ifFalse: PPNode) : PPNode
 
-    operator fun plus(other: Node): Node = Nodes(listOf(this, other))
+    operator fun plus(other: PPNode): PPNode = Nodes(listOf(this, other))
 }
 
 private enum class Wrapping {
@@ -55,14 +55,14 @@ private enum class Wrapping {
 
 private val Wrapping.enabled get() = this == Wrapping.ENABLE
 
-private fun Node.minWidth(wrapping: Wrapping): Int = when (this) {
-    is Node.Text -> text.length
-    is Node.SpaceOrLine -> 1
-    is Node.LineIfWrapping -> 0
-    is Node.Indent -> nodes.sumOf { it.minWidth(wrapping) }
-    is Node.Nodes -> nodes.sumOf { it.minWidth(wrapping) }
-    is Node.Group -> nodes.sumOf { it.minWidth(wrapping) }
-    is Node.IfWrap ->
+private fun PPNode.minWidth(wrapping: Wrapping): Int = when (this) {
+    is PPNode.Text -> text.length
+    is PPNode.SpaceOrLine -> 1
+    is PPNode.LineIfWrapping -> 0
+    is PPNode.Indent -> nodes.sumOf { it.minWidth(wrapping) }
+    is PPNode.Nodes -> nodes.sumOf { it.minWidth(wrapping) }
+    is PPNode.Group -> nodes.sumOf { it.minWidth(wrapping) }
+    is PPNode.IfWrap ->
         if (wrapping.enabled)
             ifTrue.minWidth(wrapping)
         else
@@ -75,27 +75,27 @@ private class Renderer(private val config: PrettyPrintConfig) {
     private var size = 0
     private val wrapped = mutableSetOf<Int>()
 
-    fun render(node: Node): String {
+    fun render(node: PPNode): String {
         generate(node)
         val result = buffer.toString()
         reset()
         return result
     }
 
-    fun generate(node: Node) {
+    fun generate(node: PPNode) {
         visitNode(node, Wrapping.DETECT)
     }
 
-    fun visitNode(node: Node, wrapping: Wrapping): Unit = when (node) {
-        is Node.Text -> text(node.text)
+    fun visitNode(node: PPNode, wrapping: Wrapping): Unit = when (node) {
+        is PPNode.Text -> text(node.text)
 
-        Node.LineIfWrapping -> if (wrapping.enabled) newLine() else Unit
+        PPNode.LineIfWrapping -> if (wrapping.enabled) newLine() else Unit
 
-        Node.SpaceOrLine -> if (wrapping.enabled) newLine() else text(" ")
+        PPNode.SpaceOrLine -> if (wrapping.enabled) newLine() else text(" ")
 
-        is Node.Nodes -> node.nodes.forEach { visitNode(it, wrapping) }
+        is PPNode.Nodes -> node.nodes.forEach { visitNode(it, wrapping) }
 
-        is Node.Indent ->
+        is PPNode.Indent ->
             if (wrapping.enabled) {
                 size += config.indent.length
                 indent += 1
@@ -106,11 +106,11 @@ private class Renderer(private val config: PrettyPrintConfig) {
                 node.nodes.forEach { visitNode(it, wrapping) }
             }
 
-        is Node.IfWrap ->
+        is PPNode.IfWrap ->
             if (wrapping.enabled) visitNode(node.ifTrue, Wrapping.ENABLE)
             else visitNode(node.ifFalse, Wrapping.DETECT)
 
-        is Node.Group -> {
+        is PPNode.Group -> {
             val minWidth = node.nodes.sumOf { it.minWidth(wrapping) }
             val wrap = if (minWidth > config.lineWidth) {
                 Wrapping.ENABLE
@@ -146,7 +146,7 @@ private class Renderer(private val config: PrettyPrintConfig) {
 
 data class PrettyPrintConfig(val lineWidth: Int, val indent: String)
 
-fun Node.prettyPrint(
+fun PPNode.prettyPrint(
     lineWidth: Int = 80,
     indent: String = "  ",
 ): String =

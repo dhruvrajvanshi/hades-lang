@@ -1,6 +1,6 @@
 package hadesboot.prettyprint
 
-import hadesboot.prettyprint.Node.*
+import hadesboot.prettyprint.PPNode.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.expect
@@ -72,7 +72,7 @@ class PrettyPrintingTest {
 
 }
 
-private fun Any?.toNode(): Node = when (this) {
+private fun Any?.toNode(): PPNode = when (this) {
     is String -> Text(this)
     is Int -> Text(this.toString())
     is Float -> Text(this.toString())
