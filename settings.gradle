@@ -6,6 +6,7 @@ rootProject.name = 'hades'
 
 include "hadesboot"
 include "hadesboot-middle"
+include "hadesboot-pretty-print"
 
 dependencyResolutionManagement {
     repositories {
