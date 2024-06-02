@@ -5,6 +5,8 @@
  */
 package hadesboot.prettyprint
 
+import kotlin.math.min
+
 
 sealed interface Node {
     data class Text(val text: String) : Node
@@ -25,30 +27,26 @@ sealed interface Node {
      * Renders one or more [nodes], indenting each new line, but only if it resides
      * in a group that for which wrapping is needed.
      */
-    data class Indent(val nodes: List<Node>) : Node {
-        constructor(vararg nodes: Node) : this(nodes.toList())
-    }
+    data class Indent(val nodes: List<Node>) : Node
 
     /**
      * Renders one or more [nodes], without any special formatting.
      * Think of this as a simple concatenation operator.
      */
-    data class Nodes(val nodes: List<Node>) : Node {
-        constructor(vararg nodes: Node) : this(nodes.toList())
-    }
+    data class Nodes(val nodes: List<Node>) : Node
 
     /**
      * Renders many [nodes] into a single line if it can fit in the current line,
      * otherwise into multiple lines.
      */
-    data class Group(val id: Int, val nodes: List<Node>) : Node {
-        constructor(id: Int, vararg nodes: Node) : this(id, nodes.toList())
+    data class Group(val nodes: List<Node>) : Node {
+        constructor(vararg nodes: Node) : this(nodes.toList())
     }
 
     /**
-     * Renders [ifTrue] if the Node with [id] needs to be wrapped, otherwise [ifFalse].
+     * Renders [ifTrue] if the closest ancestor [Node.Group] needs to be wrapped, otherwise [ifFalse].
      */
-    data class IfWrap(val id: Int, val ifTrue: Node, val ifFalse: Node) : Node
+    data class IfWrap(val ifTrue: Node, val ifFalse: Node) : Node
 
     operator fun plus(other: Node): Node = Nodes(listOf(this, other))
 }
@@ -60,18 +58,18 @@ private enum class Wrapping {
 
 private val Wrapping.enabled get() = this == Wrapping.ENABLE
 
-private fun Node.width(wrappedGroupSet: Set<Int>): Int = when (this) {
+private fun Node.minWidth(wrapping: Wrapping): Int = when (this) {
     is Node.Text -> text.length
     is Node.SpaceOrLine -> 1
     is Node.LineIfWrapping -> 0
-    is Node.Indent -> nodes.sumOf { it.width(wrappedGroupSet) }
-    is Node.Nodes -> nodes.sumOf { it.width(wrappedGroupSet) }
-    is Node.Group -> nodes.sumOf { it.width(wrappedGroupSet) }
+    is Node.Indent -> nodes.sumOf { it.minWidth(wrapping) }
+    is Node.Nodes -> nodes.sumOf { it.minWidth(wrapping) }
+    is Node.Group -> nodes.sumOf { it.minWidth(wrapping) }
     is Node.IfWrap ->
-        if (id in wrappedGroupSet)
-            ifTrue.width(wrappedGroupSet)
+        if (wrapping.enabled)
+            ifTrue.minWidth(wrapping)
         else
-            ifFalse.width(wrappedGroupSet)
+            ifFalse.minWidth(wrapping)
 }
 
 private class Renderer(private val config: PrettyPrintConfig) {
@@ -112,13 +110,12 @@ private class Renderer(private val config: PrettyPrintConfig) {
             }
 
         is Node.IfWrap ->
-            if (node.id in wrapped) visitNode(node.ifTrue, Wrapping.ENABLE)
+            if (wrapping.enabled) visitNode(node.ifTrue, Wrapping.ENABLE)
             else visitNode(node.ifFalse, Wrapping.DETECT)
 
         is Node.Group -> {
-            val width = node.nodes.sumOf { it.width(wrapped) }
-            val wrap = if (width > config.lineWidth) {
-                wrapped.add(node.id)
+            val minWidth = node.nodes.sumOf { it.minWidth(wrapping) }
+            val wrap = if (minWidth > config.lineWidth) {
                 Wrapping.ENABLE
             } else {
                 Wrapping.DETECT
@@ -150,12 +147,7 @@ private class Renderer(private val config: PrettyPrintConfig) {
     }
 }
 
-data class PrettyPrintConfig(val lineWidth: Int, val indent: String) {
-    companion object {
-        @JvmStatic
-        val DEFAULT = PrettyPrintConfig(lineWidth = 80, indent = "  ")
-    }
-}
+data class PrettyPrintConfig(val lineWidth: Int, val indent: String)
 
 fun Node.prettyPrint(
     lineWidth: Int = 80,
@@ -165,7 +157,3 @@ fun Node.prettyPrint(
         lineWidth = lineWidth,
         indent = indent,
     )).render(this)
-fun Node.prettyPrint(
-    config: PrettyPrintConfig,
-): String =
-    Renderer(config).render(this)

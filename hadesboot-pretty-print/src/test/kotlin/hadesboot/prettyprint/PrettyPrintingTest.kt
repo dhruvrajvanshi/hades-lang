@@ -72,33 +72,23 @@ class PrettyPrintingTest {
 
 }
 
-class IdGen {
-    private var nextId = 0
-    fun next() = nextId++
-}
-
-
-private fun Any?.toNode(): Node = toNodeHelper(IdGen())
-
-private fun Any?.toNodeHelper(idGen: IdGen): Node = when (this) {
+private fun Any?.toNode(): Node = when (this) {
     is String -> Text(this)
     is Int -> Text(this.toString())
     is Float -> Text(this.toString())
     is List<*> -> {
-        val id = idGen.next()
         Group(
-            id = id,
             Text("["),
             LineIfWrapping,
             Indent(
                 this.mapIndexed { index, it ->
                     val comma =
                         if (index == lastIndex) {
-                            IfWrap(id, Text(","), Text(""))
+                            IfWrap(Text(","), Text(""))
                         } else {
                             Text(",") + SpaceOrLine
                         }
-                    it.toNodeHelper(idGen) + comma
+                    it.toNode() + comma
                 }
             ),
             LineIfWrapping,
