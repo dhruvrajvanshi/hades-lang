@@ -4,10 +4,10 @@ import hadesboot.prettyprint.PPNode
 import hadesboot.prettyprint.PPNode.*
 import hadesboot.prettyprint.prettyPrint
 
-fun Module.prettyPrint(): String = toPP().prettyPrint()
+fun Module.prettyPrint(): String = toPP().prettyPrint(lineWidth = 80)
 
-private fun Module.toPP(): PPNode = Nodes(
-    items.map { it.toPP() + Text("\n") }
+private fun Module.toPP(): PPNode = Group(
+    items.map { it.toPP() + LineIfWrapping }
 )
 
 private fun Item.toPP(): PPNode = when (this) {
@@ -21,30 +21,42 @@ private fun Item.toPP(): PPNode = when (this) {
         SpaceOrLine,
         returnType.toPP(),
         SpaceOrLine,
-        Text("{\n"),
-        (listOf(entry) + blocks).toPP(),
-        Text("\n}")
+        Group(
+            Text("{"),
+            LineIfWrapping,
+            Group((listOf(entry) + blocks).map { it.toPP() }.joinWith(LineIfWrapping + LineIfWrapping)).forceWrap(),
+            LineIfWrapping,
+            Text("}")
+        ).forceWrap()
     )
     is ExternFn -> Text("#todo: Extern function")
 }
 
 private fun List<Block>.toPP(): PPNode {
-    return concatWithSeparator("\n") { it.toPP() }
+    return Group(
+        map { it.toPP() }.joinWith(LineIfWrapping + LineIfWrapping)
+    ).forceWrap()
 }
 private fun Block.toPP(): PPNode {
+    val nodes = instructions.map { it.toPP() } + listOf(terminator.toPP())
     return Group(
-        Text("$label:\n"),
+        Text("$label:"),
+        LineIfWrapping,
         Indent(
-            Text("  ") + (instructions.map { it.toPP() } + listOf(terminator.toPP()))
-                .concatWithSeparator("\n\n") { it }
+            nodes.map {
+                Group(it)
+            }.joinWith(LineIfWrapping)
         ),
-    )
+    ).forceWrap()
+}
 
+private fun List<PPNode>.joinWith(separator: PPNode): List<PPNode> {
+    return flatMap { listOf(separator, it) }.drop(1)
 }
 
 private fun Instruction.toPP(): PPNode = Text("#TODO: Instruction")
 private fun Terminator.toPP(): PPNode = when (this) {
-    is Terminator.Return -> Text("return") + SpaceOrLine + value.toPP()
+    is Terminator.Return -> Text("return") + SpaceOrLine + Indent(value.toPP())
 }
 
 private fun Value.toPP(): PPNode = when (this) {
@@ -77,7 +89,7 @@ fun <T> List<T>.concatWithSeparator(separatorText: String, f: (T) -> PPNode): PP
         } else {
             Text(separatorText) + SpaceOrLine
         }
-        return f(it) + separator
+        f(it) + separator
     }
     return withSeparators.toNodes()
 }

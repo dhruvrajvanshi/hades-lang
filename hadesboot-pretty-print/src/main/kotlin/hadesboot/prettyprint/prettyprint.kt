@@ -28,6 +28,10 @@ sealed interface PPNode {
         constructor(vararg nodes: PPNode) : this(nodes.toList())
     }
 
+//    data class ForceIndent(val nodes: List<PPNode>) : PPNode {
+//        constructor(vararg nodes: PPNode) : this(nodes.toList())
+//    }
+
     /**
      * Renders one or more [nodes], without any special formatting.
      * Think of this as a simple concatenation operator.
@@ -40,8 +44,9 @@ sealed interface PPNode {
      * Renders many [nodes] into a single line if it can fit in the current line,
      * otherwise into multiple lines.
      */
-    data class Group(val nodes: List<PPNode>) : PPNode {
+    data class Group(val nodes: List<PPNode>, val force: Boolean = false) : PPNode {
         constructor(vararg nodes: PPNode) : this(nodes.toList())
+        fun forceWrap(): Group = Group(nodes, true)
     }
 
     /**
@@ -116,7 +121,7 @@ private class Renderer(private val config: PrettyPrintConfig) {
 
         is PPNode.Group -> {
             val minWidth = node.nodes.sumOf { it.minWidth(wrapping) }
-            val wrap = if (minWidth > config.lineWidth) {
+            val wrap = if (minWidth > config.lineWidth || node.force) {
                 Wrapping.ENABLE
             } else {
                 Wrapping.DETECT
