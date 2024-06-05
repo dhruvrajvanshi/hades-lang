@@ -1,11 +1,15 @@
 package hadesboot.middle.lower
 
 import hadesboot.middle.*
+import hadesboot.prettyprint.PPNode
+import hadesboot.prettyprint.PPNode.*
+import hadesboot.prettyprint.prettyPrint
 
-fun lowerToC(module: Module) {
+fun lowerToC(module: Module): String {
     val mirToC = MIRToC()
     val declarations = mirToC.visitModule(module)
-    TODO()
+
+    return declarations.toPPNode().prettyPrint()
 }
 
 private class MIRToC {
@@ -29,17 +33,17 @@ private class MIRToC {
 
     private fun visitFn(item: Fn) {
         val returnType = lowerType(item.returnType)
-        val parameters = item.parameters.map { lowerType(it.type) }
+        val parameters = item.parameters.map { it.name to lowerType(it.type) }
 
-        var previousFn = currentFn
+        val previousFn = currentFn
         currentFn = mutableListOf()
 
         visitBlock(item.entry)
         item.blocks.forEach { visitBlock(it) }
 
+        declarations.add(CNode.Fn(item.name, returnType, parameters, requireNotNull(currentFn)))
         currentFn = previousFn
 
-        declarations.add(CNode.ExternFn(item.name, returnType, parameters))
     }
 
     private fun visitBlock(block: Block) {
@@ -115,34 +119,150 @@ private class MIRToC {
 }
 
 
-sealed interface CType {
+private sealed interface CType {
     data object Void: CType
     data class Int(val signed: Boolean, val size: CIntSize): CType
 }
 
-sealed interface CNode {
+private sealed interface CNode {
     data class ExternFn(val name: String, val returnType: CType, val parameters: List<CType>): CDecl
-    data class Fn(val name: String, val returnType: CType, val parameters: List<Pair<String, CType>>, val body: Block): CDecl
+    data class Fn(val name: String, val returnType: CType, val parameters: List<Pair<String, CType>>, val blocks: List<CStmt>): CDecl
 
     data class Block(val stmts: List<CStmt>): CStmt
     data class Return(val value: CExpr?): CStmt
     data class Label(val label: String): CStmt
 
 }
-sealed interface CDecl: CNode
-sealed interface CExpr: CNode {
+private sealed interface CDecl: CNode
+private sealed interface CExpr: CNode {
     data class Int(val value: ULong): CExpr
 }
-sealed interface CStmt: CNode
+private sealed interface CStmt: CNode
 
-enum class CIntSize {
+private enum class CIntSize {
     SIZE,
     I8,
     I16,
     I32,
     I64,
 }
-fun Type.Width.toCIntSize(): CIntSize = when(this) {
+
+private fun Type.Width.toCIntSize(): CIntSize = when(this) {
     Type.Width.Size -> CIntSize.SIZE
     Type.Width.W32 -> CIntSize.I32
+}
+
+private fun List<CDecl>.toPPNode(): PPNode {
+    return Nodes(
+        map {
+            it.toPPNode() + Text("\n\n")
+        }
+    )
+}
+
+private fun CDecl.toPPNode(): PPNode = when (this) {
+    is CNode.ExternFn -> toPPNode()
+    is CNode.Fn -> toPPNode()
+}
+private fun CNode.ExternFn.toPPNode(): PPNode = Group(
+    Indent(
+        Text("extern"),
+        SpaceOrLine,
+        returnType.toPPNode(),
+        SpaceOrLine,
+        Text(name),
+        IfWrap(SpaceOrLine, Text("")),
+        Group(
+            Text("("),
+            LineIfWrapping,
+            Indent(
+                parameters.mapIndexed { index, it ->
+                    it.toPPNode() +
+                    if (index == parameters.lastIndex) {
+                        Text("")
+                    } else {
+                        Text(",") + SpaceOrLine
+                    }
+                }
+            ),
+            LineIfWrapping,
+            Text(")"),
+            Text(";")
+        )
+    )
+)
+private fun CNode.Fn.toPPNode(): PPNode = Group(
+    Indent(
+        returnType.toPPNode(),
+        SpaceOrLine,
+        Text(name),
+        IfWrap(SpaceOrLine, Text("")),
+        Group(
+            Text("("),
+            LineIfWrapping,
+            Indent(
+                parameters.mapIndexed { index, it ->
+                    it.second.toPPNode() + Text(" ") + Text(it.first) +
+                    if (index == parameters.lastIndex) {
+                        Text("")
+                    } else {
+                        Text(",") + SpaceOrLine
+                    }
+                }
+            ),
+            LineIfWrapping,
+            Text(")"),
+            SpaceOrLine,
+            Group(
+                Text("{"),
+                LineIfWrapping,
+                Indent(
+                    blocks.map { it.toPPNode() + Text("\n\n") }
+                ),
+                LineIfWrapping,
+                Text("}")
+            ).forceWrap()
+        )
+    )
+)
+
+private fun CNode.Block.toPPNode(): PPNode = Group(
+    Text("{"),
+    LineIfWrapping,
+    Indent(stmts.map { it.toPPNode() + LineIfWrapping }),
+    LineIfWrapping,
+    Text("}"),
+)
+
+private fun CStmt.toPPNode(): PPNode = when(this) {
+    is CNode.Return -> toPPNode()
+    is CNode.Label -> toPPNode()
+    is CNode.Block -> toPPNode()
+}
+
+
+private fun CNode.Return.toPPNode(): PPNode = Group(
+    Text("return"),
+    SpaceOrLine,
+    Indent(
+        value?.toPPNode() ?: Text(""),
+    ),
+    Text(";")
+)
+private fun CNode.Label.toPPNode(): PPNode = Text("$label:")
+
+private fun CExpr.toPPNode(): PPNode = when(this) {
+    is CExpr.Int -> Text(value.toString())
+}
+
+private fun CType.toPPNode(): PPNode = when(this) {
+    is CType.Void -> Text("void")
+    is CType.Int -> Text("${if (signed) "" else "u"}int${size.str()}_t")
+}
+private fun CIntSize.str() = when(this) {
+    CIntSize.SIZE -> "size"
+    CIntSize.I8 -> "8"
+    CIntSize.I16 -> "16"
+    CIntSize.I32 -> "32"
+    CIntSize.I64 -> "64"
 }

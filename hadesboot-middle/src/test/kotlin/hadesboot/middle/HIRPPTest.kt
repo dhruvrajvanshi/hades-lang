@@ -18,7 +18,7 @@ class HIRPPTest {
             """
             fn main() -> i32 {
             entry:
-              return i32 42
+              return 42
             }
             """.trimIndent(),
             module.prettyPrint()
