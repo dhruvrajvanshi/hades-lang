@@ -33,10 +33,14 @@ sealed interface Terminator {
 }
 data class Parameter(val name: String, val type: Type)
 
-sealed interface Value
+sealed interface Value {
+    val type: Type
+}
 sealed interface Constant: Value {
-    data class Int(val type: Type.Int, val value: ULong): Constant
-    data class Tuple(val members: List<Value>): Constant
+    data class Int(override val type: Type.Int, val value: ULong): Constant
+    data class Tuple(val members: List<Value>): Constant {
+        override val type: Type get() = Type.Tuple(members.map { it.type })
+    }
 
     companion object {
         fun tuple(vararg members: Value) = Tuple(members.toList())
