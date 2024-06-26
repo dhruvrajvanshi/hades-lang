@@ -27,6 +27,7 @@ class BuildCommand : CliktCommand(
     private val buildOptions by BuildCLIOptions()
     private val output by option("--output", "-o").path().required()
     private val main by option("--main").path().required()
+    private val checkOnly by option("--check-only").flag().help("Only check for errors")
     private val skipExec by option("--internal-skip-exec")
         // we have this flag because HadesTestSuite
         // needs to call execute manually to get the list of diagnostics
@@ -54,7 +55,11 @@ class BuildCommand : CliktCommand(
             )
         )
         log.debug("Building")
-        ctx.build()
+        if (checkOnly) {
+            ctx.check()
+        } else {
+            ctx.build()
+        }
 
         if (options.jsonDiagnostics) {
             emitJSONDiagnostics(ctx.diagnosticReporter.errors)

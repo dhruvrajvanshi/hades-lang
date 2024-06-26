@@ -61,10 +61,12 @@ class Context(
 
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
+    fun check() {
+        Checker(this).checkProgram()
+    }
 
     fun build() {
-        Checker(this).checkProgram()
-
+        check()
         if (this.diagnosticReporter.hasErrors) {
             return
         }
