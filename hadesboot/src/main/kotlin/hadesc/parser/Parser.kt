@@ -340,11 +340,20 @@ class Parser<Ctx>(
                 false
             }
         val path = parseQualifiedPath()
-        expect(tt.LSQB)
-        val args = parseSeperatedList(tt.COMMA, tt.RSQB) {
-            parseTypeAnnotation()
+        val args: List<TypeAnnotation>
+        if (at(tt.LSQB)) {
+            advance()
+            args = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                parseTypeAnnotation()
+            }
+            expect(tt.RSQB)
+        } else {
+            expect(tt.LESS_THAN)
+            args = parseSeperatedList(tt.COMMA, tt.GREATER_THAN) {
+                parseTypeAnnotation()
+            }
+            expect(tt.GREATER_THAN)
         }
-        expect(tt.RSQB)
         return TraitRequirementAnnotation(path, args, negated = negated)
     }
 
