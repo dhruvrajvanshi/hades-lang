@@ -56,8 +56,8 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
         }
         val builtinType = when (ident.name.text) {
             "Int" -> Type.Integral(32, true)
-            "Bool" -> Type.Bool,
-            "bool" -> Type.Bool,
+            "Bool" -> Type.Bool
+            "bool" -> Type.Bool
             "Byte" -> Type.Integral(8, false)
             "usize" -> Type.Size(isSigned = false)
             "isize" -> Type.Size(isSigned = true)
