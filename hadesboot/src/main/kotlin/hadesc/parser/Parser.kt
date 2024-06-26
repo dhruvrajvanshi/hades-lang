@@ -434,9 +434,22 @@ class Parser<Ctx>(
 
     private fun parseStructMember(): Declaration.Struct.Member = when (currentToken.kind) {
         tt.VAL -> parseValStructMember()
+        tt.ID -> parseStructField()
         else -> {
             syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
         }
+    }
+
+    private fun parseStructField(): Declaration.Struct.Member {
+        val name = parseBinder()
+        expect(tt.COLON)
+        val typeAnnotation = parseTypeAnnotation()
+        expect(tt.SEMICOLON)
+        return Declaration.Struct.Member.Field(
+            name,
+            isMutable = true,
+            typeAnnotation
+        )
     }
 
     private fun parseValStructMember(): Declaration.Struct.Member {
