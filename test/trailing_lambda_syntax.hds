@@ -15,7 +15,7 @@ fn main(): Void {
 
     val _another_message = b"Without parens"
     val another_message = &_another_message
-    another_message.let |msg| {
+    another_message.apply |msg| {
         puts(*msg)
     }
 }
