@@ -1,6 +1,6 @@
 
 extension ApplyExtensions[T] for T {
-    fn let(*this, f: |*T| -> Void): Void {
+    fn apply(*this, f: |*T| -> Void): Void {
         f(this)
     }
 }
@@ -9,7 +9,7 @@ fn main(): Void {
     val _message = b"Hello world"
     val message = &_message
 
-    message.let() |msg| {
+    message.apply |msg| {
         puts(*msg)
     }
 
