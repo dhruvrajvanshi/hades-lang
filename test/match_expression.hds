@@ -1,5 +1,5 @@
-extern def puts(*Byte): Void = puts
-def main(): Void {
+extern fn puts(*Byte): Void = puts
+fn main(): Void {
     val message = match 3 {
         1 -> b"FAIL"
         3 -> b"PASS"

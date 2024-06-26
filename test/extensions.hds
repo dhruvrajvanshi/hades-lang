@@ -4,7 +4,7 @@ struct Box[T] {
     val value: T;
 }
 
-def main(): Void {
+fn main(): Void {
     true.print();
     val mut f = false;
     (&f).print_ptr();
@@ -13,7 +13,7 @@ def main(): Void {
 }
 
 extension BoolBoxPrinter for Box[Bool] {
-    def print(this): Void {
+    fn print(this): Void {
         this.value.print();
     }
 }

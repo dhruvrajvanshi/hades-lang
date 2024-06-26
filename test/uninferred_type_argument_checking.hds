@@ -1,17 +1,17 @@
 
-def main(): Void {
+fn main(): Void {
     val x = null();
     val y = null[Int]();
     take_int(y);
     take_int(null());
 }
 
-def null[T](): *mut T {
+fn null[T](): *mut T {
     return nullptr;
 }
 
-def immutable_null[T](): *T {
+fn immutable_null[T](): *T {
     return null[T]();
 }
 
-def take_int(x: *Int): Void {}
+fn take_int(x: *Int): Void {}

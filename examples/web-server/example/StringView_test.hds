@@ -5,27 +5,27 @@ import libc as c;
 
 const s = StringView.from_c;
 
-def main(): Void {
+fn main(): Void {
     c.puts(b"StringView_test");
     test_copy_to_c();
     test_drop_first_word();
 }
 
-def test_drop_first_word(): Void {
+fn test_drop_first_word(): Void {
     assert(
         s(b"test string").drop_first_word().equals(s(b"string")),
         || b"test_drop_first_word"
     );
 }
 
-def test_take_first_word(): Void {
+fn test_take_first_word(): Void {
     assert(
         s(b"test string").take_first_word().equals(s(b"test")),
         || b"test_take_first_word"
     );
 }
 
-def test_copy_to_c(): Void {
+fn test_copy_to_c(): Void {
     val copy = s(b"test").copy_to_c();
 
     assert(s(copy).equals(b"test")) || b"test_copy_to_c"

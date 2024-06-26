@@ -1,6 +1,6 @@
 import libc as c;
 
-def main(): Size {
+fn main(): Size {
     defer c.puts(b"1");
     if true {
         defer c.puts(b"2");

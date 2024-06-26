@@ -5,7 +5,7 @@ import example.http.Request as HTTPRequest;
 import example.logging as log;
 import example.panic.{panic_with_errno};
 
-extern def bind_socket(u16): i32 = bind_socket;
+extern fn bind_socket(u16): i32 = bind_socket;
 
 type FileDescriptor = c.FileDescriptor;
 
@@ -15,7 +15,7 @@ const MAXMSG: Size = 1024;
 const PORT: u16 = 5000;
 const MAX_PENDING_CONNECTIONS: CInt = 1;
 
-def main(): Void {
+fn main(): Void {
     val socket = bind_socket(PORT);
     log.info(b"socket bound");
 
@@ -39,7 +39,7 @@ def main(): Void {
 
 const MAX_REQUEST_SIZE: Size = 4096;
 
-def handle_connection(fd: FileDescriptor): Void {
+fn handle_connection(fd: FileDescriptor): Void {
     log.info(b"handle connection");
 
     val request_text_buffer = c.malloc(MAX_REQUEST_SIZE * size_of[Byte]);
@@ -49,7 +49,7 @@ def handle_connection(fd: FileDescriptor): Void {
     if (read_bytes < 0) {
         panic_with_errno(b"handle_connection/read(request_fd)");
     }
-    
+
     val request_text: *Byte = pointer_cast[Byte](request_text_buffer)
 
     val request_str = StringView.t(request_text, read_bytes as usize);
@@ -57,7 +57,7 @@ def handle_connection(fd: FileDescriptor): Void {
 
     log.info(b"Got request: ");
     log.info(pointer_cast[Byte](request_text));
-    
+
     val response_body = b"
 <html>
     <head>
@@ -80,24 +80,24 @@ def handle_connection(fd: FileDescriptor): Void {
     http_write_line(fd, b"");
 
     http_write(fd, response_body);
-    
+
     val close_result = c.close(fd);
     if close_result < 0 {
         panic_with_errno(b"handle_connection/close(fd)");
     }
 }
 
-def http_write(response_fd: FileDescriptor, text: *Byte): Void {
+fn http_write(response_fd: FileDescriptor, text: *Byte): Void {
     val result = c.write(response_fd, pointer_cast[Void](text), c.strlen(text));
     if result < 0 {
         panic_with_errno(b"http_write/write");
     }
 }
 
-def http_write_line(response_fd: FileDescriptor, text: *Byte): Void {
+fn http_write_line(response_fd: FileDescriptor, text: *Byte): Void {
     http_write(response_fd, text);
     http_write(response_fd, b"\r\n");
 }
 
 /// allocates a new string; caller needs to free
-extern def size_to_string(Size): *mut Byte = size_to_string;
+extern fn size_to_string(Size): *mut Byte = size_to_string;

@@ -1,13 +1,13 @@
 
-def foo(): usize {}
+fn foo(): usize {}
 
-def bar(): usize {
+fn bar(): usize {
     if true {
         return 1
     }
 }
 
-def baz(): usize {
+fn baz(): usize {
     if true {
         return 1
     } else {
@@ -18,12 +18,12 @@ def baz(): usize {
     }
 }
 
-def bat(): usize {
+fn bat(): usize {
     if true {}
     return 1
 }
 
-def baa(): usize {
+fn baa(): usize {
     if true {
     } else {
         return 1

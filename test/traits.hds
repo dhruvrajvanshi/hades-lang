@@ -2,11 +2,11 @@ import libc as c;
 import libc.{stdout}
 
 trait Printable[Self] {
-    def print(self: Self, file: *c.FILE): Void;
+    fn print(self: Self, file: *c.FILE): Void;
 }
 
 implementation Printable[Bool] {
-    def print(self: Bool, file: *c.FILE): Void {
+    fn print(self: Bool, file: *c.FILE): Void {
         if self {
             c.fputs(b"true", file);
         } else {
@@ -16,13 +16,13 @@ implementation Printable[Bool] {
 }
 
 implementation Printable[*Byte] {
-    def print(self: *Byte, file: *c.FILE): Void {
+    fn print(self: *Byte, file: *c.FILE): Void {
         c.fputs(self, file);
     }
 }
 
 implementation[T] Printable[Box[T]] where Printable[T] {
-    def print(self: Box[T], file: *c.FILE): Void {
+    fn print(self: Box[T], file: *c.FILE): Void {
         c.fputs(b"Box(", file);
         print_alias(self.value); // because print might refer to this function;
         c.fputs(b")", file);
@@ -33,21 +33,21 @@ struct Box[T] {
     val value: T;
 }
 
-def print[T](value: T): Void where Printable[T] {
+fn print[T](value: T): Void where Printable[T] {
     Printable[T].print(value, c.stdout());
 }
 
-def print_alias[T](value: T): Void where Printable[T] {
+fn print_alias[T](value: T): Void where Printable[T] {
     print(value);
 }
 
-def println[T](value: T): Void
+fn println[T](value: T): Void
     where Printable[T] {
     print(value);
     c.fputs(b"\n", stdout());
 }
 
-def main(): Void {
+fn main(): Void {
     println(true);
     // println[Bool](true, &printable_bool)
     println(false);

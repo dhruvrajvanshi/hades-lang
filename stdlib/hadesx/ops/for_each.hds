@@ -1,15 +1,15 @@
 trait ForEach[Self] {
     type Item
 
-    def for_each(self: *Self, fn: |*Item| -> Void): Void
+    fn for_each(self: *Self, fn: |*Item| -> Void): Void
 }
 
-def for_each[Self](value: *Self, fn: |*ForEach[Self].Item| -> Void): Void where ForEach[Self] {
+fn for_each[Self](value: *Self, fn: |*ForEach[Self].Item| -> Void): Void where ForEach[Self] {
     ForEach[Self].for_each(value, fn)
 }
 
 extension ForEachExtensions[T] for T where ForEach[T] {
-    def for_each(*this, fn: |*ForEach[T].Item| -> Void): Void {
+    fn for_each(*this, fn: |*ForEach[T].Item| -> Void): Void {
         ForEach[T].for_each(this, fn)
     }
 }

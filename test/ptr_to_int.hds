@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val x: u32 = 10
     val x_ptr = &x
     val x_ptr_int = @intrinsic.ptr_to_int(x_ptr)
@@ -11,4 +11,4 @@ def main(): Void {
     puts(b"PASS")
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

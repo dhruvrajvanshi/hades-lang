@@ -1,9 +1,9 @@
-def main(): Void {
+fn main(): Void {
     call || { id(true); }
 }
 
-def call(f: || -> Void): Void { f(); }
+fn call(f: || -> Void): Void { f(); }
 
-def id[T](t: T): T {
+fn id[T](t: T): T {
     return t
 }

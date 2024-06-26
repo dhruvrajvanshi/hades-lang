@@ -1,12 +1,12 @@
 
 
 extension E for Bool {
-    def id[T](this, value: T): T {
+    fn id[T](this, value: T): T {
         return value
     }
 }
 
-def main(): Void {
+fn main(): Void {
     puts(true.id[*u8](b"PASS"))
 }
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

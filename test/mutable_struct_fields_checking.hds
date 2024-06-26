@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val x = Box(10);
     x.value = 30;
     val mut m = Box(30);

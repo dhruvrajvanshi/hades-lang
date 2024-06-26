@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     if @intrinsic.mul[u8](6, 3) != 18 {
         puts(b"FAIL")
     }
@@ -44,4 +44,4 @@ def main(): Void {
     puts(b"PASS")
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

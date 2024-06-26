@@ -1,7 +1,7 @@
 import glfw as glfw;
 import gl as gl;
 
-def main_loop(window: *glfw.Window): Void {
+fn main_loop(window: *glfw.Window): Void {
     gl.clear(gl.GL_COLOR_BUFFER_BIT);
 
     window.swap_buffers();
@@ -9,7 +9,7 @@ def main_loop(window: *glfw.Window): Void {
     glfw.wait_events();
 }
 
-def main(): Void {
+fn main(): Void {
     glfw.init();
 
     val window = glfw.create_window(640, 480, b"Hello World", nullptr, nullptr);

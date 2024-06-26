@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val u8_255: u8 = 255
     if u8_255 < 0 {
         puts(b"FAIL")
@@ -8,4 +8,4 @@ def main(): Void {
     puts(b"PASS")
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

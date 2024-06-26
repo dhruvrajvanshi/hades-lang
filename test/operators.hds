@@ -1,29 +1,29 @@
 import submodule.test_utils as utils;
 import libc as c;
 
-def short_circuit_true(): Bool {
+fn short_circuit_true(): Bool {
     c.puts(b"Should not be printed");
     return true;
 }
 
-def short_circuit_false(): Bool {
+fn short_circuit_false(): Bool {
     c.puts(b"Should not be printed");
     return false;
 }
 
-def log_bool(message: *Byte, condition: Bool): Void {
+fn log_bool(message: *Byte, condition: Bool): Void {
     utils.print_byte_string(message);
     utils.print_byte_string(b" -> ");
     utils.print_bool(condition);
 }
 
-def log_int(message: *Byte, value: Int): Void {
+fn log_int(message: *Byte, value: Int): Void {
      utils.print_byte_string(message);
      utils.print_byte_string(b" -> ");
      utils.print_int(value);
  }
 
-def main(): Void {
+fn main(): Void {
     val x = 1;
     log_int(b"1 + 1", x + 1);
     log_int(b"1 - 1", x - 1);

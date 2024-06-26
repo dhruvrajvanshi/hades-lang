@@ -1,17 +1,17 @@
 import hades.memory.{ __hds_pointer_add }
 
-def mut_add[T](ptr: *mut T, size: Size): *mut T {
+fn mut_add[T](ptr: *mut T, size: Size): *mut T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](ptr), size));
 }
 
-def add[T](ptr: *T, size: Size): *T {
+fn add[T](ptr: *T, size: Size): *T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](ptr), size));
 }
 
-def offset[T](self: *T, index: Size): *T {
+fn offset[T](self: *T, index: Size): *T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](self), index * size_of[T]));
 }
 
-def offset_mut[T](self: *mut T, index: Size): *mut T {
+fn offset_mut[T](self: *mut T, index: Size): *mut T {
     return pointer_cast[T](__hds_pointer_add(pointer_cast[Void](self), index * size_of[T]));
 }

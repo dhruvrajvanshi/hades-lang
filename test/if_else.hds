@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     if true {
         puts(b"if true without else");
     }
@@ -29,4 +29,4 @@ def main(): Void {
     }
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

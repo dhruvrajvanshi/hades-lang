@@ -1,6 +1,6 @@
 
 
-def main(): Void {
+fn main(): Void {
     val pass = b"PASS"
     val mut pass_ = b""
 
@@ -28,9 +28,9 @@ def main(): Void {
 
 }
 
-def copy[T](destination: *mut T, source: *T): Void {
+fn copy[T](destination: *mut T, source: *T): Void {
     @intrinsic.memcpy(destination, source, size_of[T])
 }
 
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

@@ -1,6 +1,6 @@
 import submodule.print as p;
 
-def main(): Void {
+fn main(): Void {
     p.print(b"import_as");
 }
 

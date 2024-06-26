@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     apply(b"1") |param| {
         puts(param)
         apply(b"2") |other| {
@@ -9,8 +9,8 @@ def main(): Void {
     }
 }
 
-def apply(message: *u8, fn: |*u8| -> Void): Void {
-    fn(message)
+fn apply(message: *u8, f: |*u8| -> Void): Void {
+    f(message)
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

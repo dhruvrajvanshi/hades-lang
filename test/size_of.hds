@@ -1,6 +1,6 @@
 import submodule.test_utils as utils;
 
-def main(): Void {
+fn main(): Void {
     utils.print_bool(size_of[IntPair] == size_of[Int] * 2);
 }
 

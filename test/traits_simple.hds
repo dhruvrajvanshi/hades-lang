@@ -1,20 +1,20 @@
 import libc as c;
 
 trait Convert[Self, Other] {
-    def convert(self: Self): Other;
+    fn convert(self: Self): Other;
 }
 
-def main(): Void {
+fn main(): Void {
     c.puts(convert[*Byte, Bool](true));
     c.puts(convert[*Byte, Bool](false));
 }
 
-def convert[U, T](t: T): U where Convert[T, U] {
+fn convert[U, T](t: T): U where Convert[T, U] {
     return Convert[T, U].convert(t);
 }
 
 implementation Convert[Bool, *Byte] {
-    def convert(self: Bool): *Byte {
+    fn convert(self: Bool): *Byte {
         if self {
             return b"true";
         } else {

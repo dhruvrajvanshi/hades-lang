@@ -1,3 +1,3 @@
 
-def error_because_array_cant_be_passed_as_value_param(b: array[u8, 3]): Void {}
-def error_because_array_cant_be_returned(): array[u8, 4] {}
+fn error_because_array_cant_be_passed_as_value_param(b: array[u8, 3]): Void {}
+fn error_because_array_cant_be_returned(): array[u8, 4] {}

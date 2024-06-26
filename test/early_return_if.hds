@@ -1,8 +1,8 @@
-def main(): Void {
+fn main(): Void {
     f();
 }
 
-def f(): Size {
+fn f(): Size {
     if true {
         puts(b"8");
         if true {
@@ -15,4 +15,4 @@ def f(): Size {
     return 15;
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

@@ -3,7 +3,7 @@ enum T {
     X
 }
 
-def main(): Void {
+fn main(): Void {
     val x = T.X
 
     puts(match x {
@@ -11,4 +11,4 @@ def main(): Void {
     })
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

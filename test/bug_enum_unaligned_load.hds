@@ -1,11 +1,11 @@
 import libc as c
 import libc.{stdout}
 
-extern def put_usize(usize, *c.FILE): Void = hscript_put_usize
+extern fn put_usize(usize, *c.FILE): Void = hscript_put_usize
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-def main(): Void {
+fn main(): Void {
     match Bytecode.B(1) {
             A -> {
                 c.fputs(b"A", stdout())

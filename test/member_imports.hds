@@ -1,7 +1,7 @@
 import submodule.member_imports.{CString, message};
 import libc.{puts};
 
-def main(): Void {
+fn main(): Void {
     val hello: CString = message;
     puts(hello);
 }

@@ -1,6 +1,6 @@
 import libc as c;
 
-def main(): Void {
+fn main(): Void {
     c.puts(b"main start");
     defer c.puts(b"defer 1");
     defer c.puts(b"defer 2");
@@ -32,7 +32,7 @@ def main(): Void {
     c.puts(b"main end");
 }
 
-def f(): Void {
+fn f(): Void {
     c.puts(b"f start");
     defer c.puts(b"defer 4");
     defer c.puts(b"defer 5");

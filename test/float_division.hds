@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
 
     val x: f32 = 3
     val y: f32 = 2
@@ -12,5 +12,5 @@ def main(): Void {
     }
 }
 
-extern def puts(*u8): Void = puts
-extern def print_f32(f32): Void = print_f32
+extern fn puts(*u8): Void = puts
+extern fn print_f32(f32): Void = print_f32

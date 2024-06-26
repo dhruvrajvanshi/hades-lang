@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val mut message = b"FAIL"
 
     call || {
@@ -9,8 +9,8 @@ def main(): Void {
     puts(message)
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-def call(f: || -> Void): Void {
+fn call(f: || -> Void): Void {
     f()
 }

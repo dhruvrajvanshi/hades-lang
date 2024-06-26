@@ -1,5 +1,5 @@
-extern def puts(*Byte): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-def main(): Void {
+fn main(): Void {
     puts(b"Hello world");
 }

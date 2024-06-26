@@ -2,8 +2,8 @@ struct Dir {}
 struct dirent {
     val d_name: *Byte;
 }
-extern def opendir(*Byte): *Dir = opendir;
-extern def closedir(*Dir): Void = closedir;
-extern def readdir(*Dir): *dirent = readdir;
-extern def dirent_name(*dirent): *Byte = hdc_dirent_name;
-extern def dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;
+extern fn opendir(*Byte): *Dir = opendir;
+extern fn closedir(*Dir): Void = closedir;
+extern fn readdir(*Dir): *dirent = readdir;
+extern fn dirent_name(*dirent): *Byte = hdc_dirent_name;
+extern fn dirent_is_directory(*dirent): Bool = hdc_dirent_is_directory;

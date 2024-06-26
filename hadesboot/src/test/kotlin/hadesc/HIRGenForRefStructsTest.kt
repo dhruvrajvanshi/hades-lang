@@ -22,7 +22,7 @@ class HIRGenForRefStructsTest {
             val value: u32
         }
         
-        def returns_boxed_u32(): BoxedU32 {
+        fn returns_boxed_u32(): BoxedU32 {
             return BoxedU32(1)
         }       
         """.trimIndent()
@@ -40,7 +40,7 @@ class HIRGenForRefStructsTest {
         struct BoxedU32 ref {
             val value: u32
         }
-        def takes_boxed_u32(param: BoxedU32): Void {
+        fn takes_boxed_u32(param: BoxedU32): Void {
         }
         """.trimIndent()
     ) {
@@ -91,7 +91,7 @@ class HIRGenForRefStructsTest {
             val box: Boxed[T]
         }
         
-        def main(): Void {
+        fn main(): Void {
             val boxed_bool = Boxed(true)
             val mut wrapper = ContainsBox(boxed_bool)
             
@@ -115,7 +115,7 @@ class HIRGenForRefStructsTest {
           Foo(Boxed[T])
         }
         
-        def main(): Void {
+        fn main(): Void {
             val tr = match ContainsBox.Foo(Boxed(true)) {
                 Foo(val box) -> box.value
             }

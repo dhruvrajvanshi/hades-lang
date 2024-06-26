@@ -9,56 +9,56 @@ type char = u8
 type void = Void
 type double = Double
 
-extern def puts(*char): void = puts;
-extern def exit(int): void = exit;
-extern def malloc(size_t): *mut void = malloc;
-extern def free(*mut void): void = free;
-extern def strlen(*char): usize = strlen;
-extern def strcat(*char, *char): *mut char = strcat;
-extern def strcmp(*char, *char): int = strcmp;
-extern def strcpy(*mut char, *char): *mut char = strcpy;
-extern def memcpy(*void, *void, usize): void = memcpy;
-extern def memcmp(*void, *void, usize): int = memcmp;
-extern def floor(double): double = floor;
+extern fn puts(*char): void = puts;
+extern fn exit(int): void = exit;
+extern fn malloc(size_t): *mut void = malloc;
+extern fn free(*mut void): void = free;
+extern fn strlen(*char): usize = strlen;
+extern fn strcat(*char, *char): *mut char = strcat;
+extern fn strcmp(*char, *char): int = strcmp;
+extern fn strcpy(*mut char, *char): *mut char = strcpy;
+extern fn memcpy(*void, *void, usize): void = memcpy;
+extern fn memcmp(*void, *void, usize): int = memcmp;
+extern fn floor(double): double = floor;
 
-extern def fprintf(*FILE, *char, *char): int = fprintf;
-extern def printf(*char, *char): int = printf;
-extern def sleep(uint): uint = sleep;
-extern def fflush(*FILE): void = fflush;
+extern fn fprintf(*FILE, *char, *char): int = fprintf;
+extern fn printf(*char, *char): int = printf;
+extern fn sleep(uint): uint = sleep;
+extern fn fflush(*FILE): void = fflush;
 
-extern def fputs(*char, *FILE): void = fputs;
+extern fn fputs(*char, *FILE): void = fputs;
 
 struct FILE {}
 
-extern def getline(*mut *mut char, *mut usize, *FILE): isize = getline;
-extern def fgetc(*FILE): char = fgetc;
-extern def strtoul(*char, **char, u32): ulong = strtoul;
+extern fn getline(*mut *mut char, *mut usize, *FILE): isize = getline;
+extern fn fgetc(*FILE): char = fgetc;
+extern fn strtoul(*char, **char, u32): ulong = strtoul;
 
 
-extern def fread(*void, usize, usize, *FILE): usize = fread;
+extern fn fread(*void, usize, usize, *FILE): usize = fread;
 
 type FILEDescriptor = int;
-extern def read(FILEDescriptor, *mut void, usize): isize = read;
-extern def write(FILEDescriptor, *void, usize): isize = write;
+extern fn read(FILEDescriptor, *mut void, usize): isize = read;
+extern fn write(FILEDescriptor, *void, usize): isize = write;
 
-extern def errno(): int = hdc_errno;
-extern def strerror(int): *char = strerror;
-extern def set_errno(int): void = hdc_set_errno;
+extern fn errno(): int = hdc_errno;
+extern fn strerror(int): *char = strerror;
+extern fn set_errno(int): void = hdc_set_errno;
 
-extern def open(*char, int): int = open;
+extern fn open(*char, int): int = open;
 
-extern def stdout(): *FILE = hdc_get_stdout;
+extern fn stdout(): *FILE = hdc_get_stdout;
 extern const stdin: *FILE = stdin;
-extern def stderr(): *FILE = hdc_get_stderr;
+extern fn stderr(): *FILE = hdc_get_stderr;
 
-extern def perror(*char): void = perror;
+extern fn perror(*char): void = perror;
 
-extern def listen(int, int): int = listen;
+extern fn listen(int, int): int = listen;
 
 struct sockaddr {}
 struct socklen_t {}
-extern def accept(int, *mut sockaddr, *mut socklen_t): int = accept;
-extern def close(int): int = close;
+extern fn accept(int, *mut sockaddr, *mut socklen_t): int = accept;
+extern fn close(int): int = close;
 
 
 const EOF: int = -1
@@ -69,22 +69,22 @@ const SEEK_END: int = 2
 
 /// fseek(file, offset, whence)
 /// whence should be SEEK_SET or SEEK_CUR or SEEK_END
-extern def fseek(*FILE, long, int): i32 = fseek
+extern fn fseek(*FILE, long, int): i32 = fseek
 
-extern def ftell(*FILE): long = ftell
+extern fn ftell(*FILE): long = ftell
 
 /// fopen(file, mode)
-extern def fopen(*char, *char): *FILE = fopen
-extern def fclose(*FILE): int = fclose
-extern def rewind(*FILE): void = rewind
-extern def feof(*FILE): int = feof
-extern def ferror(*FILE): int = ferror
-extern def fileno(*FILE): int = fileno
-extern def abort(): void = abort
+extern fn fopen(*char, *char): *FILE = fopen
+extern fn fclose(*FILE): int = fclose
+extern fn rewind(*FILE): void = rewind
+extern fn feof(*FILE): int = feof
+extern fn ferror(*FILE): int = ferror
+extern fn fileno(*FILE): int = fileno
+extern fn abort(): void = abort
 
 type pid_t = int
-extern def fork(): pid_t = fork
+extern fn fork(): pid_t = fork
 
 /// https://man7.org/linux/man-pages/man2/waitpid.2.html
-extern def waitpid(pid_t, *int, int): pid_t = waitpid
-extern def wait(*int): pid_t = wait
+extern fn waitpid(pid_t, *int, int): pid_t = waitpid
+extern fn wait(*int): pid_t = wait

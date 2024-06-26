@@ -1,12 +1,12 @@
 import submodule.test_utils as utils;
 
-def print_size[T](name: *Byte): Void {
+fn print_size[T](name: *Byte): Void {
     utils.print_byte_string(name);
     utils.print_byte_string(b": ");
     utils.print_size(size_of[T]);
 }
 
-def main(): Void {
+fn main(): Void {
     print_size[u8](b"u8");
     print_size[i8](b"i8");
     print_size[u16](b"u16");

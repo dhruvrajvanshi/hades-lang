@@ -1,13 +1,13 @@
 
-def main(): Void {}
+fn main(): Void {}
 
-def non_ref_struct(mut f: Plain): Void {}
-def ref_struct(mut f: RefS): Void {}
-def generic_ref_struct(mut f: Box[u32]): Void {}
-def primitive(mut f: u32): Void {}
+fn non_ref_struct(mut f: Plain): Void {}
+fn ref_struct(mut f: RefS): Void {}
+fn generic_ref_struct(mut f: Box[u32]): Void {}
+fn primitive(mut f: u32): Void {}
 
-def associated_type(mut f: Foo[Box[Bool]].Boxed): Void {}
-def associated_type_unboxed(mut f: Foo[Box[Bool]].Unboxed): Void {}
+fn associated_type(mut f: Foo[Box[Bool]].Boxed): Void {}
+fn associated_type_unboxed(mut f: Foo[Box[Bool]].Unboxed): Void {}
 
 struct Plain {
     val value: Bool

@@ -1,7 +1,7 @@
 import submodule.printable_interface as P
 import submodule.constants as C
 
-def main(): Void {
+fn main(): Void {
   val f = ||: Void {
     val x = T.X
     val p = Tr[usize].foo()
@@ -11,10 +11,10 @@ def main(): Void {
 }
 
 trait Tr[Self] {
-    def foo(): Bool
+    fn foo(): Bool
 }
 implementation Tr[usize] {
-    def foo(): Bool {
+    fn foo(): Bool {
         return true
     }
 }

@@ -2,20 +2,20 @@
 struct Window {}
 struct Monitor {}
 type CInt = i32
-extern def init(): CInt = glfwInit;
-extern def terminate(): Void = glfwTerminate;
-extern def create_window(CInt, CInt, *Byte, *Monitor, *Window): *Window = glfwCreateWindow;
-extern def make_context_current(*Window): Void = glfwMakeContextCurrent;
-extern def window_should_close(*Window): Bool = glfwWindowShouldClose;
-extern def window_swap_buffers(*Window): Void = glfwSwapBuffers;
-extern def wait_events(): Void = glfwWaitEvents;
+extern fn init(): CInt = glfwInit;
+extern fn terminate(): Void = glfwTerminate;
+extern fn create_window(CInt, CInt, *Byte, *Monitor, *Window): *Window = glfwCreateWindow;
+extern fn make_context_current(*Window): Void = glfwMakeContextCurrent;
+extern fn window_should_close(*Window): Bool = glfwWindowShouldClose;
+extern fn window_swap_buffers(*Window): Void = glfwSwapBuffers;
+extern fn wait_events(): Void = glfwWaitEvents;
 
 extension WindowExtensions for Window {
-    def should_close(*this): Bool {
+    fn should_close(*this): Bool {
         return window_should_close(this);
     }
 
-    def swap_buffers(*this): Void {
+    fn swap_buffers(*this): Void {
         window_swap_buffers(this);
     }
 }

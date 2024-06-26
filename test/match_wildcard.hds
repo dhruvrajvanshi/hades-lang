@@ -2,7 +2,7 @@
 enum T {
     A; B; C; D;
 }
-def main(): Void {
+fn main(): Void {
 
     match T.A {
         A -> {}
@@ -26,4 +26,4 @@ def main(): Void {
     }
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

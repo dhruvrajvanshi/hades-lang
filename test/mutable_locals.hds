@@ -1,6 +1,6 @@
 import submodule.test_utils as utils;
 
-def main(): Void {
+fn main(): Void {
     val mut x = 1;
 
     while (x <= 5) {

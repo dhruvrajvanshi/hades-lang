@@ -2,7 +2,7 @@ import gtk as Gtk
 import libc as c
 import libc.{exit}
 
-def main(argc: i32, argv: **Byte): Void {
+fn main(argc: i32, argv: **Byte): Void {
   val app = Gtk.application_new(b"org.gtk.example", Gtk.APPLICATION_FLAGS_NONE)
   val status = run(app, argc, argv)
 
@@ -10,22 +10,22 @@ def main(argc: i32, argv: **Byte): Void {
 }
 
 
-def run(app: *Gtk.Application, argc: i32, argv: **Byte): i32 {
+fn run(app: *Gtk.Application, argc: i32, argv: **Byte): i32 {
   Gtk.signal_connect(app, b"activate", Gtk.CALLBACK(on_app_activate), nullptr)
   return Gtk.application_run(app, argc, argv)
 }
 
-def exit_button_on_click(button: *Gtk.Button, window: *Gtk.Window): Void {
+fn exit_button_on_click(button: *Gtk.Button, window: *Gtk.Window): Void {
   Gtk.print(b"Destroying window\n")
   Gtk.widget_destroy(window)
 }
 
-def on_app_activate(app: *Gtk.Application, data: *Void): Void {
+fn on_app_activate(app: *Gtk.Application, data: *Void): Void {
   val window = make_window(app)
   window.as_widget().show_all()
 }
 
-def make_window(app: *Gtk.Application): *Gtk.Window {
+fn make_window(app: *Gtk.Application): *Gtk.Window {
   val window = app.new_window()
     .set_title(b"Window")
     .set_default_size(200, 200)

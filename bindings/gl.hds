@@ -605,4 +605,4 @@ const GL_CLIENT_VERTEX_ARRAY_BIT =		0x00000002;
 // const GL_CLIENT_ALL_ATTRIB_BITS = 		0xFFFFFFFF;
 
 type CInt = i32
-extern def clear(CInt): Void = glClear;
+extern fn clear(CInt): Void = glClear;

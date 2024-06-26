@@ -9,15 +9,15 @@ enum ST[T] {
     C(value: T)
 }
 
-def main(): Void {
+fn main(): Void {
     val m = || -> || -> true
 }
 
-def return_box(): BoxAlias[|| -> Bool] {
+fn return_box(): BoxAlias[|| -> Bool] {
     return Box(|| true)
 }
 
-def illegal_return(fn: || -> ST[|| -> Bool])
+fn illegal_return(f: || -> ST[|| -> Bool])
     : ST[|| -> Bool] {
     return ST.C(|| true)
 }

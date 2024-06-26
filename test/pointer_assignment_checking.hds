@@ -1,8 +1,8 @@
 import hades.memory.{ __hds_pointer_add }
 
-def offset[T](self: *T, index: Size): *T {
+fn offset[T](self: *T, index: Size): *T {
     return pointer_cast[T](__hds_pointer_add(self, index * size_of[T]));
 }
 
-def main(): Void {}
+fn main(): Void {}
 

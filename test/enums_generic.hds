@@ -1,7 +1,7 @@
 import submodule.printable_interface as p;
 import libc as c;
 
-def main(): Void {
+fn main(): Void {
     val opt = Optional.Some(10);
     print(get_int_value(Optional.Some(10)));
     print(get_int_value(Optional.Some(20)));
@@ -13,18 +13,18 @@ def main(): Void {
     c.puts(get_string_value(opt_message_none));
 }
 
-def print[T](value: T): Void where p.Printable[T] {
+fn print[T](value: T): Void where p.Printable[T] {
     p.Printable[T].print(value);
 }
 
-def get_string_value(value: Optional[*Byte]): *Byte {
+fn get_string_value(value: Optional[*Byte]): *Byte {
     return match value {
         Some(val value) -> value,
         None -> b"None"
     };
 }
 
-def get_int_value(value: Optional[Int]): Int {
+fn get_int_value(value: Optional[Int]): Int {
     return match value {
         Some(val value) -> value,
         None -> 0

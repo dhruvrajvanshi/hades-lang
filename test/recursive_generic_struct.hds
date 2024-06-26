@@ -10,11 +10,11 @@ struct List[T] {
     val m_head: *mut Node[T];
 }
 
-def main(): Void {
+fn main(): Void {
     val l = List(allocate_new(Node(b"hello", nullptr)));
     c.puts(l.m_head.m_data);
 }
-def allocate_new[T](value: T): *mut T {
+fn allocate_new[T](value: T): *mut T {
     val ptr = memory.allocate[T](1);
     *ptr = value;
     return ptr;

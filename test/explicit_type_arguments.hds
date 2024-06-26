@@ -1,8 +1,8 @@
 
-def make_nullptr[T](): *T {
+fn make_nullptr[T](): *T {
     return nullptr;
 }
 
-def main(): Void {
+fn main(): Void {
     val x: *Bool = make_nullptr[Bool]();
 }

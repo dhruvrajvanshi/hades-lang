@@ -1,10 +1,10 @@
-extern def puts(*Byte): Void = puts;
-def main(): Void {
+extern fn puts(*Byte): Void = puts;
+fn main(): Void {
     apply(|| {
         puts(b"Hello");
     });
 }
 
-def apply(fn: || -> Void): Void {
-    fn();
+fn apply(f: || -> Void): Void {
+    f();
 }

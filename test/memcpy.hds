@@ -1,5 +1,5 @@
 import hades.memory as M
-def main(): Void {
+fn main(): Void {
     val pass = b"PASS"
     val mut _pass = b"FAIL"
     M.copy(&mut _pass, &pass, 1)
@@ -23,4 +23,4 @@ def main(): Void {
     }
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

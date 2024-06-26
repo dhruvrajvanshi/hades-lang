@@ -1,11 +1,11 @@
 
-def main(): Void {
+fn main(): Void {
     puts(apply_1(b"Hello", |value| value));
     puts(apply_1(true, |value| if (value) b"World" else b"false"));
 }
 
-def apply_1[T, U](value: T, fn: |T| -> U): U {
-    return fn(value);
+fn apply_1[T, U](value: T, f: |T| -> U): U {
+    return f(value);
 }
 
-extern def puts(*Byte): Void = puts;
+extern fn puts(*Byte): Void = puts;

@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val mut x: u8 = 0
     val mut y: Byte = 3
     x = y

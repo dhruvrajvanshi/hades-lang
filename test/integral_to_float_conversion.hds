@@ -1,7 +1,7 @@
 
-def main(): Void {
+fn main(): Void {
     print_double(1)
     print_double(2)
 }
 
-extern def print_double(f64): Void = print_double
+extern fn print_double(f64): Void = print_double

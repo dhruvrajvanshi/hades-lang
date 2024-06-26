@@ -1,5 +1,5 @@
 import submodule.test_utils.{ print_f32, print_f64 }
-def main(): Void {
+fn main(): Void {
     val x: f32 = 23
     val y: f64 = 41
 

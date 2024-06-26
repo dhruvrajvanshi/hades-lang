@@ -1,7 +1,7 @@
 import submodule.string_pair as s;
 import libc as c;
 
-def main(): Void {
+fn main(): Void {
     c.puts(s.StringPair(b"first", b"second").first);
 }
 

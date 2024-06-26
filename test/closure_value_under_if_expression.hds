@@ -1,7 +1,7 @@
-extern def puts(*Byte): Void = puts;
-extern def strlen(*Byte): Int = strlen;
+extern fn puts(*Byte): Void = puts;
+extern fn strlen(*Byte): Int = strlen;
 
-def main(): Void {
+fn main(): Void {
 
     val message1 = b"true";
     val message2 = b"false";

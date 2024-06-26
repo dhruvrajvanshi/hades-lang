@@ -9,7 +9,7 @@ struct B {
     val mut x: OwnPtr[usize]
 }
 
-def main(): Void {
+fn main(): Void {
     val x = OwnPtr[usize](nullptr)
 
     val y = x // not allowed
@@ -32,4 +32,4 @@ def main(): Void {
     foo(move x) // allowed because move
 }
 
-def foo(ptr: OwnPtr[usize]): Void {}
+fn foo(ptr: OwnPtr[usize]): Void {}

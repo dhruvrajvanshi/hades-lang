@@ -10,7 +10,7 @@ struct t {
     val m_method: Method.t;
 }
 
-def from_string_view(text: StringView.t): t {
+fn from_string_view(text: StringView.t): t {
     val http_version = text.drop_words(2).take_first_word()
     assert(http_version.equals(b"HTTP/1.1"))
         || http_version.copy_to_c()
@@ -20,11 +20,11 @@ def from_string_view(text: StringView.t): t {
 }
 
 extension RequestExtensions for t {
-    def method(this): Method.t {
+    fn method(this): Method.t {
         return this.m_method;
     }
-    
-    def uri(this): StringView.t {
+
+    fn uri(this): StringView.t {
         return this.m_uri;
     }
 }

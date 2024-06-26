@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val x = Pair(true, b"fourth").second;
 }
 

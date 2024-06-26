@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val x = 2
     val y = move x
 
@@ -7,6 +7,6 @@ def main(): Void {
     val a = (move y) + 1 // fine
 }
 
-def f(x: usize): Void {
+fn f(x: usize): Void {
     val y = move x
 }

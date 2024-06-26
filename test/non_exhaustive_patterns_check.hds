@@ -4,7 +4,7 @@ enum T {
     B
 }
 
-def main(): Void {
+fn main(): Void {
     val x = match (T.A) {
         A -> true
     }

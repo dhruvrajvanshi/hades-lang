@@ -1,12 +1,12 @@
 import libc.{puts}
 
-def describe(message: *Byte, fn: || -> Void): Void {
+fn describe(message: *Byte, fn: || -> Void): Void {
     puts(message)
 
     fn()
 }
 
-def it(message: *Byte, fn: || -> Void): Void {
+fn it(message: *Byte, fn: || -> Void): Void {
     puts(message)
     fn()
 }

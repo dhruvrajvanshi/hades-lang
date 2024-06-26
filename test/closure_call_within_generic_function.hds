@@ -1,15 +1,15 @@
 
-extern def puts(*Byte): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-def main(): Void {
+fn main(): Void {
     puts(f(b"World"));
 }
 
-def apply[T, U](value: T, fn: |T| -> U): U {
-    return fn(value);
+fn apply[T, U](value: T, f: |T| -> U): U {
+    return f(value);
 }
 
-def f[T](value: T): T {
+fn f[T](value: T): T {
     val hello = b"Hello";
     return apply(value, |x| {
         puts(hello);

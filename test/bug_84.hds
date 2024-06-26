@@ -1,12 +1,12 @@
 /// https://github.com/dhruvrajvanshi/hades-lang/issues/84
-extern def puts(*Byte): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-def main(): Void {
+fn main(): Void {
     val message = b"PASS"
     defer puts(message)
     call || {
     }
 }
-def call(f: || -> Void): Void {
+fn call(f: || -> Void): Void {
 
 }

@@ -1,4 +1,4 @@
-def main(): Void {
+fn main(): Void {
     val x = b"Value"
 
     while randbool() {
@@ -18,8 +18,8 @@ def main(): Void {
     }
 }
 
-def apply(f: || -> Void): Void {
+fn apply(f: || -> Void): Void {
     f()
 }
 
-extern def randbool(): Bool = randbool
+extern fn randbool(): Bool = randbool

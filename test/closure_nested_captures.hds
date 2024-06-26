@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val mut x = b"1"
     apply || {
         puts(x)
@@ -12,8 +12,8 @@ def main(): Void {
     }
 }
 
-def apply(f: || -> Void): Void {
+fn apply(f: || -> Void): Void {
     f()
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
   val m = b"DEFER_OUTSIDE_CLOSURE"
   defer puts(m)
   puts(b"BEFORE_APPLY")
@@ -12,8 +12,8 @@ def main(): Void {
 
   puts(b"AFTER_APPLY")
 }
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-def apply(f: || -> Void): Void {
+fn apply(f: || -> Void): Void {
     f()
 }

@@ -1,6 +1,6 @@
 import submodule.test_utils.{print_u32, print_size}
 
-def main(): Void {
+fn main(): Void {
     val x: u8 = 10
     val y: u64 = 20
 

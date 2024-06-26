@@ -3,7 +3,7 @@ type CString = *Byte;
 
 type Ptr[T] = *T;
 
-def main(): Void {
+fn main(): Void {
     val s: CString = b"cstr";
     val s1: Ptr[Byte] = s;
     val mut x: a.int = 23;

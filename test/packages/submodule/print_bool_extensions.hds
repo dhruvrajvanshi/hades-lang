@@ -1,7 +1,7 @@
 import libc as c;
 
 extension BoolPrinter for Bool {
-    def print(this): Void {
+    fn print(this): Void {
         if this {
             c.puts(b"true");
         } else {
@@ -9,11 +9,11 @@ extension BoolPrinter for Bool {
         }
     }
 
-    def print_ptr(*this): Void {
+    fn print_ptr(*this): Void {
         (*this).print();
     }
 
-    def print_mut_ptr(*mut this): Void {
+    fn print_mut_ptr(*mut this): Void {
         this.print_ptr();
     }
 }

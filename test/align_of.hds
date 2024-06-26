@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val x: usize = align_of[usize]
     // this test doesn't care about what the specific alignment
     // is because that would be target dependent.

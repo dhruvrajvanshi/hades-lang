@@ -6,17 +6,17 @@ struct Buffer[T] {
     val m_size: Size;
 }
 
-def main(): Void {
+fn main(): Void {
     val x = 10;
     val buf = Buffer(&x, 1);
     u.print_int(get(buf, 0));
 }
 
-def get_ptr[T](self: Buffer[T], index: Size): *T {
+fn get_ptr[T](self: Buffer[T], index: Size): *T {
     return memory.pointer_add(self.m_pointer, index);
 }
 
-def get[T](self: Buffer[T], index: Size): T {
+fn get[T](self: Buffer[T], index: Size): T {
     return *get_ptr(self, index);
 }
 

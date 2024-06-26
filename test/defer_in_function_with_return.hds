@@ -1,13 +1,13 @@
 
-def main(): Void {
+fn main(): Void {
     defer puts(b"3")
     foo()
 }
 
-def foo(): u32 {
+fn foo(): u32 {
     defer puts(b"2")
     defer puts(b"1")
     return 1
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

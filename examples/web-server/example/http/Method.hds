@@ -6,23 +6,23 @@ struct t {
     val m_value: u8;
 }
 
-def GET(): t {
+fn GET(): t {
     return t(1);
 }
 
-def POST(): t {
+fn POST(): t {
     return t(2);
 }
 
-def PUT(): t {
+fn PUT(): t {
     return t(3);
 }
 
-def DELETE(): t {
+fn DELETE(): t {
     return t(4);
 }
 
-def from_string_view(method: StringView.t): t {
+fn from_string_view(method: StringView.t): t {
     if method.equals(b"GET") {
         return t(1);
     }
@@ -41,12 +41,12 @@ def from_string_view(method: StringView.t): t {
     return t(0);
 }
 
-def from_c_string(method: *Byte): t {
+fn from_c_string(method: *Byte): t {
     return from_string_view(StringView.from_c_string(method));
 }
 
 extension MethodExtensions for t {
-    def equals(this, that: t): Bool {
+    fn equals(this, that: t): Bool {
         return this.m_value == that.m_value;
     }
 }

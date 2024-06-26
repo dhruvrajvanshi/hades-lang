@@ -1,21 +1,21 @@
 
 trait Foo[Self] {
-    def foo(self: Self): Void
+    fn foo(self: Self): Void
 }
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-def main(): Void {
+fn main(): Void {
     val x: *mut usize = nullptr
 
     foo(x)
 }
 
-def foo[T](value: T): Void where Foo[T] {
+fn foo[T](value: T): Void where Foo[T] {
     Foo[T].foo(value)
 }
 
 implementation Foo[*usize] {
-    def foo(self: *usize): Void {
+    fn foo(self: *usize): Void {
         puts(b"PASS")
     }
 }

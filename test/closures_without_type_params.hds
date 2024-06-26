@@ -1,7 +1,7 @@
 
-extern def puts(*Byte): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-def main(): Void {
+fn main(): Void {
     val mut message = b"Hello";
 
     apply(|| {
@@ -12,6 +12,6 @@ def main(): Void {
     puts(message);
 }
 
-def apply(f: || -> Void): Void {
+fn apply(f: || -> Void): Void {
     f();
 }

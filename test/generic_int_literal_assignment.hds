@@ -1,8 +1,8 @@
 
-def foo[T](first: T, second: T): Void {
+fn foo[T](first: T, second: T): Void {
 }
 
-def main(): Void {
+fn main(): Void {
     val x: usize = 1
 
     // The analyzer bug here was in the function checking if

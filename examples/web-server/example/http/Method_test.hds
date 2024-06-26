@@ -4,7 +4,7 @@ import libc as c;
 
 const assert = Assert.assert;
 
-def main(): Void {
+fn main(): Void {
     assert(
         HTTPMethod.from_c_string(b"GET").equals(HTTPMethod.GET()),
         || b"Should parse string 'GET'"

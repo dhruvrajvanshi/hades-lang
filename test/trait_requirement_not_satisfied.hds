@@ -1,12 +1,12 @@
 
 trait Trait[Self] {
-    def f(): Void;
+    fn f(): Void;
 }
 
-def main(): Void {
+fn main(): Void {
     Trait[Bool].f();
     func(true);
 }
 
-def func[T](value: T): Void where Trait[T] {
+fn func[T](value: T): Void where Trait[T] {
 }

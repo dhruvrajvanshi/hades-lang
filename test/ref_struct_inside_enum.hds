@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val foo = Foo.F(Box(b"PASS"))
 
     val message = match foo {
@@ -8,7 +8,7 @@ def main(): Void {
     puts(message)
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
 struct Box[T] ref {
     val value: T

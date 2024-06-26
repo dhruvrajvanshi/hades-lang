@@ -1,7 +1,7 @@
 import hades.libhdc.{ file_put_cstr, file_put_usize, file_put_u8, get_stdout, file_put_void_ptr }
 import hades.memory as Mem
 
-def main(): Void {
+fn main(): Void {
     val stdout = get_stdout()
     val discriminant = B_constructor(1)
     match discriminant.tag {
@@ -36,7 +36,7 @@ struct B {
     val _1: usize
 }
 
-def B_constructor(_1: usize): Bytecode {
+fn B_constructor(_1: usize): Bytecode {
     val mut result: Bytecode = #uninitialized
     result.tag = 1
     val mut payload_ptr = &mut result.payload
@@ -45,7 +45,7 @@ def B_constructor(_1: usize): Bytecode {
     return result
 }
 
-def dump_ptr[T](ptr: *T): Void {
+fn dump_ptr[T](ptr: *T): Void {
     file_put_void_ptr(get_stdout(), pointer_cast[Void](ptr))
     file_put_cstr(get_stdout(), b"\n")
 }

@@ -2,14 +2,14 @@
 trait SomeTrait[Self] {}
 
 extension BSExtensions for *u8 {
-    def foo[T](this, value: T): Void where SomeTrait[T] {}
+    fn foo[T](this, value: T): Void where SomeTrait[T] {}
 }
 
-def foo[T](value: T): Void where SomeTrait[T] {}
+fn foo[T](value: T): Void where SomeTrait[T] {}
 
 const global_alias = foo
 
-def main(): Void {
+fn main(): Void {
     b"Should show error".foo(b"Because SomeTrait[*u8] is not implemented")
     foo(b"")
     global_alias(b"")

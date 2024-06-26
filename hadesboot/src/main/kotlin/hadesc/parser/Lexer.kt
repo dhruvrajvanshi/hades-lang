@@ -1,7 +1,6 @@
 package hadesc.parser
 
 import hadesc.ast.Token
-import hadesc.context.FileTextProvider
 import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -11,7 +10,7 @@ private const val EOF_CHAR = Char.MIN_VALUE
 
 val KEYWORDS = mapOf(
     "import" to tt.IMPORT,
-    "def" to tt.DEF,
+    "fn" to tt.FN,
     "as" to tt.AS,
     "extern" to tt.EXTERN,
     "return" to tt.RETURN,

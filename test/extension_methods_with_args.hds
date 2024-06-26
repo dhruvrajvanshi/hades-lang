@@ -1,21 +1,21 @@
 import libc as c;
 
-def main(): Void {
+fn main(): Void {
     printb(true._and(false));
     printb(true._or(false));
 }
 
 extension BoolExt for Bool {
-    def _and(this, that: Bool): Bool {
+    fn _and(this, that: Bool): Bool {
         return this and that;
     }
 
-    def _or(this, that: Bool): Bool {
+    fn _or(this, that: Bool): Bool {
         return this or that;
     }
 }
 
-def printb(value: Bool): Void {
+fn printb(value: Bool): Void {
     if value {
         c.puts(b"true");
     } else {

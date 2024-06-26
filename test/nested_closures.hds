@@ -1,6 +1,6 @@
-extern def puts(*Byte): Void = puts
+extern fn puts(*Byte): Void = puts
 
-def main(): Void {
+fn main(): Void {
     a || {
         puts(b"outer")
         b || {
@@ -9,10 +9,10 @@ def main(): Void {
     }
 }
 
-def a(fn: || -> Void): Void {
-    fn()
+fn a(f: || -> Void): Void {
+    f()
 }
 
-def b(fn: || -> Void): Void {
-    fn()
+fn b(f: || -> Void): Void {
+    f()
 }

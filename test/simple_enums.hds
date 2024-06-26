@@ -4,9 +4,9 @@ enum T {
     Z
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-def main(): Void {
+fn main(): Void {
     puts(str(T.X))
     puts(str(T.Y))
     puts(str(T.Z))
@@ -17,7 +17,7 @@ def main(): Void {
     })
 }
 
-def str(value: T): *u8 {
+fn str(value: T): *u8 {
     return match value {
         X -> b"X"
         Y -> b"Y"

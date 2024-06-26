@@ -18,7 +18,7 @@ import llvm.makeList
 internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
-    tt.EOF, tt.IMPORT, tt.DEF, tt.EXTERN, tt.STRUCT, tt.CONST,
+    tt.EOF, tt.IMPORT, tt.FN, tt.EXTERN, tt.STRUCT, tt.CONST,
     tt.TRAIT, tt.IMPLEMENTATION, tt.AT_SYMBOL,
     tt.TYPE, tt.EXTENSION
 )
@@ -121,7 +121,7 @@ class Parser<Ctx>(
         val decorators = parseDecorators()
         val decl = when (currentToken.kind) {
             tt.IMPORT -> parseImportDeclaration()
-            tt.DEF,
+            tt.FN,
             tt.AT_SYMBOL -> parseDeclarationFunctionDef()
             tt.STRUCT -> parseStructDeclaration(decorators = decorators)
             tt.EXTERN -> when (tokenBuffer.peek(1).kind) {
@@ -270,7 +270,7 @@ class Parser<Ctx>(
     }
 
     private fun parseTraitMember() = when (currentToken.kind) {
-        tt.DEF -> Declaration.TraitMember.Function(parseFunctionSignature())
+        tt.FN -> Declaration.TraitMember.Function(parseFunctionSignature())
         else -> {
             expect(tt.TYPE)
             val result = Declaration.TraitMember.AssociatedType(parseBinder())
@@ -349,7 +349,7 @@ class Parser<Ctx>(
     }
 
     private fun parseFunctionSignature(): FunctionSignature {
-        val start = expect(tt.DEF)
+        val start = expect(tt.FN)
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
         val (thisParamFlags, thisParam, params) = parseParams()
@@ -460,7 +460,7 @@ class Parser<Ctx>(
 
     private fun parseExternFunctionDef(): Declaration {
         val start = expect(tt.EXTERN)
-        expect(tt.DEF)
+        expect(tt.FN)
         val name = parseBinder()
         expect(tt.LPAREN)
         val params = parseSeperatedList(seperator = tt.COMMA, terminator = tt.RPAREN) {
@@ -1343,7 +1343,7 @@ class Parser<Ctx>(
                     )
                 }
             }
-            tt.DEF -> {
+            tt.FN -> {
                 val start = advance()
                 expect(tt.LPAREN)
                 val from = parseSeperatedList(tt.COMMA, terminator = tt.RPAREN) {

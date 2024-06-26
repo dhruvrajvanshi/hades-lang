@@ -1,11 +1,11 @@
 
 extension ApplyExtensions[T] for T {
-    def let(*this, fn: |*T| -> Void): Void {
-        fn(this)
+    fn let(*this, f: |*T| -> Void): Void {
+        f(this)
     }
 }
 
-def main(): Void {
+fn main(): Void {
     val _message = b"Hello world"
     val message = &_message
 
@@ -20,4 +20,4 @@ def main(): Void {
     }
 }
 
-extern def puts(*Byte): Void = puts
+extern fn puts(*Byte): Void = puts

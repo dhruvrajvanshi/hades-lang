@@ -1,6 +1,6 @@
 import submodule.test_utils as u;
 
-def main(): Void {
+fn main(): Void {
     val mut x = 30;
     val x_ptr: *mut Int = &mut x;
     val x_const_ptr: *Int = x_ptr;

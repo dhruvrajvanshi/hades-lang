@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val mut boxed_bool = Box(true)
 
     if boxed_bool.value {
@@ -21,11 +21,11 @@ def main(): Void {
     }
 }
 
-def make_false(mut boxed: Box[Bool]): Void {
+fn make_false(mut boxed: Box[Bool]): Void {
     boxed.value = false
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
 struct Box[A] ref {
     val value: A

@@ -1,15 +1,15 @@
 
-extern def puts(*Byte): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-def print_first(first: *Byte, second: *Byte): Void {
+fn print_first(first: *Byte, second: *Byte): Void {
     puts(first);
 }
 
-def print_second(first: *Byte, second: *Byte): Void {
+fn print_second(first: *Byte, second: *Byte): Void {
     puts(second);
 }
 
-def main(): Void {
+fn main(): Void {
     print_first(b"first", b"second");
     print_second(b"first", b"second");
 }

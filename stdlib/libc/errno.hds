@@ -1,41 +1,41 @@
 type t = Int;
 
-def EPERM(): Int { return  1; }
-def ENOENT(): Int { return  2; }
-def ESRCH(): Int { return  3; }
-def EINTR(): Int { return  4; }
-def EIO(): Int { return  5; }
-def ENXIO(): Int { return  6; }
-def E2BIG(): Int { return  7; }
-def ENOEXEC(): Int { return  8; }
-def EBADF(): Int { return  9; }
-def ECHILD(): Int { return 10; }
-def EAGAIN(): Int { return 11; }
-def ENOMEM(): Int { return 12; }
-def EACCES(): Int { return 13; }
-def EFAULT(): Int { return 14; }
-def ENOTBLK(): Int { return 15; }
-def EBUSY(): Int { return 16; }
-def EEXIST(): Int { return 17; }
-def EXDEV(): Int { return 18; }
-def ENODEV(): Int { return 19; }
-def ENOTDIR(): Int { return 20; }
-def EISDIR(): Int { return 21; }
-def EINVAL(): Int { return 22; }
-def ENFILE(): Int { return 23; }
-def EMFILE(): Int { return 24; }
-def ENOTTY(): Int { return 25; }
-def ETXTBSY(): Int { return 26; }
-def EFBIG(): Int { return 27; }
-def ENOSPC(): Int { return 28; }
-def ESPIPE(): Int { return 29; }
-def EROFS(): Int { return 30; }
-def EMLINK(): Int { return 31; }
-def EPIPE(): Int { return 32; }
-def EDOM(): Int { return 33; }
-def ERANGE(): Int { return 34; }
+fn EPERM(): Int { return  1; }
+fn ENOENT(): Int { return  2; }
+fn ESRCH(): Int { return  3; }
+fn EINTR(): Int { return  4; }
+fn EIO(): Int { return  5; }
+fn ENXIO(): Int { return  6; }
+fn E2BIG(): Int { return  7; }
+fn ENOEXEC(): Int { return  8; }
+fn EBADF(): Int { return  9; }
+fn ECHILD(): Int { return 10; }
+fn EAGAIN(): Int { return 11; }
+fn ENOMEM(): Int { return 12; }
+fn EACCES(): Int { return 13; }
+fn EFAULT(): Int { return 14; }
+fn ENOTBLK(): Int { return 15; }
+fn EBUSY(): Int { return 16; }
+fn EEXIST(): Int { return 17; }
+fn EXDEV(): Int { return 18; }
+fn ENODEV(): Int { return 19; }
+fn ENOTDIR(): Int { return 20; }
+fn EISDIR(): Int { return 21; }
+fn EINVAL(): Int { return 22; }
+fn ENFILE(): Int { return 23; }
+fn EMFILE(): Int { return 24; }
+fn ENOTTY(): Int { return 25; }
+fn ETXTBSY(): Int { return 26; }
+fn EFBIG(): Int { return 27; }
+fn ENOSPC(): Int { return 28; }
+fn ESPIPE(): Int { return 29; }
+fn EROFS(): Int { return 30; }
+fn EMLINK(): Int { return 31; }
+fn EPIPE(): Int { return 32; }
+fn EDOM(): Int { return 33; }
+fn ERANGE(): Int { return 34; }
 
-def description(err: Int): *Byte {
+fn description(err: Int): *Byte {
     if err == EPERM() {
         return b"EPERM: Operation not permitted";
     }

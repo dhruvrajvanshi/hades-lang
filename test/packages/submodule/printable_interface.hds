@@ -1,15 +1,15 @@
 import submodule.test_utils as utils;
 
 implementation Printable[Int] {
-    def print(self: Int): Void {
+    fn print(self: Int): Void {
         utils.print_int(self);
     }
 }
 
 trait Printable[Self] {
-    def print(self: Self): Void;
+    fn print(self: Self): Void;
 }
 
-def print[T](self: T): Void where Printable[Self] {
+fn print[T](self: T): Void where Printable[Self] {
   Printable[T].print(self);
 }

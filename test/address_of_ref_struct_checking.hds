@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val mut f = Box(1)
     val f_ptr = &f
     val f_mut_ptr = &mut f

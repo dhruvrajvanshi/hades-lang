@@ -1,6 +1,6 @@
 import libc as c;
 
-def main(): Void {
+fn main(): Void {
     c.puts(Pair(b"first", b"second").first());
     c.puts(Pair(b"first", b"second").second());
 }
@@ -11,11 +11,11 @@ struct Pair[First, Second] {
 }
 
 extension PairExtensions[First, Second] for Pair[First, Second] {
-    def first(this): First {
+    fn first(this): First {
         return this.m_first;
     }
 
-    def second(this): Second {
+    fn second(this): Second {
         return this.m_second;
     }
 }

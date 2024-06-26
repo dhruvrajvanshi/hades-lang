@@ -1,15 +1,15 @@
-extern def puts(*Byte): Void = puts
+extern fn puts(*Byte): Void = puts
 
-def call(f: || -> Void): Void {
+fn call(f: || -> Void): Void {
     f()
 }
 extension TextExtensions for *Byte {
-    def print(this): Void {
+    fn print(this): Void {
         puts(this)
     }
 }
 
-def main(): Void {
+fn main(): Void {
     val text = b"PASS"
     call(|| { text.print(); })
 }

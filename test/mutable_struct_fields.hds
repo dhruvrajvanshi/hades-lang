@@ -3,7 +3,7 @@ struct Box {
     val x: Int;
 }
 
-def main(): Void {
+fn main(): Void {
     val mut box = Box(10);
     box.x = 20;
     u.print_int(box.x);

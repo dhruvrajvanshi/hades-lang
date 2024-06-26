@@ -1,8 +1,8 @@
 
-def main(): Void {
+fn main(): Void {
     val x = void()
 
     val z = x == 0
 }
 
-extern def void(): Void = void
+extern fn void(): Void = void

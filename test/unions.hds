@@ -1,7 +1,7 @@
 
 import submodule.test_utils as u;
 
-def main(): Void {
+fn main(): Void {
     val mut x: union[Int, Bool] = #uninitialized;
     val mut x_ptr = &mut x
     set(x_ptr, 1)
@@ -11,10 +11,10 @@ def main(): Void {
     u.print_bool(x_bool);
 }
 
-def set[Lhs, Rhs](location: *mut Lhs, value: Rhs): Void {
+fn set[Lhs, Rhs](location: *mut Lhs, value: Rhs): Void {
     *pointer_cast[Rhs](location) = value
 }
 
-def get[From, To](location: *mut From): To {
+fn get[From, To](location: *mut From): To {
     return *pointer_cast[To](location);
 }

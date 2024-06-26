@@ -2,77 +2,77 @@
 
 trait Sub[Left, Right] {
     type Result
-    
-    def sub(lhs: Left, rhs: Right): Result
+
+    fn sub(lhs: Left, rhs: Right): Result
 }
 
 
 implementation Sub[u8, u8] {
     type Result = u8
-    def sub(lhs: u8, rhs: u8): u8 {
+    fn sub(lhs: u8, rhs: u8): u8 {
         return @intrinsic.sub[u8](lhs, rhs)
     }
 }
 
 implementation Sub[i8, i8] {
     type Result = i8
-    def sub(lhs: i8, rhs: i8): i8 {
+    fn sub(lhs: i8, rhs: i8): i8 {
         return @intrinsic.sub[i8](lhs, rhs)
     }
 }
 
 implementation Sub[u16, u16] {
     type Result = u16
-    def sub(lhs: u16, rhs: u16): u16 {
+    fn sub(lhs: u16, rhs: u16): u16 {
         return @intrinsic.sub[u16](lhs, rhs)
     }
 }
 
 implementation Sub[i16, i16] {
     type Result = i16
-    def sub(lhs: i16, rhs: i16): i16 {
+    fn sub(lhs: i16, rhs: i16): i16 {
         return @intrinsic.sub[i16](lhs, rhs)
     }
 }
 
 implementation Sub[u32, u32] {
     type Result = u32
-    def sub(lhs: u32, rhs: u32): u32 {
+    fn sub(lhs: u32, rhs: u32): u32 {
         return @intrinsic.sub[u32](lhs, rhs)
     }
 }
 
 implementation Sub[i32, i32] {
     type Result = i32
-    def sub(lhs: i32, rhs: i32): i32 {
+    fn sub(lhs: i32, rhs: i32): i32 {
         return @intrinsic.sub[i32](lhs, rhs)
     }
 }
 
 implementation Sub[u64, u64] {
     type Result = u64
-    def sub(lhs: u64, rhs: u64): u64 {
+    fn sub(lhs: u64, rhs: u64): u64 {
         return @intrinsic.sub[u64](lhs, rhs)
     }
 }
 
 implementation Sub[i64, i64] {
     type Result = i64
-    def sub(lhs: i64, rhs: i64): i64 {
+    fn sub(lhs: i64, rhs: i64): i64 {
         return @intrinsic.sub[i64](lhs, rhs)
     }
 }
 
 implementation Sub[usize, usize] {
     type Result = usize
-    def sub(lhs: usize, rhs: usize): usize {
+    fn sub(lhs: usize, rhs: usize): usize {
         return @intrinsic.sub[usize](lhs, rhs)
     }
 }
 
 implementation Sub[isize, isize] {
     type Result = isize
-    def sub(lhs: isize, rhs: isize): isize {
+    fn sub(lhs: isize, rhs: isize): isize {
         return @intrinsic.sub[isize](lhs, rhs)
     }
 }

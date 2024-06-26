@@ -1,5 +1,5 @@
 import libc as c;
-def main(): Void {
+fn main(): Void {
     val p = Pair(b"left", b"right");
     val ptr: *Pair[*Byte] = &p;
 

@@ -7,7 +7,7 @@ import example.logging as log;
 const sv = StringView.from_c_string;
 const assert = Assert.assert;
 
-def main(): Void {
+fn main(): Void {
     val request_1 = HTTPRequest.from_string_view(b"HTTP/1.1 GET /test\r\n" |> StringView.from_c_string);
 
     assert(request_1.method().equals(HTTPMethod.GET()) || b"Should parse GET method from status correctly";

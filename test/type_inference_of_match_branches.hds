@@ -3,7 +3,7 @@ enum T {
     X
     Y
 }
-def main(): Void {
+fn main(): Void {
     val x: u8 = match (T.X) {
         X -> 10,
         Y -> 20

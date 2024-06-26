@@ -3,10 +3,10 @@ trait T[Self] {}
 implementation T[Bool] {}
 
 extension TExtensions[Self] for Self where T[Self] {
-    def foo(this): Void {}
+    fn foo(this): Void {}
 }
 
-def main() : Void {
+fn main() : Void {
     true.foo();
     b"".foo();
 }

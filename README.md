@@ -98,8 +98,8 @@ Instructions to come in the future.
 
 ## Hello world
 ```scala
-extern def puts(*u8): Void = puts // by default, programs are linked with libc. This means you can declare pre-existing C functions as extern
-def main(): Void {
+extern fn puts(*u8): Void = puts // by default, programs are linked with libc. This means you can declare pre-existing C functions as extern
+fn main(): Void {
     puts(b"Hello world");
 }
 ```
@@ -107,7 +107,7 @@ def main(): Void {
 Local variables
 ```scala
 
-def main(): Void {
+fn main(): Void {
   val x: *Byte = b"Hello world"; // the type annotation can be omitted
   c.puts(x);
 }
@@ -127,7 +127,7 @@ struct Pair[A, B] {
   val second: B;
 }
 
-def main(): Void {
+fn main(): Void {
   if true {
     val pair = Pair(1, b"text"); // Type arguments to Pair are inferred
     print_pair_second(pair); // function arguments are passed as value (a copy of pair is sent to print_pair
@@ -141,7 +141,7 @@ def main(): Void {
   }
 }
 
-def print_pair_second[T](pair: Pair[T, *Byte]): Void {
+fn print_pair_second[T](pair: Pair[T, *Byte]): Void {
   c.puts(pair.second);
 }
 
@@ -153,7 +153,7 @@ extension PairExtensions[T] for Pair[T, *Byte] {
     // `*this` means this extension takes its receiver by pointer
     // Use `*mut this` to treat receiver pointer as mutable
     // and `this` to take it as value
-    def print_second(*this): Void {
+    fn print_second(*this): Void {
       c.puts(this.second); // Unlike this.second on a pointer to a struct is equivalent to this->second in C
     }
 }
@@ -166,7 +166,7 @@ extension PairExtensions[T] for Pair[T, *Byte] {
 // import those.
 import some.nested_module as nested_module;
 
-def main(): Void {
+fn main(): Void {
     val x = Pair(true, b"x");
     // because extension method is declared as *this,
     // we have to take pointer to x to pass it to the method.
@@ -185,13 +185,13 @@ being more powerful than simpler systems like Java interfaces.
 ```scala
 
 trait Printable[Self] {
-  def print(self: Self): Void;
+  fn print(self: Self): Void;
 }
 
 // Interfaces are implemented outside the type declaration
 // this means you can make builtin types implement new interfaces
 implementation Printable[Bool] {
-  def print(self: Bool): Void {
+  fn print(self: Bool): Void {
     if *this {
       c.puts(b"true");
     } else {
@@ -203,11 +203,11 @@ implementation Printable[Bool] {
 // Unlike C++, the body of this function can be checked independently
 // of call sites. No type errors on expanded templates :)
 // The where clause is a requirement on type T and a caller can only pass things that are Printable
-def print[T](value: T): Void where Printable[T] {
+fn print[T](value: T): Void where Printable[T] {
   Printable[T].print(value);
 }
 
-def main(): Void {
+fn main(): Void {
   print(true);
   print(10); // type error: Printable[Int] not found
 }
@@ -229,14 +229,14 @@ struct Box[T] {
 // Equality and Hashing, Stringification is baked into all objects in Java to get around this problem
 // but it doesn't solve it for custom interfaces.
 implementation[T] Printable[Box[T]] where Printable[T] {
-  def print(self: Box[T]): Void {
+  fn print(self: Box[T]): Void {
      print(b"Box("); // implementation Box[*Byte] is omitted for berevity
      print(self);
      print(b")");
   }
 }
 
-def f() {
+fn f() {
   print(Box(true)); // works
   print(Box(b"hello")); // works
   print(Box(10)); // Type error because we haven't provided a Printable[Int] implementation
@@ -249,10 +249,10 @@ extension definitions can have where clauses, allowing you to wrap trait functio
 
 ```scala
 extension StringifiableExtensions[T] for T where Stringifiable[T] {
-  def to_string(this): *Byte { return Stringifiable[T].print(this); }
+  fn to_string(this): *Byte { return Stringifiable[T].print(this); }
 }
 
-def f[T](value: T): Void where Stringifiable[T] {
+fn f[T](value: T): Void where Stringifiable[T] {
   // now you can call to_string as a method
   value.to_string();
 }
@@ -287,7 +287,7 @@ enum Optional[T] {
 
 
 
-def main(): Void {
+fn main(): Void {
    // Enum types can be pattern matched on.
    // The cases are checked at compile time. If you
    // decide to add a new case, that will have to
@@ -330,7 +330,7 @@ Once proper destruction and move semantics are implemented, this restriction can
 heap allocated closures.
 ```scala
 
-def main(): Void {
+fn main(): Void {
   puts(apply(true, |value| if (value) b"true" else b"false")); // prints "true"
   // closures can have a block body
   // prints "Done"
@@ -343,7 +343,7 @@ def main(): Void {
   });
 }
 
-def apply[T, U](arg: T, fn: (T) -> U): U {
+fn apply[T, U](arg: T, fn: (T) -> U): U {
   return fn(arg);
 }
 ```

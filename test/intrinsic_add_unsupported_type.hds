@@ -1,4 +1,4 @@
 
-def main(): Void {
+fn main(): Void {
     @intrinsic.add[Bool](true, false)
 }

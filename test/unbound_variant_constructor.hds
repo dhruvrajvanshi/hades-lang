@@ -4,7 +4,7 @@ enum E {
     B
 }
 
-def main(): Void {
+fn main(): Void {
     val x = E.C
     val y = m.E.Z
 }

@@ -7,7 +7,7 @@ import hades.memory as Mem
 
 import hadesx.ops.for_each.{for_each}
 
-def main(): Void {
+fn main(): Void {
     test(b"Allocating and dropping empty vec with non drop types") || {
         val mut v = VecM.empty[usize](); defer drop(move v)
     }
@@ -36,7 +36,7 @@ def main(): Void {
     }
 
     test(b"Drops members") || {
-        // val mut v = VecM.empty[*u8]        
+        // val mut v = VecM.empty[*u8]
     }
 
 }
@@ -45,11 +45,11 @@ struct Box[T] {
     val _ptr: *mut T
 }
 
-def new_box[T](): Box[T] {
+fn new_box[T](): Box[T] {
     return Box[T](Mem.allocate(1))
 }
 
 struct HasDrop {}
 implementation Drop[HasDrop] {
-    def drop(self: HasDrop): Void {}
+    fn drop(self: HasDrop): Void {}
 }

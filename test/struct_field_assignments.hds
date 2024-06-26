@@ -1,6 +1,6 @@
-extern def puts(*Byte): Void = puts
+extern fn puts(*Byte): Void = puts
 
-def main(): Void {
+fn main(): Void {
     val mut box = Box(b"initial")
     val mut box_ptr = &mut box
     val field_ptr = &mut box_ptr.value

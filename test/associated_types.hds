@@ -1,5 +1,5 @@
-extern def puts(*Byte): Void = puts
-def main(): Void {
+extern fn puts(*Byte): Void = puts
+fn main(): Void {
     val box = Box(b"associated method")
 
     for_each(&box) |value| {
@@ -9,26 +9,27 @@ def main(): Void {
 trait Iterable[Self] {
     type Item
 
-    def for_each(self: *Self, fn: |*Item| -> Void): Void
+    fn for_each(self: *Self, f: |*Item| -> Void): Void
 }
 
-def for_each[Self](value: *Self, fn: |*Iterable[Self].Item| -> Void): Void where Iterable[Self] {
-    Iterable[Self].for_each(value, fn)
+fn for_each[Self](value: *Self, f: |*Iterable[Self].Item| -> Void): Void where Iterable[Self] {
+    Iterable[Self].for_each(value, f)
 }
 
 struct Box[T] {
     val value: T
 }
 
+
 implementation [T] Iterable[Box[T]] {
     type Item = T
-    def for_each(self: *Box[T], fn: |*Item| -> Void): Void {
-        fn(&self.value)
+    fn for_each(self: *Box[T], f: |*Item| -> Void): Void {
+        f(&self.value)
     }
 }
 
 extension IterableExtensions[T] for T where Iterable[T] {
-    def for_each(*this, fn: |*Iterable[T].Item| -> Void): Void {
-        Iterable[T].for_each(this, fn)
+    fn for_each(*this, f: |*Iterable[T].Item| -> Void): Void {
+        Iterable[T].for_each(this, f)
     }
 }

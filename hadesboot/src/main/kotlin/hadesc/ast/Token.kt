@@ -10,7 +10,7 @@ data class Token(
 ) : HasLocation {
     enum class Kind {
         IMPORT,
-        DEF,
+        FN,
         AS,
         EXTERN,
         RETURN,

@@ -1,9 +1,9 @@
 
-def main(): Void {
+fn main(): Void {
     print_char(b'a')
     print_char(b'b')
     print_char(b'\n')
     print_char(b'\\')
 }
 
-extern def print_char(u8): Void = print_char
+extern fn print_char(u8): Void = print_char

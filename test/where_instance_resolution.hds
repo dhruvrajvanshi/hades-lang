@@ -1,19 +1,19 @@
 
-def main(): Void {
+fn main(): Void {
     requires_I(10);
     requires_I(true);
     requires_I(Box(10));
     requires_I(Box(true));
 }
 
-def requires_I[T](value: T): Void where I[T] {
+fn requires_I[T](value: T): Void where I[T] {
 }
 
-def requires_I_1[T](value: T): Void where I[T] {
+fn requires_I_1[T](value: T): Void where I[T] {
     requires_I(value);
 }
 
-def requires_I_U[U](value: Box[U]): Void where I[U] {
+fn requires_I_U[U](value: Box[U]): Void where I[U] {
     requires_I(value);
 }
 

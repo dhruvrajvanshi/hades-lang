@@ -1,6 +1,6 @@
 import submodule.test_utils as u;
 
-def main(): Void {
+fn main(): Void {
     val b = Box(30);
 
     val b_ptr: *Box[Int] = &b;

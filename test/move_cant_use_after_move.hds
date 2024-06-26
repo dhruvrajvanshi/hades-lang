@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val x = b"HERE"
 
     val mut f = 3
@@ -24,9 +24,9 @@ def main(): Void {
     val a3 = a // use after conditional move
 }
 
-def puts_2(a: *u8, b: *u8): Void {
+fn puts_2(a: *u8, b: *u8): Void {
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-extern def randbool(): Bool = randbool
+extern fn randbool(): Bool = randbool

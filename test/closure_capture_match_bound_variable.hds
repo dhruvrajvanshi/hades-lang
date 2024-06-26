@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     match X.Y(b"PASS") {
         Y(val message) -> {
             apply || {
@@ -9,11 +9,11 @@ def main(): Void {
     }
 }
 
-def apply(f: || -> Void): Void {
+fn apply(f: || -> Void): Void {
     f()
 }
 
 enum X {
     Y(*u8)
 }
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

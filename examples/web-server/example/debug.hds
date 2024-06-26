@@ -1,2 +1,2 @@
 
-extern def dump_size(Size): Void = example_debug_dump_size;
+extern fn dump_size(Size): Void = example_debug_dump_size;

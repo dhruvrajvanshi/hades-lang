@@ -1,6 +1,6 @@
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts
 
-def main(): Void {
+fn main(): Void {
     {
         puts(b"1")
         {

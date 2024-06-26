@@ -1,5 +1,5 @@
 
-def main(): Void {
+fn main(): Void {
     val mut x = b"PASS"
 
     val mut x_mut_ptr: *mut *u8 = x.&mut
@@ -11,9 +11,9 @@ def main(): Void {
 
 }
 extension StrExtensions for *u8 {
-    def print(*this): Void {
+    fn print(*this): Void {
         puts(this.*)
     }
 }
 
-extern def puts(*u8): Void = puts
+extern fn puts(*u8): Void = puts

@@ -10,7 +10,7 @@ struct Vec[T] {
     val _capacity: usize
 }
 
-def empty[T](): Vec[T] {
+fn empty[T](): Vec[T] {
     val buffer: *mut T = nullptr
     val capacity: usize = 0
     val size: usize = 0
@@ -22,12 +22,12 @@ def empty[T](): Vec[T] {
 }
 
 extension VecExtensions[T] for Vec[T] {
-    def push(*mut this, value: T): *mut Vec[T] {
+    fn push(*mut this, value: T): *mut Vec[T] {
         val mut self = this
         if self.capacity() <= self.size() {
             self._grow()
         }
-        
+
         val ptr = Mem.offset_mut(self._buffer, self.size())
         *ptr = value
 
@@ -36,15 +36,15 @@ extension VecExtensions[T] for Vec[T] {
         return this
     }
 
-    def size(*this): usize {
+    fn size(*this): usize {
         return this._size
     }
 
-    def capacity(*this): usize {
+    fn capacity(*this): usize {
         return this._capacity
     }
 
-    def _grow(*mut this): Void {
+    fn _grow(*mut this): Void {
         val mut self = this
         if (self.capacity() == 0) {
             self._buffer = Mem.allocate(1)
@@ -63,7 +63,7 @@ extension VecExtensions[T] for Vec[T] {
 }
 
 implementation[T] Drop[Vec[T]] where not Drop[T] {
-    def drop(self: Vec[T]): Void {
+    fn drop(self: Vec[T]): Void {
         if self._buffer != nullptr {
             Mem.free(self._buffer)
         }
@@ -71,7 +71,7 @@ implementation[T] Drop[Vec[T]] where not Drop[T] {
 }
 
 implementation[T] Drop[Vec[T]] where Drop[T] {
-    def drop(self: Vec[T]): Void {
+    fn drop(self: Vec[T]): Void {
         if self._buffer != nullptr {
             Mem.free(self._buffer)
         }
@@ -82,7 +82,7 @@ implementation[T] NoCopy[Vec[T]] {}
 implementation[T] ForEach[Vec[T]] {
     type Item = T
 
-    def for_each(self: *Vec[T], f: |*T| -> Void): Void {
+    fn for_each(self: *Vec[T], f: |*T| -> Void): Void {
         val mut current = self._buffer
         val end =
             if (self.size() != 0)

@@ -1,6 +1,6 @@
 import libc as c;
 
-def main(): Void {
+fn main(): Void {
     c.puts(b"4");
     if true {
         c.puts(b"6");

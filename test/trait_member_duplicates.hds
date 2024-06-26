@@ -1,5 +1,5 @@
 
 trait T[This] {
-    def t(): Void;
-    def t(): Void;
+    fn t(): Void;
+    fn t(): Void;
 }

@@ -1,7 +1,7 @@
 import libc as c;
 import example.logging as log;
 
-def assert(condition: Bool, get_message: || -> *Byte): Void {
+fn assert(condition: Bool, get_message: || -> *Byte): Void {
     if not condition {
         val message = get_message();
         log.fatal(b"Assertion failed");
@@ -11,7 +11,7 @@ def assert(condition: Bool, get_message: || -> *Byte): Void {
     }
 }
 
-def unreachable(message: || -> *Byte): Void {
+fn unreachable(message: || -> *Byte): Void {
     c.perror(message());
     c.exit(2);
 }

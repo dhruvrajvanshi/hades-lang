@@ -1,4 +1,4 @@
-def main(): Void {
+fn main(): Void {
     val x = Option.None[usize]
 }
 

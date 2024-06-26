@@ -26,97 +26,97 @@ implementation IsContainer[Container] {}
 
 
 const APPLICATION_FLAGS_NONE: i32 = 0
-extern def application_new(*Byte, CInt): *Application = gtk_application_new
-extern def object_unref(*Application): Void = gtk_object_unref
-extern def application_window_new(*Application): *Window = gtk_application_window_new
-extern def window_set_default_size(*Window, CInt, CInt): Void = gtk_window_set_default_size
-extern def window_set_title(*Window, *Byte): Void = gtk_window_set_title
-extern def button_box_new(u32): *ButtonBox = gtk_button_box_new
-extern def progress_bar_new(): *ProgressBar = gtk_progress_bar_new;
-extern def progress_bar_set_text(*ProgressBar, *Byte): Void = gtk_progress_bar_set_text;
-extern def button_new_with_label(*Byte): *Button = gtk_button_new_with_label
-extern def container_add(*Container, *Widget): Void = gtk_container_add
-extern def widget_show_all(*Widget): Void = gtk_widget_show_all
-extern def print(*Byte): Void = g_print
-extern def gtk_widget_destroy(*Widget): Void = gtk_widget_destroy
-extern def signal_connect_data(*Widget, *Byte, *Void, *Void, *Void, CInt): Void = g_signal_connect_data
-extern def application_run(*Application, CInt, **Byte): CInt = g_application_run
-extern def check_button_new_with_label(*Byte): *CheckButton = gtk_check_button_new_with_label
+extern fn application_new(*Byte, CInt): *Application = gtk_application_new
+extern fn object_unref(*Application): Void = gtk_object_unref
+extern fn application_window_new(*Application): *Window = gtk_application_window_new
+extern fn window_set_default_size(*Window, CInt, CInt): Void = gtk_window_set_default_size
+extern fn window_set_title(*Window, *Byte): Void = gtk_window_set_title
+extern fn button_box_new(u32): *ButtonBox = gtk_button_box_new
+extern fn progress_bar_new(): *ProgressBar = gtk_progress_bar_new;
+extern fn progress_bar_set_text(*ProgressBar, *Byte): Void = gtk_progress_bar_set_text;
+extern fn button_new_with_label(*Byte): *Button = gtk_button_new_with_label
+extern fn container_add(*Container, *Widget): Void = gtk_container_add
+extern fn widget_show_all(*Widget): Void = gtk_widget_show_all
+extern fn print(*Byte): Void = g_print
+extern fn gtk_widget_destroy(*Widget): Void = gtk_widget_destroy
+extern fn signal_connect_data(*Widget, *Byte, *Void, *Void, *Void, CInt): Void = g_signal_connect_data
+extern fn application_run(*Application, CInt, **Byte): CInt = g_application_run
+extern fn check_button_new_with_label(*Byte): *CheckButton = gtk_check_button_new_with_label
 
 
-def widget_destroy[W](widget: *W): Void where IsWidget[W] {
+fn widget_destroy[W](widget: *W): Void where IsWidget[W] {
     gtk_widget_destroy(widget.as_widget())
 }
 
-def signal_connect_swapped(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
+fn signal_connect_swapped(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
     signal_connect_data(instance, signal, handler, data, nullptr, 2)
 }
 
-def signal_connect[W](instance: *W, signal: *Byte, handler: *Void, data: *Void): Void where IsWidget[W] {
+fn signal_connect[W](instance: *W, signal: *Byte, handler: *Void, data: *Void): Void where IsWidget[W] {
    signal_connect_data(WIDGET(instance), signal, handler, data, nullptr, 0)
 }
 
-def CONTAINER[T](ptr: *T): *Container where IsContainer[T] {
+fn CONTAINER[T](ptr: *T): *Container where IsContainer[T] {
     return pointer_cast[Container](ptr)
 }
 
-def WIDGET[T](ptr: *T): *Widget where IsWidget[T] {
+fn WIDGET[T](ptr: *T): *Widget where IsWidget[T] {
     return pointer_cast[Widget](ptr)
 }
 
-def CALLBACK[T](ptr: *T): *Void {
+fn CALLBACK[T](ptr: *T): *Void {
     return pointer_cast[Void](ptr)
 }
 
 extension ContainerExtensions[T] for T where IsContainer[T] {
-    def as_container(*this): *Container {
+    fn as_container(*this): *Container {
         return CONTAINER(this)
     }
 }
 
 extension WidgetExtensions[T] for T where IsWidget[T] {
-    def as_widget(*this): *Widget {
+    fn as_widget(*this): *Widget {
         return WIDGET(this)
     }
-    def connect(*this, signal: *Byte, handler: *Void, data: *Void): *T {
+    fn connect(*this, signal: *Byte, handler: *Void, data: *Void): *T {
         signal_connect(this.as_widget(), signal, handler, data)
         return this
     }
 }
 
 extension ApplicationExtensions for Application {
-    def new_window(*this): *Window {
+    fn new_window(*this): *Window {
         return application_window_new(this)
     }
 }
 
 extension WindowExtensions for Window {
-    def set_title(*this, title: *Byte): *Window {
+    fn set_title(*this, title: *Byte): *Window {
         window_set_title(this, title)
         return this
     }
 
-    def set_default_size(*this, x: CInt, y: CInt): *Window {
+    fn set_default_size(*this, x: CInt, y: CInt): *Window {
         window_set_default_size(this, x, y)
         return this
     }
 }
 
 extension ContainerExtensions[C] for C where IsContainer[C] {
-    def add[W](*this, widget: *W): *C where IsWidget[W] {
+    fn add[W](*this, widget: *W): *C where IsWidget[W] {
         container_add(CONTAINER(this), WIDGET(widget))
         return this
     }
 }
 
 extension WidgetExtensions for Widget {
-    def show_all(*this): Void {
+    fn show_all(*this): Void {
         widget_show_all(this)
     }
 }
 
 extension ProgressBarExtensions for ProgressBar {
-    def set_text(*this, text: *Byte): *ProgressBar {
+    fn set_text(*this, text: *Byte): *ProgressBar {
         progress_bar_set_text(this, text)
         return this
     }
