@@ -1216,6 +1216,20 @@ class Parser<Ctx>(
                             }
                         parseExpressionTail(newExpr)
                     }
+                    tt.LESS_THAN -> {
+                        advance()
+                        val typeArgs = parseSeperatedList(tt.COMMA, tt.GREATER_THAN) {
+                            parseTypeAnnotation()
+                        }
+                        val stop = expect(tt.GREATER_THAN)
+                        parseExpressionTail(
+                            Expression.TypeApplication(
+                                makeLocation(head, stop),
+                                head,
+                                typeArgs
+                            )
+                        )
+                    }
                     else -> syntaxError(
                         currentToken.location,
                         Diagnostic.Kind.UnexpectedToken(tt.ID, currentToken)

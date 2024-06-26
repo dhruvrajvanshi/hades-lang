@@ -1,0 +1,14 @@
+
+struct Foo<T> {
+    val bar: T
+}
+
+fn id<T>(x: T): T {
+    return x
+}
+
+fn main(): Void {
+    puts(id.<*Byte>(Foo(b"test").bar))
+}
+
+extern fn puts(*Byte): i32 = puts
