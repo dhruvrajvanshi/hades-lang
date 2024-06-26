@@ -68,7 +68,7 @@
 					}
 				},
 				{
-					"match": "\\b(Void|Bool|u8|u16|u32|u64|i8|i16|i32|i64|f16|f32|f64)\\b",
+					"match": "\\b(Void|Bool|u8|u16|u32|u64|i8|i16|i32|i64|f16|f32|f64|bool|usize|size)\\b",
 					"captures": {
 						"0": { "name": "entity.name.type" }
 					}
