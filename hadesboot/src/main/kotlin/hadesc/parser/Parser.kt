@@ -1453,6 +1453,20 @@ class Parser<Ctx>(
                     )
                 )
             }
+            tt.LESS_THAN -> {
+                advance()
+                val args = parseSeperatedList(seperator = tt.COMMA, terminator = tt.GREATER_THAN) {
+                    parseTypeAnnotation()
+                }
+                val end = expect(tt.GREATER_THAN)
+                parseTypeAnnotationTail(
+                    TypeAnnotation.Application(
+                        makeLocation(head, end),
+                        head,
+                        args
+                    )
+                )
+            }
             tt.DOT -> {
                 advance()
                 val identifier = parseIdentifier()
