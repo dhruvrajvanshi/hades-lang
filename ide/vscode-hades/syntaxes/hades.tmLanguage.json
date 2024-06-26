@@ -24,7 +24,7 @@
 		"tokens": {
 			"patterns": [
 				{
-					"match": "\\(fn)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+					"match": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
 					"captures": {
 						"1": { "name": "keyword" },
 						"2": { "name": "entity.name.function" }
@@ -44,7 +44,7 @@
 					}
 				},
 				{
-					"match": "\\b(fn|struct|import|as|type|val|mut|trait|implementation|const|extension|for|where|test)\\b",
+					"match": "\\b(def|struct|import|as|type|val|mut|trait|implementation|const|extension|for|where|test)\\b",
 					"captures": {
 						"0": { "name": "keyword" }
 					}
