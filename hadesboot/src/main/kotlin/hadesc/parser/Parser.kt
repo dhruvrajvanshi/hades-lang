@@ -566,6 +566,13 @@ class Parser<Ctx>(
         }
         expect(tt.RSQB)
         list
+    } else if (currentToken.kind == tt.LESS_THAN) {
+        advance()
+        val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.GREATER_THAN) {
+            parseTypeParam()
+        }
+        expect(tt.GREATER_THAN)
+        list
     } else {
         null
     }
