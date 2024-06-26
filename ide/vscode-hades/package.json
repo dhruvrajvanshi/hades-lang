@@ -15,7 +15,6 @@
     "activationEvents": [
         "onLanguage:hades"
     ],
-    "main": "client/extension.js",
     "contributes": {
         "breakpoints": [
             {
