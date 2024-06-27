@@ -362,8 +362,14 @@ class Parser<Ctx>(
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
         val (thisParamFlags, thisParam, params) = parseParams()
-        expect(tt.COLON)
-        val returnType = parseTypeAnnotation()
+        val returnType =
+            if (at(tt.COLON)) {
+                advance()
+                parseTypeAnnotation()
+            } else {
+                diagnosticReporter.report(currentToken.location, Diagnostic.Kind.MissingTypeAnnotation)
+                TypeAnnotation.Error(currentToken.location)
+            }
         val whereClause = parseOptionalWhereClause()
         return FunctionSignature(
             makeLocation(start, returnType),
