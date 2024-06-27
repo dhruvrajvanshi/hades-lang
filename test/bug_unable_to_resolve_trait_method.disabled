@@ -1,0 +1,43 @@
+import libc.{FILE, fputs, stderr}
+
+fn main(): void {
+    log().info(b"Foo").log(42.0)
+}
+
+fn log(): Logger {
+    return Logger(stderr())
+}
+struct Logger {
+    _file: *FILE
+}
+
+extension LoggerExt for Logger {
+    fn info(this, message: *u8): Logger {
+        fputs(b"INFO: ", this._file)
+        fputs(message, this._file)
+        return this
+    }
+    fn debug(this, message: *u8): Logger {
+        fputs(b"DEBUG: ", this._file)
+        fputs(message, this._file)
+        return this
+    }
+
+    fn log<T>(this, value: T): Logger where Log<T> {
+        fputs(b" ", this._file)
+        Log[T].log_to(value, this._file)
+        return this
+    }
+}
+
+trait Log<Self> {
+    fn log(self: Self, file: *FILE): void
+}
+impl Log[f32] {
+    fn log(self: f32, file: *FILE): void {
+        _log_f32(self, file)
+    }
+}
+
+
+extern fn _log_f32(f32, *FILE): void = mk_log_f32

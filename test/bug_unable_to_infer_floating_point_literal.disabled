@@ -1,0 +1,9 @@
+fn main(): void {
+    foo(1.0)
+}
+
+trait F[T] {}
+impl F[f32] {}
+
+fn foo<T> (x: T): void where F<T> {
+}
