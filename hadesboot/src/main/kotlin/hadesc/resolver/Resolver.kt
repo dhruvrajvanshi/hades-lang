@@ -64,6 +64,7 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
             "Size" -> Type.Size(isSigned = false)
             "Double" -> Type.FloatingPoint(64)
             "Void" -> Type.Void
+            "void" -> Type.Void
             "u8" -> Type.Integral(8, false)
             "i8" -> Type.Integral(8, true)
             "u16" -> Type.Integral(16, false)
