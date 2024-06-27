@@ -1331,11 +1331,11 @@ class Analyzer<Ctx>(
     }
 
     private fun makeTraitResolver(callNode: HasLocation): TraitResolver<Declaration.ImplementationDef> {
-        val enclosingFunction = requireNotNull(ctx.resolver.getEnclosingFunction(callNode))
+        val enclosingFunction = ctx.resolver.getEnclosingFunction(callNode)
         val enclosingExtensionDef = ctx.resolver.getEnclosingExtensionDef(callNode)
         val enclosingImpl = ctx.resolver.getEnclosingImpl(callNode)
         val extensionClauses = enclosingExtensionDef?.traitRequirements?.map { it.toClause() } ?: emptyList()
-        val functionTraitClauses = enclosingFunction.traitRequirements.map { it.toClause() }
+        val functionTraitClauses = enclosingFunction?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val implTraitClauses = enclosingImpl?.traitRequirements?.map { it.toClause() } ?: emptyList()
         val env = TraitResolver.Env(extensionClauses + functionTraitClauses + implTraitClauses + globalTraitClauses)
         return TraitResolver(env, typeAnalyzer)
