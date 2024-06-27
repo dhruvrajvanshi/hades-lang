@@ -1,0 +1,7 @@
+
+fn ptr_set<T>(ptr: *mut T, index: usize, value: T): void {
+    let mut ptr = mem.offset_mut(ptr, index)
+    *ptr = value
+}
+
+fn main(): void {}
