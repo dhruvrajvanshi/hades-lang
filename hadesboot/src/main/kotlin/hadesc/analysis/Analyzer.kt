@@ -1727,6 +1727,7 @@ class Analyzer<Ctx>(
             is Expression.IntLiteral,
             is Expression.BoolLiteral,
             is Expression.ByteString,
+            is Expression.FloatLiteral,
             is Expression.Var -> true
             is Expression.Property -> {
                 val binding = resolvePropertyBinding(initializer)
