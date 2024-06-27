@@ -1,0 +1,13 @@
+
+enum OptInt {
+    Some(i32)
+    None
+}
+
+fn main(): Void {
+    match OptInt.Some(5) {
+        Some(let i) -> { puts(b"PASS") }
+        None -> { puts(b"FAIL") }
+    }
+}
+extern fn puts(*u8): Void = puts

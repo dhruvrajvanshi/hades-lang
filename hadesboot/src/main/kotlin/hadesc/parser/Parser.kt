@@ -632,7 +632,7 @@ class Parser<Ctx>(
                 if (expr is Expression.Deref && at(Token.Kind.EQ)) {
                     advance()
                     val rhs = parseExpression()
-                    expect(tt.SEMICOLON)
+                    expectStatementEnd()
                     val statement = Statement.PointerAssignment(
                         makeLocation(expr, rhs),
                         expr,
@@ -642,7 +642,7 @@ class Parser<Ctx>(
                         statement
                     )
                 } else {
-                    expect(tt.SEMICOLON)
+                    expectStatementEnd()
                     Block.Member.Expression(expr)
                 }
             }
@@ -699,7 +699,7 @@ class Parser<Ctx>(
         val lhs = parseExpression()
         expect(tt.EQ)
         val rhs = parseExpression()
-        expect(tt.SEMICOLON)
+        expectStatementEnd()
 
         if (lhs !is Expression.Property) {
             return syntaxError(lhs.location, Diagnostic.Kind.NotAStructField)
@@ -715,7 +715,7 @@ class Parser<Ctx>(
         val name = parseIdentifier()
         expect(tt.EQ)
         val value = parseExpression()
-        expect(tt.SEMICOLON)
+        expectStatementEnd()
         return Statement.LocalAssignment(
             makeLocation(name, value),
             name,
@@ -761,7 +761,7 @@ class Parser<Ctx>(
         } else {
             parseExpression()
         }
-        expect(tt.SEMICOLON)
+        expectStatementEnd()
         return Statement.Return(
             makeLocation(start, value ?: start),
             value
@@ -780,7 +780,7 @@ class Parser<Ctx>(
         val typeAnnotation = parseOptionalAnnotation()
         expect(tt.EQ)
         val rhs = parseExpression()
-        expect(tt.SEMICOLON)
+        expectStatementEnd()
         return Statement.Val(
             makeLocation(start, rhs),
             isMutable,
@@ -1452,6 +1452,19 @@ class Parser<Ctx>(
             }
         }
         return parseTypeAnnotationTail(head)
+    }
+
+    private fun expectStatementEnd() {
+        if (at(tt.SEMICOLON)) {
+            advance()
+            return
+        } else if (at(tt.RBRACE)) {
+            return
+        }
+        val lastToken = tokenBuffer.lastToken
+        if (lastToken != null && lastToken.location.stop.line == currentToken.location.start.line) {
+            expect(tt.SEMICOLON)
+        }
     }
 
     private fun <T> syntaxError(location: SourceLocation, kind: Diagnostic.Kind): T {
