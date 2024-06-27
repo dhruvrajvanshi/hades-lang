@@ -840,7 +840,7 @@ class Analyzer<Ctx>(
     }
 
     private fun inferUnaryMinus(expression: Expression.UnaryMinus): Type {
-        return inferExpression(expression)
+        return inferExpression(expression.expression)
     }
 
     private fun inferIntrinsicExpression(expression: Expression.Intrinsic): Type =
