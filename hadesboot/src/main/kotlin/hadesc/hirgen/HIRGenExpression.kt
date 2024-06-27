@@ -344,7 +344,10 @@ internal class HIRGenExpression(
     fun lowerConstExpression(expression: Expression): HIRConstant =
         when (expression) {
             is Expression.IntLiteral,
-            is Expression.FloatLiteral -> lowerExpression(expression) as HIRConstant
+            is Expression.FloatLiteral,
+            is Expression.ByteString,
+            is Expression.ByteCharLiteral,
+                -> lowerExpression(expression) as HIRConstant
             is Expression.Var -> lowerConstVarExpression(expression)
             is Expression.Property -> lowerConstPropertyExpression(expression)
             is Expression.Call -> lowerConstCallExpression(expression)
