@@ -779,7 +779,10 @@ class HIRToLLVM(
         }
 
     private fun lowerStructValue(constant: HIRConstant.StructValue): Value =
-        constantStruct(constant.values.map { lowerConstant(it) })
+        constantNamedStruct(
+            lowerType(constant.type),
+            constant.values.map { lowerConstant(it) }
+        )
 
     private fun lowerAlignOf(constant: HIRConstant.AlignOf): Value {
         return Value(LLVM.LLVMAlignOf(lowerType(constant.type)))
