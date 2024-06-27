@@ -205,7 +205,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             HIRDefinition.Const(
                 declaration.location,
                 lowerGlobalName(declaration.name),
-                lowerExpression(declaration.initializer)
+                exprGen.lowerConstExpression(declaration.initializer)
             )
         )
     }

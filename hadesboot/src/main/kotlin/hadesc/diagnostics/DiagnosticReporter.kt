@@ -36,6 +36,7 @@ data class Diagnostic(
 
     @Serializable(with = DiagnosticKindSerializer::class)
     sealed class Kind(val severity: Severity) {
+        data class Text(val text: String): Kind(Severity.ERROR)
         data class UnexpectedToken(
             val expected: Token.Kind,
             val found: Token
@@ -228,6 +229,7 @@ data class Diagnostic(
             is InvalidMutParam -> "Only params which are ref structs can be marked as mut. ${paramType.prettyPrint()} is not a ref struct type."
             ArrayTypeNotAllowedAsParam -> "Array are not allowed as function parameters"
             ArrayTypeNotAllowedAsReturnType -> "Arrays are not allowed to be returned by functions"
+            is Text -> text
         }
     }
 }
@@ -237,6 +239,10 @@ class DiagnosticReporter(private val fileTextProvider: FileTextProvider) {
     private val fileLines = mutableMapOf<SourcePath, List<String>>()
     val errors = mutableListOf<Diagnostic>()
     private val hasErrorAtLocation = mutableSetOf<SourceLocation>()
+
+    fun report(location: SourceLocation, text: String) {
+        return report(location, Diagnostic.Kind.Text(text))
+    }
     fun report(location: SourceLocation, kind: Diagnostic.Kind) {
         if (location in hasErrorAtLocation) {
             return

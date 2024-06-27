@@ -773,7 +773,16 @@ class HIRToLLVM(
             is HIRConstant.SizeOf -> lowerSizeOf(constant)
             is HIRConstant.Void -> requireUnreachable()
             is HIRConstant.AlignOf -> lowerAlignOf(constant)
+            is HIRConstant.StructValue -> lowerStructValue(constant)
+            is HIRConstant.Error -> requireUnreachable()
+            is HIRConstant.GlobalFunctionRef -> lowerGlobalRef(constant)
         }
+
+    private fun lowerStructValue(constant: HIRConstant.StructValue): Value =
+        constantNamedStruct(
+            lowerType(constant.type),
+            constant.values.map { lowerConstant(it) }
+        )
 
     private fun lowerAlignOf(constant: HIRConstant.AlignOf): Value {
         return Value(LLVM.LLVMAlignOf(lowerType(constant.type)))
@@ -805,14 +814,14 @@ class HIRToLLVM(
         return builder.buildPointerCast(globalRef, pointerType(byteTy), ctx.makeUniqueName().text)
     }
 
-    private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): Value {
-        return when (val definition = hir.findGlobalDefinition(expression.name)) {
+    private fun lowerGlobalRef(name: QualifiedName, type: Type): Value {
+        return when (val definition = hir.findGlobalDefinition(name)) {
             is HIRDefinition.ExternFunction ->
                 getFunctionRef(definition)
             is HIRDefinition.Function -> getFunctionRef(definition)
             is HIRDefinition.Struct -> getStructRef(definition)
             is HIRDefinition.ExternConst -> builder.buildLoad(
-                lowerType(expression.type),
+                lowerType(type),
                 getConstRef(definition),
                 ctx.makeUniqueName().text
             )
@@ -820,6 +829,12 @@ class HIRToLLVM(
 //                builder.buildLoad(getConstRef(definition), ctx.makeUniqueName().text)
             else -> requireUnreachable { definition.javaClass.name }
         }
+    }
+    private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): Value {
+        return lowerGlobalRef(expression.name, expression.type)
+    }
+    private fun lowerGlobalRef(constant: HIRConstant.GlobalFunctionRef): Value {
+        return lowerGlobalRef(constant.name, constant.type)
     }
 
     private fun lowerCallStatement(statement: HIRStatement.Call): Value {

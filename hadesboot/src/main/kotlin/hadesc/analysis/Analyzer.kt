@@ -1732,6 +1732,10 @@ class Analyzer<Ctx>(
                 val binding = resolvePropertyBinding(initializer)
                 binding is PropertyBinding.Global
             }
+            is Expression.Call -> {
+                val callee = initializer.callee
+                isCompileTimeConstant(callee) && initializer.args.all { isCompileTimeConstant(it.expression) }
+            }
             else -> {
                 false
             }

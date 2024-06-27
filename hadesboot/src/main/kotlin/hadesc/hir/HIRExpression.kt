@@ -59,5 +59,10 @@ sealed interface HIRExpression : HIRNode {
         is LocalRef -> "%${name.text}"
         is HIRConstant.SizeOf -> "size_of[${type.prettyPrint()}]"
         is HIRConstant.AlignOf -> "align_of[${type.prettyPrint()}]"
+        is HIRConstant.Error -> "(#error $message)"
+        is HIRConstant.StructValue ->
+            type.prettyPrint() + " " + values.joinToString(", ", "{ ", " }") { it.prettyPrint() }
+
+        is HIRConstant.GlobalFunctionRef -> name.mangle()
     }
 }

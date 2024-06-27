@@ -1,0 +1,31 @@
+
+struct F {
+    x: *u8
+}
+
+struct VTable {
+    run: fn() -> void
+}
+
+fn i32Run(): void {
+    puts(b"i32Run")
+}
+
+const i32VTable: VTable = VTable(i32Run)
+
+fn f64Run(): void {
+    puts(b"f64Run")
+}
+const f64VTable: VTable = VTable(f64Run)
+
+fn main(): void {
+    run(i32VTable)
+    run(f64VTable)
+}
+
+
+fn run(vtable: VTable): void {
+    vtable.run()
+}
+
+extern fn puts(*u8): void = puts
