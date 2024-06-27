@@ -997,7 +997,7 @@ class Analyzer<Ctx>(
             ) {
                 checkExpression(expression.rhs, if (lhsType is Type.Ptr) lhsType.copy(isMutable = false) else lhsType)
                 Type.Bool
-            } else if (lhsType.isIntegral() && expression.operator in ARITHMETIC_OPERATORS) {
+            } else if ((lhsType.isIntegral() || lhsType is Type.FloatingPoint) && expression.operator in ARITHMETIC_OPERATORS) {
                 checkExpression(expression.rhs, lhsType)
                 lhsType
             } else {
