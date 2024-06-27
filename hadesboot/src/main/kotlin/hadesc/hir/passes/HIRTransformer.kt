@@ -514,6 +514,25 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
         is HIRConstant.NullPtr -> expression.copy(type = Type.Ptr(lowerType(expression.type.to), expression.type.isMutable))
         is HIRConstant.SizeOf -> transformSizeOfExpression(expression)
         is HIRConstant.AlignOf -> transformAlignOfExpression(expression)
+        is HIRConstant.Error -> expression
+        is HIRConstant.StructValue -> transformStructValue(expression)
+        is HIRConstant.GlobalFunctionRef -> transformGlobalFunctionRef(expression)
+    }
+
+    fun transformGlobalFunctionRef(expression: HIRConstant.GlobalFunctionRef): HIRConstant {
+        return HIRConstant.GlobalFunctionRef(
+            location = expression.location,
+            type = lowerType(expression.type),
+            name = transformGlobalName(expression.name)
+        )
+    }
+
+    fun transformStructValue(expression: HIRConstant.StructValue): HIRConstant {
+        return HIRConstant.StructValue(
+            location = expression.location,
+            type = lowerType(expression.type),
+            values = expression.values.map { transformConstant(it) }
+        )
     }
 
     fun transformAlignOfExpression(expression: HIRConstant.AlignOf): HIRConstant {

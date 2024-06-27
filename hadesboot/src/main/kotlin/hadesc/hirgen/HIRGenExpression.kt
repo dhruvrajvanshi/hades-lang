@@ -4,7 +4,9 @@ import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.ASTContext
 import hadesc.context.Context
+import hadesc.frontend.PropertyBinding
 import hadesc.hir.*
+import hadesc.location.HasLocation
 import hadesc.resolver.Binding
 import hadesc.types.Type
 import hadesc.types.ptr
@@ -326,6 +328,75 @@ internal class HIRGenExpression(
 
         return resultRef.ptr().load()
     }
+
+    private fun resolveStructConstructorBinding(callee: Expression): Binding.Struct? {
+        return when (callee) {
+            is Expression.Property ->
+                when (val propBinding = ctx.analyzer.resolvePropertyBinding(callee)) {
+                    is PropertyBinding.Global -> propBinding.binding as? Binding.Struct
+                    else -> null
+                }
+            is Expression.Var -> ctx.resolver.resolve(callee.name) as? Binding.Struct
+            else -> null
+        }
+    }
+
+    fun lowerConstExpression(expression: Expression): HIRConstant =
+        when (expression) {
+            is Expression.IntLiteral,
+            is Expression.FloatLiteral -> lowerExpression(expression) as HIRConstant
+            is Expression.Var -> lowerConstVarExpression(expression)
+            is Expression.Property -> lowerConstPropertyExpression(expression)
+            is Expression.Call -> lowerConstCallExpression(expression)
+            else -> requireUnreachable {
+                "Expression: ${expression::class.simpleName} not supported as a constant"
+            }
+        }
+
+    private fun lowerConstVarExpression(expression: Expression.Var): HIRConstant = when (val binding = ctx.resolver.resolve(expression.name)) {
+        is Binding.GlobalConst -> lowerConstExpression(binding.declaration.initializer)
+        is Binding.GlobalFunction -> HIRConstant.GlobalFunctionRef(expression.location, expression.type, ctx.resolver.qualifiedName(binding.declaration.name))
+        else -> errorConstant(
+            expression,
+            expression.type,
+            "Variable expression found in constant expression"
+        )
+    }
+    private fun lowerConstPropertyExpression(expression: Expression.Property): HIRConstant {
+        when (val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
+            else -> {
+                return errorConstant(expression, expression.type, "Property expression found in constant expression")
+            }
+
+        }
+    }
+
+    private fun errorConstant(loc: HasLocation, type: Type, message: String): HIRConstant {
+        ctx.diagnosticReporter.report(
+            loc.location,
+            message
+        )
+        return HIRConstant.Error(loc.location, type, message)
+    }
+
+    private fun lowerConstCallExpression(expression: Expression.Call): HIRConstant {
+        val callee = expression.callee
+        val calleeStructDecl = resolveStructConstructorBinding(callee)
+        if (calleeStructDecl == null) {
+            ctx.diagnosticReporter.report(
+                expression.callee.location,
+                "Only struct constructors can be called in constant expressions"
+            )
+            return HIRConstant.Error(expression.location, expression.type, "Function call found in constant expression")
+        }
+        return HIRConstant.StructValue(
+            expression.location,
+            expression.type,
+            expression.args.map { lowerConstExpression(it.expression) }
+        )
+
+    }
+
 }
 
 private val INTRINSIC_TYPE_TO_BINOP = mapOf(

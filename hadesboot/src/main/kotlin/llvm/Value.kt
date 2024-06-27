@@ -20,6 +20,9 @@ fun constantInt(type: Type, value: Long, signExtend: Boolean = true): V =
 fun constantFloat(type: Type, value: Double): V =
     LLVM.LLVMConstReal(type, value)
 
+fun constantStruct(values: List<Value>): Value =
+    LLVM.LLVMConstStruct(values.asPointerPointer(), values.size, false.toLLVMBool())
+
 fun V.asMetadata(): LLVMMetadataRef =
     LLVM.LLVMValueAsMetadata(this)
 

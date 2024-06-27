@@ -216,6 +216,19 @@ class Checker(val ctx: Context) {
         }
         if (!ctx.analyzer.isCompileTimeConstant(declaration.initializer)) {
             error(declaration.initializer, Diagnostic.Kind.NotAConst)
+        } else {
+            val initializer = declaration.initializer
+            // Show a specific error message for calls, highlighting the specific argument that's not a const
+            if (initializer is Expression.Call) {
+                if (!ctx.analyzer.isCompileTimeConstant(initializer.callee)) {
+                    error(initializer.callee, Diagnostic.Kind.NotAConst)
+                }
+                initializer.args.forEach {
+                    if (!ctx.analyzer.isCompileTimeConstant(it.expression)) {
+                        error(it.expression, Diagnostic.Kind.NotAConst)
+                    }
+                }
+            }
         }
     }
 

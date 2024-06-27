@@ -1,6 +1,7 @@
 package hadesc.hir
 
 import hadesc.location.SourceLocation
+import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 
 sealed interface HIRConstant : HIROperand {
@@ -50,4 +51,23 @@ sealed interface HIRConstant : HIROperand {
         override val location: SourceLocation,
         override val type: Type.Ptr
     ) : HIRConstant
+
+    data class StructValue(
+        override val location: SourceLocation,
+        override val type: Type,
+        val values: List<HIRConstant>
+    ) : HIRConstant
+
+    data class GlobalFunctionRef(
+        override val location: SourceLocation,
+        override val type: Type,
+        val name: QualifiedName
+    ) : HIRConstant
+
+    data class Error(
+        override val location: SourceLocation,
+        override val type: Type,
+        val message: String
+    ): HIRConstant
+
 }
