@@ -7,9 +7,11 @@ import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
+import hadesc.resolver.Binding
 import hadesc.resolver.Resolver
 import hadesc.resolver.TypeBinding
 import hadesc.types.Type
+import hadesc.types.ptr
 
 fun typecheck(sourceFiles: List<SourceFile>, diagnosticReporter: DiagnosticReporter, resolver: Resolver<*>) {
     TypeChecker(diagnosticReporter, sourceFiles, resolver).check()
@@ -61,7 +63,10 @@ class TypeChecker(
             val value = resolver.findInSourceFile(name.identifier.name, sourceFile)
 
             if (typeBinding == null && trait == null && value == null) {
-                diagnostic.report(name.location, "Can not find `${name.identifier.name.text}` in module `${decl.modulePath}`")
+                diagnostic.report(
+                    name.location,
+                    "Can not find `${name.identifier.name.text}` in module `${decl.modulePath}`"
+                )
             }
         }
 
@@ -85,12 +90,12 @@ class TypeChecker(
             diagnostic.report(decl.signature.returnType.location, "Function return type can not contain closures")
         }
 
-        visitFunctionBody(decl, decl.body)
+        visitFunctionBody(decl.body)
     }
 
     private fun Type.containsClosures(): Boolean {
         var containsClosures = false
-        val visitor = object: TypeVisitor {
+        val visitor = object : TypeVisitor {
             override fun visitType(type: Type) {
                 if (type is Type.Closure) {
                     containsClosures = true
@@ -102,8 +107,147 @@ class TypeChecker(
         return containsClosures
     }
 
-    private fun visitFunctionBody(decl: Declaration.FunctionDef, body: Block) {
-        todo(body)
+    private fun visitFunctionBody(body: Block) {
+        visitBlock(body)
+    }
+
+    private fun visitBlock(block: Block) {
+        for (member in block.members) {
+            visitBlockMember(member)
+        }
+    }
+
+    private fun visitBlockMember(member: Block.Member): Unit = when (member) {
+        is Block.Member.Expression -> {
+            inferExpression(member.expression)
+            Unit
+        }
+
+        is Block.Member.Statement -> {
+            visitStatement(member.statement)
+        }
+    }
+
+    private fun inferExpression(expression: Expression, constraint: ValueConstraint = ValueConstraint.None): Type =
+        when (expression) {
+            is Expression.AddressOf -> todo(expression)
+            is Expression.AddressOfMut -> todo(expression)
+            is Expression.AlignOf -> todo(expression)
+            is Expression.As -> todo(expression)
+            is Expression.BinaryOperation -> todo(expression)
+            is Expression.BlockExpression -> todo(expression)
+            is Expression.BoolLiteral -> todo(expression)
+            is Expression.ByteCharLiteral -> todo(expression)
+            is Expression.ByteString -> Type.u8.ptr()
+            is Expression.Call -> inferCall(expression)
+            is Expression.Closure -> todo(expression)
+            is Expression.Deref -> todo(expression)
+            is Expression.Error -> todo(expression)
+            is Expression.FloatLiteral -> todo(expression)
+            is Expression.If -> todo(expression)
+            is Expression.IntLiteral -> todo(expression)
+            is Expression.Intrinsic -> todo(expression)
+            is Expression.Match -> todo(expression)
+            is Expression.Move -> todo(expression)
+            is Expression.Not -> todo(expression)
+            is Expression.NullPtr -> todo(expression)
+            is Expression.PointerCast -> todo(expression)
+            is Expression.Property -> todo(expression)
+            is Expression.SizeOf -> todo(expression)
+            is Expression.This -> todo(expression)
+            is Expression.UnaryMinus -> todo(expression)
+            is Expression.Uninitialized -> todo(expression)
+            is Expression.Var -> {
+                inferVar(expression, constraint)
+            }
+
+            is Expression.TypeApplication -> todo(expression)
+        }
+
+    private fun inferVar(
+        expression: Expression.Var,
+        @Suppress("UNUSED_PARAMETER")
+        // Will be used soon when we start to pass down constraints
+        // that aid with inference; e.g. call arguments
+        constraint: ValueConstraint
+    ): Type = when (resolver.resolve(expression.name)) {
+        null ->
+            reportAndMakeErrorType(
+                expression.location,
+                "Can not find `${expression.name.name.text}` in this scope"
+            )
+
+        is Binding.ClosureParam -> todoType(expression)
+        is Binding.Enum -> todoType(expression)
+        is Binding.ExternConst -> todoType(expression)
+        is Binding.ExternFunction -> todoType(expression)
+        is Binding.FunctionParam -> todoType(expression)
+        is Binding.GlobalConst -> todoType(expression)
+        is Binding.GlobalFunction -> todoType(expression)
+        is Binding.MatchArmEnumCaseArg -> todoType(expression)
+        is Binding.ValBinding -> todoType(expression)
+        is Binding.Struct -> todoType(expression)
+    }
+
+    private fun inferCall(expression: Expression.Call): Type {
+        return when (val callee = resolveCallee(expression)) {
+            is Callee.ExternFunction -> {
+                val expectedParams = callee.definition.paramTypes.map { it.lower() }
+                val expectedArguments = expression.args.take(expectedParams.size)
+
+                for ((expectedParam, argument) in expectedParams.zip(expectedArguments)) {
+                    checkExpressionType(argument.expression, expectedParam)
+                }
+                val extraArguments = expression.args.drop(expectedParams.size)
+                for (extraArgument in extraArguments) {
+                    diagnostic.report(
+                        extraArgument.location,
+                        "Unexpected argument; ${callee.definition.binder.name.text} expects ${expectedArguments.size} argument(s)"
+                    )
+                }
+                if (expectedParams.size > expression.args.size) {
+                    diagnostic.report(
+                        expression.location,
+                        "Missing arguments; ${callee.definition.binder.name.text} expects ${expectedArguments.size} argument(s)"
+                    )
+                }
+                callee.definition.returnType.lower()
+            }
+
+            is Callee.Function -> todoType(
+                expression,
+                "The new typechecker doesn't handle global function calls yet.",
+            )
+
+            null -> reportAndMakeErrorType(expression.location, "The callee could not be resolved.")
+        }
+    }
+
+    private fun checkExpressionType(expression: Expression, expectedParam: Type) {
+        val inferredType = inferExpression(expression, ValueConstraint.HasType(expectedParam))
+        if (!TypeAnalyzer().isTypeAssignableTo(source = inferredType, destination = expectedParam)) {
+            diagnostic.report(expression.location, "Expected type $expectedParam but got $inferredType")
+        }
+    }
+
+
+    private fun resolveCallee(expression: Expression.Call): Callee? = when (expression.callee) {
+        is Expression.Var -> {
+            when (val binding = resolver.resolve(expression.callee.name)) {
+                is Binding.GlobalFunction -> Callee.Function(binding.declaration)
+                is Binding.ExternFunction -> Callee.ExternFunction(binding.declaration)
+                else -> null
+            }
+        }
+        else -> {
+            todo(expression, "resolveCallee doesn't handle ${expression::class.simpleName} yet.")
+            null
+        }
+    }
+
+
+    private fun visitStatement(statement: Statement) {
+        todo(statement)
     }
 
     private fun visitTypeParams(typeParams: List<TypeParam>?) {
@@ -112,6 +256,7 @@ class TypeChecker(
             visitTypeParam(typeParam)
         }
     }
+
     private fun visitTypeParam(typeParam: TypeParam) {
         todo(typeParam)
     }
@@ -135,7 +280,7 @@ class TypeChecker(
      * Types that can be passed to or returned from extern functions
      */
     private fun Type.isExternSafe(): Boolean {
-        return when(this) {
+        return when (this) {
             is Type.Constructor,
             is Type.Integral,
             is Type.UntaggedUnion,
@@ -143,6 +288,7 @@ class TypeChecker(
             Type.Void,
             Type.Bool,
             is Type.FloatingPoint -> true
+
             is Type.Ptr -> to.isExternSafe()
             is Type.Application -> false
             is Type.Closure -> false
@@ -165,7 +311,7 @@ class TypeChecker(
 
     private val loweredTypes = nodeMapOf<TypeAnnotation, Type>()
     private fun TypeAnnotation.lower(): Type = loweredTypes.getOrPut(this) {
-        when(this) {
+        when (this) {
             is TypeAnnotation.Application -> todo(this)
             is TypeAnnotation.Array -> todo(this)
             is TypeAnnotation.Closure -> todo(this)
@@ -186,23 +332,29 @@ class TypeChecker(
                     is TypeBinding.TypeAlias -> todo(this)
                     is TypeBinding.TypeParam -> todo(this)
                     null -> {
-                        reportAndMakeErrorType(location,  "Can not find `${name.name.text}` in this scope")
+                        reportAndMakeErrorType(location, "Can not find `${name.name.text}` in this scope")
                     }
                 }
             }
         }
     }
 
-    private fun reportAndMakeErrorType(location: SourceLocation, message: String): Type.Error {
-        diagnostic.report(location, message)
-        return Type.Error(location, message)
+    private fun reportAndMakeErrorType(l: HasLocation, message: String): Type.Error {
+        diagnostic.report(l.location, message)
+        return Type.Error(l.location, message)
+    }
+
+    private fun todoType(l: HasLocation, message: String = "The new typechecker doesn't support this node yet."): Type {
+        diagnostic.report(l.location, message)
+        return Type.Error(l.location, message)
     }
 
     private fun todo(decl: Declaration) {
         diagnostic.report(decl.startLoc, "The new typechecker doesn't support this declaration type yet.")
     }
-    private fun todo(loc: HasLocation) {
-        diagnostic.report(loc.location, "The new typechecker doesn't support this node type yet.")
+
+    private fun todo(loc: HasLocation, message: String = "The new typechecker doesn't support this node type yet.") {
+        diagnostic.report(loc.location, message)
     }
 
     private fun todo(type: TypeAnnotation): Type {
@@ -211,9 +363,16 @@ class TypeChecker(
         return Type.Error(type.location, message)
     }
 
+    private fun todo(expr: Expression): Type {
+        val message = "The new typechecker doesn't support this expression type yet."
+        diagnostic.report(expr.location, message)
+        return Type.Error(expr.location, message)
+    }
+
     private val topLevelExpressionBindingsByFile = mutableMapOf<SourcePath, MutableMap<Name, Binder>>()
     private fun checkTopLevelExpressionBinding(binder: Binder) {
-        val topLevelExpressionBindings = topLevelExpressionBindingsByFile.getOrPut(binder.location.file) { mutableMapOf() }
+        val topLevelExpressionBindings =
+            topLevelExpressionBindingsByFile.getOrPut(binder.location.file) { mutableMapOf() }
         if (binder.name in topLevelExpressionBindings) {
             diagnostic.report(binder.location, "Duplicate top-level binding ${binder.name}")
         } else {
@@ -222,7 +381,7 @@ class TypeChecker(
     }
 }
 
-private fun <T: HasLocation, V> nodeMapOf() = NodeMap<T, V>()
+private fun <T : HasLocation, V> nodeMapOf() = NodeMap<T, V>()
 private class NodeMap<T : HasLocation, V> {
     private val map = mutableMapOf<SourceLocation, V>()
 
@@ -243,4 +402,20 @@ private class NodeMap<T : HasLocation, V> {
     operator fun set(key: T, value: V) {
         map[key.location] = value
     }
+}
+
+sealed interface ValueConstraint {
+    data object None : ValueConstraint
+    data class HasType(val type: Type) : ValueConstraint
+    data object IsCallable : ValueConstraint
+}
+
+sealed interface Callee {
+    data class Function(val definition: Declaration.FunctionDef) : Callee
+
+    /**
+     * Can probably be merged with [Function]
+     */
+    data class ExternFunction(val definition: Declaration.ExternFunctionDef) : Callee
+    data class Closure(val closure: Expression.Closure)
 }

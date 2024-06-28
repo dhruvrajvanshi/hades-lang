@@ -466,4 +466,8 @@ class Resolver<Ctx>(private val ctx: Ctx) where Ctx: SourceFileResolverCtx {
         }
         return null
     }
+
+    fun getSourceFile(path: QualifiedPath): SourceFile? {
+        return ctx.resolveSourceFile(path)
+    }
 }
