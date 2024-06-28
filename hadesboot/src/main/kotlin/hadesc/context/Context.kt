@@ -71,7 +71,7 @@ class Context(
             val sourceFiles = buildList {
                 forEachSourceFile { add(it) }
             }
-            typecheck(sourceFiles, diagnosticReporter)
+            typecheck(sourceFiles, diagnosticReporter, resolver)
         } else {
             Checker(this).checkProgram()
         }
