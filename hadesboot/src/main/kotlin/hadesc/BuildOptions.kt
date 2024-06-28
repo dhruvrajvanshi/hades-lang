@@ -45,6 +45,7 @@ data class BuildOptions(
     val enableLLVMVerifier: Boolean,
     val jsonDiagnostics: Boolean,
     val backend: Backend,
+    val enableNewTypeChecker: Boolean,
 ) : Options
 
 class BuildCLIOptions : OptionGroup() {
@@ -71,6 +72,8 @@ class BuildCLIOptions : OptionGroup() {
         .flag(default = false)
         .help("Emit errors and warnings to .hades/diagnostics.json")
     private val backend by option("--backend").enum<Backend>().default(Backend.LLVM)
+
+    private val enableNewTypeChecker by option("--enable-new-typechecker").flag(default = false)
 
     private val fromProjectYML = if (File("hades.yml").exists()) {
         val text = File("hades.yml").readText()
@@ -106,6 +109,7 @@ class BuildCLIOptions : OptionGroup() {
             enableLLVMVerifier = enableLLVMVerifier,
             jsonDiagnostics = jsonDiagnostics,
             backend = backend,
+            enableNewTypeChecker = enableNewTypeChecker,
         )
     }
 }

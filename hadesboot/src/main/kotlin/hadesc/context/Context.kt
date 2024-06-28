@@ -67,7 +67,7 @@ class Context(
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
     fun check() {
-        if (enableNewTypeChecker) {
+        if (options.enableNewTypeChecker) {
             val sourceFiles = buildList {
                 forEachSourceFile { add(it) }
             }
@@ -215,4 +215,3 @@ object FileSystemFileTextProvider : FileTextProvider {
         return Text.from(File(path.toUri()).readText())
     }
 }
-private const val enableNewTypeChecker = false
