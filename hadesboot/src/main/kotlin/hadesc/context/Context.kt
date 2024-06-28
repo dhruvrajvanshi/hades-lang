@@ -2,6 +2,7 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.analysis.Analyzer
+import hadesc.analysis.typecheck
 import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
@@ -62,6 +63,12 @@ class Context(
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
     fun check() {
+        if (enableNewTypeChecker) {
+            val sourceFiles = buildList {
+                forEachSourceFile { add(it) }
+            }
+            typecheck(sourceFiles)
+        }
         Checker(this).checkProgram()
     }
 
@@ -195,3 +202,4 @@ object FileSystemFileTextProvider : FileTextProvider {
         return Text.from(File(path.toUri()).readText())
     }
 }
+private const val enableNewTypeChecker = false
