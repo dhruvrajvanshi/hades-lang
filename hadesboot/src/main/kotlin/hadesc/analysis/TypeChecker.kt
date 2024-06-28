@@ -40,14 +40,22 @@ class TypeChecker(
         is Declaration.ExternFunctionDef -> visitExternFunctionDef(decl)
         is Declaration.FunctionDef -> visitFunctionDef(decl)
         is Declaration.ImportMembers -> visitImportMembers(decl)
+        is Declaration.TypeAlias -> visitTypeAlias(decl)
         is Declaration.Enum,
         is Declaration.ExtensionDef,
         is Declaration.ImplementationDef,
         is Declaration.ImportAs,
         is Declaration.Struct,
         is Declaration.TraitDef,
-        is Declaration.TypeAlias,
         is Declaration.ConstDefinition -> todo(decl)
+    }
+
+    private fun visitTypeAlias(decl: Declaration.TypeAlias) {
+        if (decl.typeParams != null) {
+            todo(decl, "The new typechecker doesn't handle type parameters yet.")
+        }
+        visitTypeParams(decl.typeParams)
+        decl.rhs.lower()
     }
 
     private fun visitImportMembers(decl: Declaration.ImportMembers) {
@@ -136,8 +144,8 @@ class TypeChecker(
             is Expression.As -> todo(expression)
             is Expression.BinaryOperation -> todo(expression)
             is Expression.BlockExpression -> todo(expression)
-            is Expression.BoolLiteral -> todo(expression)
-            is Expression.ByteCharLiteral -> todo(expression)
+            is Expression.BoolLiteral -> Type.Bool
+            is Expression.ByteCharLiteral -> Type.u8
             is Expression.ByteString -> Type.u8.ptr()
             is Expression.Call -> inferCall(expression)
             is Expression.Closure -> todo(expression)
@@ -327,9 +335,19 @@ class TypeChecker(
                     is TypeBinding.Builtin -> binding.type
                     is TypeBinding.AssociatedType -> todo(this)
                     is TypeBinding.Enum -> todo(this)
-                    is TypeBinding.Struct -> todo(this)
+                    is TypeBinding.Struct -> {
+                        if (binding.declaration.typeParams != null) {
+                            todo(this, "The new typechecker doesn't handle type parameters yet.")
+                        }
+                        Type.Constructor(resolver.qualifiedName((binding.declaration.binder)))
+                    }
                     is TypeBinding.Trait -> todo(this)
-                    is TypeBinding.TypeAlias -> todo(this)
+                    is TypeBinding.TypeAlias -> {
+                        if (binding.declaration.typeParams != null) {
+                            todo(this, "The new typechecker doesn't handle type parameters yet.")
+                        }
+                        binding.declaration.rhs.lower()
+                    }
                     is TypeBinding.TypeParam -> todo(this)
                     null -> {
                         reportAndMakeErrorType(location, "Can not find `${name.name.text}` in this scope")
