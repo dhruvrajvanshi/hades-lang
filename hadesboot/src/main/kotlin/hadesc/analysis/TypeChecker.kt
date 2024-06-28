@@ -2,14 +2,17 @@ package hadesc.analysis
 
 import hadesc.ast.Declaration
 import hadesc.ast.SourceFile
+import hadesc.diagnostics.DiagnosticReporter
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 
-fun typecheck(sourceFiles: List<SourceFile>) {
-    TypeChecker().check(sourceFiles)
+fun typecheck(sourceFiles: List<SourceFile>, diagnosticReporter: DiagnosticReporter) {
+    TypeChecker(diagnosticReporter).check(sourceFiles)
 }
 
-class TypeChecker {
+class TypeChecker(
+    private val diagnostic: DiagnosticReporter
+) {
     fun check(program: List<SourceFile>) {
         for (file in program) {
             visitSourceFile(file)
@@ -23,19 +26,24 @@ class TypeChecker {
     }
 
     private fun visitDeclaration(decl: Declaration): Unit = when (decl) {
-        is Declaration.ConstDefinition -> TODO()
-        is Declaration.Enum -> TODO()
-        is Declaration.Error -> TODO()
-        is Declaration.ExtensionDef -> TODO()
-        is Declaration.ExternConst -> TODO()
-        is Declaration.ExternFunctionDef -> TODO()
-        is Declaration.FunctionDef -> TODO()
-        is Declaration.ImplementationDef -> TODO()
-        is Declaration.ImportAs -> TODO()
-        is Declaration.ImportMembers -> TODO()
-        is Declaration.Struct -> TODO()
-        is Declaration.TraitDef -> TODO()
-        is Declaration.TypeAlias -> TODO()
+        is Declaration.Error -> {}
+        is Declaration.Enum,
+        is Declaration.ExtensionDef,
+        is Declaration.ExternConst,
+        is Declaration.ExternFunctionDef,
+        is Declaration.FunctionDef,
+        is Declaration.ImplementationDef,
+        is Declaration.ImportAs,
+        is Declaration.ImportMembers,
+        is Declaration.Struct,
+        is Declaration.TraitDef,
+        is Declaration.TypeAlias,
+        is Declaration.ConstDefinition -> todo(decl)
+
+    }
+
+    private fun todo(decl: Declaration) {
+        diagnostic.report(decl.startLoc, "The new typechecker doesn't support this declaration type yet.")
     }
 }
 
