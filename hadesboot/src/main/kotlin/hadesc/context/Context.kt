@@ -68,9 +68,8 @@ class Context(
                 forEachSourceFile { add(it) }
             }
             typecheck(sourceFiles, diagnosticReporter, resolver)
-        } else {
-            Checker(this).checkProgram()
         }
+        Checker(this).checkProgram()
     }
 
     fun build() {
