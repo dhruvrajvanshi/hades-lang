@@ -9,19 +9,19 @@ import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.Binding
-import hadesc.resolver.Resolver
+import hadesc.resolver.NewResolver
 import hadesc.resolver.TypeBinding
 import hadesc.types.Type
 import hadesc.types.ptr
 
-fun typecheck(sourceFiles: List<SourceFile>, diagnosticReporter: DiagnosticReporter, resolver: Resolver<*>) {
+fun typecheck(sourceFiles: List<SourceFile>, diagnosticReporter: DiagnosticReporter, resolver: NewResolver) {
     TypeChecker(diagnosticReporter, sourceFiles, resolver).check()
 }
 
 class TypeChecker(
     private val diagnostic: DiagnosticReporter,
     private val program: List<SourceFile>,
-    private val resolver: Resolver<*>,
+    private val resolver: NewResolver,
 ) {
     fun check() {
         for (file in program) {
