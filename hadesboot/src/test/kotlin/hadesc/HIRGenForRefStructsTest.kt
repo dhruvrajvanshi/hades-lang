@@ -176,6 +176,7 @@ fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
             enableLLVMVerifier = false,
             jsonDiagnostics = false,
             backend = Backend.LLVM,
+            enableNewTypeChecker = false,
         ),
         BuildTarget.Executable(Path.of("main.hds"), Path.of("")),
         fileTextProvider = object : FileTextProvider {
