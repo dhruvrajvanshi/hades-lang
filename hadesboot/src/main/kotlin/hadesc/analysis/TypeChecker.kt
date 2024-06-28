@@ -268,11 +268,28 @@ class TypeChecker(
                 callee.definition.returnType.lower()
             }
 
-            is Callee.Function -> todoType(
-                expression,
-                "The new typechecker doesn't handle global function calls yet.",
-            )
+            is Callee.Function -> {
+                val expectedParams = callee.definition.params.map { it.annotation?.lower() ?: Type.Error(it.location, "Type annotation not provided") }
+                val expectedArguments = expression.args.take(expectedParams.size)
 
+                for ((expectedParam, argument) in expectedParams.zip(expectedArguments)) {
+                    checkExpressionType(argument.expression, expectedParam)
+                }
+                val extraArguments = expression.args.drop(expectedParams.size)
+                for (extraArgument in extraArguments) {
+                    diagnostic.report(
+                        extraArgument.location,
+                        "Unexpected argument; ${callee.definition.name.name.text} expects ${expectedArguments.size} argument(s)"
+                    )
+                }
+                if (expectedParams.size > expression.args.size) {
+                    diagnostic.report(
+                        expression.location,
+                        "Missing arguments; ${callee.definition.name.name.text} expects ${expectedArguments.size} argument(s)"
+                    )
+                }
+                callee.definition.signature.returnType.lower()
+            }
             null -> reportAndMakeErrorType(expression.location, "The callee could not be resolved.")
         }
     }
