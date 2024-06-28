@@ -1,11 +1,9 @@
 package hadesc.analysis
 
 import hadesc.Name
-import hadesc.ast.Binder
-import hadesc.ast.Declaration
-import hadesc.ast.SourceFile
-import hadesc.ast.TypeAnnotation
+import hadesc.ast.*
 import hadesc.diagnostics.DiagnosticReporter
+import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
@@ -38,9 +36,9 @@ class TypeChecker(
         is Declaration.Error -> {}
         is Declaration.ExternConst -> visitExternConst(decl)
         is Declaration.ExternFunctionDef -> visitExternFunctionDef(decl)
+        is Declaration.FunctionDef -> visitFunctionDef(decl)
         is Declaration.Enum,
         is Declaration.ExtensionDef,
-        is Declaration.FunctionDef,
         is Declaration.ImplementationDef,
         is Declaration.ImportAs,
         is Declaration.ImportMembers,
@@ -48,6 +46,55 @@ class TypeChecker(
         is Declaration.TraitDef,
         is Declaration.TypeAlias,
         is Declaration.ConstDefinition -> todo(decl)
+    }
+
+    private fun visitFunctionDef(decl: Declaration.FunctionDef) {
+        checkTopLevelExpressionBinding(decl.name)
+        visitTypeParams(decl.typeParams)
+        val visitedParams = mutableSetOf<Name>()
+        for (param in decl.params) {
+            if (param.binder.name in visitedParams) {
+                diagnostic.report(param.binder.location, "Duplicate parameter name `${param.binder.name}`")
+            } else {
+                visitedParams.add(param.binder.name)
+            }
+            param.annotation?.lower()
+        }
+        val returnType = decl.signature.returnType.lower()
+
+        if (returnType.containsClosures()) {
+            diagnostic.report(decl.signature.returnType.location, "Function return type can not contain closures")
+        }
+
+        visitFunctionBody(decl, decl.body)
+    }
+
+    private fun Type.containsClosures(): Boolean {
+        var containsClosures = false
+        val visitor = object: TypeVisitor {
+            override fun visitType(type: Type) {
+                if (type is Type.Closure) {
+                    containsClosures = true
+                }
+                super.visitType(type)
+            }
+        }
+        visitor.visitType(this)
+        return containsClosures
+    }
+
+    private fun visitFunctionBody(decl: Declaration.FunctionDef, body: Block) {
+        todo(body)
+    }
+
+    private fun visitTypeParams(typeParams: List<TypeParam>?) {
+        if (typeParams == null) return
+        for (typeParam in typeParams) {
+            visitTypeParam(typeParam)
+        }
+    }
+    private fun visitTypeParam(typeParam: TypeParam) {
+        todo(typeParam)
     }
 
     private fun visitExternFunctionDef(decl: Declaration.ExternFunctionDef) {
@@ -134,6 +181,9 @@ class TypeChecker(
 
     private fun todo(decl: Declaration) {
         diagnostic.report(decl.startLoc, "The new typechecker doesn't support this declaration type yet.")
+    }
+    private fun todo(loc: HasLocation) {
+        diagnostic.report(loc.location, "The new typechecker doesn't support this node type yet.")
     }
 
     private fun todo(type: TypeAnnotation): Type {
