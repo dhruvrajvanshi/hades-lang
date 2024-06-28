@@ -2,6 +2,7 @@ package hadesc.analysis
 
 import hadesc.Name
 import hadesc.ast.*
+import hadesc.diagnostics.Diagnostic
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
@@ -41,19 +42,41 @@ class TypeChecker(
         is Declaration.FunctionDef -> visitFunctionDef(decl)
         is Declaration.ImportMembers -> visitImportMembers(decl)
         is Declaration.TypeAlias -> visitTypeAlias(decl)
+        is Declaration.Struct -> visitStructDecl(decl)
         is Declaration.Enum,
         is Declaration.ExtensionDef,
         is Declaration.ImplementationDef,
         is Declaration.ImportAs,
-        is Declaration.Struct,
         is Declaration.TraitDef,
         is Declaration.ConstDefinition -> todo(decl)
+    }
+
+    private fun visitStructDecl(decl: Declaration.Struct) {
+        checkTopLevelExpressionBinding(decl.binder)
+        val visitedFields = mutableSetOf<Name>()
+        visitTypeParams(decl.typeParams)
+        if (decl.typeParams != null) {
+            todo(decl, "The new typechecker doesn't handle generic structs yet.")
+        }
+        for (member in decl.members) {
+            when (member) {
+                is Declaration.Struct.Member.Field -> {
+                    if (member.binder.name in visitedFields) {
+                        diagnostic.report(member.binder.location, "Duplicate field name `${member.binder.name}`")
+                    } else {
+                        visitedFields.add(member.binder.name)
+                    }
+                    member.typeAnnotation.lower()
+                }
+            }
+        }
     }
 
     private fun visitTypeAlias(decl: Declaration.TypeAlias) {
         if (decl.typeParams != null) {
             todo(decl, "The new typechecker doesn't handle type parameters yet.")
         }
+        checkTopLevelTypeBinding(decl.name)
         visitTypeParams(decl.typeParams)
         decl.rhs.lower()
     }
@@ -392,11 +415,22 @@ class TypeChecker(
         val topLevelExpressionBindings =
             topLevelExpressionBindingsByFile.getOrPut(binder.location.file) { mutableMapOf() }
         if (binder.name in topLevelExpressionBindings) {
-            diagnostic.report(binder.location, "Duplicate top-level binding ${binder.name}")
+            diagnostic.report(binder.location, "Duplicate top-level binding ${binder.name.text}")
         } else {
             topLevelExpressionBindings[binder.name] = binder
         }
     }
+    private val topLevelTypeBindingsBySourcePath = mutableMapOf<SourcePath, MutableMap<Name, Binder>>()
+    private fun checkTopLevelTypeBinding(binder: Binder) {
+        val topLevelTypeBindings = topLevelTypeBindingsBySourcePath.getOrPut(binder.location.file) { mutableMapOf() }
+        binder.location.file
+        if (binder.name in topLevelTypeBindings) {
+            diagnostic.report(binder.location, "Duplicate top-level type definition ${binder.name.text}")
+        } else {
+            topLevelTypeBindings[binder.name] = binder
+        }
+    }
+
 }
 
 private fun <T : HasLocation, V> nodeMapOf() = NodeMap<T, V>()
