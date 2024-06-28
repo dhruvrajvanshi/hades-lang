@@ -37,7 +37,8 @@ data class BuildOptions(
     val enableHIRVerifier: Boolean,
     val dumpHIRGen: Boolean,
     val enableLLVMVerifier: Boolean,
-    val jsonDiagnostics: Boolean
+    val jsonDiagnostics: Boolean,
+    val enableNewTypeChecker: Boolean,
 ) : Options
 
 class BuildCLIOptions : OptionGroup() {
@@ -63,6 +64,8 @@ class BuildCLIOptions : OptionGroup() {
     private val jsonDiagnostics by option("--json-diagnostics")
         .flag(default = false)
         .help("Emit errors and warnings to .hades/diagnostics.json")
+
+    private val enableNewTypeChecker by option("--enable-new-typechecker").flag(default = false)
 
     private val fromProjectYML = if (File("hades.yml").exists()) {
         val text = File("hades.yml").readText()
@@ -96,7 +99,8 @@ class BuildCLIOptions : OptionGroup() {
             enableHIRVerifier = enableHIRVerifier,
             dumpHIRGen = dumpHIRGen,
             enableLLVMVerifier = enableLLVMVerifier,
-            jsonDiagnostics = jsonDiagnostics
+            jsonDiagnostics = jsonDiagnostics,
+            enableNewTypeChecker = enableNewTypeChecker,
         )
     }
 }
