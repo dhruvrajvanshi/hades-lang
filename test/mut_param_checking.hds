@@ -21,7 +21,7 @@ struct Box[T] ref {
     val value: Bool
 }
 
-trait Foo[Self] {
+interface Foo[Self] {
     type Boxed
     type Unboxed
 }

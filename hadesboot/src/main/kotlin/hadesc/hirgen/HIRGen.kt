@@ -1094,7 +1094,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         is PropertyBinding.WhereParamRef -> TODO()
         is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
         is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
-        is PropertyBinding.TraitFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
+        is PropertyBinding.InterfaceFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
     }
 
     private fun lowerExtensionPropertyBinding(expression: Expression.Property, binding: PropertyBinding.ExtensionDef): HIROperand {

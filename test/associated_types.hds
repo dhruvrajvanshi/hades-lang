@@ -6,7 +6,7 @@ fn main(): Void {
         puts(*value)
     }
 }
-trait Iterable[Self] {
+interface Iterable[Self] {
     type Item
 
     fn for_each(self: *Self, f: |*Item| -> Void): Void

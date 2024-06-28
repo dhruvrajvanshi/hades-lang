@@ -40,7 +40,7 @@ internal class HIRGenTraits(
         )
     }
 
-    internal fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.TraitFunctionRef): HIROperand {
+    internal fun lowerTraitFunctionRef(expression: Expression.Property, binding: PropertyBinding.InterfaceFunctionRef): HIROperand {
         return HIRExpression.TraitMethodRef(
             expression.location,
             expression.type,

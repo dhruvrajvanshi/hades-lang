@@ -1018,7 +1018,7 @@ class Checker(val ctx: Context) {
         ctx.analyzer.typeOfExpression(callExpression)
         if (callee is Expression.Property) {
             val propertyBinding = ctx.analyzer.resolvePropertyBinding(callee)
-            if (propertyBinding is PropertyBinding.TraitFunctionRef) {
+            if (propertyBinding is PropertyBinding.InterfaceFunctionRef) {
                 val requirement = TraitRequirement(
                     propertyBinding.traitName,
                     propertyBinding.args,

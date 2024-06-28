@@ -1,5 +1,5 @@
 
-trait SomeTrait[Self] {}
+interface SomeTrait[Self] {}
 
 extension BSExtensions for *u8 {
     fn foo[T](this, value: T): Void where SomeTrait[T] {}

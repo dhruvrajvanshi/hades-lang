@@ -57,7 +57,7 @@ sealed class PropertyBinding {
         val type: Type
     ) : PropertyBinding()
 
-    data class TraitFunctionRef(
+    data class InterfaceFunctionRef(
         val traitName: QualifiedName,
         val args: List<Type>,
         val type: Type,

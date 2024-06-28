@@ -98,7 +98,7 @@ fn is_whitespace(char: Byte): Bool {
     return char == 9 or char == 10 or char == 13 or char == 32;
 }
 
-trait ToStringView[Self] {
+interface ToStringView[Self] {
     fn to_string_view(self: Self): t
 }
 

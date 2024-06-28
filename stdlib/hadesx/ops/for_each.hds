@@ -1,4 +1,4 @@
-trait ForEach[Self] {
+interface ForEach[Self] {
     type Item
 
     fn for_each(self: *Self, f: |*Item| -> Void): Void

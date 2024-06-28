@@ -1,5 +1,5 @@
 
-trait T[Self] {
+interface T[Self] {
     fn a(): Void;
     fn b(): Void;
     fn c(): Void;

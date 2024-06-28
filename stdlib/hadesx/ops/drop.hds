@@ -1,5 +1,5 @@
 
-trait Drop[T] {
+interface Drop[T] {
     fn drop(self: T): Void
 }
 

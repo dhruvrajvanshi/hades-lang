@@ -1,5 +1,5 @@
 
-trait Foo[Self] {
+interface Foo[Self] {
     fn foo(self: Self): Void
 }
 extern fn puts(*u8): Void = puts

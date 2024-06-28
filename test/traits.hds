@@ -1,7 +1,7 @@
 import libc as c;
 import libc.{stdout}
 
-trait Printable[Self] {
+interface Printable[Self] {
     fn print(self: Self, file: *c.FILE): Void;
 }
 

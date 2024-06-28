@@ -75,7 +75,7 @@ class Analyzer<Ctx>(
         return null
     }
 
-    private fun resolveTraitFunctionRefBinding(expression: Expression.Property): PropertyBinding.TraitFunctionRef? {
+    private fun resolveTraitFunctionRefBinding(expression: Expression.Property): PropertyBinding.InterfaceFunctionRef? {
         val traitDef = resolveTraitRef(expression.lhs) ?: return null
         val signature = traitDef.signatures.find { it.name.identifier.name == expression.property.name } ?: return null
         val typeArgs = if (expression.lhs is Expression.TypeApplication) {
@@ -85,7 +85,7 @@ class Analyzer<Ctx>(
         }
         val substitution = traitDef.params.zip(typeArgs).toSubstitution()
         check(signature.typeParams == null)
-        return PropertyBinding.TraitFunctionRef(
+        return PropertyBinding.InterfaceFunctionRef(
             ctx.resolver.qualifiedName(traitDef.name),
             typeArgs,
             Type.FunctionPtr(
@@ -1065,7 +1065,7 @@ class Analyzer<Ctx>(
             is PropertyBinding.EnumTypeCaseConstructor -> binding.type
             is PropertyBinding.WhenCaseFieldRef -> binding.type
             null -> Type.Error(expression.location)
-            is PropertyBinding.TraitFunctionRef -> binding.type
+            is PropertyBinding.InterfaceFunctionRef -> binding.type
         }
 
     private fun typeOfGlobalPropertyBinding(

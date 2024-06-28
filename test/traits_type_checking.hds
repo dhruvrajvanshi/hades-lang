@@ -1,8 +1,8 @@
 
-trait NoParams {
+interface NoParams {
 }
 
-trait I[This] {
+interface I[This] {
     fn foo(): Void;
     fn foo(): Void; // duplicate function
 
@@ -10,7 +10,7 @@ trait I[This] {
     fn f2[T](): Void; // type params not allowed in traits functions
 }
 
-trait T[This, Arg] {
+interface T[This, Arg] {
     fn foo(): Void;
 }
 

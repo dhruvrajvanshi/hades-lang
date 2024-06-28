@@ -3,7 +3,7 @@ fn main(): Void {
     not_foo(b"123")
     not_foo(true) // expected error because Bool is not Foo
 }
-trait Foo[T] {}
+interface Foo[T] {}
 
 implementation Foo[Bool] {}
 

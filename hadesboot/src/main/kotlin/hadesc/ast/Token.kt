@@ -26,7 +26,7 @@ data class Token(
         ALIGN_OF,
         POINTER_CAST,
         MUT,
-        TRAIT,
+        INTERFACE,
         IMPLEMENTATION,
         FOR,
         IS,

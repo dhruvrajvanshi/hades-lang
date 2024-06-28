@@ -1,5 +1,5 @@
 
-/// Marker trait to tell the compiler that
+/// Marker interface to tell the compiler that
 /// this type can not be copied.
 /// For a type that implements this, the compiler
 /// disables all operations that would copy this
@@ -8,4 +8,4 @@
 /// and passing to a function.
 /// They can still be done by moving, or simply
 /// using an r-value.
-trait NoCopy[T] {}
+interface NoCopy[T] {}

@@ -1,5 +1,5 @@
 
-trait Trait[Self] {
+interface Trait[Self] {
     fn f(): Void;
 }
 

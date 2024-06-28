@@ -1,4 +1,4 @@
-trait T[Self] {}
+interface T[Self] {}
 
 implementation T[Bool] {}
 

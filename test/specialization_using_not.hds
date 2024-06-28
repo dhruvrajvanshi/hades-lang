@@ -1,5 +1,5 @@
 struct Box[T] {}
-trait Foo[T] {
+interface Foo[T] {
     fn foo(): Void
 }
 implementation Foo[Bool] {

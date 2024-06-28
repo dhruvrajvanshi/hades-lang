@@ -10,7 +10,7 @@ fn main(): Void {
   }
 }
 
-trait Tr[Self] {
+interface Tr[Self] {
     fn foo(): Bool
 }
 implementation Tr[usize] {

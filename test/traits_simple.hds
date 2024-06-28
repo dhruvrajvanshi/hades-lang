@@ -1,6 +1,6 @@
 import libc as c;
 
-trait Convert[Self, Other] {
+interface Convert[Self, Other] {
     fn convert(self: Self): Other;
 }
 

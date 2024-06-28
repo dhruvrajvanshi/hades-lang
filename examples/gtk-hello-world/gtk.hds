@@ -8,9 +8,9 @@ struct Button {}
 struct CheckButton {}
 struct ProgressBar {}
 
-trait IsContainer[Self] {}
+interface IsContainer[Self] {}
 
-trait IsWidget[Self] {}
+interface IsWidget[Self] {}
 
 implementation IsWidget[Application] {}
 implementation IsWidget[Window] {}

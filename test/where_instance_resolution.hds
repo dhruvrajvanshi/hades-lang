@@ -27,4 +27,4 @@ struct Box[T] {
     val value: T;
 }
 
-trait I[This] {}
+interface I[This] {}

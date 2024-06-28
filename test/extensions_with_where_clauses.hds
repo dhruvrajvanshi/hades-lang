@@ -1,6 +1,6 @@
 extern fn puts(*Byte): Void = puts;
 
-trait Stringifiable[T] {
+interface Stringifiable[T] {
     fn to_string(self: T): *Byte;
 }
 

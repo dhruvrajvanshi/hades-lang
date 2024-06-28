@@ -5,7 +5,7 @@ struct Pair[T, U] {
     val second: U
 }
 
-trait Iterable[Self, T] {
+interface Iterable[Self, T] {
     fn for_each(self: *Self, f: |T| -> Void): Void
 }
 
