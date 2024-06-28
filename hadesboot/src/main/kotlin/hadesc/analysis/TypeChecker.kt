@@ -43,12 +43,24 @@ class TypeChecker(
         is Declaration.ImportMembers -> visitImportMembers(decl)
         is Declaration.TypeAlias -> visitTypeAlias(decl)
         is Declaration.Struct -> visitStructDecl(decl)
+        is Declaration.ConstDefinition -> visitConstDefinition(decl)
         is Declaration.Enum,
         is Declaration.ExtensionDef,
         is Declaration.ImplementationDef,
         is Declaration.ImportAs,
         is Declaration.TraitDef,
-        is Declaration.ConstDefinition -> todo(decl)
+        -> todo(decl)
+    }
+
+    private fun visitConstDefinition(decl: Declaration.ConstDefinition) {
+        checkTopLevelExpressionBinding(decl.name)
+        val expectedType = decl.annotation?.lower()
+        if (expectedType != null) {
+            checkExpressionType(decl.initializer, expectedType)
+        } else {
+            inferExpression(decl.initializer)
+        }
+
     }
 
     private fun visitStructDecl(decl: Declaration.Struct) {
@@ -176,7 +188,7 @@ class TypeChecker(
             is Expression.Error -> todo(expression)
             is Expression.FloatLiteral -> todo(expression)
             is Expression.If -> todo(expression)
-            is Expression.IntLiteral -> todo(expression)
+            is Expression.IntLiteral -> inferIntLiteral(expression, constraint)
             is Expression.Intrinsic -> todo(expression)
             is Expression.Match -> todo(expression)
             is Expression.Move -> todo(expression)
@@ -193,6 +205,17 @@ class TypeChecker(
             }
 
             is Expression.TypeApplication -> todo(expression)
+        }
+
+    private fun inferIntLiteral(expression: Expression.IntLiteral, constraint: ValueConstraint): Type =
+        when (constraint) {
+            is ValueConstraint.HasType -> when (constraint.type) {
+                is Type.Integral -> constraint.type
+                is Type.Size -> constraint.type
+                else -> reportAndMakeErrorType(expression.location, "Expected an integral type")
+            }
+
+            else -> Type.i64
         }
 
     private fun inferVar(
@@ -270,6 +293,7 @@ class TypeChecker(
                 else -> null
             }
         }
+
         else -> {
             todo(expression, "resolveCallee doesn't handle ${expression::class.simpleName} yet.")
             null
@@ -364,6 +388,7 @@ class TypeChecker(
                         }
                         Type.Constructor(resolver.qualifiedName((binding.declaration.binder)))
                     }
+
                     is TypeBinding.Trait -> todo(this)
                     is TypeBinding.TypeAlias -> {
                         if (binding.declaration.typeParams != null) {
@@ -371,6 +396,7 @@ class TypeChecker(
                         }
                         binding.declaration.rhs.lower()
                     }
+
                     is TypeBinding.TypeParam -> todo(this)
                     null -> {
                         reportAndMakeErrorType(location, "Can not find `${name.name.text}` in this scope")
@@ -420,6 +446,7 @@ class TypeChecker(
             topLevelExpressionBindings[binder.name] = binder
         }
     }
+
     private val topLevelTypeBindingsBySourcePath = mutableMapOf<SourcePath, MutableMap<Name, Binder>>()
     private fun checkTopLevelTypeBinding(binder: Binder) {
         val topLevelTypeBindings = topLevelTypeBindingsBySourcePath.getOrPut(binder.location.file) { mutableMapOf() }
