@@ -2,6 +2,7 @@ package hadesc.context
 
 import hadesc.BuildOptions
 import hadesc.analysis.Analyzer
+import hadesc.analysis.typecheck
 import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
@@ -62,6 +63,12 @@ class Context(
 
     override val Expression.type get() = analyzer.typeOfExpression(this)
     fun check() {
+        if (options.enableNewTypeChecker) {
+            val sourceFiles = buildList {
+                forEachSourceFile { add(it) }
+            }
+            typecheck(sourceFiles, diagnosticReporter, resolver)
+        }
         Checker(this).checkProgram()
     }
 

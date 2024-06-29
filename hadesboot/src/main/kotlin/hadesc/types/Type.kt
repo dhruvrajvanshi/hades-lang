@@ -11,7 +11,7 @@ import hadesc.qualifiedname.QualifiedName
 
 typealias ParamRef = Type.Param
 sealed interface Type {
-    data class Error(val location: SourceLocation) : Type
+    data class Error(val location: SourceLocation, val message: String? = null) : Type
     object Void : Type
     object Bool : Type
     data class Integral(val size: Int, val isSigned: Boolean) : Type
@@ -192,6 +192,7 @@ sealed interface Type {
         val u8 = Integral(8, isSigned = false)
         val f32 = FloatingPoint(32)
         val f64 = FloatingPoint(64)
+        val i64 = Integral(isSigned = true, size = 64)
     }
 }
 
