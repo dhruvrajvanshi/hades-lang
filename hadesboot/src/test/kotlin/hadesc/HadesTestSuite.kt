@@ -62,7 +62,6 @@ class HadesTestSuite {
                         "--enable-hir-verifier",
                         "--internal-skip-exec",
                         "--json-diagnostics",
-                        "--backend", "C",
                     ).apply {
                         add("--c-source")
                         add(utilsCLib.toString())
