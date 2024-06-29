@@ -3,7 +3,9 @@ package hadesc.codegen.c
 import hadesboot.prettyprint.prettyPrint
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
+import hadesc.hir.HIRBlock
 import hadesc.hir.HIRDefinition
+import hadesc.hir.HIRExpression
 import hadesc.hir.HIRModule
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
@@ -148,12 +150,39 @@ class HIRToC(
     }
 
     private fun lowerDefinitionImplementation(definition: HIRDefinition): Unit = when (definition) {
-        is HIRDefinition.Const -> TODO()
-        is HIRDefinition.Function -> TODO()
+        is HIRDefinition.Const -> lowerConstDefinition(definition)
+        is HIRDefinition.Function -> lowerFunctionImplementation(definition)
         is HIRDefinition.ExternConst -> {}
         is HIRDefinition.ExternFunction -> {}
         is HIRDefinition.Implementation -> requireUnreachable()
         is HIRDefinition.Struct -> lowerStructImplementation(definition)
+    }
+
+    private fun lowerConstDefinition(definition: HIRDefinition.Const) {
+        val type = lowerType(definition.type)
+        declarations.add(CNode.ConstDef(definition.name.c(), type, lowerExpression(definition.initializer)))
+    }
+
+    private fun lowerExpression(initializer: HIRExpression): CNode {
+        TODO()
+    }
+
+    private fun lowerFunctionImplementation(def: HIRDefinition.Function) {
+        val returnType = lowerType(def.returnType)
+        val parameters = def.params.map { lowerType(it.type) }
+        declarations.add(
+            CNode.FnDefinition(
+                name = def.name.c(),
+                returnType = returnType,
+                parameters = parameters,
+                body = lowerBlocks(def.basicBlocks)
+
+            )
+        )
+    }
+
+    private fun lowerBlocks(blocks: List<HIRBlock>): CNode {
+        TODO()
     }
 
     private fun lowerStructImplementation(definition: HIRDefinition.Struct) {
@@ -204,6 +233,13 @@ sealed interface CNode {
         val returnType: CNode,
         val parameters: List<CNode>
     ) : CNode
+    data class FnDefinition(
+        val name: String,
+        val returnType: CNode,
+        val parameters: List<CNode>,
+        val body: CNode
+    ) : CNode
+    data class ConstDef(val name: String, val type: CNode, val initializer: CNode) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {

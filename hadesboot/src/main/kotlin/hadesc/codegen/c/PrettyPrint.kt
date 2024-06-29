@@ -71,6 +71,30 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text(");")
 
     )
+    is CNode.FnDefinition -> PPNode.Group(
+        returnType.toPPNode(),
+        Text(" "),
+        Text(name),
+        Text("("),
+        PPNode.Indent(
+            parameters.mapIndexed { idx, it ->
+                it.toPPNode() + Text(if (idx == parameters.lastIndex) "" else ", ")
+            }
+        ),
+        Text(")"),
+        body.toPPNode()
+
+    )
+
+    is CNode.ConstDef -> PPNode.Group(
+        Text("const "),
+        type.toPPNode(),
+        Text(" "),
+        Text(name),
+        Text(" = "),
+        initializer.toPPNode(),
+        Text(";")
+    )
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {
