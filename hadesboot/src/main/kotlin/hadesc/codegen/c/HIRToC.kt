@@ -3,12 +3,11 @@ package hadesc.codegen.c
 import hadesboot.prettyprint.prettyPrint
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
-import hadesc.hir.HIRBlock
-import hadesc.hir.HIRDefinition
-import hadesc.hir.HIRExpression
-import hadesc.hir.HIRModule
+import hadesc.hir.*
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
+import hadesc.types.mutPtr
+import hadesc.types.ptr
 
 class HIRToC(
     private val hirModule: HIRModule
@@ -86,7 +85,9 @@ class HIRToC(
         is Type.Constructor -> CNode.Raw(type.name.c())
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.FunctionPtr -> {
-            val key = type.from.joinToString(",", "(", ")") { lowerType(it).toPPNode().prettyPrint() } + ":" + lowerType(type.to).toPPNode().prettyPrint()
+            val key = type.from.joinToString(",", "(", ")") {
+                lowerType(it).toPPNode().prettyPrint()
+            } + ":" + lowerType(type.to).toPPNode().prettyPrint()
             val name = fnPtrNames.getOrPut(key) {
                 val name = Name("_hds_fnptr${nextId()}")
                 declarations.add(
@@ -100,6 +101,7 @@ class HIRToC(
             }
             CNode.Raw(name.c())
         }
+
         is Type.Integral -> CNode.Raw(lowerIntegralType(type))
         is Type.Ptr -> CNode.PtrType(lowerType(type.to), isConst = !type.isMutable)
         is Type.Ref -> TODO()
@@ -123,6 +125,7 @@ class HIRToC(
 
         Type.Void -> CNode.Raw("void")
     }
+
     private var _nextId = 0
     private fun nextId(): Int {
         val id = _nextId
@@ -163,8 +166,22 @@ class HIRToC(
         declarations.add(CNode.ConstDef(definition.name.c(), type, lowerExpression(definition.initializer)))
     }
 
-    private fun lowerExpression(initializer: HIRExpression): CNode {
-        TODO()
+    private fun lowerExpression(expr: HIRExpression): CNode = when (expr) {
+        is HIRExpression.GlobalRef -> TODO()
+        is HIRConstant.AlignOf -> TODO()
+        is HIRConstant.BoolValue -> TODO()
+        is HIRConstant.ByteString -> TODO()
+        is HIRConstant.Error -> TODO()
+        is HIRConstant.FloatValue -> TODO()
+        is HIRConstant.GlobalFunctionRef -> TODO()
+        is HIRConstant.IntValue -> CNode.Raw(expr.value.toString())
+        is HIRConstant.NullPtr -> TODO()
+        is HIRConstant.SizeOf -> TODO()
+        is HIRConstant.StructValue -> TODO()
+        is HIRConstant.Void -> TODO()
+        is HIRExpression.LocalRef -> TODO()
+        is HIRExpression.ParamRef -> TODO()
+        is HIRExpression.TraitMethodRef -> TODO()
     }
 
     private fun lowerFunctionImplementation(def: HIRDefinition.Function) {
@@ -182,7 +199,49 @@ class HIRToC(
     }
 
     private fun lowerBlocks(blocks: List<HIRBlock>): CNode {
-        TODO()
+        val items = mutableListOf<CNode>()
+        for (block in blocks) {
+            items.add(CNode.Raw("${block.name.text}:"))
+            for (statement in block.statements) {
+                lowerStatement(statement, into = items)
+            }
+        }
+        return CNode.Block(items)
+    }
+
+    private fun lowerStatement(statement: HIRStatement, into: MutableList<CNode>): Unit = when (statement) {
+        is HIRStatement.AllocRef -> TODO()
+        is HIRStatement.Alloca -> lowerAllocaStatement(statement, into)
+        is HIRStatement.AllocateClosure -> TODO()
+        is HIRStatement.BinOp -> TODO()
+        is HIRStatement.Call -> TODO()
+        is HIRStatement.GetStructField -> TODO()
+        is HIRStatement.GetStructFieldPointer -> TODO()
+        is HIRStatement.IntToPtr -> TODO()
+        is HIRStatement.IntegerConvert -> TODO()
+        is HIRStatement.InvokeClosure -> TODO()
+        is HIRStatement.Jump -> TODO()
+        is HIRStatement.Load -> TODO()
+        is HIRStatement.LoadRefField -> TODO()
+        is HIRStatement.MatchInt -> TODO()
+        is HIRStatement.Memcpy -> TODO()
+        is HIRStatement.Move -> TODO()
+        is HIRStatement.Not -> TODO()
+        is HIRStatement.PointerCast -> TODO()
+        is HIRStatement.PtrToInt -> TODO()
+        is HIRStatement.Return -> TODO()
+        is HIRStatement.Store -> TODO()
+        is HIRStatement.StoreRefField -> TODO()
+        is HIRStatement.SwitchInt -> TODO()
+        is HIRStatement.TypeApplication -> TODO()
+        is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerAllocaStatement(statement: HIRStatement.Alloca, into: MutableList<CNode>) {
+        val valueName = QualifiedName(listOf(statement.name, Name("value"))).c()
+        into.add(CNode.LocalDecl(valueName, lowerType(statement.type)))
+        into.add(CNode.LocalDecl(statement.name.c(), lowerType(statement.type.mutPtr())))
+        into.add(CNode.Assign(CNode.Raw(statement.name.c()), CNode.Raw("&$valueName")))
     }
 
     private fun lowerStructImplementation(definition: HIRDefinition.Struct) {
@@ -233,13 +292,18 @@ sealed interface CNode {
         val returnType: CNode,
         val parameters: List<CNode>
     ) : CNode
+
     data class FnDefinition(
         val name: String,
         val returnType: CNode,
         val parameters: List<CNode>,
         val body: CNode
     ) : CNode
+
     data class ConstDef(val name: String, val type: CNode, val initializer: CNode) : CNode
+    data class Block(val items: List<CNode>) : CNode
+    data class LocalDecl(val name: String, val type: CNode) : CNode
+    data class Assign(val target: CNode, val value: CNode) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {
