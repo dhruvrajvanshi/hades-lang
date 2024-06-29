@@ -185,7 +185,9 @@ class HIRToC(
     }
 
     private fun lowerByteString(expr: HIRConstant.ByteString): CNode {
-        return CNode.Raw('"' + expr.bytes.joinToString { it.toString() } + '"')
+        return CNode.Raw('"' + expr.bytes.joinToString("") {
+            it.escapeToStr()
+        } + '"')
     }
 
     private fun lowerFunctionImplementation(def: HIRDefinition.Function) {
@@ -344,4 +346,15 @@ fun HIRDefinition.interfaceSortOrder(): Int {
         is HIRDefinition.Const -> 3
         is HIRDefinition.Function -> 4
     }
+}
+
+fun Byte.escapeToStr(): String = when {
+    '\\'.code == toInt() -> "\\\\"
+    '\n'.code == toInt() -> "\\n"
+    '\r'.code == toInt() -> "\\r"
+    '\t'.code == toInt() -> "\\t"
+    toInt() < 127
+        -> Char(toInt()).toString()
+    else ->
+        "\\x${toInt().toString(16).padStart(2, '0')}"
 }
