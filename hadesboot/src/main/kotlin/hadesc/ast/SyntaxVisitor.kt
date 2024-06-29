@@ -104,7 +104,7 @@ interface SyntaxVisitor {
     fun visitFloatLiteral(expression: Expression.FloatLiteral) = unit
 
     fun visitMatchExpression(expression: Expression.Match) {
-        visitExpression(expression)
+        visitExpression(expression.value)
         for (arm in expression.arms) {
             visitPattern(arm.pattern)
             visitExpression(arm.value)
