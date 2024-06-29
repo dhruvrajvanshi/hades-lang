@@ -1,10 +1,14 @@
 package hadesc.context
 
+import hadesboot.middle.lower.lowerToC
+import hadesc.Backend
 import hadesc.BuildOptions
 import hadesc.analysis.Analyzer
 import hadesc.ast.*
 import hadesc.codegen.HIRToLLVM
 import hadesc.codegen.LLVMToObject
+import hadesc.codegen.c.CToObject
+import hadesc.codegen.c.HIRToC
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.frontend.Checker
 import hadesc.hir.analysis.MissingReturnAnalyzer
@@ -98,8 +102,17 @@ class Context(
         hirModule = Monomorphization(this).transformModule(hirModule)
         log.debug("Monomorphization:\n${hirModule.prettyPrint()}")
 
-        val llvmModule = HIRToLLVM(this, hirModule).lower()
-        LLVMToObject(options, target, llvmModule).execute()
+        when (options.backend) {
+            Backend.C -> {
+                val cSource = HIRToC(hirModule).lower()
+                CToObject(cSource).execute()
+            }
+            Backend.LLVM -> {
+                val llvmModule = HIRToLLVM(this, hirModule).lower()
+                LLVMToObject(options, target, llvmModule).execute()
+            }
+        }
+
         unit
     }
 

@@ -33,6 +33,7 @@ dependencies {
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
     implementation("com.charleskorn.kaml:kaml:0.60.0")
+    implementation(project(":hadesboot-pretty-print"))
 
     testImplementation(kotlin("test"))
 
