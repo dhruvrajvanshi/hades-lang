@@ -118,6 +118,26 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text(name),
         Text(";"),
     )
+
+    is CNode.Call -> PPNode.Group(
+        target.toPPNode(),
+        PPNode.Indent(
+            Text("("),
+            PPNode.Indent(
+                args.mapIndexed { idx, it ->
+                    it.toPPNode() + Text(if (idx == args.lastIndex) "" else ", ")
+                }
+            ),
+            Text(");")
+        )
+    )
+
+    is CNode.Return -> PPNode.Group(
+        Text("return "),
+        value.toPPNode(),
+        Text(";")
+
+    )
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {

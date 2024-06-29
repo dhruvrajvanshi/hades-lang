@@ -167,10 +167,10 @@ class HIRToC(
     }
 
     private fun lowerExpression(expr: HIRExpression): CNode = when (expr) {
-        is HIRExpression.GlobalRef -> TODO()
+        is HIRExpression.GlobalRef -> CNode.Raw(expr.name.c())
         is HIRConstant.AlignOf -> TODO()
         is HIRConstant.BoolValue -> TODO()
-        is HIRConstant.ByteString -> TODO()
+        is HIRConstant.ByteString -> lowerByteString(expr)
         is HIRConstant.Error -> TODO()
         is HIRConstant.FloatValue -> TODO()
         is HIRConstant.GlobalFunctionRef -> TODO()
@@ -182,6 +182,10 @@ class HIRToC(
         is HIRExpression.LocalRef -> TODO()
         is HIRExpression.ParamRef -> TODO()
         is HIRExpression.TraitMethodRef -> TODO()
+    }
+
+    private fun lowerByteString(expr: HIRConstant.ByteString): CNode {
+        return CNode.Raw('"' + expr.bytes.joinToString { it.toString() } + '"')
     }
 
     private fun lowerFunctionImplementation(def: HIRDefinition.Function) {
@@ -214,7 +218,7 @@ class HIRToC(
         is HIRStatement.Alloca -> lowerAllocaStatement(statement, into)
         is HIRStatement.AllocateClosure -> TODO()
         is HIRStatement.BinOp -> TODO()
-        is HIRStatement.Call -> TODO()
+        is HIRStatement.Call -> lowerCallStatement(statement, into)
         is HIRStatement.GetStructField -> TODO()
         is HIRStatement.GetStructFieldPointer -> TODO()
         is HIRStatement.IntToPtr -> TODO()
@@ -229,12 +233,32 @@ class HIRToC(
         is HIRStatement.Not -> TODO()
         is HIRStatement.PointerCast -> TODO()
         is HIRStatement.PtrToInt -> TODO()
-        is HIRStatement.Return -> TODO()
-        is HIRStatement.Store -> TODO()
+        is HIRStatement.Return -> lowerReturnStatement(statement, into)
+        is HIRStatement.Store -> lowerStoreStatement(statement)
         is HIRStatement.StoreRefField -> TODO()
         is HIRStatement.SwitchInt -> TODO()
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerReturnStatement(statement: HIRStatement.Return, into: MutableList<CNode>) {
+        if (statement.expression.type is Type.Void) {
+            into.add(CNode.Raw("return;"))
+        } else {
+            into.add(CNode.Return(lowerExpression((statement.expression))))
+        }
+    }
+
+    private fun lowerStoreStatement(statement: HIRStatement.Store) {
+        if (statement.value.type is Type.Void) {
+            return
+        }
+        TODO()
+    }
+
+    private fun lowerCallStatement(statement: HIRStatement.Call, into: MutableList<CNode>) {
+        val args = statement.args.map { lowerExpression(it) }
+        into.add(CNode.Call(target = lowerExpression(statement.callee), args = args))
     }
 
     private fun lowerAllocaStatement(statement: HIRStatement.Alloca, into: MutableList<CNode>) {
@@ -304,6 +328,8 @@ sealed interface CNode {
     data class Block(val items: List<CNode>) : CNode
     data class LocalDecl(val name: String, val type: CNode) : CNode
     data class Assign(val target: CNode, val value: CNode) : CNode
+    data class Call(val target: CNode, val args: List<CNode>) : CNode
+    data class Return(val value: CNode) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {
