@@ -33,6 +33,44 @@ fun CNode.toPPNode(): PPNode = when (this) {
             Text(";")
         )
     }
+    is CNode.StructDef -> {
+        PPNode.Group(
+            Text("typedef struct $name"),
+            Text("{"),
+            PPNode.Indent(
+                fields.map {
+                    it.second.toPPNode() + Text(" ") + Text(it.first) + Text(";")
+                }
+            ),
+            Text("} $name;")
+        )
+    }
+
+    is CNode.UnionDecl -> {
+        PPNode.Group(
+            Text("typedef union ${name.c()}"),
+            Text("{"),
+            PPNode.Indent(
+                members.mapIndexed { idx, it ->
+                    it.toPPNode() + Text(" ") + Text("_$idx") + Text(";")
+                }
+            ),
+            Text("} ${name.c()};")
+        )
+    }
+    is CNode.TypedefFnPtr -> PPNode.Group(
+        Text("typedef "),
+        returnType.toPPNode(),
+        Text(" (*${name.c()})"),
+        Text("("),
+        PPNode.Indent(
+            parameters.mapIndexed { idx, it ->
+                it.toPPNode() + Text(if (idx == parameters.lastIndex) "" else ", ")
+            }
+        ),
+        Text(");")
+
+    )
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {

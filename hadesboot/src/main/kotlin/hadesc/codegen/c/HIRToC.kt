@@ -1,6 +1,7 @@
 package hadesc.codegen.c
 
 import hadesboot.prettyprint.prettyPrint
+import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.hir.HIRDefinition
 import hadesc.hir.HIRModule
@@ -20,7 +21,6 @@ class HIRToC(
         for (definition in hirModule.definitions.sortedBy { it.interfaceSortOrder() }) {
             lowerDefinitionInterface(definition)
         }
-        println(declarationsToPPNode(declarations).prettyPrint())
         for (definition in hirModule.definitions) {
             lowerDefinitionImplementation(definition)
         }
@@ -67,6 +67,7 @@ class HIRToC(
         )
     }
 
+    private val fnPtrNames = mutableMapOf<String, Name>()
     private fun lowerType(type: Type): CNode = when (type) {
         is Type.AssociatedTypeRef,
         is Type.Application,
@@ -82,14 +83,52 @@ class HIRToC(
         Type.Bool -> CNode.Raw("bool")
         is Type.Constructor -> CNode.Raw(type.name.c())
         is Type.FloatingPoint -> lowerFloatingPointType(type)
-        is Type.FunctionPtr -> TODO()
+        is Type.FunctionPtr -> {
+            val key = type.from.joinToString(",", "(", ")") { lowerType(it).toPPNode().prettyPrint() } + ":" + lowerType(type.to).toPPNode().prettyPrint()
+            val name = fnPtrNames.getOrPut(key) {
+                val name = Name("_hds_fnptr${nextId()}")
+                declarations.add(
+                    CNode.TypedefFnPtr(
+                        name = name,
+                        returnType = lowerType(type.to),
+                        parameters = type.from.map { lowerType(it) }
+                    )
+                )
+                name
+            }
+            CNode.Raw(name.c())
+        }
         is Type.Integral -> CNode.Raw(lowerIntegralType(type))
         is Type.Ptr -> CNode.PtrType(lowerType(type.to), isConst = !type.isMutable)
         is Type.Ref -> TODO()
         is Type.Size -> CNode.Raw("size_t")
-        is Type.UntaggedUnion -> TODO()
+        is Type.UntaggedUnion -> {
+            val key = type.members.joinToString("|", prefix = "union[", postfix = "]") {
+                lowerType(it).toPPNode().prettyPrint()
+            }
+            val name = unionNames.getOrPut(key) {
+                val name = "_hds_union${nextId()}"
+                declarations.add(
+                    CNode.UnionDecl(
+                        name = Name(name),
+                        members = type.members.map { lowerType(it) }
+                    )
+                )
+                Name(name)
+            }
+            CNode.Raw(name.c())
+        }
+
         Type.Void -> CNode.Raw("void")
     }
+    private var _nextId = 0
+    private fun nextId(): Int {
+        val id = _nextId
+        _nextId += 1
+        return id
+    }
+
+    private val unionNames = mutableMapOf<String, Name>()
 
     private fun lowerFloatingPointType(type: Type.FloatingPoint): CNode {
         return when (type.size) {
@@ -110,21 +149,36 @@ class HIRToC(
 
     private fun lowerDefinitionImplementation(definition: HIRDefinition): Unit = when (definition) {
         is HIRDefinition.Const -> TODO()
-        is HIRDefinition.ExternConst -> TODO()
-        is HIRDefinition.ExternFunction -> TODO()
         is HIRDefinition.Function -> TODO()
-        is HIRDefinition.Implementation -> TODO()
-        is HIRDefinition.Struct -> TODO()
+        is HIRDefinition.ExternConst -> {}
+        is HIRDefinition.ExternFunction -> {}
+        is HIRDefinition.Implementation -> requireUnreachable()
+        is HIRDefinition.Struct -> lowerStructImplementation(definition)
+    }
+
+    private fun lowerStructImplementation(definition: HIRDefinition.Struct) {
+        declarations.add(
+            CNode.StructDef(
+                name = definition.name.c(),
+                fields = definition.fields.map {
+                    it.first.c() to lowerType(it.second)
+                }
+            )
+        )
     }
 }
 
+fun Name.c(): String =
+    text.replace("_", "_u_")
+        .replace("$", "_d_")
+        .replace("[", "_l_")
+        .replace("]", "_r_")
+        .replace(".", "_p_")
+        .let { if (it[0].isDigit()) "_$it" else it }
+
 fun QualifiedName.c(): String {
     return this.names.joinToString("_") {
-        it.text.replace("_", "_u_")
-            .replace("$", "_d_")
-            .replace("[", "_l_")
-            .replace("]", "_r_")
-            .replace(".", "_p_")
+        it.c()
 
 
     }
@@ -141,7 +195,15 @@ sealed interface CNode {
         val parameters: List<CNode>,
         val isExtern: Boolean
     ) : CNode
+
     data class ExternConst(val name: String, val type: CNode) : CNode
+    data class StructDef(val name: String, val fields: List<Pair<String, CNode>>) : CNode
+    data class UnionDecl(val name: Name, val members: List<CNode>) : CNode
+    data class TypedefFnPtr(
+        val name: Name,
+        val returnType: CNode,
+        val parameters: List<CNode>
+    ) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {
