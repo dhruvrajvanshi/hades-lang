@@ -1,5 +1,6 @@
 package hadesc.codegen.c
 
+import hadesboot.prettyprint.PPNode
 import hadesboot.prettyprint.prettyPrint
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
@@ -222,7 +223,7 @@ class HIRToC(
         is HIRStatement.BinOp -> TODO()
         is HIRStatement.Call -> lowerCallStatement(statement, into)
         is HIRStatement.GetStructField -> TODO()
-        is HIRStatement.GetStructFieldPointer -> TODO()
+        is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPtr(statement, into)
         is HIRStatement.IntToPtr -> TODO()
         is HIRStatement.IntegerConvert -> TODO()
         is HIRStatement.InvokeClosure -> TODO()
@@ -241,6 +242,14 @@ class HIRToC(
         is HIRStatement.SwitchInt -> TODO()
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerGetStructFieldPtr(statement: HIRStatement.GetStructFieldPointer, into: MutableList<CNode>) {
+        into.add(CNode.DeclAssign(
+            name = statement.name.c(),
+            type = lowerType(statement.type),
+            value = CNode.AddressOf(CNode.Dot(lowerExpression(statement.lhs), statement.memberName.c()))
+        ))
     }
 
     private fun lowerReturnStatement(statement: HIRStatement.Return, into: MutableList<CNode>) {
@@ -333,6 +342,9 @@ sealed interface CNode {
     data class Block(val items: List<CNode>) : CNode
     data class LocalDecl(val name: String, val type: CNode) : CNode
     data class Assign(val target: CNode, val value: CNode) : CNode
+    data class DeclAssign(val name: String, val type: CNode, val value: CNode) : CNode
+    data class Dot(val lhs: CNode, val rhs: String): CNode
+    data class AddressOf(val target: CNode): CNode
     data class Call(val target: CNode, val args: List<CNode>) : CNode
     data class Return(val value: CNode) : CNode
 }
@@ -354,7 +366,8 @@ fun Byte.escapeToStr(): String = when {
     '\r'.code == toInt() -> "\\r"
     '\t'.code == toInt() -> "\\t"
     toInt() < 127
-        -> Char(toInt()).toString()
+    -> Char(toInt()).toString()
+
     else ->
         "\\x${toInt().toString(16).padStart(2, '0')}"
 }

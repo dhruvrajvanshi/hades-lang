@@ -138,6 +138,24 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text(";")
 
     )
+    is CNode.AddressOf -> PPNode.Group(
+        Text("&"),
+        target.toPPNode()
+    )
+    is CNode.DeclAssign -> PPNode.Group(
+        type.toPPNode(),
+        Text(" "),
+        Text(name),
+        Text(" = "),
+        value.toPPNode(),
+        Text(";")
+    )
+    is CNode.Dot -> PPNode.Nodes(
+        lhs.toPPNode(),
+        PPNode.LineIfWrapping,
+        Text("."),
+        Text(rhs)
+    )
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {
