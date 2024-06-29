@@ -3,6 +3,7 @@ package hadesc
 import com.charleskorn.kaml.Yaml
 import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.path
 import kotlinx.serialization.Serializable
 import java.io.File
@@ -23,9 +24,14 @@ data class YamlBuildOptions(
     val cFlags: List<String> = emptyList(),
     val libs: List<String> = emptyList(),
     val directories: List<String> = emptyList(),
-    val jsonDiagnostics: Boolean = false
+    val jsonDiagnostics: Boolean = false,
+    val backend: Backend = Backend.LLVM,
 )
 
+enum class Backend {
+    LLVM,
+    C,
+}
 data class BuildOptions(
     val directories: List<Path>,
     val runtime: Path,
@@ -37,7 +43,8 @@ data class BuildOptions(
     val enableHIRVerifier: Boolean,
     val dumpHIRGen: Boolean,
     val enableLLVMVerifier: Boolean,
-    val jsonDiagnostics: Boolean
+    val jsonDiagnostics: Boolean,
+    val backend: Backend,
 ) : Options
 
 class BuildCLIOptions : OptionGroup() {
@@ -63,6 +70,7 @@ class BuildCLIOptions : OptionGroup() {
     private val jsonDiagnostics by option("--json-diagnostics")
         .flag(default = false)
         .help("Emit errors and warnings to .hades/diagnostics.json")
+    private val backend by option("--backend").enum<Backend>().default(Backend.LLVM)
 
     private val fromProjectYML = if (File("hades.yml").exists()) {
         val text = File("hades.yml").readText()
@@ -96,7 +104,8 @@ class BuildCLIOptions : OptionGroup() {
             enableHIRVerifier = enableHIRVerifier,
             dumpHIRGen = dumpHIRGen,
             enableLLVMVerifier = enableLLVMVerifier,
-            jsonDiagnostics = jsonDiagnostics
+            jsonDiagnostics = jsonDiagnostics,
+            backend = backend,
         )
     }
 }

@@ -174,7 +174,8 @@ fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
             enableHIRVerifier = true,
             dumpHIRGen = false,
             enableLLVMVerifier = false,
-            jsonDiagnostics = false
+            jsonDiagnostics = false,
+            backend = Backend.LLVM,
         ),
         BuildTarget.Executable(Path.of("main.hds"), Path.of("")),
         fileTextProvider = object : FileTextProvider {
