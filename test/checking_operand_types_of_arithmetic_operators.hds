@@ -1,0 +1,6 @@
+
+fn main(): void {
+    let x: usize = 5
+    let y: i32 = 4
+    let z = x * y
+}

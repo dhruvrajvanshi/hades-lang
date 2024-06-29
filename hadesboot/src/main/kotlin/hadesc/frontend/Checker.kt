@@ -1,6 +1,7 @@
 package hadesc.frontend
 
 import hadesc.Name
+import hadesc.analysis.ARITHMETIC_OPERATORS
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -102,7 +103,8 @@ class Checker(val ctx: Context) {
                 foundMethods.add(declaration.name.identifier.name)
                 val typeOfMethod = ctx.analyzer.typeOfBinder(declaration.name)
                 require(typeOfMethod is Type.FunctionPtr)
-                val expectedType = expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
+                val expectedType =
+                    expectedMethods[declaration.name.identifier.name]?.applySubstitution(associatedTypeSubstitution)
                 if (expectedType != null && !typeOfMethod.isAssignableTo(declaration, expectedType)) {
                     error(
                         declaration.name,
@@ -292,12 +294,15 @@ class Checker(val ctx: Context) {
             }
             unit
         }
+
         is TypeAnnotation.Ptr -> {
             checkTypeAnnotation(annotation.to)
         }
+
         is TypeAnnotation.MutPtr -> {
             checkTypeAnnotation(annotation.to)
         }
+
         is TypeAnnotation.Application -> checkTypeApplicationAnnotation(annotation)
         is TypeAnnotation.Qualified -> {
             val binding = ctx.resolver.resolveQualifiedType(annotation.qualifiedPath)
@@ -306,6 +311,7 @@ class Checker(val ctx: Context) {
             }
             unit
         }
+
         is TypeAnnotation.FunctionPtr -> {
             annotation.from.map {
                 checkTypeAnnotation(it)
@@ -315,14 +321,17 @@ class Checker(val ctx: Context) {
 
             unit
         }
+
         is TypeAnnotation.Union -> {
             annotation.args.forEach {
                 checkTypeAnnotation(it)
             }
         }
+
         is TypeAnnotation.Select -> {
             checkSelectTypeAnnotation(annotation)
         }
+
         is TypeAnnotation.Closure -> {
             checkClosureTypeAnnotation(annotation)
         }
@@ -359,56 +368,64 @@ class Checker(val ctx: Context) {
         }
         checkReturnTypeWorker(node, ctx.analyzer.reduceGenericInstances(type))
     }
-    private fun checkReturnTypeWorker(node: HasLocation, unreducedType: Type, typeArguments: List<Type>? = null): Unit = when (val type = ctx.analyzer.reduceGenericInstances(unreducedType)) {
-        is Type.Application -> {
-            checkReturnTypeWorker(node, type.callee, typeArguments = type.args)
-        }
-        is Type.Constructor -> {
-            when (val declaration = ctx.resolver.resolveDeclaration(type.name)) {
-                is Declaration.Struct -> {
-                    val substitution =
-                        if (typeArguments != null && declaration.typeParams != null) {
-                            declaration.typeParams.zip(typeArguments).toSubstitution()
-                        } else {
-                            emptySubstitution()
-                        }
-                    val fieldTypes = declaration.members.filterIsInstance<Declaration.Struct.Member.Field>()
-                        .map { it.typeAnnotation.type }
-                        .map { it.applySubstitution(substitution) }
-                    fieldTypes.forEach { checkReturnTypeWorker(node, it) }
-                }
-                is Declaration.Enum -> {
-                    val substitution =
-                        if (typeArguments != null && declaration.typeParams != null) {
-                            declaration.typeParams.zip(typeArguments).toSubstitution()
-                        } else {
-                            emptySubstitution()
-                        }
-                    val memberTypes = declaration.cases
-                        .asSequence()
-                        .mapNotNull { it.params }
-                        .flatten()
-                        .map { it.annotation }
-                        .map { it.type }
-                        .map { it.applySubstitution(substitution) }
-                    memberTypes.forEach { checkReturnTypeWorker(node, it) }
-                }
-                is Declaration.TypeAlias -> requireUnreachable()
-                else -> unit
+
+    private fun checkReturnTypeWorker(node: HasLocation, unreducedType: Type, typeArguments: List<Type>? = null): Unit =
+        when (val type = ctx.analyzer.reduceGenericInstances(unreducedType)) {
+            is Type.Application -> {
+                checkReturnTypeWorker(node, type.callee, typeArguments = type.args)
             }
-        }
-        is Type.TypeFunction -> TODO()
-        is Type.Closure -> {
-            error(node, Diagnostic.Kind.ReturnTypeMustNotContainClosuresOrRefs)
-        }
-        is Type.GenericInstance -> requireUnreachable()
-        is Type.UntaggedUnion -> {
-            type.members.forEach {
-                checkReturnTypeWorker(node, it)
+
+            is Type.Constructor -> {
+                when (val declaration = ctx.resolver.resolveDeclaration(type.name)) {
+                    is Declaration.Struct -> {
+                        val substitution =
+                            if (typeArguments != null && declaration.typeParams != null) {
+                                declaration.typeParams.zip(typeArguments).toSubstitution()
+                            } else {
+                                emptySubstitution()
+                            }
+                        val fieldTypes = declaration.members.filterIsInstance<Declaration.Struct.Member.Field>()
+                            .map { it.typeAnnotation.type }
+                            .map { it.applySubstitution(substitution) }
+                        fieldTypes.forEach { checkReturnTypeWorker(node, it) }
+                    }
+
+                    is Declaration.Enum -> {
+                        val substitution =
+                            if (typeArguments != null && declaration.typeParams != null) {
+                                declaration.typeParams.zip(typeArguments).toSubstitution()
+                            } else {
+                                emptySubstitution()
+                            }
+                        val memberTypes = declaration.cases
+                            .asSequence()
+                            .mapNotNull { it.params }
+                            .flatten()
+                            .map { it.annotation }
+                            .map { it.type }
+                            .map { it.applySubstitution(substitution) }
+                        memberTypes.forEach { checkReturnTypeWorker(node, it) }
+                    }
+
+                    is Declaration.TypeAlias -> requireUnreachable()
+                    else -> unit
+                }
             }
+
+            is Type.TypeFunction -> TODO()
+            is Type.Closure -> {
+                error(node, Diagnostic.Kind.ReturnTypeMustNotContainClosuresOrRefs)
+            }
+
+            is Type.GenericInstance -> requireUnreachable()
+            is Type.UntaggedUnion -> {
+                type.members.forEach {
+                    checkReturnTypeWorker(node, it)
+                }
+            }
+
+            else -> unit
         }
-        else -> unit
-    }
 
     private fun checkTypeApplicationAnnotation(annotation: TypeAnnotation.Application) {
         annotation.args.map { checkTypeAnnotation(it) }
@@ -491,6 +508,7 @@ class Checker(val ctx: Context) {
                     error(statement.lhs.lhs, Diagnostic.Kind.ValNotMutable)
                 }
             }
+
             is Expression.This -> {
                 val fn = ctx.resolver.getEnclosingFunction(statement) ?: return
                 val thisParam = fn.signature.thisParamFlags ?: return
@@ -501,6 +519,7 @@ class Checker(val ctx: Context) {
                     error(statement.lhs, Diagnostic.Kind.AssigningToFieldOfAStructPassedByValueNotAllowed)
                 }
             }
+
             else -> {
                 error(statement.lhs.lhs, Diagnostic.Kind.NotAnAddressableValue)
             }
@@ -519,6 +538,7 @@ class Checker(val ctx: Context) {
                 }
                 checkExpressionHasType(statement.value, lhsType.to)
             }
+
             else -> {
                 error(statement.lhs, Diagnostic.Kind.NotAPointerType(lhsType))
             }
@@ -558,7 +578,12 @@ class Checker(val ctx: Context) {
             error(
                 expression,
                 Diagnostic.Kind.TypeNotAssignable(
-                    source = ctx.analyzer.reduceGenericInstances(ctx.analyzer.reduceAssociatedType(exprType, expression)),
+                    source = ctx.analyzer.reduceGenericInstances(
+                        ctx.analyzer.reduceAssociatedType(
+                            exprType,
+                            expression
+                        )
+                    ),
                     destination = type
                 )
             )
@@ -659,7 +684,7 @@ class Checker(val ctx: Context) {
                         Diagnostic.Kind.UseAfterMove(
                             expression.name.location,
                             hint = "Since closures might be called multiple times, we have to " +
-                                "assume that it might already be moved on subsequent invocations."
+                                    "assume that it might already be moved on subsequent invocations."
                         )
                     )
                 }
@@ -675,9 +700,11 @@ class Checker(val ctx: Context) {
                     )
                 }
             }
+
             null -> {
                 error(expression, Diagnostic.Kind.UnboundVariable(expression.name.name))
             }
+
             else -> {
                 error(expression.name, Diagnostic.Kind.CantMoveNonLocal)
             }
@@ -711,6 +738,7 @@ class Checker(val ctx: Context) {
                     error(pattern, Diagnostic.Kind.NotAnIntegralValue)
                 }
             }
+
             is Pattern.EnumCase -> {
                 val enumDeclaration = ctx.analyzer.getEnumTypeDeclaration(type)
                 if (enumDeclaration == null) {
@@ -722,6 +750,7 @@ class Checker(val ctx: Context) {
                     error(pattern, Diagnostic.Kind.NoSuchCase(enumDeclaration, pattern.identifier.name))
                 }
             }
+
             is Pattern.Wildcard -> {}
             is Pattern.Val -> {}
         }
@@ -783,11 +812,13 @@ class Checker(val ctx: Context) {
                 when (val typeArg = typeArgs.first()) {
                     is Type.Integral,
                     is Type.Size -> unit
+
                     else -> error(expression, Diagnostic.Kind.TypeDoesNotSupportArithmetic(typeArg))
                 }
 
                 unit
             }
+
             IntrinsicType.PTR_TO_INT -> unit
             IntrinsicType.INT_TO_PTR -> {
                 val typeArgs = ctx.analyzer.getTypeArgs(expression) ?: return
@@ -802,6 +833,7 @@ class Checker(val ctx: Context) {
                 }
                 unit
             }
+
             IntrinsicType.MEMCPY -> unit
             IntrinsicType.ERROR -> unit
         }
@@ -895,6 +927,7 @@ class Checker(val ctx: Context) {
     private fun checkSizeOf(expression: Expression.SizeOf) {
         checkTypeAnnotation(expression.type)
     }
+
     private fun checkAlignOf(expression: Expression.AlignOf) {
         checkTypeAnnotation(expression.type)
     }
@@ -928,17 +961,20 @@ class Checker(val ctx: Context) {
                     is PropertyBinding.StructField -> {
                         checkValueIsAddressable(expression.lhs)
                     }
+
                     is PropertyBinding.StructPointerFieldLoad -> unit
                     else -> {
                         error(expression, Diagnostic.Kind.NotAnAddressableValue)
                     }
                 }
             }
+
             is Expression.Var -> {
                 if (ctx.resolver.resolve(expression.name) !is Binding.ValBinding) {
                     error(expression, Diagnostic.Kind.NotAnAddressableValue)
                 }
             }
+
             else -> {
                 error(expression, Diagnostic.Kind.NotAnAddressableValue)
             }
@@ -965,9 +1001,18 @@ class Checker(val ctx: Context) {
 
     private fun checkBinaryOperation(expression: Expression.BinaryOperation) {
         checkExpression(expression.lhs)
-        checkExpression(expression.rhs)
+        if (expression.operator in ARITHMETIC_OPERATORS &&
+            (expression.lhs.type.isIntegral() || expression.lhs.type is Type.FloatingPoint)
+        ) {
+            checkExpressionHasType(expression.rhs, expression.lhs.type)
+        } else {
+            checkExpression(expression.rhs)
+        }
         if (expression.type is Type.Error) {
-            error(expression, Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type))
+            error(
+                expression,
+                Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type)
+            )
         }
     }
 
@@ -987,9 +1032,11 @@ class Checker(val ctx: Context) {
             is Expression.Property -> {
                 ctx.resolver.resolveModuleProperty(lhs)
             }
+
             is Expression.Var -> {
                 ctx.resolver.resolve(lhs.name)
             }
+
             else -> null
         }
         if (lhsBinding != null && lhsBinding is Binding.Enum) {
@@ -1063,7 +1110,8 @@ class Checker(val ctx: Context) {
         }
         val typeArgs = ctx.analyzer.getTypeArgs(genericCallee)
         if (fnTypeComponents.traitRequirements != null) {
-            val substitution = (fnTypeComponents.typeParams ?: emptyList()).zip(typeArgs ?: emptyList()).toSubstitution()
+            val substitution =
+                (fnTypeComponents.typeParams ?: emptyList()).zip(typeArgs ?: emptyList()).toSubstitution()
 
             checkTraitInstances(
                 callExpression,
@@ -1128,7 +1176,8 @@ class Checker(val ctx: Context) {
                 } else {
                     ctx.analyzer.reduceGenericInstances(
                         ctx.analyzer.reduceAssociatedType(
-                            ctx.analyzer.annotationToType(param.annotation), at = param)
+                            ctx.analyzer.annotationToType(param.annotation), at = param
+                        )
                     )
                 }
 
@@ -1189,7 +1238,8 @@ class Checker(val ctx: Context) {
 
     private val topLevelExpressionBindingsByFile = mutableMapOf<SourcePath, MutableMap<Name, Binder>>()
     private fun checkTopLevelExpressionBinding(binder: Binder) {
-        val topLevelExpressionBindings = topLevelExpressionBindingsByFile.getOrPut(binder.location.file) { mutableMapOf() }
+        val topLevelExpressionBindings =
+            topLevelExpressionBindingsByFile.getOrPut(binder.location.file) { mutableMapOf() }
         if (binder.name in topLevelExpressionBindings) {
             error(binder, Diagnostic.Kind.DuplicateValueBinding(binder))
         } else {
