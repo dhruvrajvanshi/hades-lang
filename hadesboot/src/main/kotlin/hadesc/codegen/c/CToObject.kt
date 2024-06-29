@@ -1,10 +1,7 @@
 package hadesc.codegen.c
 
 import hadesc.context.BuildTarget
-import kotlin.io.path.Path
-import kotlin.io.path.createDirectory
-import kotlin.io.path.exists
-import kotlin.io.path.writeText
+import kotlin.io.path.*
 
 class CToObject(private val cSource: String, private val target: BuildTarget) {
     fun execute() {
@@ -19,6 +16,7 @@ class CToObject(private val cSource: String, private val target: BuildTarget) {
             .inheritIO()
             .start()
             .waitFor()
+        cOutputPath.deleteIfExists()
         check(exitCode == 0) { "Failed to compile C source" }
     }
 }
