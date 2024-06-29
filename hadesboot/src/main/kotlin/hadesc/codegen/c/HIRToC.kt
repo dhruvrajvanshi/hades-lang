@@ -180,7 +180,7 @@ class HIRToC(
         is HIRConstant.SizeOf -> TODO()
         is HIRConstant.StructValue -> TODO()
         is HIRConstant.Void -> TODO()
-        is HIRExpression.LocalRef -> TODO()
+        is HIRExpression.LocalRef -> CNode.Raw(expr.name.c())
         is HIRExpression.ParamRef -> TODO()
         is HIRExpression.TraitMethodRef -> TODO()
     }
@@ -228,20 +228,54 @@ class HIRToC(
         is HIRStatement.IntegerConvert -> TODO()
         is HIRStatement.InvokeClosure -> TODO()
         is HIRStatement.Jump -> TODO()
-        is HIRStatement.Load -> TODO()
+        is HIRStatement.Load -> lowerLoadStatement(statement, into)
         is HIRStatement.LoadRefField -> TODO()
         is HIRStatement.MatchInt -> TODO()
         is HIRStatement.Memcpy -> TODO()
         is HIRStatement.Move -> TODO()
         is HIRStatement.Not -> TODO()
-        is HIRStatement.PointerCast -> TODO()
+        is HIRStatement.PointerCast -> lowerPointerCast(statement, into)
         is HIRStatement.PtrToInt -> TODO()
         is HIRStatement.Return -> lowerReturnStatement(statement, into)
-        is HIRStatement.Store -> lowerStoreStatement(statement)
+        is HIRStatement.Store -> lowerStoreStatement(statement, into)
         is HIRStatement.StoreRefField -> TODO()
         is HIRStatement.SwitchInt -> TODO()
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerLoadStatement(statement: HIRStatement.Load, into: MutableList<CNode>) {
+        into.add(
+            CNode.DeclAssign(
+                statement.name.c(),
+                lowerType(statement.type),
+                CNode.RawPP(
+                    PPNode.Nodes(
+                        PPNode.Text("*"),
+                        lowerExpression(statement.ptr).toPPNode(),
+                    )
+                )
+            )
+        )
+    }
+
+    private fun lowerPointerCast(statement: HIRStatement.PointerCast, into: MutableList<CNode>) {
+        val toType = lowerType(statement.toPointerOfType.mutPtr())
+        into.add(
+            CNode.DeclAssign(
+                name = statement.name.c(),
+                type = toType,
+                value = CNode.RawPP(
+
+                    PPNode.Nodes(
+                        PPNode.Text("("),
+                        toType.toPPNode(),
+                        PPNode.Text(")"),
+                        lowerExpression(statement.value).toPPNode()
+                    )
+                ),
+            )
+        )
     }
 
     private fun lowerGetStructFieldPtr(statement: HIRStatement.GetStructFieldPointer, into: MutableList<CNode>) {
@@ -260,11 +294,13 @@ class HIRToC(
         }
     }
 
-    private fun lowerStoreStatement(statement: HIRStatement.Store) {
+    private fun lowerStoreStatement(statement: HIRStatement.Store, into: MutableList<CNode>) {
         if (statement.value.type is Type.Void) {
             return
         }
-        TODO()
+        val ptr = lowerExpression(statement.ptr)
+        val value = lowerExpression(statement.value)
+        into.add(CNode.Assign(CNode.Prefix("*", ptr), value))
     }
 
     private fun lowerCallStatement(statement: HIRStatement.Call, into: MutableList<CNode>) {
@@ -347,6 +383,8 @@ sealed interface CNode {
     data class AddressOf(val target: CNode): CNode
     data class Call(val target: CNode, val args: List<CNode>) : CNode
     data class Return(val value: CNode) : CNode
+    data class Prefix(val op: String, val value: CNode) : CNode
+    data class RawPP(val node: PPNode): CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {

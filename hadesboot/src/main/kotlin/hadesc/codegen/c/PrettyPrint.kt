@@ -156,6 +156,15 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text("."),
         Text(rhs)
     )
+
+    is CNode.Prefix -> PPNode.Nodes(
+        Text(op),
+        Text("("),
+        value.toPPNode(),
+        Text(")"),
+    )
+
+    is CNode.RawPP -> node
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {
