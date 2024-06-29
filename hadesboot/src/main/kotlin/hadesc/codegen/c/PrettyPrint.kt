@@ -1,69 +1,83 @@
 package hadesc.codegen.c
 
 import hadesboot.prettyprint.PPNode
-import hadesboot.prettyprint.PPNode.Text
+import hadesboot.prettyprint.PPNode.*
 
 fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Include -> Text("#include \"$path\"")
     is CNode.Raw -> Text(code)
     is CNode.PtrType -> Text(if (isConst) "const " else " ") + type.toPPNode() + Text("*")
-    is CNode.FnSignature -> PPNode.Group(
-        if (isExtern) Text("extern") else Text(""),
-        Text(" "),
+    is CNode.FnSignature -> Nodes(
+        if (isExtern) Text("extern ") else Text(""),
         returnType.toPPNode(),
         Text(" "),
         Text(name),
-        PPNode.Group(
+        Group(
             Text("("),
-            PPNode.Indent(
+            LineIfWrapping,
+            Indent(
                 parameters.mapIndexed { index, it ->
-                    it.toPPNode() + if (index == parameters.lastIndex) Text("") else Text(", ")
+                    it.toPPNode() + (if (index == parameters.lastIndex) Text("") else Text(", ")) +
+                            LineIfWrapping
                 }
             ),
+            LineIfWrapping,
             Text(")"),
-            Text(";")
-        )
+        ),
+        Text(";")
     )
+
     is CNode.ExternConst -> {
-        PPNode.Group(
-            Text("extern const "),
+        Group(
+            Text("extern"),
+            SpaceOrLine,
             type.toPPNode(),
-            Text(" "),
+            SpaceOrLine,
             Text(name),
             Text(";")
         )
     }
+
     is CNode.StructDef -> {
-        PPNode.Group(
+        Nodes(
             Text("typedef struct $name"),
-            Text("{"),
-            PPNode.Indent(
-                fields.map {
-                    it.second.toPPNode() + Text(" ") + Text(it.first) + Text(";")
-                }
-            ),
-            Text("} $name;")
+            Group(
+                Text("{"),
+                LineIfWrapping,
+                Indent(
+                    fields.map {
+                        it.second.toPPNode() + Text(" ") + Text(it.first) + Text(";")
+                    }
+                ),
+                LineIfWrapping,
+                Text("} $name;")
+            )
         )
     }
 
     is CNode.UnionDecl -> {
-        PPNode.Group(
+        Nodes(
             Text("typedef union ${name.c()}"),
-            Text("{"),
-            PPNode.Indent(
-                members.mapIndexed { idx, it ->
-                    it.toPPNode() + Text(" ") + Text("_$idx") + Text(";")
-                }
-            ),
-            Text("} ${name.c()};")
+            Group(
+                Text("{"),
+                LineIfWrapping,
+                Indent(
+                    members.mapIndexed { idx, it ->
+                        it.toPPNode() + Text(" ") + Text("_$idx") + Text(";")
+                    }
+                ),
+                LineIfWrapping,
+                Text("} ${name.c()};")
+            )
         )
     }
-    is CNode.TypedefFnPtr -> PPNode.Group(
+
+    is CNode.TypedefFnPtr -> Group(
         Text("typedef "),
         returnType.toPPNode(),
         Text(" (*${name.c()})"),
         Text("("),
-        PPNode.Indent(
+        Indent(
             parameters.mapIndexed { idx, it ->
                 it.toPPNode() + Text(if (idx == parameters.lastIndex) "" else ", ")
             }
@@ -71,93 +85,128 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text(");")
 
     )
-    is CNode.FnDefinition -> PPNode.Group(
+
+    is CNode.FnDefinition -> Nodes(
         returnType.toPPNode(),
         Text(" "),
         Text(name),
-        Text("("),
-        PPNode.Indent(
-            parameters.mapIndexed { idx, it ->
-                it.toPPNode() + Text(if (idx == parameters.lastIndex) "" else ", ")
-            }
+        Group(
+            Text("("),
+            LineIfWrapping,
+            Indent(
+                Nodes(parameters.mapIndexed { idx, (name, ty) ->
+                    ty.toPPNode() + SpaceOrLine + Text(name) + Text(if (idx == parameters.lastIndex) "" else ", ") + LineIfWrapping
+                }),
+            ),
+            LineIfWrapping,
+            Text(")"),
         ),
-        Text(")"),
+        SpaceOrLine,
         body.toPPNode()
 
     )
 
-    is CNode.ConstDef -> PPNode.Group(
-        Text("const "),
+    is CNode.ConstDef -> Group(
         type.toPPNode(),
         Text(" "),
         Text(name),
-        Text(" = "),
-        initializer.toPPNode(),
-        Text(";")
-    )
-
-    is CNode.Block -> PPNode.Group(
-        Text("{"),
-        PPNode.Indent(
-            items.map {
-                it.toPPNode() + PPNode.LineIfWrapping
-            }
+        Text("="),
+        Indent(
+            SpaceOrLine,
+            initializer.toPPNode(),
         ),
-        Text("}"),
+        Text(";")
     )
 
-    is CNode.Assign -> PPNode.Group(
+    is CNode.Block -> Group(
+        Text("{"),
+        LineIfWrapping,
+        Indent(
+            Nodes(items.map {
+                it.toPPNode() + LineIfWrapping
+            }),
+        ),
+        LineIfWrapping,
+        Text("}"),
+    ).forceWrap()
+
+    is CNode.Assign -> Nodes(
         target.toPPNode(),
-        Text(" = "),
-        value.toPPNode(),
+        Text(" ="),
+        Group(
+            SpaceOrLine,
+            Indent(
+                value.toPPNode(),
+            ),
+        ),
         Text(";"),
     )
-    is CNode.LocalDecl -> PPNode.Group(
+
+    is CNode.LocalDecl -> Nodes(
         type.toPPNode(),
         Text(" "),
         Text(name),
         Text(";"),
     )
 
-    is CNode.Call -> PPNode.Group(
+    is CNode.Call -> Nodes(
         target.toPPNode(),
-        PPNode.Indent(
+        Group(
+
             Text("("),
-            PPNode.Indent(
-                args.mapIndexed { idx, it ->
-                    it.toPPNode() + Text(if (idx == args.lastIndex) "" else ", ")
-                }
+            Indent(
+                Indent(
+                    args.mapIndexed { idx, it ->
+                        it.toPPNode() + Text(if (idx == args.lastIndex) "" else ", ") + LineIfWrapping
+                    }
+                ),
             ),
-            Text(");")
-        )
+            Text(")")
+        ),
+        Text(";")
     )
 
-    is CNode.Return -> PPNode.Group(
-        Text("return "),
-        value.toPPNode(),
+    is CNode.Return -> Nodes(
+        Group(
+            Text("return"),
+            SpaceOrLine,
+            IfWrap(Text("("), Text("")),
+            Indent(
+                value.toPPNode(),
+            ),
+            IfWrap(Text(")"), Text(""))
+        ),
         Text(";")
 
     )
-    is CNode.AddressOf -> PPNode.Group(
+
+    is CNode.AddressOf -> Nodes(
         Text("&"),
         target.toPPNode()
     )
-    is CNode.DeclAssign -> PPNode.Group(
+
+    is CNode.DeclAssign -> Nodes(
         type.toPPNode(),
         Text(" "),
         Text(name),
-        Text(" = "),
-        value.toPPNode(),
-        Text(";")
+        Text(" ="),
+        Group(
+            Indent(
+                SpaceOrLine,
+                value.toPPNode(),
+            ),
+        ),
+        Text(";"),
     )
-    is CNode.Dot -> PPNode.Nodes(
+
+    is CNode.Dot -> Nodes(
         lhs.toPPNode(),
-        PPNode.LineIfWrapping,
+        LineIfWrapping,
         Text("."),
         Text(rhs)
     )
 
-    is CNode.Prefix -> PPNode.Nodes(
+    is CNode.Prefix -> Nodes(
         Text(op),
         Text("("),
         value.toPPNode(),
@@ -168,10 +217,10 @@ fun CNode.toPPNode(): PPNode = when (this) {
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {
-    return PPNode.Group(
+    return Group(
         declarations.mapIndexed { idx, it ->
             it.toPPNode() + Text("\n") +
-                if (idx == declarations.lastIndex) Text("") else Text("\n")
+                    if (idx == declarations.lastIndex) Text("") else Text("\n")
         }
     )
 }

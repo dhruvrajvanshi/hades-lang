@@ -181,7 +181,7 @@ class HIRToC(
         is HIRConstant.StructValue -> TODO()
         is HIRConstant.Void -> TODO()
         is HIRExpression.LocalRef -> CNode.Raw(expr.name.c())
-        is HIRExpression.ParamRef -> TODO()
+        is HIRExpression.ParamRef -> CNode.Raw(expr.name.c())
         is HIRExpression.TraitMethodRef -> TODO()
     }
 
@@ -193,7 +193,7 @@ class HIRToC(
 
     private fun lowerFunctionImplementation(def: HIRDefinition.Function) {
         val returnType = lowerType(def.returnType)
-        val parameters = def.params.map { lowerType(it.type) }
+        val parameters = def.params.map { it.name.c() to lowerType(it.type) }
         declarations.add(
             CNode.FnDefinition(
                 name = def.name.c(),
@@ -370,7 +370,7 @@ sealed interface CNode {
     data class FnDefinition(
         val name: String,
         val returnType: CNode,
-        val parameters: List<CNode>,
+        val parameters: List<Pair<String, CNode>>,
         val body: CNode
     ) : CNode
 
