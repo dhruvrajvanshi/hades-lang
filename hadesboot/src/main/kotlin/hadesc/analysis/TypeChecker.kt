@@ -41,15 +41,23 @@ class TypeChecker(
         is Declaration.ExternFunctionDef -> visitExternFunctionDef(decl)
         is Declaration.FunctionDef -> visitFunctionDef(decl)
         is Declaration.ImportMembers -> visitImportMembers(decl)
+        is Declaration.ImportAs -> visitImportAs(decl)
         is Declaration.TypeAlias -> visitTypeAlias(decl)
         is Declaration.Struct -> visitStructDecl(decl)
         is Declaration.ConstDefinition -> visitConstDefinition(decl)
         is Declaration.Enum,
         is Declaration.ExtensionDef,
         is Declaration.ImplementationDef,
-        is Declaration.ImportAs,
         is Declaration.TraitDef,
         -> todo(decl)
+    }
+
+    private fun visitImportAs(decl: Declaration.ImportAs) {
+        val sourceFile = resolver.getSourceFile(decl.modulePath)
+        if (sourceFile == null) {
+            diagnostic.report(decl.modulePath.location, "Can not find module `${decl.modulePath}`")
+            return
+        }
     }
 
     private fun visitConstDefinition(decl: Declaration.ConstDefinition) {
