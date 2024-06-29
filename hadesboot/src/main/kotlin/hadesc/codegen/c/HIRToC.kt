@@ -262,6 +262,9 @@ class HIRToC(
     }
 
     private fun lowerAllocaStatement(statement: HIRStatement.Alloca, into: MutableList<CNode>) {
+        if (statement.type is Type.Void) {
+            return
+        }
         val valueName = QualifiedName(listOf(statement.name, Name("value"))).c()
         into.add(CNode.LocalDecl(valueName, lowerType(statement.type)))
         into.add(CNode.LocalDecl(statement.name.c(), lowerType(statement.type.mutPtr())))

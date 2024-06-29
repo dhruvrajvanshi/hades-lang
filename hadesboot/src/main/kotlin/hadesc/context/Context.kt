@@ -105,7 +105,7 @@ class Context(
         when (options.backend) {
             Backend.C -> {
                 val cSource = HIRToC(hirModule).lower()
-                CToObject(cSource).execute()
+                CToObject(cSource, target).execute()
             }
             Backend.LLVM -> {
                 val llvmModule = HIRToLLVM(this, hirModule).lower()
