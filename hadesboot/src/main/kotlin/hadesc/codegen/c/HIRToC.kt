@@ -246,45 +246,52 @@ class HIRToC(
     }
 
     private fun lowerLoadStatement(statement: HIRStatement.Load, into: MutableList<CNode>) {
-        into.add(
-            CNode.DeclAssign(
-                statement.name.c(),
-                lowerType(statement.type),
-                CNode.RawPP(
-                    PPNode.Nodes(
-                        PPNode.Text("*"),
-                        lowerExpression(statement.ptr).toPPNode(),
-                    )
-                )
+        val name = statement.name.c()
+        addDeclAssign(
+            into,
+            name,
+            type = lowerType(statement.type),
+            value = CNode.Deref(
+                lowerExpression(statement.ptr),
             )
         )
+    }
+
+    private fun addDeclAssign(
+        into: MutableList<CNode>,
+        name: String,
+        type: CNode,
+        value: CNode
+    ) {
+        into.add(CNode.LocalDecl(name, type))
+        into.add(CNode.Assign(CNode.Raw(name), value))
     }
 
     private fun lowerPointerCast(statement: HIRStatement.PointerCast, into: MutableList<CNode>) {
         val toType = lowerType(statement.toPointerOfType.mutPtr())
-        into.add(
-            CNode.DeclAssign(
-                name = statement.name.c(),
-                type = toType,
-                value = CNode.RawPP(
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = toType,
+            value = CNode.RawPP(
 
-                    PPNode.Nodes(
-                        PPNode.Text("("),
-                        toType.toPPNode(),
-                        PPNode.Text(")"),
-                        lowerExpression(statement.value).toPPNode()
-                    )
-                ),
-            )
+                PPNode.Nodes(
+                    PPNode.Text("("),
+                    toType.toPPNode(),
+                    PPNode.Text(")"),
+                    lowerExpression(statement.value).toPPNode()
+                )
+            ),
         )
     }
 
     private fun lowerGetStructFieldPtr(statement: HIRStatement.GetStructFieldPointer, into: MutableList<CNode>) {
-        into.add(CNode.DeclAssign(
+        addDeclAssign(
+            into,
             name = statement.name.c(),
             type = lowerType(statement.type),
             value = CNode.AddressOf(CNode.Dot(lowerExpression(statement.lhs), statement.memberName.c()))
-        ))
+        )
     }
 
     private fun lowerReturnStatement(statement: HIRStatement.Return, into: MutableList<CNode>) {
@@ -310,12 +317,11 @@ class HIRToC(
         if (statement.resultType is Type.Void) {
             into.add(call)
         } else {
-            into.add(
-                CNode.DeclAssign(
-                    name = statement.name.c(),
-                    type = lowerType(statement.resultType),
-                    value = call
-                )
+            addDeclAssign(
+                into,
+                name = statement.name.c(),
+                type = lowerType(statement.resultType),
+                value = call
             )
         }
 
@@ -391,13 +397,13 @@ sealed interface CNode {
     data class Block(val items: List<LabeledStatements>) : CNode
     data class LocalDecl(val name: String, val type: CNode) : CNode
     data class Assign(val target: CNode, val value: CNode) : CNode
-    data class DeclAssign(val name: String, val type: CNode, val value: CNode) : CNode
     data class Dot(val lhs: CNode, val rhs: String): CNode
     data class AddressOf(val target: CNode): CNode
     data class Call(val target: CNode, val args: List<CNode>) : CNode
     data class Return(val value: CNode) : CNode
     data class Prefix(val op: String, val value: CNode) : CNode
     data class RawPP(val node: PPNode): CNode
+    data class Deref(val node: CNode): CNode
     data class LabeledStatements(
         val label: String,
         val statements: List<CNode>

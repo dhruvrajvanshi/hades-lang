@@ -2,6 +2,7 @@ package hadesc.codegen.c
 
 import hadesboot.prettyprint.PPNode
 import hadesboot.prettyprint.PPNode.*
+import javax.sound.sampled.Line
 
 fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Include -> Text("#include \"$path\"")
@@ -183,20 +184,6 @@ fun CNode.toPPNode(): PPNode = when (this) {
         target.toPPNode()
     )
 
-    is CNode.DeclAssign -> Nodes(
-        type.toPPNode(),
-        Text(" "),
-        Text(name),
-        Text(" ="),
-        Group(
-            Indent(
-                SpaceOrLine,
-                value.toPPNode(),
-            ),
-        ),
-        Text(";"),
-    )
-
     is CNode.Dot -> Nodes(
         lhs.toPPNode(),
         LineIfWrapping,
@@ -211,9 +198,7 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text(")"),
     )
     is CNode.LabeledStatements -> Group(
-        Text(label),
-        Text(":"),
-        LineIfWrapping,
+        if (label != "entry") Text("$label:") + LineIfWrapping else Text(""),
         Indent(
             statements.map { it.toPPNode() + LineIfWrapping }
         ),
@@ -221,6 +206,16 @@ fun CNode.toPPNode(): PPNode = when (this) {
     ).forceWrap()
 
     is CNode.RawPP -> node
+    is CNode.Deref -> Group(
+        Text("*"),
+        Text("("),
+        Indent(
+            LineIfWrapping,
+            node.toPPNode(),
+            LineIfWrapping,
+        ),
+        Text(")"),
+    )
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {
