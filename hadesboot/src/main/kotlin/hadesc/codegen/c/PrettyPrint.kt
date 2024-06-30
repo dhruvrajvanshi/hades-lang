@@ -2,11 +2,12 @@ package hadesc.codegen.c
 
 import hadesboot.prettyprint.PPNode
 import hadesboot.prettyprint.PPNode.*
+import javax.sound.sampled.Line
 
 fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Include -> Text("#include \"$path\"")
     is CNode.Raw -> Text(code)
-    is CNode.PtrType -> Text(if (isConst) "const " else " ") + type.toPPNode() + Text("*")
+    is CNode.PtrType -> Text(if (isConst) "const " else "") + type.toPPNode() + Text("*")
     is CNode.FnSignature -> Nodes(
         if (isExtern) Text("extern ") else Text(""),
         returnType.toPPNode(),
@@ -121,11 +122,9 @@ fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Block -> Group(
         Text("{"),
         LineIfWrapping,
-        Indent(
-            Nodes(items.map {
-                it.toPPNode() + LineIfWrapping
-            }),
-        ),
+        Nodes(items.map {
+            it.toPPNode() + LineIfWrapping
+        }),
         LineIfWrapping,
         Text("}"),
     ).forceWrap()
@@ -212,6 +211,15 @@ fun CNode.toPPNode(): PPNode = when (this) {
         value.toPPNode(),
         Text(")"),
     )
+    is CNode.LabeledStatements -> Group(
+        Text(label),
+        Text(":"),
+        LineIfWrapping,
+        Indent(
+            statements.map { it.toPPNode() + LineIfWrapping }
+        ),
+        LineIfWrapping
+    ).forceWrap()
 
     is CNode.RawPP -> node
 }

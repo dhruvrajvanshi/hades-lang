@@ -206,12 +206,13 @@ class HIRToC(
     }
 
     private fun lowerBlocks(blocks: List<HIRBlock>): CNode {
-        val items = mutableListOf<CNode>()
+        val items = mutableListOf<CNode.LabeledStatements>()
         for (block in blocks) {
-            items.add(CNode.Raw("${block.name.text}:"))
+            val stmts = mutableListOf<CNode>()
             for (statement in block.statements) {
-                lowerStatement(statement, into = items)
+                lowerStatement(statement, into = stmts)
             }
+            items.add(CNode.LabeledStatements(block.name.c(), stmts))
         }
         return CNode.Block(items)
     }
@@ -375,7 +376,7 @@ sealed interface CNode {
     ) : CNode
 
     data class ConstDef(val name: String, val type: CNode, val initializer: CNode) : CNode
-    data class Block(val items: List<CNode>) : CNode
+    data class Block(val items: List<LabeledStatements>) : CNode
     data class LocalDecl(val name: String, val type: CNode) : CNode
     data class Assign(val target: CNode, val value: CNode) : CNode
     data class DeclAssign(val name: String, val type: CNode, val value: CNode) : CNode
@@ -385,6 +386,10 @@ sealed interface CNode {
     data class Return(val value: CNode) : CNode
     data class Prefix(val op: String, val value: CNode) : CNode
     data class RawPP(val node: PPNode): CNode
+    data class LabeledStatements(
+        val label: String,
+        val statements: List<CNode>
+    ) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {
