@@ -2,7 +2,6 @@ package hadesc.codegen.c
 
 import hadesboot.prettyprint.PPNode
 import hadesboot.prettyprint.PPNode.*
-import javax.sound.sampled.Line
 
 fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Include -> Text("#include \"$path\"")

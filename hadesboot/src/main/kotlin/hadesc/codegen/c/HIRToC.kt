@@ -306,7 +306,19 @@ class HIRToC(
 
     private fun lowerCallStatement(statement: HIRStatement.Call, into: MutableList<CNode>) {
         val args = statement.args.map { lowerExpression(it) }
-        into.add(CNode.Call(target = lowerExpression(statement.callee), args = args))
+        val call = CNode.Call(target = lowerExpression(statement.callee), args = args)
+        if (statement.resultType is Type.Void) {
+            into.add(call)
+        } else {
+            into.add(
+                CNode.DeclAssign(
+                    name = statement.name.c(),
+                    type = lowerType(statement.resultType),
+                    value = call
+                )
+            )
+        }
+
     }
 
     private fun lowerAllocaStatement(statement: HIRStatement.Alloca, into: MutableList<CNode>) {
