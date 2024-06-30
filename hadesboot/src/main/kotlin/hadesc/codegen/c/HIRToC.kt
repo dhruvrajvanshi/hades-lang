@@ -8,7 +8,6 @@ import hadesc.hir.*
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.mutPtr
-import hadesc.types.ptr
 
 class HIRToC(
     private val hirModule: HIRModule
@@ -26,6 +25,14 @@ class HIRToC(
         for (definition in hirModule.definitions) {
             lowerDefinitionImplementation(definition)
         }
+        declarations.add(
+            CNode.Raw("""
+                int main() {
+                    hades_u_main();
+                    return 0;
+                }
+            """.trimIndent())
+        )
         return declarationsToPPNode(declarations).prettyPrint()
     }
 
@@ -38,9 +45,11 @@ class HIRToC(
         is HIRDefinition.Struct -> lowerStructInterface(definition)
     }
 
+    private val externNames = mutableMapOf<QualifiedName, String>()
     private fun lowerExternConstInterface(definition: HIRDefinition.ExternConst) {
         val type = lowerType(definition.type)
-        declarations.add(CNode.ExternConst(definition.name.c(), type))
+        declarations.add(CNode.ExternConst(definition.externName.text, type))
+        externNames[definition.name] = definition.externName.text
     }
 
     private fun lowerExternFunctionInterface(definition: HIRDefinition.ExternFunction) {
@@ -48,25 +57,35 @@ class HIRToC(
         val parameters = definition.params.map { lowerType(it) }
         declarations.add(
             CNode.FnSignature(
-                name = definition.name.c(),
+                name = definition.externName.text,
                 returnType = returnType,
                 parameters = parameters,
                 isExtern = true
             )
         )
+        externNames[definition.name] = definition.externName.text
     }
 
     private fun lowerFunctionInterface(definition: HIRDefinition.Function) {
         val returnType = lowerType(definition.returnType)
         val parameters = definition.params.map { lowerType(it.type) }
+        val name = lowerMainFnNameIfRequired(definition.name)
         declarations.add(
             CNode.FnSignature(
-                name = definition.name.c(),
+                name = name.c(),
                 returnType = returnType,
                 parameters = parameters,
                 isExtern = false
             )
         )
+    }
+
+    private fun lowerMainFnNameIfRequired(name: QualifiedName): QualifiedName {
+        return if (name.names.map { it.text } == listOf("main")) {
+            QualifiedName(listOf(Name("hades_main")))
+        } else {
+            name
+        }
     }
 
     private val fnPtrNames = mutableMapOf<String, Name>()
@@ -168,7 +187,14 @@ class HIRToC(
     }
 
     private fun lowerExpression(expr: HIRExpression): CNode = when (expr) {
-        is HIRExpression.GlobalRef -> CNode.Raw(expr.name.c())
+        is HIRExpression.GlobalRef -> {
+            val extern = externNames[expr.name]
+            if (extern != null) {
+                CNode.Raw(extern)
+            } else {
+                CNode.Raw(lowerMainFnNameIfRequired(expr.name).c())
+            }
+        }
         is HIRConstant.AlignOf -> TODO()
         is HIRConstant.BoolValue -> TODO()
         is HIRConstant.ByteString -> lowerByteString(expr)
@@ -196,7 +222,7 @@ class HIRToC(
         val parameters = def.params.map { it.name.c() to lowerType(it.type) }
         declarations.add(
             CNode.FnDefinition(
-                name = def.name.c(),
+                name = lowerMainFnNameIfRequired(def.name).c(),
                 returnType = returnType,
                 parameters = parameters,
                 body = lowerBlocks(def.basicBlocks)
