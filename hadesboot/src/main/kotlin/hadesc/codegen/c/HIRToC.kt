@@ -26,12 +26,14 @@ class HIRToC(
             lowerDefinitionImplementation(definition)
         }
         declarations.add(
-            CNode.Raw("""
+            CNode.Raw(
+                """
                 int main() {
                     hades_u_main();
                     return 0;
                 }
-            """.trimIndent())
+            """.trimIndent()
+            )
         )
         return declarationsToPPNode(declarations).prettyPrint()
     }
@@ -195,6 +197,7 @@ class HIRToC(
                 CNode.Raw(lowerMainFnNameIfRequired(expr.name).c())
             }
         }
+
         is HIRConstant.AlignOf -> TODO()
         is HIRConstant.BoolValue -> TODO()
         is HIRConstant.ByteString -> lowerByteString(expr)
@@ -231,7 +234,7 @@ class HIRToC(
         )
     }
 
-    private fun lowerBlocks(blocks: List<HIRBlock>): CNode {
+    private fun lowerBlocks(blocks: List<HIRBlock>): CNode.FunctionBody {
         val items = mutableListOf<CNode.LabeledStatements>()
         for (block in blocks) {
             val stmts = mutableListOf<CNode>()
@@ -240,7 +243,7 @@ class HIRToC(
             }
             items.add(CNode.LabeledStatements(block.name.c(), stmts))
         }
-        return CNode.Block(items)
+        return CNode.FunctionBody(items)
     }
 
     private fun lowerStatement(statement: HIRStatement, into: MutableList<CNode>): Unit = when (statement) {
@@ -266,9 +269,27 @@ class HIRToC(
         is HIRStatement.Return -> lowerReturnStatement(statement, into)
         is HIRStatement.Store -> lowerStoreStatement(statement, into)
         is HIRStatement.StoreRefField -> TODO()
-        is HIRStatement.SwitchInt -> TODO()
+        is HIRStatement.SwitchInt -> lowerSwitchInt(statement, into)
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerSwitchInt(statement: HIRStatement.SwitchInt, into: MutableList<CNode>) {
+        val cases = buildList {
+            addAll(statement.cases.map {
+                CNode.SwitchCase(
+                    lowerExpression(it.value),
+                    CNode.Goto(it.block.c()),
+                )
+            })
+            add(CNode.DefaultCase(CNode.DefaultCase(CNode.Goto(statement.otherwise.c()))))
+        }
+        into.add(
+            CNode.Switch(
+                lowerExpression(statement.condition),
+                cases
+            )
+        )
     }
 
     private fun lowerLoadStatement(statement: HIRStatement.Load, into: MutableList<CNode>) {
@@ -416,24 +437,29 @@ sealed interface CNode {
         val name: String,
         val returnType: CNode,
         val parameters: List<Pair<String, CNode>>,
-        val body: CNode
+        val body: FunctionBody
     ) : CNode
 
     data class ConstDef(val name: String, val type: CNode, val initializer: CNode) : CNode
-    data class Block(val items: List<LabeledStatements>) : CNode
+    data class FunctionBody(val items: List<LabeledStatements>) : CNode
     data class LocalDecl(val name: String, val type: CNode) : CNode
     data class Assign(val target: CNode, val value: CNode) : CNode
-    data class Dot(val lhs: CNode, val rhs: String): CNode
-    data class AddressOf(val target: CNode): CNode
+    data class Dot(val lhs: CNode, val rhs: String) : CNode
+    data class AddressOf(val target: CNode) : CNode
     data class Call(val target: CNode, val args: List<CNode>) : CNode
     data class Return(val value: CNode) : CNode
     data class Prefix(val op: String, val value: CNode) : CNode
-    data class RawPP(val node: PPNode): CNode
-    data class Deref(val node: CNode): CNode
+    data class RawPP(val node: PPNode) : CNode
+    data class Deref(val node: CNode) : CNode
     data class LabeledStatements(
         val label: String,
         val statements: List<CNode>
     ) : CNode
+
+    data class Switch(val expr: CNode, val cases: List<CNode>) : CNode
+    data class SwitchCase(val value: CNode, val body: CNode) : CNode
+    data class DefaultCase(val body: CNode) : CNode
+    data class Goto(val label: String) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {

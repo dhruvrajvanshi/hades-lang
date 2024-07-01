@@ -2,7 +2,6 @@ package hadesc.codegen.c
 
 import hadesboot.prettyprint.PPNode
 import hadesboot.prettyprint.PPNode.*
-import javax.sound.sampled.Line
 
 fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Include -> Text("#include \"$path\"")
@@ -119,7 +118,7 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text(";")
     )
 
-    is CNode.Block -> Group(
+    is CNode.FunctionBody -> Group(
         Text("{"),
         LineIfWrapping,
         Nodes(items.map {
@@ -215,6 +214,40 @@ fun CNode.toPPNode(): PPNode = when (this) {
             LineIfWrapping,
         ),
         Text(")"),
+    )
+
+    is CNode.DefaultCase -> Nodes(
+        Text("default: "),
+        body.toPPNode()
+    )
+    is CNode.Goto -> Nodes(
+        Text("goto $label;")
+    )
+    is CNode.Switch -> Nodes(
+        Text("switch"),
+        Group(
+            Text("("),
+            LineIfWrapping,
+            Indent(
+                expr.toPPNode(),
+            ),
+            LineIfWrapping,
+            Text(")")
+        ),
+        Group(
+            Text(" {"),
+            Indent(
+                cases.map { it.toPPNode() + LineIfWrapping }
+            ),
+            Text("}")
+        ).forceWrap()
+    )
+    is CNode.SwitchCase -> Nodes(
+        Text("case "),
+        value.toPPNode(),
+        Text(": "),
+        body.toPPNode()
+
     )
 }
 
