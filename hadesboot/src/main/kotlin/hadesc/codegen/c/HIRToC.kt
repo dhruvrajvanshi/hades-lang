@@ -8,17 +8,20 @@ import hadesc.hir.*
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.mutPtr
+import hadesc.types.ptr
 
 class HIRToC(
     private val hirModule: HIRModule
 ) {
     private val declarations = mutableListOf<CNode>(
-        CNode.Raw("""
+        CNode.Raw(
+            """
             #include <stddef.h>
             #include <stdbool.h>
             #include <stdint.h>
             #include <stdalign.h>
-        """.trimIndent())
+        """.trimIndent()
+        )
     )
 
     fun lower(): String {
@@ -116,6 +119,7 @@ class HIRToC(
             }
             CNode.Raw(type.name.c())
         }
+
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.FunctionPtr -> {
             val key = type.from.joinToString(",", "(", ")") {
@@ -136,7 +140,7 @@ class HIRToC(
         }
 
         is Type.Integral -> CNode.Raw(lowerIntegralType(type))
-        is Type.Ptr -> CNode.PtrType(lowerType(type.to, indirect = true), isConst = !type.isMutable)
+        is Type.Ptr -> CNode.PtrType(lowerType(type.to, indirect = true), isConst = false)
         is Type.Ref -> TODO()
         is Type.Size -> CNode.Raw("size_t")
         is Type.UntaggedUnion -> {
@@ -430,6 +434,7 @@ class HIRToC(
             value = CNode.AddressOf(CNode.Arrow(lowerExpression(statement.lhs), statement.memberName.c()))
         )
     }
+
     private fun lowerGetStructField(statement: HIRStatement.GetStructField, into: MutableList<CNode>) {
         addDeclAssign(
             into,
@@ -511,7 +516,7 @@ class HIRToC(
     }
 }
 
-private fun HIRDefinition.definitionSortOrder(): Int = when(this) {
+private fun HIRDefinition.definitionSortOrder(): Int = when (this) {
     is HIRDefinition.Struct -> 0
     is HIRDefinition.ExternConst -> 1
     is HIRDefinition.ExternFunction -> 2
@@ -588,8 +593,8 @@ sealed interface CNode {
     data class SwitchCase(val value: CNode, val body: CNode) : CNode
     data class DefaultCase(val body: CNode) : CNode
     data class Goto(val label: String) : CNode
-    data class Cast(val toType: CNode, val value: CNode): CNode
-    data class BraceInitializedList(val values: List<CNode>): CNode
+    data class Cast(val toType: CNode, val value: CNode) : CNode
+    data class BraceInitializedList(val values: List<CNode>) : CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {
@@ -608,6 +613,7 @@ fun Byte.escapeToStr(): String = when {
     '\n'.code == toInt() -> "\\n"
     '\r'.code == toInt() -> "\\r"
     '\t'.code == toInt() -> "\\t"
+    '"'.code == toInt() -> "\\\""
     toInt() < 127
     -> Char(toInt()).toString()
 
@@ -615,7 +621,7 @@ fun Byte.escapeToStr(): String = when {
         "\\x${toInt().toString(16).padStart(2, '0')}"
 }
 
-fun BinaryOperator.toC(): String = when(this) {
+fun BinaryOperator.toC(): String = when (this) {
     BinaryOperator.PLUS -> "+"
     BinaryOperator.MINUS -> "-"
     BinaryOperator.TIMES -> "*"
