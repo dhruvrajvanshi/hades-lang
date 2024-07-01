@@ -201,17 +201,17 @@ class HIRToC(
         is HIRConstant.AlignOf -> TODO()
         is HIRConstant.BoolValue -> TODO()
         is HIRConstant.ByteString -> lowerByteString(expr)
-        is HIRConstant.Error -> TODO()
-        is HIRConstant.FloatValue -> TODO()
+        is HIRConstant.Error -> requireUnreachable()
+        is HIRConstant.FloatValue -> CNode.Raw(expr.value.toString())
         is HIRConstant.GlobalFunctionRef -> TODO()
         is HIRConstant.IntValue -> CNode.Raw(expr.value.toString())
-        is HIRConstant.NullPtr -> TODO()
+        is HIRConstant.NullPtr -> CNode.Raw("NULL")
         is HIRConstant.SizeOf -> TODO()
         is HIRConstant.StructValue -> TODO()
-        is HIRConstant.Void -> TODO()
+        is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> CNode.Raw(expr.name.c())
         is HIRExpression.ParamRef -> CNode.Raw(expr.name.c())
-        is HIRExpression.TraitMethodRef -> TODO()
+        is HIRExpression.TraitMethodRef -> requireUnreachable()
     }
 
     private fun lowerByteString(expr: HIRConstant.ByteString): CNode {
