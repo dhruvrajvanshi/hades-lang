@@ -236,9 +236,8 @@ fun CNode.toPPNode(): PPNode = when (this) {
         ),
         Group(
             Text(" {"),
-            Indent(
-                cases.map { it.toPPNode() + LineIfWrapping }
-            ),
+            LineIfWrapping,
+            Nodes(cases.map { it.toPPNode() + LineIfWrapping }),
             Text("}")
         ).forceWrap()
     )
