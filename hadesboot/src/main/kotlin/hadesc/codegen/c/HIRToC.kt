@@ -265,7 +265,7 @@ class HIRToC(
         is HIRStatement.MatchInt -> TODO()
         is HIRStatement.Memcpy -> TODO()
         is HIRStatement.Move -> TODO()
-        is HIRStatement.Not -> TODO()
+        is HIRStatement.Not -> lowerNotStatement(statement, into)
         is HIRStatement.PointerCast -> lowerPointerCast(statement, into)
         is HIRStatement.PtrToInt -> lowerPtrToInt(statement, into)
         is HIRStatement.IntToPtr -> lowerIntToPtr(statement, into)
@@ -275,6 +275,15 @@ class HIRToC(
         is HIRStatement.SwitchInt -> lowerSwitchInt(statement, into)
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerNotStatement(statement: HIRStatement.Not, into: MutableList<CNode>) {
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = lowerType(statement.expression.type),
+            value = CNode.Prefix("!", lowerExpression(statement.expression))
+        )
     }
 
     private fun lowerIntToPtr(statement: HIRStatement.IntToPtr, into: MutableList<CNode>) {
@@ -332,6 +341,9 @@ class HIRToC(
     }
 
     private fun lowerLoadStatement(statement: HIRStatement.Load, into: MutableList<CNode>) {
+        if (statement.type == Type.Void) {
+            return
+        }
         val name = statement.name.c()
         addDeclAssign(
             into,
@@ -347,10 +359,14 @@ class HIRToC(
         into: MutableList<CNode>,
         name: String,
         type: CNode,
-        value: CNode
+        value: CNode,
     ) {
-        into.add(CNode.LocalDecl(name, type))
-        into.add(CNode.Assign(CNode.Raw(name), value))
+        if (type == CNode.Raw("void")) {
+            into.add(value)
+        } else {
+            into.add(CNode.LocalDecl(name, type))
+            into.add(CNode.Assign(CNode.Raw(name), value))
+        }
     }
 
     private fun lowerPointerCast(statement: HIRStatement.PointerCast, into: MutableList<CNode>) {
