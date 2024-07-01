@@ -321,7 +321,7 @@ class HIRToC(
                     CNode.Goto(it.block.c()),
                 )
             })
-            add(CNode.DefaultCase(CNode.DefaultCase(CNode.Goto(statement.otherwise.c()))))
+            add(CNode.DefaultCase(CNode.Goto(statement.otherwise.c())))
         }
         into.add(
             CNode.Switch(
