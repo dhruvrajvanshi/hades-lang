@@ -94,7 +94,7 @@ class HIRToC(
     }
 
     private val fnPtrNames = mutableMapOf<String, Name>()
-    private fun lowerType(type: Type): CNode = when (type) {
+    private fun lowerType(type: Type, indirect: Boolean = false): CNode = when (type) {
         is Type.AssociatedTypeRef,
         is Type.Application,
         is Type.Closure,
@@ -109,7 +109,13 @@ class HIRToC(
 
         is Type.Array -> TODO()
         Type.Bool -> CNode.Raw("bool")
-        is Type.Constructor -> CNode.Raw(type.name.c())
+        is Type.Constructor -> {
+            val structDecl = hirModule.findStructDefOrNull(type.name)
+            if (structDecl != null && !indirect) {
+                lowerStructImplementation(structDecl)
+            }
+            CNode.Raw(type.name.c())
+        }
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.FunctionPtr -> {
             val key = type.from.joinToString(",", "(", ")") {
@@ -130,7 +136,7 @@ class HIRToC(
         }
 
         is Type.Integral -> CNode.Raw(lowerIntegralType(type))
-        is Type.Ptr -> CNode.PtrType(lowerType(type.to), isConst = !type.isMutable)
+        is Type.Ptr -> CNode.PtrType(lowerType(type.to, indirect = true), isConst = !type.isMutable)
         is Type.Ref -> TODO()
         is Type.Size -> CNode.Raw("size_t")
         is Type.UntaggedUnion -> {
@@ -488,7 +494,12 @@ class HIRToC(
         into.add(CNode.Assign(CNode.Raw(statement.name.c()), CNode.Raw("&$valueName")))
     }
 
+    private val loweredStructImplSet = mutableSetOf<QualifiedName>()
     private fun lowerStructImplementation(definition: HIRDefinition.Struct) {
+        if (definition.name in loweredStructImplSet) {
+            return
+        }
+        loweredStructImplSet.add(definition.name)
         declarations.add(
             CNode.StructDef(
                 name = definition.name.c(),
