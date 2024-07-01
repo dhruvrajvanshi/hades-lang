@@ -53,6 +53,12 @@ data class HIRModule(
             }
     }
 
+    fun findStructDefOrNull(structName: QualifiedName): HIRDefinition.Struct? {
+        return findDefinitions(structName)
+            .filterIsInstance<HIRDefinition.Struct>()
+            .firstOrNull()
+    }
+
     fun findGlobalFunction(name: QualifiedName): HIRDefinition.Function {
         return findDefinition(name)
             .let {

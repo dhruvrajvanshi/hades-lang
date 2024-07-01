@@ -367,7 +367,18 @@ class HIRToC(
     }
 
     private fun lowerCallStatement(statement: HIRStatement.Call, into: MutableList<CNode>) {
+        // FIXME: This should be handled upstream in HIRGen
         val args = statement.args.map { lowerExpression(it) }
+        // Struct initializer
+        if (statement.callee is HIRExpression.GlobalRef && hirModule.findStructDefOrNull(statement.callee.name) != null) {
+            addDeclAssign(
+                into,
+                name = statement.name.c(),
+                type = lowerType(statement.resultType),
+                value = CNode.Cast(lowerType(statement.resultType), CNode.BraceInitializedList(args))
+            )
+            return
+        }
         val call = CNode.Call(target = lowerExpression(statement.callee), args = args)
         if (statement.resultType is Type.Void) {
             into.add(call)
@@ -468,6 +479,8 @@ sealed interface CNode {
     data class SwitchCase(val value: CNode, val body: CNode) : CNode
     data class DefaultCase(val body: CNode) : CNode
     data class Goto(val label: String) : CNode
+    data class Cast(val toType: CNode, val value: CNode): CNode
+    data class BraceInitializedList(val values: List<CNode>): CNode
 }
 
 fun HIRDefinition.interfaceSortOrder(): Int {

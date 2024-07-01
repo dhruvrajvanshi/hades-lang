@@ -249,6 +249,30 @@ fun CNode.toPPNode(): PPNode = when (this) {
         body.toPPNode()
 
     )
+
+    is CNode.BraceInitializedList -> Group(
+        Text("{"),
+        Indent(
+            LineIfWrapping,
+            Nodes(
+                values.mapIndexed { idx, it ->
+                    it.toPPNode() + Text(if (idx == values.lastIndex) "" else ", ") + LineIfWrapping
+                }
+            ),
+            LineIfWrapping,
+        ),
+        Text("}"),
+    )
+    is CNode.Cast -> Group(
+        Text("("),
+        Indent(
+            LineIfWrapping,
+            toType.toPPNode(),
+            LineIfWrapping,
+        ),
+        Text(") "),
+        value.toPPNode()
+    )
 }
 
 fun declarationsToPPNode(declarations: List<CNode>): PPNode {
