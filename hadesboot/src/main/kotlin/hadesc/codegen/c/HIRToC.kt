@@ -13,9 +13,12 @@ class HIRToC(
     private val hirModule: HIRModule
 ) {
     private val declarations = mutableListOf<CNode>(
-        CNode.Include("stddef.h"),
-        CNode.Include("stdbool.h"),
-        CNode.Include("stdint.h"),
+        CNode.Raw("""
+            #include <stddef.h>
+            #include <stdbool.h>
+            #include <stdint.h>
+            #include <stdalign.h>
+        """.trimIndent())
     )
 
     fun lower(): String {
@@ -198,15 +201,15 @@ class HIRToC(
             }
         }
 
-        is HIRConstant.AlignOf -> TODO()
-        is HIRConstant.BoolValue -> TODO()
+        is HIRConstant.BoolValue -> CNode.Raw(if (expr.value) "true" else "false")
         is HIRConstant.ByteString -> lowerByteString(expr)
         is HIRConstant.Error -> requireUnreachable()
         is HIRConstant.FloatValue -> CNode.Raw(expr.value.toString())
-        is HIRConstant.GlobalFunctionRef -> TODO()
+        is HIRConstant.GlobalFunctionRef -> CNode.Raw(lowerMainFnNameIfRequired(expr.name).c())
         is HIRConstant.IntValue -> CNode.Raw(expr.value.toString())
         is HIRConstant.NullPtr -> CNode.Raw("NULL")
-        is HIRConstant.SizeOf -> TODO()
+        is HIRConstant.SizeOf -> CNode.Call(CNode.Raw("sizeof"), listOf(lowerType(expr.type)))
+        is HIRConstant.AlignOf -> CNode.Call(CNode.Raw("alignof"), listOf(lowerType(expr.type)))
         is HIRConstant.StructValue -> TODO()
         is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> CNode.Raw(expr.name.c())
