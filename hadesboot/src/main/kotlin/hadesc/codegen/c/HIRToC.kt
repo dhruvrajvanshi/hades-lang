@@ -424,6 +424,7 @@ fun Name.c(): String =
         .replace("[", "_l_")
         .replace("]", "_r_")
         .replace(".", "_p_")
+        .replace("*", "_s_")
         .let { if (it[0].isDigit()) "_$it" else it }
 
 fun QualifiedName.c(): String {
