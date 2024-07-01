@@ -25,7 +25,7 @@ class HIRToC(
         for (definition in hirModule.definitions.sortedBy { it.interfaceSortOrder() }) {
             lowerDefinitionInterface(definition)
         }
-        for (definition in hirModule.definitions) {
+        for (definition in hirModule.definitions.sortedBy { it.definitionSortOrder() }) {
             lowerDefinitionImplementation(definition)
         }
         declarations.add(
@@ -416,6 +416,15 @@ class HIRToC(
             )
         )
     }
+}
+
+private fun HIRDefinition.definitionSortOrder(): Int = when(this) {
+    is HIRDefinition.Struct -> 0
+    is HIRDefinition.ExternConst -> 1
+    is HIRDefinition.ExternFunction -> 2
+    is HIRDefinition.Const -> 3
+    is HIRDefinition.Function -> 4
+    is HIRDefinition.Implementation -> requireUnreachable()
 }
 
 fun Name.c(): String =
