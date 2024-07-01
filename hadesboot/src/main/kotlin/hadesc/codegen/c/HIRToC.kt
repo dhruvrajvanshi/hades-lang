@@ -257,9 +257,8 @@ class HIRToC(
         is HIRStatement.Call -> lowerCallStatement(statement, into)
         is HIRStatement.GetStructField -> lowerGetStructField(statement, into)
         is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPtr(statement, into)
-        is HIRStatement.IntToPtr -> TODO()
-        is HIRStatement.IntegerConvert -> TODO()
-        is HIRStatement.InvokeClosure -> TODO()
+        is HIRStatement.IntegerConvert -> lowerIntegerConvert(statement, into)
+        is HIRStatement.InvokeClosure -> requireUnreachable()
         is HIRStatement.Jump -> TODO()
         is HIRStatement.Load -> lowerLoadStatement(statement, into)
         is HIRStatement.LoadRefField -> TODO()
@@ -268,13 +267,50 @@ class HIRToC(
         is HIRStatement.Move -> TODO()
         is HIRStatement.Not -> TODO()
         is HIRStatement.PointerCast -> lowerPointerCast(statement, into)
-        is HIRStatement.PtrToInt -> TODO()
+        is HIRStatement.PtrToInt -> lowerPtrToInt(statement, into)
+        is HIRStatement.IntToPtr -> lowerIntToPtr(statement, into)
         is HIRStatement.Return -> lowerReturnStatement(statement, into)
         is HIRStatement.Store -> lowerStoreStatement(statement, into)
         is HIRStatement.StoreRefField -> TODO()
         is HIRStatement.SwitchInt -> lowerSwitchInt(statement, into)
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerIntToPtr(statement: HIRStatement.IntToPtr, into: MutableList<CNode>) {
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = lowerType(statement.type),
+            value = CNode.Cast(
+                lowerType(statement.type),
+                lowerExpression(statement.expression)
+            )
+        )
+    }
+
+    private fun lowerPtrToInt(statement: HIRStatement.PtrToInt, into: MutableList<CNode>) {
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = lowerType(statement.type),
+            value = CNode.Cast(
+                lowerType(statement.type),
+                lowerExpression(statement.expression)
+            )
+        )
+    }
+
+    private fun lowerIntegerConvert(statement: HIRStatement.IntegerConvert, into: MutableList<CNode>) {
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = lowerType(statement.type),
+            value = CNode.Cast(
+                lowerType(statement.type),
+                lowerExpression(statement.value)
+            )
+        )
     }
 
     private fun lowerSwitchInt(statement: HIRStatement.SwitchInt, into: MutableList<CNode>) {
