@@ -103,7 +103,9 @@ class HIRToC(
         is Type.Param,
         is Type.Select,
         is Type.TypeFunction,
-        -> requireUnreachable()
+        -> {
+            requireUnreachable()
+        }
 
         is Type.Array -> TODO()
         Type.Bool -> CNode.Raw("bool")
@@ -231,14 +233,21 @@ class HIRToC(
                 name = lowerMainFnNameIfRequired(def.name).c(),
                 returnType = returnType,
                 parameters = parameters,
-                body = lowerBlocks(def.basicBlocks)
+                body = lowerFunctionBody(def.basicBlocks)
 
             )
         )
     }
 
-    private fun lowerBlocks(blocks: List<HIRBlock>): CNode.FunctionBody {
+    private var currentFnPrelude: MutableList<CNode>? = null
+    private fun lowerFunctionBody(blocks: List<HIRBlock>): CNode.FunctionBody {
         val items = mutableListOf<CNode.LabeledStatements>()
+        val prelude = mutableListOf<CNode>(
+            CNode.LocalDecl(Name("\$hades_dummy").c(), CNode.Raw("void*"))
+        )
+        check(currentFnPrelude == null)
+        currentFnPrelude = prelude
+
         for (block in blocks) {
             val stmts = mutableListOf<CNode>()
             for (statement in block.statements) {
@@ -246,14 +255,16 @@ class HIRToC(
             }
             items.add(CNode.LabeledStatements(block.name.c(), stmts))
         }
-        return CNode.FunctionBody(items)
+        check(currentFnPrelude === prelude)
+        currentFnPrelude = null
+        return CNode.FunctionBody(prelude, items)
     }
 
     private fun lowerStatement(statement: HIRStatement, into: MutableList<CNode>): Unit = when (statement) {
         is HIRStatement.AllocRef -> TODO()
         is HIRStatement.Alloca -> lowerAllocaStatement(statement, into)
         is HIRStatement.AllocateClosure -> TODO()
-        is HIRStatement.BinOp -> TODO()
+        is HIRStatement.BinOp -> lowerBinOp(statement, into)
         is HIRStatement.Call -> lowerCallStatement(statement, into)
         is HIRStatement.GetStructField -> lowerGetStructField(statement, into)
         is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPtr(statement, into)
@@ -275,6 +286,23 @@ class HIRToC(
         is HIRStatement.SwitchInt -> lowerSwitchInt(statement, into)
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerBinOp(statement: HIRStatement.BinOp, into: MutableList<CNode>) {
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = lowerType(statement.type),
+            value = CNode.RawPP(
+                PPNode.Nodes(
+                    lowerExpression(statement.lhs).toPPNode(),
+                    PPNode.Text(" "),
+                    PPNode.Text(statement.operator.toC()),
+                    PPNode.Text(" "),
+                    lowerExpression(statement.rhs).toPPNode()
+                )
+            )
+        )
     }
 
     private fun lowerNotStatement(statement: HIRStatement.Not, into: MutableList<CNode>) {
@@ -364,7 +392,8 @@ class HIRToC(
         if (type == CNode.Raw("void")) {
             into.add(value)
         } else {
-            into.add(CNode.LocalDecl(name, type))
+            val prelude = checkNotNull(currentFnPrelude)
+            prelude.add(CNode.LocalDecl(name, type))
             into.add(CNode.Assign(CNode.Raw(name), value))
         }
     }
@@ -392,7 +421,7 @@ class HIRToC(
             into,
             name = statement.name.c(),
             type = lowerType(statement.type),
-            value = CNode.AddressOf(CNode.Dot(lowerExpression(statement.lhs), statement.memberName.c()))
+            value = CNode.AddressOf(CNode.Arrow(lowerExpression(statement.lhs), statement.memberName.c()))
         )
     }
     private fun lowerGetStructField(statement: HIRStatement.GetStructField, into: MutableList<CNode>) {
@@ -453,8 +482,9 @@ class HIRToC(
             return
         }
         val valueName = QualifiedName(listOf(statement.name, Name("value"))).c()
-        into.add(CNode.LocalDecl(valueName, lowerType(statement.type)))
-        into.add(CNode.LocalDecl(statement.name.c(), lowerType(statement.type.mutPtr())))
+        val prelude = checkNotNull(currentFnPrelude)
+        prelude.add(CNode.LocalDecl(valueName, lowerType(statement.type)))
+        prelude.add(CNode.LocalDecl(statement.name.c(), lowerType(statement.type.mutPtr())))
         into.add(CNode.Assign(CNode.Raw(statement.name.c()), CNode.Raw("&$valueName")))
     }
 
@@ -527,10 +557,11 @@ sealed interface CNode {
     ) : CNode
 
     data class ConstDef(val name: String, val type: CNode, val initializer: CNode) : CNode
-    data class FunctionBody(val items: List<LabeledStatements>) : CNode
+    data class FunctionBody(val prelude: List<CNode>, val items: List<LabeledStatements>) : CNode
     data class LocalDecl(val name: String, val type: CNode) : CNode
     data class Assign(val target: CNode, val value: CNode) : CNode
     data class Dot(val lhs: CNode, val rhs: String) : CNode
+    data class Arrow(val lhs: CNode, val rhs: String) : CNode
     data class AddressOf(val target: CNode) : CNode
     data class Call(val target: CNode, val args: List<CNode>) : CNode
     data class Return(val value: CNode) : CNode
@@ -571,4 +602,20 @@ fun Byte.escapeToStr(): String = when {
 
     else ->
         "\\x${toInt().toString(16).padStart(2, '0')}"
+}
+
+fun BinaryOperator.toC(): String = when(this) {
+    BinaryOperator.PLUS -> "+"
+    BinaryOperator.MINUS -> "-"
+    BinaryOperator.TIMES -> "*"
+    BinaryOperator.DIV -> "/"
+    BinaryOperator.REM -> "/"
+    BinaryOperator.AND -> "&&"
+    BinaryOperator.OR -> "||"
+    BinaryOperator.EQUALS -> "=="
+    BinaryOperator.NOT_EQUALS -> "!="
+    BinaryOperator.GREATER_THAN -> ">"
+    BinaryOperator.GREATER_THAN_EQUAL -> ">="
+    BinaryOperator.LESS_THAN -> "<"
+    BinaryOperator.LESS_THAN_EQUAL -> "<="
 }
