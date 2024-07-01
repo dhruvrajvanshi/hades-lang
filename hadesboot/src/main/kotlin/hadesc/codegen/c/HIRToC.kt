@@ -252,7 +252,7 @@ class HIRToC(
         is HIRStatement.AllocateClosure -> TODO()
         is HIRStatement.BinOp -> TODO()
         is HIRStatement.Call -> lowerCallStatement(statement, into)
-        is HIRStatement.GetStructField -> TODO()
+        is HIRStatement.GetStructField -> lowerGetStructField(statement, into)
         is HIRStatement.GetStructFieldPointer -> lowerGetStructFieldPtr(statement, into)
         is HIRStatement.IntToPtr -> TODO()
         is HIRStatement.IntegerConvert -> TODO()
@@ -338,6 +338,14 @@ class HIRToC(
             name = statement.name.c(),
             type = lowerType(statement.type),
             value = CNode.AddressOf(CNode.Dot(lowerExpression(statement.lhs), statement.memberName.c()))
+        )
+    }
+    private fun lowerGetStructField(statement: HIRStatement.GetStructField, into: MutableList<CNode>) {
+        addDeclAssign(
+            into,
+            name = statement.name.c(),
+            type = lowerType(statement.type),
+            value = CNode.Dot(lowerExpression(statement.lhs), statement.fieldName.c())
         )
     }
 
