@@ -48,4 +48,4 @@ fn main(): Void {
 }
 
 extern fn puts(*u8): Bool = puts
-extern fn exit(u32): Void = exit
+extern fn exit(i32): Void = exit
