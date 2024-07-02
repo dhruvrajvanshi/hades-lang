@@ -44,7 +44,7 @@ class CToObject(private val cSource: String, private val target: BuildTarget, pr
             .start()
             .waitFor()
         if (exitCode == 0) {
-            cOutputPath.deleteIfExists()
+//            cOutputPath.deleteIfExists()
         }
         check(exitCode == 0) { "Failed to compile C source" }
     }
