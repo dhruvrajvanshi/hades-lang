@@ -3,6 +3,7 @@ package hadesc.hir.passes
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
+import hadesc.context.NamingCtx
 import hadesc.hir.*
 import hadesc.location.SourceLocation
 import hadesc.types.Type
@@ -118,7 +119,6 @@ class SimplifyControlFlow(private val ctx: Context) {
                     StatementControlFlow.NoEarlyReturn -> unit
                 }
             }
-            lowerBlock(statement.conditionBlock)
             val conditionPtr = HIRExpression.LocalRef(statement.conditionBlock.location, Type.Bool.ptr(), statement.conditionName)
             val conditionLoad = appendStatement(HIRStatement.Load(conditionPtr.location, ctx.makeUniqueName(), conditionPtr))
             appendStatement(
