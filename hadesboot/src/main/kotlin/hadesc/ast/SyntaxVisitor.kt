@@ -197,6 +197,7 @@ interface SyntaxVisitor {
     }
 
     fun visitLocalAssignment(statement: Statement.LocalAssignment) {
+        visitExpression(statement.value)
     }
 
     fun visitIfStatement(statement: Statement.If) {
