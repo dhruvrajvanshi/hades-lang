@@ -166,7 +166,7 @@ fun CNode.toPPNode(): PPNode = when (this) {
             ),
             Text(")")
         ),
-        Text(";")
+        if (semi) Text(";") else Text("")
     )
 
     is CNode.Return -> Nodes(

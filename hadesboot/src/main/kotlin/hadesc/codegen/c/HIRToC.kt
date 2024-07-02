@@ -220,8 +220,8 @@ class HIRToC(
         is HIRConstant.GlobalFunctionRef -> CNode.Raw(lowerMainFnNameIfRequired(expr.name).c())
         is HIRConstant.IntValue -> CNode.Raw(expr.value.toString())
         is HIRConstant.NullPtr -> CNode.Raw("NULL")
-        is HIRConstant.SizeOf -> CNode.Call(CNode.Raw("sizeof"), listOf(lowerType(expr.type)))
-        is HIRConstant.AlignOf -> CNode.Call(CNode.Raw("alignof"), listOf(lowerType(expr.type)))
+        is HIRConstant.SizeOf -> CNode.Call(CNode.Raw("sizeof"), listOf(lowerType(expr.type)), semi = false)
+        is HIRConstant.AlignOf -> CNode.Call(CNode.Raw("alignof"), listOf(lowerType(expr.type)), semi = false)
         is HIRConstant.StructValue -> lowerStructLiteral(expr)
         is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> CNode.Raw(expr.name.c())
@@ -484,7 +484,7 @@ class HIRToC(
             )
             return
         }
-        val call = CNode.Call(target = lowerExpression(statement.callee), args = args)
+        val call = CNode.Call(target = lowerExpression(statement.callee), args = args, semi = true)
         if (statement.resultType is Type.Void) {
             into.add(call)
         } else {
@@ -598,7 +598,7 @@ sealed interface CNode {
     data class Dot(val lhs: CNode, val rhs: String) : CNode
     data class Arrow(val lhs: CNode, val rhs: String) : CNode
     data class AddressOf(val target: CNode) : CNode
-    data class Call(val target: CNode, val args: List<CNode>) : CNode
+    data class Call(val target: CNode, val args: List<CNode>, val semi: Boolean) : CNode
     data class Return(val value: CNode) : CNode
     data class Prefix(val op: String, val value: CNode) : CNode
     data class RawPP(val node: PPNode) : CNode
