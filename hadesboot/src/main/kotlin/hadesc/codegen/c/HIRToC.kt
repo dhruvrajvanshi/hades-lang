@@ -535,8 +535,15 @@ private fun HIRDefinition.definitionSortOrder(): Int = when (this) {
     is HIRDefinition.Implementation -> requireUnreachable()
 }
 
-fun Name.c(): String =
-    text.replace("_", "_u_")
+private val reservedCIdentifiers = setOf(
+    "bool",
+)
+fun Name.c(): String {
+    var text = this.text
+    if (text in reservedCIdentifiers) {
+        text = "\$$text"
+    }
+    return text.replace("_", "_u_")
         .replace("$", "_d_")
         .replace("[", "_l_")
         .replace("]", "_r_")
@@ -545,6 +552,7 @@ fun Name.c(): String =
         .replace(",", "_c_")
         .replace(" ", "_ss_")
         .let { if (it[0].isDigit()) "_$it" else it }
+}
 
 fun QualifiedName.c(): String {
     return this.names.joinToString("_") {
