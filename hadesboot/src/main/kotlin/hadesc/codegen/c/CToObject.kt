@@ -23,6 +23,10 @@ class CToObject(private val cSource: String, private val target: BuildTarget, pr
         println(cSource)
         val commandParts = mutableListOf(cc, "-o", target.output.toString())
 
+        if (options.debugSymbols) {
+            commandParts.add("-g")
+        }
+
         commandParts.add("-L$hadesHome/lib")
         commandParts.add("-I$hadesHome/include")
         commandParts.add("-lgc")

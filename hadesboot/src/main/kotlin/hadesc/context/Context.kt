@@ -104,7 +104,7 @@ class Context(
 
         when (options.backend) {
             Backend.C -> {
-                val cSource = HIRToC(hirModule).lower()
+                val cSource = HIRToC(hirModule, enableDebug = options.debugSymbols).lower()
                 CToObject(cSource, target, options).execute()
             }
             Backend.LLVM -> {

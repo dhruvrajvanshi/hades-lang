@@ -122,9 +122,7 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Text("{"),
         LineIfWrapping,
         Text("// prelude\n"),
-        Indent(
-            prelude.map { it.toPPNode() + LineIfWrapping },
-        ),
+        Nodes(prelude.map { it.toPPNode() + LineIfWrapping }),
         Text("// end prelude\n"),
         Nodes(items.map {
             it.toPPNode() + LineIfWrapping
@@ -209,9 +207,7 @@ fun CNode.toPPNode(): PPNode = when (this) {
     )
     is CNode.LabeledStatements -> Group(
         Text("$label:"),
-        Indent(
-            statements.map { it.toPPNode() + LineIfWrapping }
-        ),
+        Nodes(statements.map { it.toPPNode() + LineIfWrapping }),
         LineIfWrapping
     ).forceWrap()
 

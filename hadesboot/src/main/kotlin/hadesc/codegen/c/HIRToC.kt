@@ -8,10 +8,10 @@ import hadesc.hir.*
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.mutPtr
-import hadesc.types.ptr
 
 class HIRToC(
-    private val hirModule: HIRModule
+    private val hirModule: HIRModule,
+    private val enableDebug: Boolean
 ) {
     private val declarations = mutableListOf<CNode>(
         CNode.Raw(
@@ -271,6 +271,11 @@ class HIRToC(
         for (block in blocks) {
             val stmts = mutableListOf<CNode>()
             for (statement in block.statements) {
+                if (enableDebug) {
+                    stmts.add(
+                        CNode.Raw("\n#line ${statement.location.start.line} \"${statement.location.file}\"")
+                    )
+                }
                 lowerStatement(statement, into = stmts)
             }
             items.add(CNode.LabeledStatements(block.name.c(), stmts))
