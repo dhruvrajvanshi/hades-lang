@@ -880,6 +880,12 @@ class Checker(val ctx: Context) {
 
     private fun checkThisExpression(expression: Expression.This) {
         val extension = ctx.resolver.getEnclosingExtensionDef(expression)
+        val enclosingClosure = ctx.resolver.getEnclosingClosure(expression)
+        if (enclosingClosure != null) {
+            error(
+                expression,
+                Diagnostic.Kind.Text("Use of this is not allowed in closures yet. See https://github.com/dhruvrajvanshi/hades-lang/issues/83"))
+        }
 
         if (extension == null) {
             error(expression, Diagnostic.Kind.UnboundThis)
