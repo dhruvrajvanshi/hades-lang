@@ -15,7 +15,6 @@ fn main(): Void {
     print_size[i32](b"i32");
     print_size[u64](b"u64");
     print_size[i64](b"i64");
-    print_size[f16](b"f16");
     print_size[f32](b"f32");
     print_size[f64](b"f64");
 }
