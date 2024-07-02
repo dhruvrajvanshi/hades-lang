@@ -400,7 +400,7 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
             HIRStatement.GetStructFieldPointer(
                 statement.location,
                 name = statement.name,
-                type = statement.type,
+                type = type,
                 lhs = transformExpression(statement.lhs),
                 memberIndex = statement.memberIndex,
                 memberName = statement.memberName
