@@ -650,7 +650,7 @@ fun BinaryOperator.toC(): String = when (this) {
     BinaryOperator.MINUS -> "-"
     BinaryOperator.TIMES -> "*"
     BinaryOperator.DIV -> "/"
-    BinaryOperator.REM -> "/"
+    BinaryOperator.REM -> "%"
     BinaryOperator.AND -> "&&"
     BinaryOperator.OR -> "||"
     BinaryOperator.EQUALS -> "=="
