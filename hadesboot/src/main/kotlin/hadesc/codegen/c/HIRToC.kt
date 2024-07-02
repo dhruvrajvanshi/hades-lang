@@ -222,11 +222,21 @@ class HIRToC(
         is HIRConstant.NullPtr -> CNode.Raw("NULL")
         is HIRConstant.SizeOf -> CNode.Call(CNode.Raw("sizeof"), listOf(lowerType(expr.type)))
         is HIRConstant.AlignOf -> CNode.Call(CNode.Raw("alignof"), listOf(lowerType(expr.type)))
-        is HIRConstant.StructValue -> TODO()
+        is HIRConstant.StructValue -> lowerStructLiteral(expr)
         is HIRConstant.Void -> requireUnreachable()
         is HIRExpression.LocalRef -> CNode.Raw(expr.name.c())
         is HIRExpression.ParamRef -> CNode.Raw(expr.name.c())
         is HIRExpression.TraitMethodRef -> requireUnreachable()
+    }
+
+    private fun lowerStructLiteral(expr: HIRConstant.StructValue): CNode {
+        val ty = lowerType(expr.type)
+        return CNode.Cast(
+            ty,
+            CNode.BraceInitializedList(
+                expr.values.map { lowerExpression(it) }
+            )
+        )
     }
 
     private fun lowerByteString(expr: HIRConstant.ByteString): CNode {
