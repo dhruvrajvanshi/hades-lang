@@ -72,15 +72,33 @@ internal class HIRGenClosure(
             when (binding) {
                 is Binding.ClosureParam,
                 is Binding.FunctionParam -> {
-                    emitStore(
-                        contextRef.ptr().fieldPtr(binder.name),
-                        HIRExpression.ParamRef(
-                            currentLocation,
-                            type,
-                            binding.binder.name,
-                            binding.binder
+                    val closureCtx = enclosingClosureCtx()
+                    // Nested closure?
+                    // e.g.
+                    // fn f(param) {
+                    //    apply || {
+                    //       apply || {
+                    //           param // this is a param ref that refers to the param of an outer function.
+                    //                 // so it must be loaded from the outer closure context.
+                    //       }
+                    //    }
+                    if (closureCtx?.getCapture(binder.name) != null) {
+                        emitStore(
+                            contextRef.ptr().fieldPtr(binder.name),
+                            closureCtx.captureParam.ref().fieldPtr(binder.name).load()
                         )
-                    )
+                    } else {
+                        emitStore(
+                            contextRef.ptr().fieldPtr(binder.name),
+                            HIRExpression.ParamRef(
+                                currentLocation,
+                                type,
+                                binding.binder.name,
+                                binding.binder
+                            )
+                        )
+                    }
+
                 }
                 is Binding.ValBinding -> {
                     val capturePtr = getCapturePointer(binding)
@@ -249,6 +267,10 @@ internal class HIRGenClosure(
             ctx.analyzer.typeOfBinder(binder).mutPtr(),
             binder.name
         )
+    }
+
+    private fun enclosingClosureCtx(): ClosureGenContext? {
+        return closureGenStack.peek()
     }
 }
 

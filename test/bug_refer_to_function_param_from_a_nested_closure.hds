@@ -1,0 +1,18 @@
+
+fn apply(f: || -> void): void {
+    f()
+}
+
+fn main(): void {
+    foo(b"message")
+}
+
+fn foo(message: *u8): void {
+    apply || {
+        apply || {
+            puts(message)
+        }
+    }
+}
+
+extern fn puts(*u8): void = puts
