@@ -412,7 +412,7 @@ class Checker(val ctx: Context) {
                 }
             }
 
-            is Type.TypeFunction -> TODO()
+            is Type.ForAll -> TODO()
             is Type.Closure -> {
                 error(node, Diagnostic.Kind.ReturnTypeMustNotContainClosuresOrRefs)
             }
@@ -906,7 +906,7 @@ class Checker(val ctx: Context) {
 
         checkExpression(expression.lhs)
         val lhsType = expression.lhs.type
-        if (lhsType !is Type.TypeFunction) {
+        if (lhsType !is Type.ForAll) {
             error(expression.lhs, Diagnostic.Kind.InvalidTypeApplication)
             return
         }

@@ -17,7 +17,7 @@ interface TypeTransformer {
         is Type.GenericInstance -> lowerGenericInstance(type)
         is Type.Application -> lowerTypeApplication(type)
         is Type.UntaggedUnion -> lowerUntaggedUnionType(type)
-        is Type.TypeFunction -> lowerTypeFunction(type)
+        is Type.ForAll -> lowerTypeFunction(type)
         is Type.Integral -> lowerIntegralType(type)
         is Type.FloatingPoint -> lowerFloatingPointType(type)
         is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
@@ -63,8 +63,8 @@ interface TypeTransformer {
         return type
     }
 
-    fun lowerTypeFunction(type: Type.TypeFunction): Type {
-        return Type.TypeFunction(
+    fun lowerTypeFunction(type: Type.ForAll): Type {
+        return Type.ForAll(
             params = type.params,
             body = lowerType(type.body)
         )
@@ -121,7 +121,7 @@ interface TypeVisitor {
         is Type.GenericInstance -> visitGenericInstance(type)
         is Type.Application -> visitTypeApplication(type)
         is Type.UntaggedUnion -> visitUntaggedUnionType(type)
-        is Type.TypeFunction -> visitTypeFunction(type)
+        is Type.ForAll -> visitTypeFunction(type)
         is Type.Integral -> visitIntegralType(type)
         is Type.FloatingPoint -> visitFloatingPointType(type)
         is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
@@ -156,7 +156,7 @@ interface TypeVisitor {
 
     fun visitGenericInstance(type: Type.GenericInstance) = Unit
 
-    fun visitTypeFunction(type: Type.TypeFunction) {
+    fun visitTypeFunction(type: Type.ForAll) {
         visitType(type.body)
     }
 

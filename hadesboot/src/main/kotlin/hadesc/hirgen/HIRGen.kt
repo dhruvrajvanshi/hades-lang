@@ -652,14 +652,14 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         val exprType = lowered.type
         checkUninferredGenerics(expression, exprType)
         val withAppliedTypes = if (typeArgs != null) {
-            check(exprType is Type.TypeFunction)
+            check(exprType is Type.ForAll)
             check(exprType.params.size == typeArgs.size)
             emitTypeApplication(
                 lowered,
                 typeArgs.map { ctx.analyzer.reduceGenericInstances(it) }
             ).result()
         } else {
-            check(exprType !is Type.TypeFunction) {
+            check(exprType !is Type.ForAll) {
                 "${expression.location}"
             }
             postLowerExpression(lowered)
@@ -1141,7 +1141,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         // resolved, an implicit call to this function is added
         val ty =
             if (binding.case.params == null) {
-                if (originalTy is Type.TypeFunction) {
+                if (originalTy is Type.ForAll) {
                     originalTy.copy(
                         body = Type.FunctionPtr(
                             listOf(),

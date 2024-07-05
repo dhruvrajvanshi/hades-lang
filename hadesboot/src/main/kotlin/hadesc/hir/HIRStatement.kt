@@ -279,7 +279,7 @@ sealed interface HIRStatement : HIRNode {
         val args: List<Type>
     ) : HIRStatement, NameBinder, StraightLineInstruction {
         init {
-            require(expression.type is Type.TypeFunction || expression.type is Type.Constructor)
+            require(expression.type is Type.ForAll || expression.type is Type.Constructor)
         }
     }
 

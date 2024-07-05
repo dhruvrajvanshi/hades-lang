@@ -2,8 +2,6 @@ package hadesc.hir
 
 import hadesc.Name
 import hadesc.analysis.TraitRequirement
-import hadesc.ast.Binder
-import hadesc.ast.Identifier
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -38,7 +36,7 @@ sealed class HIRDefinition : HasLocation {
                 traitRequirements = null
             )
             return if (typeParams != null) {
-                Type.TypeFunction(
+                Type.ForAll(
                     params = typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
                     body = functionPtrType
                 )
@@ -54,7 +52,7 @@ sealed class HIRDefinition : HasLocation {
                 traitRequirements = null
             ).ptr()
             return if (typeParams != null) {
-                Type.TypeFunction(
+                Type.ForAll(
                     params = typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
                     body = functionPtrType
                 )
@@ -131,7 +129,7 @@ sealed class HIRDefinition : HasLocation {
             return if (typeParams == null) {
                 fnType
             } else {
-                Type.TypeFunction(
+                Type.ForAll(
                     params = typeParams.map { Type.Param(it.toBinder()) },
                     body = fnType
                 )
@@ -188,7 +186,7 @@ sealed class HIRDefinition : HasLocation {
                 "\n}"
         }
         is ExternFunction -> {
-            "extern def ${name.mangle()}(${params.joinToString(", ") {it.prettyPrint()}})" +
+            "extern fn ${name.mangle()}(${params.joinToString(", ") {it.prettyPrint()}})" +
                 ": ${returnType.prettyPrint()} = ${externName.text}"
         }
         is Struct -> {
@@ -199,7 +197,7 @@ sealed class HIRDefinition : HasLocation {
             }
             "struct ${name.mangle()}$typeParamsStr {\n" +
                 fields.joinToString("\n") {
-                    "  val ${it.first.text}: ${it.second.prettyPrint()}"
+                    "  ${it.first.text}: ${it.second.prettyPrint()}"
                 } +
                 "\n}"
         }

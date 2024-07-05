@@ -185,7 +185,7 @@ class Monomorphization(
             val definition = oldModule.findGlobalDefinition(expression.name)
             check(definition is HIRDefinition.Struct || definition is HIRDefinition.Function)
             val exprType = expression.type
-            check(exprType is Type.TypeFunction)
+            check(exprType is Type.ForAll)
             val substitution = makeSubstitution(exprType.params.map { HIRTypeParam(it.binder.location, it.binder.name, it.binder.id) }, typeArgs)
             val type = lowerType(exprType.body.applySubstitution(substitution))
             HIRExpression.GlobalRef(

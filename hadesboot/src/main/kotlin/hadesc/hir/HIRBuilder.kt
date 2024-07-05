@@ -207,7 +207,7 @@ interface HIRBuilder {
 
     fun HIROperand.typeApplication(args: List<Type>): HIROperand {
         val ty = type
-        check(ty is Type.TypeFunction)
+        check(ty is Type.ForAll)
         check(ty.params.size == args.size)
         val substitution = ty.params.zip(args).toSubstitution()
         return emit(
@@ -323,7 +323,7 @@ fun HIRBuilder.emitIntegerConvert(expression: HIROperand, to: Type): HIROperand 
 
 fun HIRBuilder.emitTypeApplication(lhs: HIROperand, args: List<Type>): HIRStatement.TypeApplication {
     val lhsType = lhs.type
-    check(lhsType is Type.TypeFunction)
+    check(lhsType is Type.ForAll)
     check(lhsType.params.size == args.size)
     val appliedType = lhsType.body.applySubstitution(
         lhsType.params.zip(args).toSubstitution()

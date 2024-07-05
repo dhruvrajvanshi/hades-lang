@@ -105,7 +105,7 @@ class HIRToC(
         is Type.GenericInstance,
         is Type.Param,
         is Type.Select,
-        is Type.TypeFunction,
+        is Type.ForAll,
         -> {
             requireUnreachable()
         }

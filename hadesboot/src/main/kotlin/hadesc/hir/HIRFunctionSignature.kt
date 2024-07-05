@@ -16,16 +16,16 @@ data class HIRFunctionSignature(
         return if (typeParams == null) {
             fnType
         } else {
-            Type.TypeFunction(typeParams.map { Type.Param(it.toBinder()) }, fnType)
+            Type.ForAll(typeParams.map { Type.Param(it.toBinder()) }, fnType)
         }
     }
     fun prettyPrint(): String {
         val typeParamsStr = if (typeParams == null) {
             ""
         } else {
-            "[${typeParams.joinToString(", ") { it.prettyPrint() }}] "
+            "<${typeParams.joinToString(", ") { it.prettyPrint() }}> "
         }
-        return "def ${name.mangle()}$typeParamsStr(${params.joinToString(", ") {it.prettyPrint()}})" +
+        return "fn ${name.mangle()}$typeParamsStr(${params.joinToString(", ") {it.prettyPrint()}})" +
             ": ${returnType.prettyPrint()}"
     }
 }

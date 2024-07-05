@@ -266,7 +266,7 @@ class HIRToLLVM(
         is Type.Constructor -> diBuilder.createBasicType(name.mangle(), sizeInBits)
         is Type.UntaggedUnion -> LLVM.LLVMDIBuilderCreateNullPtrType(diBuilder)
         is Type.Param,
-        is Type.TypeFunction,
+        is Type.ForAll,
         is Type.GenericInstance,
         is Type.Application,
         is Type.AssociatedTypeRef,
@@ -910,7 +910,7 @@ class HIRToLLVM(
         is Type.Array -> arrayType(lowerType(type.itemType), type.length)
         is Type.Integral -> intType(type.size, llvmCtx)
         is Type.FloatingPoint -> floatType(type.size, llvmCtx)
-        is Type.TypeFunction,
+        is Type.ForAll,
         is Type.AssociatedTypeRef,
         is Type.Closure,
         is Type.Select -> requireUnreachable()

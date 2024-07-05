@@ -1,6 +1,5 @@
 package hadesc.analysis
 
-import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
 import hadesc.ast.TypeAnnotation
 import hadesc.resolver.Resolver
@@ -117,7 +116,7 @@ class ASTConv(val resolver: Resolver<*>) {
         return if (binding.declaration.typeParams == null) {
             typeConstructor
         } else {
-            Type.TypeFunction(
+            Type.ForAll(
                 params = binding.declaration.makeTypeParams(),
                 body = Type.Application(
                     typeConstructor,

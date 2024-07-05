@@ -41,7 +41,7 @@ sealed interface Type {
 
     data class Constructor(val name: QualifiedName) : Type
 
-    data class TypeFunction(val params: List<Param>, val body: Type) : Type
+    data class ForAll(val params: List<Param>, val body: Type) : Type
 
     data class GenericInstance(
         val originalName: Name,
@@ -72,8 +72,8 @@ sealed interface Type {
 
     fun prettyPrint(): String = when (this) {
         is Error -> "Error<$location>"
-        Void -> "Void"
-        Bool -> "Bool"
+        Void -> "void"
+        Bool -> "bool"
         is Ptr -> {
             if (isMutable) {
                 "*mut ${to.prettyPrint()}"
@@ -82,15 +82,15 @@ sealed interface Type {
             }
         }
         is FunctionPtr -> {
-            "def(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
+            "fn(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
         is Param -> this.name.identifier.name.text
         is GenericInstance -> originalName.text
-        is Application -> "${callee.prettyPrint()}[${args.joinToString(", ") { it.prettyPrint() }}]"
+        is Application -> "${callee.prettyPrint()}<${args.joinToString(", ") { it.prettyPrint() }}>"
         is Constructor -> name.mangle()
         is Size -> if (isSigned) "isize" else "usize"
-        is UntaggedUnion -> "union[" + members.joinToString(", ") { it.prettyPrint() } + "]"
-        is TypeFunction -> "type[${params.joinToString(", ") { it.prettyPrint() }}] => ${body.prettyPrint()}"
+        is UntaggedUnion -> "union<" + members.joinToString(", ") { it.prettyPrint() } + ">"
+        is ForAll -> "for<${params.joinToString(", ") { it.prettyPrint() }}> => ${body.prettyPrint()}"
         is Integral -> "${if (isSigned) "i" else "u" }$size"
         is FloatingPoint -> "f$size"
         is AssociatedTypeRef -> binder.identifier.name.text
@@ -141,7 +141,7 @@ sealed interface Type {
             is UntaggedUnion -> UntaggedUnion(
                 members.map { it.recurse() }
             )
-            is TypeFunction -> TypeFunction(
+            is ForAll -> ForAll(
                 params,
                 body.recurse()
             )

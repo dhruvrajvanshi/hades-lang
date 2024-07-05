@@ -139,7 +139,7 @@ class Analyzer<Ctx>(
         return if (declaration.typeParams == null) {
             withArgs
         } else {
-            Type.TypeFunction(
+            Type.ForAll(
                 params = declaration.makeTypeParams(),
                 body = withArgs
             )
@@ -233,7 +233,7 @@ class Analyzer<Ctx>(
                 traitRequirements = functionDef.traitRequirements
             )
             if (extensionDef.typeParams != null || functionDef.typeParams != null) {
-                methodType = Type.TypeFunction(
+                methodType = Type.ForAll(
                     extensionDef.makeTypeParams() + functionDef.makeTypeParams(),
                     methodType
                 )
@@ -850,7 +850,7 @@ class Analyzer<Ctx>(
                     Identifier(expression.location, name = ctx.makeName("T")),
                     ctx.makeBinderId(),
                 )
-                Type.TypeFunction(
+                Type.ForAll(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
@@ -866,7 +866,7 @@ class Analyzer<Ctx>(
                 val typeParam = Binder(
                     Identifier(expression.location, name = ctx.makeName("T")),
                     ctx.makeBinderId())
-                Type.TypeFunction(
+                Type.ForAll(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
@@ -882,7 +882,7 @@ class Analyzer<Ctx>(
                     Identifier(expression.location, name = ctx.makeName("T")),
                     ctx.makeBinderId(),
                 )
-                Type.TypeFunction(
+                Type.ForAll(
                     listOf(Type.Param(typeParam)),
                     Type.FunctionPtr(
                         from = listOf(
@@ -897,7 +897,7 @@ class Analyzer<Ctx>(
                 val l1 = expression.location
                 val t1 = Type.Param(Binder(Identifier(l1, ctx.makeName("T1")), ctx.makeBinderId()))
 
-                Type.TypeFunction(
+                Type.ForAll(
                     listOf(t1),
                     Type.FunctionPtr(
                         from = listOf(
@@ -941,7 +941,7 @@ class Analyzer<Ctx>(
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
         val lhsType = inferExpression(expression.lhs)
-        return if (lhsType is Type.TypeFunction) {
+        return if (lhsType is Type.ForAll) {
             val substitution = lhsType.params.zip(expression.args).associate { (param, annotation) ->
                 param.binder.id to annotationToType(annotation)
             }.toSubstitution()
@@ -1151,7 +1151,7 @@ class Analyzer<Ctx>(
         return if (binding.declaration.typeParams == null) {
             functionPtrType
         } else {
-            Type.TypeFunction(
+            Type.ForAll(
                 params = binding.declaration.makeTypeParams(),
                 body = functionPtrType
             )
@@ -1203,7 +1203,7 @@ class Analyzer<Ctx>(
         )
         val typeParams = declaration.typeParams
         return if (typeParams != null) {
-            Type.TypeFunction(
+            Type.ForAll(
                 params = declaration.makeTypeParams(),
                 body = functionPtrType
             )
@@ -1451,7 +1451,7 @@ class Analyzer<Ctx>(
                         typeParams = null,
                         traitRequirements = null
                     )
-                is Type.TypeFunction -> {
+                is Type.ForAll -> {
                     return recurse(type.body, type.params)
                 }
                 is Type.GenericInstance -> {
@@ -1513,7 +1513,7 @@ class Analyzer<Ctx>(
 
     private fun typeApplicationAnnotationToType(annotation: TypeAnnotation.Application): Type {
         val callee = annotationToType(annotation.callee)
-        return if (callee is Type.TypeFunction) {
+        return if (callee is Type.ForAll) {
             val args = annotation.args.map { annotationToType(it) }
             val substitution = callee.params.zip(args).toSubstitution()
             callee.body.applySubstitution(substitution)
@@ -1547,7 +1547,7 @@ class Analyzer<Ctx>(
 
     private fun typeOfTypeAlias(binding: TypeBinding.TypeAlias): Type {
         return if (binding.declaration.typeParams != null) {
-            return Type.TypeFunction(
+            return Type.ForAll(
                 binding.declaration.makeTypeParams(),
                 annotationToType(binding.declaration.rhs)
             )
@@ -1560,7 +1560,7 @@ class Analyzer<Ctx>(
         val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
         val typeConstructor = Type.Constructor(name = qualifiedName)
 
-        return Type.TypeFunction(
+        return Type.ForAll(
             params = binding.declaration.makeTypeParams(),
             body = Type.Application(
                 typeConstructor,
@@ -1575,7 +1575,7 @@ class Analyzer<Ctx>(
         return if (binding.declaration.typeParams == null) {
             typeConstructor
         } else {
-            Type.TypeFunction(
+            Type.ForAll(
                 params = binding.declaration.makeTypeParams(),
                 body = Type.Application(
                     typeConstructor,
@@ -1591,7 +1591,7 @@ class Analyzer<Ctx>(
         return if (binding.declaration.typeParams == null) {
             typeConstructor
         } else {
-            Type.TypeFunction(
+            Type.ForAll(
                 params = binding.declaration.makeTypeParams(),
                 body = Type.Application(
                     typeConstructor,
@@ -1654,7 +1654,7 @@ class Analyzer<Ctx>(
             }
 
             override fun lowerTypeApplication(type: Type.Application): Type {
-                return if (type.callee is Type.TypeFunction) {
+                return if (type.callee is Type.ForAll) {
                     require(type.callee.params.size == type.args.size)
                     val substitution = type.callee.params.zip(type.args).toSubstitution()
                     return type.callee.body.applySubstitution(substitution)
@@ -1800,7 +1800,7 @@ class Analyzer<Ctx>(
                 }
 
                 override fun visitTypeApplication(type: Type.Application) {
-                    if (type.callee is Type.TypeFunction) {
+                    if (type.callee is Type.ForAll) {
                         val subst = type.callee.params.zip(type.args).toSubstitution()
                         visitType(
                             type.callee.body.applySubstitution(subst)
@@ -1818,7 +1818,7 @@ class Analyzer<Ctx>(
                 }
                 val type = reduceGenericInstances(typeOfExpression(expression))
                 val typeArgs = getTypeArgs(expression)
-                if (type is Type.TypeFunction && typeArgs != null) {
+                if (type is Type.ForAll && typeArgs != null) {
                     val subst = type.params.zip(typeArgs).toSubstitution()
                     typeVisitor.visitType(type.body.applySubstitution(subst))
                 } else {
