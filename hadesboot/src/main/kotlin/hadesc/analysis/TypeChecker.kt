@@ -375,7 +375,7 @@ class TypeChecker(
             is Type.FunctionPtr -> from.all { it.isExternSafe() } && to.isExternSafe()
             is Type.GenericInstance -> false
             is Type.Param -> false
-            is Type.TypeFunction -> false
+            is Type.ForAll -> false
             is Type.AssociatedTypeRef -> false
             is Type.Ref -> false
             is Type.Select -> false
