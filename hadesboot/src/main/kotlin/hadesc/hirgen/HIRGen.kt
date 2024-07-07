@@ -1280,7 +1280,7 @@ class HIRGen(
     }
 
     override fun lowerTypeAnnotation(annotation: TypeAnnotation): Type {
-        return lowerType(ctx.analyzer.reduceGenericInstances(ctx.analyzer.annotationToType(annotation)))
+        return lowerType(ctx.analyzer.reduceGenericInstances(annotation.type))
     }
 
     private fun lowerParam(param: Param): HIRParam {

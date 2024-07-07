@@ -48,6 +48,10 @@ class Analyzer<Ctx>(
                 get() = checkNotNull(typeOfExpressionCache[this]) {
                     "Expression type not computed for $this"
                 }
+            override val TypeAnnotation.type: Type
+                get() = checkNotNull(astConv.annotationToTypeCache[this]) {
+                    "Type not computed for $this"
+                }
 
             override val Expression.Property.binding: PropertyBinding
                 get() {
@@ -501,22 +505,66 @@ class Analyzer<Ctx>(
             when (declaration) {
                 is Declaration.FunctionDef -> visitFunctionDef(declaration)
                 is Declaration.ConstDefinition -> visitConstDef(declaration)
-                is Declaration.Enum -> Unit
+                is Declaration.Enum -> visitEnumDef(declaration)
                 is Declaration.Error -> Unit
                 is Declaration.ExtensionDef -> visitExtensionDef(declaration)
-                is Declaration.ExternConst -> Unit
-                is Declaration.ExternFunctionDef -> Unit
+                is Declaration.ExternConst -> visitExternConstDef(declaration)
+                is Declaration.ExternFunctionDef -> visitExternFunctionDef(declaration)
                 is Declaration.ImplementationDef -> visitImplementationDef(declaration)
                 is Declaration.ImportAs -> Unit
                 is Declaration.ImportMembers -> Unit
-                is Declaration.Struct -> Unit
-                is Declaration.TraitDef -> Unit
-                is Declaration.TypeAlias -> Unit
+                is Declaration.Struct -> visitStructDef(declaration)
+                is Declaration.TraitDef -> visitTraitDef(declaration)
+                is Declaration.TypeAlias -> visitTypeAlias(declaration)
             }
         )
     }
 
+    private fun visitTraitDef(declaration: Declaration.TraitDef) {
+        for (signature in declaration.signatures) {
+            for (param in signature.params) {
+                param.annotation?.let { annotationToType(it) }
+            }
+            annotationToType(signature.returnType)
+        }
+    }
+
+    private fun visitTypeAlias(declaration: Declaration.TypeAlias) {
+        annotationToType(declaration.rhs)
+    }
+
+    private fun visitStructDef(declaration: Declaration.Struct) {
+        for (member in declaration.members) {
+            when (member) {
+                is Declaration.Struct.Member.Field -> {
+                    annotationToType(member.typeAnnotation)
+                }
+            }
+        }
+    }
+
+    private fun visitExternFunctionDef(declaration: Declaration.ExternFunctionDef) {
+        for (paramType in declaration.paramTypes) {
+             annotationToType(paramType)
+        }
+        annotationToType(declaration.returnType)
+    }
+
+    private fun visitEnumDef(declaration: Declaration.Enum) {
+        for (case in declaration.cases) {
+            case.params?.forEach {
+                annotationToType(it.annotation)
+            }
+        }
+    }
+
+    private fun visitExternConstDef(declaration: Declaration.ExternConst) {
+        annotationToType(declaration.type)
+    }
+
     private fun visitImplementationDef(declaration: Declaration.ImplementationDef) {
+        declaration.traitArguments.forEach { annotationToType(it) }
+        declaration.whereClause?.let { visitWhereClause(it) }
         for (implDeclaration in declaration.body) {
             visitDeclaration(implDeclaration)
         }
@@ -550,10 +598,22 @@ class Analyzer<Ctx>(
     }
 
     private fun visitFunctionDef(def: Declaration.FunctionDef) {
+        for (param in def.params) {
+            param.annotation?.let { annotationToType(it) }
+        }
+        def.signature.whereClause?.let { visitWhereClause(it) }
         val returnType = annotationToType(def.signature.returnType)
         returnTypeStack.push(returnType)
         checkBlock(def.body)
         returnTypeStack.pop()
+    }
+
+    private fun visitWhereClause(whereClause: WhereClause) {
+        whereClause.traitRequirements.forEach { requirement ->
+            requirement.typeArgs?.forEach {
+                annotationToType(it)
+            }
+        }
     }
 
     private fun checkBlock(block: Block) {
@@ -1534,10 +1594,8 @@ class Analyzer<Ctx>(
         return getTypeArgsCache[expression]?.map { reduceGenericInstances(it) }
     }
 
-    private val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
-    fun annotationToType(annotation: TypeAnnotation): Type = annotationToTypeCache.getOrPut(annotation) {
+    private fun annotationToType(annotation: TypeAnnotation): Type =
         astConv.typeAnnotationToType(annotation)
-    }
 
     private fun arrayTypeAnnotationToType(annotation: TypeAnnotation.Array): Type =
         Type.Array(annotationToType(annotation.itemType), annotation.length)
@@ -2093,7 +2151,7 @@ data class ClosureCaptures(
     val types: Set<Binder>
 )
 
-private class MutableNodeMap<T : HasLocation, V> {
+class MutableNodeMap<T : HasLocation, V> {
     private val map = mutableMapOf<SourceLocation, V>()
 
     fun getOrPut(key: T, compute: () -> V): V {
@@ -2140,4 +2198,5 @@ interface PostAnalysisContext {
     val Expression.type: Type
     val Expression.Property.binding: PropertyBinding
     val Expression.Property.bindingOrNull: PropertyBinding?
+    val TypeAnnotation.type: Type
 }
