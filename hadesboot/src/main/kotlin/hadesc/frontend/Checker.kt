@@ -552,8 +552,9 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         }
         if (binding is Binding.ValBinding) {
             val expectedType = binding.statement.typeAnnotation?.type
-                ?: ctx.analyzer.typeOfExpression(binding.statement.rhs)
-            checkExpressionHasType(statement.value, expectedType)
+            if (expectedType != null) {
+                checkExpressionHasType(statement.value, expectedType)
+            }
         }
         checkNoCopy(statement.value)
     }
