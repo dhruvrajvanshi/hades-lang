@@ -2,6 +2,7 @@ package hadesc.frontend
 
 import hadesc.Name
 import hadesc.analysis.ARITHMETIC_OPERATORS
+import hadesc.analysis.PostAnalysisContext
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
@@ -17,7 +18,7 @@ import hadesc.types.toSubstitution
 import hadesc.unit
 import libhades.collections.Stack
 
-class Checker(val ctx: Context) {
+class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostAnalysisContext by postAnalysisContext {
     private val returnTypeStack = Stack<Type>()
 
     fun checkProgram() {
@@ -487,7 +488,7 @@ class Checker(val ctx: Context) {
             return
         }
 
-        val field = ctx.analyzer.resolvePropertyBinding(statement.lhs)
+        val field = statement.lhs.binding
         if (field !is PropertyBinding.StructField && field !is PropertyBinding.StructPointerFieldLoad) {
             error(statement.lhs.property, Diagnostic.Kind.NotAStructField)
             return
@@ -963,7 +964,7 @@ class Checker(val ctx: Context) {
         }
         when (expression) {
             is Expression.Property -> {
-                when (ctx.analyzer.resolvePropertyBinding(expression)) {
+                when (expression.binding) {
                     is PropertyBinding.StructField -> {
                         checkValueIsAddressable(expression.lhs)
                     }
@@ -997,8 +998,6 @@ class Checker(val ctx: Context) {
 
         checkExpressionHasType(expression.falseBranch, expression.trueBranch.type)
     }
-
-    private val Expression.type get() = ctx.analyzer.typeOfExpression(this)
 
     private fun checkNullPtrExpression(
         @Suppress("UNUSED_PARAMETER")
@@ -1070,7 +1069,7 @@ class Checker(val ctx: Context) {
     ) {
         ctx.analyzer.typeOfExpression(callExpression)
         if (callee is Expression.Property) {
-            val propertyBinding = ctx.analyzer.resolvePropertyBinding(callee)
+            val propertyBinding = callee.bindingOrNull
             if (propertyBinding is PropertyBinding.InterfaceFunctionRef) {
                 val requirement = TraitRequirement(
                     propertyBinding.traitName,
