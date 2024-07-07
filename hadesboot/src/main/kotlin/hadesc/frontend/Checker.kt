@@ -95,7 +95,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         val foundAssociatedTypes = mutableSetOf<Name>()
         val associatedTypeSubstitution =
             implDef.body.filterIsInstance<Declaration.TypeAlias>().associate {
-                requireNotNull(expectedAssociatedTypes[it.name.name]).id to ctx.analyzer.annotationToType(it.rhs)
+                requireNotNull(expectedAssociatedTypes[it.name.name]).id to it.rhs.type
             }.toSubstitution()
 
         for (declaration in implDef.body) {
@@ -177,8 +177,6 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         }
     }
 
-    private val TypeAnnotation.type get() = ctx.analyzer.annotationToType(this)
-
     private fun checkTraitDef(declaration: Declaration.TraitDef) {
         checkTopLevelTypeBinding(declaration.name)
         checkTypeParams(declaration.params)
@@ -212,7 +210,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
 
     private fun checkConstDefinition(declaration: Declaration.ConstDefinition) {
         declaration.annotation?.let { checkTypeAnnotation(it) }
-        val annotatedType = declaration.annotation?.let { ctx.analyzer.annotationToType(it) }
+        val annotatedType = declaration.annotation?.type
         checkExpression(declaration.initializer)
         if (annotatedType != null) {
             checkExpressionHasType(declaration.initializer, annotatedType)
@@ -430,7 +428,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
 
     private fun checkTypeApplicationAnnotation(annotation: TypeAnnotation.Application) {
         annotation.args.map { checkTypeAnnotation(it) }
-        val ty = ctx.analyzer.annotationToType(annotation)
+        val ty = annotation.type
         if (ty is Type.Error) {
             error(annotation, Diagnostic.Kind.InvalidTypeApplication)
         }
@@ -452,7 +450,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         if (!skipDuplicateDeclarationCheck) {
             checkFunctionSignature(declaration.signature)
         }
-        returnTypeStack.push(ctx.analyzer.annotationToType(declaration.signature.returnType))
+        returnTypeStack.push(declaration.signature.returnType.type)
         checkBlock(declaration.body)
         returnTypeStack.pop()
     }
@@ -553,7 +551,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
             error(statement.name, Diagnostic.Kind.ValNotMutable)
         }
         if (binding is Binding.ValBinding) {
-            val expectedType = binding.statement.typeAnnotation?.let { ctx.analyzer.annotationToType(it) }
+            val expectedType = binding.statement.typeAnnotation?.type
                 ?: ctx.analyzer.typeOfExpression(binding.statement.rhs)
             checkExpressionHasType(statement.value, expectedType)
         }
@@ -624,7 +622,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         checkNoCopy(statement.rhs)
 
         if (statement.typeAnnotation != null) {
-            val annotatedType = ctx.analyzer.annotationToType(statement.typeAnnotation)
+            val annotatedType = statement.typeAnnotation.type
             checkExpressionHasType(statement.rhs, annotatedType)
         }
     }
@@ -1181,7 +1179,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
                 } else {
                     ctx.analyzer.reduceGenericInstances(
                         ctx.analyzer.reduceAssociatedType(
-                            ctx.analyzer.annotationToType(param.annotation), at = param
+                            param.annotation.type, at = param
                         )
                     )
                 }

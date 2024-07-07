@@ -8,20 +8,24 @@ import hadesc.types.Type
 import hadesc.types.toSubstitution
 
 class ASTConv(val resolver: Resolver<*>) {
+
+    internal val annotationToTypeCache = MutableNodeMap<TypeAnnotation, Type>()
     fun typeAnnotationToType(annotation: TypeAnnotation): Type = annotation.type()
 
-    private fun TypeAnnotation.type(): Type = when(this) {
-        is TypeAnnotation.Application -> typeApplicationToType(this)
-        is TypeAnnotation.Array -> Type.Array(itemType.type(), length)
-        is TypeAnnotation.Closure -> Type.Closure(from.types(), to.type())
-        is TypeAnnotation.FunctionPtr -> Type.FunctionPtr(from.types(), to.type(), traitRequirements = null)
-        is TypeAnnotation.MutPtr -> Type.Ptr(to.type(), isMutable = true)
-        is TypeAnnotation.Ptr -> Type.Ptr(to.type(), isMutable = false)
-        is TypeAnnotation.Error -> Type.Error(location)
-        is TypeAnnotation.Qualified -> qualifiedAnnotationToType(this)
-        is TypeAnnotation.Select -> selectAnnotationToType(this)
-        is TypeAnnotation.Union -> Type.UntaggedUnion(args.types())
-        is TypeAnnotation.Var -> varAnnotationToType(this)
+    private fun TypeAnnotation.type(): Type = annotationToTypeCache.getOrPut(this) {
+        when(this) {
+            is TypeAnnotation.Application -> typeApplicationToType(this)
+            is TypeAnnotation.Array -> Type.Array(itemType.type(), length)
+            is TypeAnnotation.Closure -> Type.Closure(from.types(), to.type())
+            is TypeAnnotation.FunctionPtr -> Type.FunctionPtr(from.types(), to.type(), traitRequirements = null)
+            is TypeAnnotation.MutPtr -> Type.Ptr(to.type(), isMutable = true)
+            is TypeAnnotation.Ptr -> Type.Ptr(to.type(), isMutable = false)
+            is TypeAnnotation.Error -> Type.Error(location)
+            is TypeAnnotation.Qualified -> qualifiedAnnotationToType(this)
+            is TypeAnnotation.Select -> selectAnnotationToType(this)
+            is TypeAnnotation.Union -> Type.UntaggedUnion(args.types())
+            is TypeAnnotation.Var -> varAnnotationToType(this)
+        }
     }
 
     private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
