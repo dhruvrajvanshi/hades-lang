@@ -333,7 +333,7 @@ internal class HIRGenExpression(
     private fun resolveStructConstructorBinding(callee: Expression): Binding.Struct? {
         return when (callee) {
             is Expression.Property ->
-                when (val propBinding = ctx.analyzer.resolvePropertyBinding(callee)) {
+                when (val propBinding = callee.binding) {
                     is PropertyBinding.Global -> propBinding.binding as? Binding.Struct
                     else -> null
                 }
@@ -367,7 +367,7 @@ internal class HIRGenExpression(
         )
     }
     private fun lowerConstPropertyExpression(expression: Expression.Property): HIRConstant {
-        when (val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
+        when (expression.binding) {
             else -> {
                 return errorConstant(expression, expression.type, "Property expression found in constant expression")
             }

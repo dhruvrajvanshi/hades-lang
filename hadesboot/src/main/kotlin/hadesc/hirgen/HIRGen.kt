@@ -974,7 +974,7 @@ class HIRGen(
     }
 
     private fun addressOfStructField(expr: Expression.Property): HIROperand {
-        return when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expr)) {
+        return when (val propertyBinding = expr.binding) {
             is PropertyBinding.StructPointerFieldLoad -> {
                 lowerExpression(expr.lhs)
                     .fieldPtr(propertyBinding.member.binder.name)
@@ -1127,8 +1127,7 @@ class HIRGen(
     }
 
     private fun lowerPropertyExpression(expression: Expression.Property): HIROperand =
-        when (val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
-            null -> requireUnreachable()
+        when (val binding = expression.binding) {
             is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
             is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
             is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression)

@@ -61,13 +61,14 @@ class Context(
 
 
     fun check() {
+        val postAnalysisContext = analyzer.run(buildList { forEachSourceFile { add(it) } })
         if (options.enableNewTypeChecker) {
             val sourceFiles = buildList {
                 forEachSourceFile { add(it) }
             }
             typecheck(sourceFiles, diagnosticReporter, resolver)
         }
-        Checker(this).checkProgram()
+        Checker(this, postAnalysisContext).checkProgram()
     }
 
     fun build() {

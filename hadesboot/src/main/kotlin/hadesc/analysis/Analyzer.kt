@@ -49,44 +49,62 @@ class Analyzer<Ctx>(
                     "Expression type not computed for $this"
                 }
 
+            override val Expression.Property.binding: PropertyBinding
+                get() {
+                    check(this in propertyBindingCache) {
+                        "Property binding not computed for $this"
+                    }
+                    return checkNotNull(propertyBindingCache[this]) {
+                        "Property binding not computed for $this"
+                    }
+                }
+
+            override val Expression.Property.bindingOrNull: PropertyBinding?
+                get() {
+                    check(this in propertyBindingCache) {
+                        "Property binding not computed for $this"
+                    }
+                    return propertyBindingCache[this]
+                }
         }
     }
 
-    fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
+    private val propertyBindingCache = MutableNodeMap<Expression.Property, PropertyBinding?>()
+    private fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? = propertyBindingCache.getOrPut(expression) {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
         if (modulePropertyBinding != null) {
-            return PropertyBinding.Global(modulePropertyBinding)
+            return@getOrPut PropertyBinding.Global(modulePropertyBinding)
         }
 
         val traitFunctionRefBinding = resolveTraitFunctionRefBinding(expression)
-        if (traitFunctionRefBinding != null) return traitFunctionRefBinding
+        if (traitFunctionRefBinding != null) return@getOrPut traitFunctionRefBinding
 
         val enumCaseConstructorBinding = resolveEnumConstructorBinding(expression)
         if (enumCaseConstructorBinding != null) {
-            return enumCaseConstructorBinding
+            return@getOrPut enumCaseConstructorBinding
         }
 
         val fieldBinding = resolveStructFieldBinding(expression)
         if (fieldBinding != null) {
-            return fieldBinding
+            return@getOrPut fieldBinding
         }
 
         val traitProperty = resolveTraitProperty(expression)
         if (traitProperty != null) {
-            return traitProperty
+            return@getOrPut traitProperty
         }
 
         val elementPointerBinding = resolveElementPointerBinding(expression)
         if (elementPointerBinding != null) {
-            return elementPointerBinding
+            return@getOrPut elementPointerBinding
         }
 
         val extensionBinding = resolveExtensionBinding(expression)
         if (extensionBinding != null) {
-            return extensionBinding
+            return@getOrPut extensionBinding
         }
         inferExpression(expression.lhs)
-        return null
+        null
     }
 
     private fun resolveTraitFunctionRefBinding(expression: Expression.Property): PropertyBinding.InterfaceFunctionRef? {
@@ -483,9 +501,29 @@ class Analyzer<Ctx>(
             when (declaration) {
                 is Declaration.FunctionDef -> visitFunctionDef(declaration)
                 is Declaration.ConstDefinition -> visitConstDef(declaration)
-                else -> Unit
+                is Declaration.Enum -> Unit
+                is Declaration.Error -> Unit
+                is Declaration.ExtensionDef -> visitExtensionDef(declaration)
+                is Declaration.ExternConst -> Unit
+                is Declaration.ExternFunctionDef -> Unit
+                is Declaration.ImplementationDef -> visitImplementationDef(declaration)
+                is Declaration.ImportAs -> Unit
+                is Declaration.ImportMembers -> Unit
+                is Declaration.Struct -> Unit
+                is Declaration.TraitDef -> Unit
+                is Declaration.TypeAlias -> Unit
             }
         )
+    }
+
+    private fun visitImplementationDef(declaration: Declaration.ImplementationDef) {
+        for (implDeclaration in declaration.body) {
+            visitDeclaration(implDeclaration)
+        }
+    }
+
+    private fun visitExtensionDef(declaration: Declaration.ExtensionDef) {
+        declaration.functionDefs.forEach { visitFunctionDef(it) }
     }
 
     private val checkTraitRequirementCache = MutableNodeMap<TraitRequirementAnnotation, TraitRequirement?>()
@@ -2075,6 +2113,10 @@ private class MutableNodeMap<T : HasLocation, V> {
     operator fun set(key: T, value: V) {
         map[key.location] = value
     }
+
+    operator fun contains(key: T): Boolean {
+        return key.location in map
+    }
 }
 
 typealias op = BinaryOperator
@@ -2096,4 +2138,6 @@ data class Discriminant(
 
 interface PostAnalysisContext {
     val Expression.type: Type
+    val Expression.Property.binding: PropertyBinding
+    val Expression.Property.bindingOrNull: PropertyBinding?
 }
