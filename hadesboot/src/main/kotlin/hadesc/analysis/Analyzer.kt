@@ -481,7 +481,7 @@ class Analyzer<Ctx>(
     }
 
     private val typeOfExpressionCache = MutableNodeMap<Expression, Type>()
-    fun typeOfExpression(expression: Expression): Type {
+    private fun typeOfExpression(expression: Expression): Type {
         val cached = typeOfExpressionCache[expression]
         if (cached != null) {
             return cached

@@ -947,7 +947,7 @@ class HIRGen(
     }
 
     private fun lowerDerefExpression(expression: Expression.Deref): HIROperand {
-        return when (ctx.analyzer.typeOfExpression(expression.expression)) {
+        return when (expression.expression.type) {
             is Type.Ptr -> {
                 lowerExpression(expression.expression).load()
             }
@@ -1258,7 +1258,7 @@ class HIRGen(
 
     private val typeOfExpressionCache = mutableMapOf<SourceLocation, Type>()
     override fun typeOfExpression(expression: Expression): Type = typeOfExpressionCache.getOrPut(expression.location) {
-        return ctx.analyzer.reduceGenericInstances(ctx.analyzer.typeOfExpression(expression))
+        return ctx.analyzer.reduceGenericInstances(expression.type)
     }
 
     private fun checkUninferredGenerics(node: HasLocation, type: Type) {
