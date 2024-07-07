@@ -573,7 +573,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
 
     private fun checkExpressionHasType(expression: Expression, type: Type) {
         checkExpression(expression)
-        val exprType = ctx.analyzer.typeOfExpression(expression)
+        val exprType = expression.type
         if (!exprType.isAssignableTo(expression, type)) {
             error(
                 expression,
@@ -1025,7 +1025,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         if (moduleProperty == null) {
             checkExpression(expression.lhs)
             if (!ctx.analyzer.isValidPropertyAccess(expression)) {
-                val lhsType = ctx.analyzer.typeOfExpression(expression.lhs)
+                val lhsType = expression.lhs.type
                 if (lhsType !is Type.Error) {
                     error(expression.property, Diagnostic.Kind.NoSuchProperty(lhsType, expression.property.name))
                 }
@@ -1066,7 +1066,6 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         callee: Expression,
         args: List<Expression>
     ) {
-        ctx.analyzer.typeOfExpression(callExpression)
         if (callee is Expression.Property) {
             val propertyBinding = callee.bindingOrNull
             if (propertyBinding is PropertyBinding.InterfaceFunctionRef) {
