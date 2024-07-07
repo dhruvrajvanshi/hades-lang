@@ -1,6 +1,5 @@
 package hadesc.context
 
-import hadesboot.middle.lower.lowerToC
 import hadesc.Backend
 import hadesc.BuildOptions
 import hadesc.analysis.Analyzer
@@ -28,9 +27,6 @@ import hadesc.unit
 import java.io.File
 import java.nio.file.Path
 
-interface ASTContext {
-    val Expression.type: Type
-}
 
 sealed interface BuildTarget {
 
@@ -49,8 +45,7 @@ class Context(
     private val idGenCtx: IdGenCtx = IdGenCtxImpl(),
     private val namingCtx: NamingCtx = NamingCtxImpl(),
     private val globalConstantsCtx: GlobalConstantsCtx = GlobalConstantsCtxImpl()
-) : ASTContext,
-    SourceFileResolverCtx,
+) : SourceFileResolverCtx,
     ResolverCtx,
     DiagnosticReporterCtx,
     GlobalConstantsCtx by globalConstantsCtx,
@@ -65,7 +60,6 @@ class Context(
     override val diagnosticReporter = DiagnosticReporter(fileTextProvider)
 
 
-    override val Expression.type get() = analyzer.typeOfExpression(this)
     fun check() {
         if (options.enableNewTypeChecker) {
             val sourceFiles = buildList {
@@ -82,7 +76,10 @@ class Context(
             return
         }
 
-        var hirModule = HIRGen(this).lowerSourceFiles(parsedSourceFiles.values)
+        val allSourceFiles = buildList { forEachSourceFile { add(it) } }
+        val analysisResult = analyzer.run(allSourceFiles)
+
+        var hirModule = HIRGen(this, analysisResult).lowerSourceFiles(parsedSourceFiles.values)
         if (this.diagnosticReporter.hasErrors) {
             return
         }

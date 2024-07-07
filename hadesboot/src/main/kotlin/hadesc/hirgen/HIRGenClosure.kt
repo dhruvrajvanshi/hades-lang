@@ -2,8 +2,8 @@ package hadesc.hirgen
 
 import hadesc.Name
 import hadesc.analysis.ClosureCaptures
+import hadesc.analysis.PostAnalysisContext
 import hadesc.ast.*
-import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.defer
 import hadesc.hir.*
@@ -18,12 +18,14 @@ import libhades.collections.Stack
 internal class HIRGenClosure(
     private val ctx: Context,
     private val moduleContext: HIRGenModuleContext,
-    private val functionContext: HIRGenFunctionContext
+    private val functionContext: HIRGenFunctionContext,
+    private val postAnalysisContext: PostAnalysisContext,
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
-    ASTContext by ctx {
+    PostAnalysisContext by postAnalysisContext {
     override val currentModule: HIRModule
         get() = moduleContext.currentModule
+
     internal fun lowerClosure(expression: Expression.Closure): HIROperand = scoped {
         scopeStack.push(expression)
         defer { check(scopeStack.pop() === expression) }
@@ -100,6 +102,7 @@ internal class HIRGenClosure(
                     }
 
                 }
+
                 is Binding.ValBinding -> {
                     val capturePtr = getCapturePointer(binding)
                     emitStore(
@@ -108,6 +111,7 @@ internal class HIRGenClosure(
                         capturePtr
                     )
                 }
+
                 is Binding.MatchArmEnumCaseArg -> {
                     val capturePtr = getCapturePointer(binding)
                     emitStore(
@@ -145,6 +149,7 @@ internal class HIRGenClosure(
         return when (capturedBinding) {
             is Binding.ClosureParam,
             is Binding.FunctionParam -> true
+
             is Binding.ValBinding -> false
             is Binding.MatchArmEnumCaseArg -> false
         }
@@ -179,6 +184,7 @@ internal class HIRGenClosure(
                     val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
                     lowerBlock(expression.body.block, addReturnVoid = addReturnVoid, into = intoBlock)
                 }
+
                 is ClosureBody.Expression -> {
                     buildBlock(into = intoBlock) {
                         emit(
@@ -211,11 +217,13 @@ internal class HIRGenClosure(
         currentModule.addDefinition(fn)
         fn
     }
+
     private val closureCtxParamName = ctx.makeName("\$ctx")
 
     private fun Identifier.uniqueNameWithSuffix(suffix: String): Name {
         return namingCtx.makeUniqueName(name.text + suffix)
     }
+
     internal fun lowerCaptureBinding(name: Identifier, binding: Binding.Local): HIROperand {
         val closureCtx = closureGenStack.peek()
         check(closureCtx != null)
@@ -252,6 +260,7 @@ internal class HIRGenClosure(
 
     private fun getCapturePointer(binding: Binding.ValBinding): HIROperand =
         getCapturePointer(binding.binder)
+
     private fun getCapturePointer(binding: Binding.MatchArmEnumCaseArg): HIROperand =
         getCapturePointer(binding.binder)
 

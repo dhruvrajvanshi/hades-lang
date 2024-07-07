@@ -1,8 +1,8 @@
 package hadesc.hirgen
 
+import hadesc.analysis.PostAnalysisContext
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.frontend.PropertyBinding
 import hadesc.hir.*
@@ -16,10 +16,11 @@ internal class HIRGenExpression(
     private val ctx: Context,
     private val moduleContext: HIRGenModuleContext,
     private val functionContext: HIRGenFunctionContext,
-    private val closureGen: HIRGenClosure
+    private val closureGen: HIRGenClosure,
+    private val postAnalysisContext: PostAnalysisContext,
 ) : HIRGenModuleContext by moduleContext,
     HIRGenFunctionContext by functionContext,
-    ASTContext by ctx {
+    PostAnalysisContext by postAnalysisContext {
     override val currentModule: HIRModule
         get() = moduleContext.currentModule
     internal fun lowerVarExpression(expression: Expression.Var): HIROperand {

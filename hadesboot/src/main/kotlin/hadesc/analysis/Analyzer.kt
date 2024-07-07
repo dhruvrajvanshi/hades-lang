@@ -38,6 +38,20 @@ class Analyzer<Ctx>(
     private val returnTypeStack = Stack<Type?>()
     private val astConv = ASTConv(ctx.resolver)
 
+    fun run(sourceFiles: List<SourceFile>): PostAnalysisContext {
+        sourceFiles.forEach { sourceFile ->
+            sourceFile.declarations.forEach { visitDeclaration(it) }
+        }
+
+        return object : PostAnalysisContext {
+            override val Expression.type: Type
+                get() = checkNotNull(typeOfExpressionCache[this]) {
+                    "Expression type not computed for $this"
+                }
+
+        }
+    }
+
     fun resolvePropertyBinding(expression: Expression.Property): PropertyBinding? {
         val modulePropertyBinding = ctx.resolver.resolveModuleProperty(expression)
         if (modulePropertyBinding != null) {
@@ -2079,3 +2093,7 @@ data class Discriminant(
     val name: Name,
     val params: List<Pair<Name?, Type>>
 )
+
+interface PostAnalysisContext {
+    val Expression.type: Type
+}

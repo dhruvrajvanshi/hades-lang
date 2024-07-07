@@ -1,10 +1,10 @@
 package hadesc.hirgen
 
 import hadesc.Name
+import hadesc.analysis.PostAnalysisContext
 import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
-import hadesc.context.ASTContext
 import hadesc.context.Context
 import hadesc.context.NamingCtx
 import hadesc.defer
@@ -34,7 +34,11 @@ internal interface HIRGenModuleContext : TypeTransformer {
     fun lowerGlobalName(binder: Binder): QualifiedName
     fun typeOfExpression(expression: Expression): Type
     fun lowerLocalBinder(binder: Binder): Name
-    fun lowerFunctionDef(functionDef: Declaration.FunctionDef, qualifiedName: QualifiedName? = null): HIRDefinition.Function
+    fun lowerFunctionDef(
+        functionDef: Declaration.FunctionDef,
+        qualifiedName: QualifiedName? = null
+    ): HIRDefinition.Function
+
     fun lowerTypeParam(typeParam: TypeParam): HIRTypeParam
     fun lowerTypeAnnotation(annotation: TypeAnnotation): Type
 
@@ -71,7 +75,17 @@ class HIRGenScopeStack {
         return stack.removeLast().first
     }
 }
-class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx)) : ASTContext by ctx, HIRGenModuleContext, HIRGenFunctionContext, NamingCtx by ctx, HIRBuilder, TypeTransformer by typeTransformer {
+
+class HIRGen(
+    private val ctx: Context,
+    private val postAnalysisContext: PostAnalysisContext,
+    private val typeTransformer: HIRGenTypeTransformer = HIRGenTypeTransformer(ctx),
+) : HIRGenModuleContext,
+    HIRGenFunctionContext, NamingCtx by ctx,
+    HIRBuilder,
+    TypeTransformer by typeTransformer,
+    PostAnalysisContext by postAnalysisContext
+{
 
     private val log = logger(HIRGen::class.java)
     override val typeAnalyzer = TypeAnalyzer()
@@ -82,16 +96,18 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     private val closureGen = HIRGenClosure(
         ctx,
         moduleContext = this,
-        functionContext = this
+        functionContext = this,
+        postAnalysisContext = postAnalysisContext,
     )
 
     private val exprGen = HIRGenExpression(
         ctx,
         moduleContext = this,
         functionContext = this,
-        closureGen = closureGen
+        closureGen = closureGen,
+        postAnalysisContext = postAnalysisContext,
     )
-    private val traitGen = HIRGenTraits(ctx, this)
+    private val traitGen = HIRGenTraits(ctx, this, postAnalysisContext)
     override lateinit var currentLocation: SourceLocation
     override var currentStatements: MutableList<HIRStatement>? = null
     override val scopeStack = HIRGenScopeStack()
@@ -129,6 +145,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                         is Declaration.Struct,
                         is Declaration.Enum
                         -> 1
+
                         else -> 2
                     }
                 }
@@ -152,6 +169,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         currentLocation = declaration.location
         return lowerDeclarationHelper(declaration)
     }
+
     private fun lowerDeclarationHelper(declaration: Declaration): List<HIRDefinition> = when (declaration) {
         is Declaration.Error -> requireUnreachable()
         is Declaration.ImportAs -> emptyList()
@@ -196,7 +214,10 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         return list
     }
 
-    private fun extensionMethodName(declaration: Declaration.ExtensionDef, functionDef: Declaration.FunctionDef): QualifiedName {
+    private fun extensionMethodName(
+        declaration: Declaration.ExtensionDef,
+        functionDef: Declaration.FunctionDef
+    ): QualifiedName {
         return ctx.resolver.qualifiedName(declaration.name).append(functionDef.name.identifier.name)
     }
 
@@ -244,12 +265,18 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 HIRDefinition.Struct(
                     case.name.location,
                     enumName.append(case.name.identifier.name),
-                    typeParams = declaration.typeParams?.map { HIRTypeParam(it.location, it.binder.identifier.name, it.binder.id) },
-                    fields = (
-                        case.params?.mapIndexed { caseParamIndex, caseParam ->
-                            ctx.makeName("$caseParamIndex") to lowerTypeAnnotation(requireNotNull(caseParam.annotation))
-                        } ?: emptyList()
+                    typeParams = declaration.typeParams?.map {
+                        HIRTypeParam(
+                            it.location,
+                            it.binder.identifier.name,
+                            it.binder.id
                         )
+                    },
+                    fields = (
+                            case.params?.mapIndexed { caseParamIndex, caseParam ->
+                                ctx.makeName("$caseParamIndex") to lowerTypeAnnotation(requireNotNull(caseParam.annotation))
+                            } ?: emptyList()
+                            )
                 )
             )
             val caseTagDef = emitDef(
@@ -442,6 +469,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 ctx.makeUniqueName(),
                 lowerExpression(member.expression)
             ).ignore()
+
         is Block.Member.Statement -> lowerStatement(member.statement)
     }
 
@@ -486,6 +514,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     )
                 )
             }
+
             is Expression.This -> {
                 val enclosingExtension = checkNotNull(ctx.resolver.getEnclosingFunction(statement))
                 val thisFlags = checkNotNull(enclosingExtension.signature.thisParamFlags)
@@ -499,6 +528,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     lowerExpression(statement.value)
                 )
             }
+
             else -> requireUnreachable()
         }
     }
@@ -562,8 +592,8 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         check(valAllocaStatements[statement.binder] == null)
         val name = lowerLocalBinder(statement.binder)
         valAllocaStatements[statement.binder] =
-            // this condition isn't necessary,
-            // it's just to create cleaner HIR for val x: Type = #uninitialized
+                // this condition isn't necessary,
+                // it's just to create cleaner HIR for val x: Type = #uninitialized
             if (statement.rhs is Expression.Uninitialized) {
                 emitAlloca(name, statement.rhs.type)
                 // the other branch would generate this code
@@ -637,6 +667,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 deferStack = oldDeferStack
                 result
             }
+
             is Expression.As -> lowerAsExpression(expression)
             is Expression.BlockExpression -> lowerBlockExpression(expression)
             is Expression.Intrinsic -> requireUnreachable()
@@ -822,6 +853,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     )
                 ).result()
             }
+
             else -> requireUnreachable()
         }
     }
@@ -835,11 +867,13 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 is Block.Member.Expression -> {
                     lowerExpression(lastMember.expression)
                 }
+
                 is Block.Member.Statement -> {
                     check(expression.type is Type.Void)
                     lowerStatement(lastMember.statement)
                     HIRConstant.Void(currentLocation)
                 }
+
                 null -> {
                     check(expression.type is Type.Void)
                     HIRConstant.Void(currentLocation)
@@ -917,6 +951,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
             is Type.Ptr -> {
                 lowerExpression(expression.expression).load()
             }
+
             else -> requireUnreachable()
         }
     }
@@ -932,16 +967,19 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     lowerLocalBinder(binding.statement.binder)
                 )
             }
+
             is Expression.Property -> addressOfStructField(expr)
             else -> requireUnreachable()
         }
     }
+
     private fun addressOfStructField(expr: Expression.Property): HIROperand {
         return when (val propertyBinding = ctx.analyzer.resolvePropertyBinding(expr)) {
             is PropertyBinding.StructPointerFieldLoad -> {
                 lowerExpression(expr.lhs)
                     .fieldPtr(propertyBinding.member.binder.name)
             }
+
             is PropertyBinding.StructField -> {
                 require(expr.lhs is Expression.Var)
                 val lhsBinding = ctx.resolver.resolve(expr.lhs.name)
@@ -953,6 +991,7 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                 )
                 structPtr.fieldPtr(propertyBinding.member.binder.name)
             }
+
             else -> requireUnreachable()
         }
     }
@@ -968,9 +1007,11 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
                     lowerLocalBinder(binding.statement.binder)
                 )
             }
+
             is Expression.Property -> {
                 addressOfStructField(expr)
             }
+
             else -> requireUnreachable()
         }
     }
@@ -1085,19 +1126,23 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         )
     }
 
-    private fun lowerPropertyExpression(expression: Expression.Property): HIROperand = when (val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
-        null -> requireUnreachable()
-        is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
-        is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
-        is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression)
-        is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
-        is PropertyBinding.WhereParamRef -> TODO()
-        is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
-        is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
-        is PropertyBinding.InterfaceFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
-    }
+    private fun lowerPropertyExpression(expression: Expression.Property): HIROperand =
+        when (val binding = ctx.analyzer.resolvePropertyBinding(expression)) {
+            null -> requireUnreachable()
+            is PropertyBinding.Global -> exprGen.lowerBinding(expression, binding.binding)
+            is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
+            is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression)
+            is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
+            is PropertyBinding.WhereParamRef -> TODO()
+            is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
+            is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
+            is PropertyBinding.InterfaceFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
+        }
 
-    private fun lowerExtensionPropertyBinding(expression: Expression.Property, binding: PropertyBinding.ExtensionDef): HIROperand {
+    private fun lowerExtensionPropertyBinding(
+        expression: Expression.Property,
+        binding: PropertyBinding.ExtensionDef
+    ): HIROperand {
         return HIRExpression.GlobalRef(
             expression.location,
             binding.type,
@@ -1105,7 +1150,10 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         )
     }
 
-    private fun lowerWhenCaseFieldRef(expression: Expression.Property, binding: PropertyBinding.WhenCaseFieldRef): HIROperand {
+    private fun lowerWhenCaseFieldRef(
+        expression: Expression.Property,
+        binding: PropertyBinding.WhenCaseFieldRef
+    ): HIROperand {
         return HIRExpression.LocalRef(
             expression.lhs.location,
             caseType(binding),
@@ -1129,9 +1177,13 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
         }
     }
 
-    private fun lowerEnumCaseConstructor(expression: Expression.Property, binding: PropertyBinding.EnumTypeCaseConstructor): HIROperand {
+    private fun lowerEnumCaseConstructor(
+        expression: Expression.Property,
+        binding: PropertyBinding.EnumTypeCaseConstructor
+    ): HIROperand {
         require(expression.lhs is Expression.Var)
-        val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name).append(ctx.makeName("constructor"))
+        val name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.case.name.identifier.name)
+            .append(ctx.makeName("constructor"))
 
         val originalTy = lowerType(typeOfExpression(expression))
         // if this is a case constructor without parameters,
@@ -1186,15 +1238,16 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
     }
 
     private val externDefs = mutableMapOf<QualifiedName, HIRDefinition.ExternFunction>()
-    override fun getExternDef(declaration: Declaration.ExternFunctionDef) = externDefs.computeIfAbsent(lowerGlobalName(declaration.binder)) {
-        HIRDefinition.ExternFunction(
-            declaration.location,
-            name = lowerGlobalName(declaration.binder),
-            params = declaration.paramTypes.map { lowerTypeAnnotation(it) },
-            externName = declaration.externName.name,
-            returnType = lowerTypeAnnotation(declaration.returnType)
-        )
-    }
+    override fun getExternDef(declaration: Declaration.ExternFunctionDef) =
+        externDefs.computeIfAbsent(lowerGlobalName(declaration.binder)) {
+            HIRDefinition.ExternFunction(
+                declaration.location,
+                name = lowerGlobalName(declaration.binder),
+                params = declaration.paramTypes.map { lowerTypeAnnotation(it) },
+                externName = declaration.externName.name,
+                returnType = lowerTypeAnnotation(declaration.returnType)
+            )
+        }
 
     private fun lowerByteString(expression: Expression.ByteString): HIROperand {
         return HIRConstant.ByteString(
@@ -1220,7 +1273,10 @@ class HIRGen(private val ctx: Context, private val typeTransformer: HIRGenTypeTr
 
         when (val instance = genericInstanceFound) {
             null -> {}
-            else -> ctx.diagnosticReporter.report(node.location, Diagnostic.Kind.UninferrableTypeParam(instance.originalName, instance.location))
+            else -> ctx.diagnosticReporter.report(
+                node.location,
+                Diagnostic.Kind.UninferrableTypeParam(instance.originalName, instance.location)
+            )
         }
     }
 
