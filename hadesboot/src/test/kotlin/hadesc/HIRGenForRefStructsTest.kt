@@ -186,10 +186,10 @@ fun withTestCtx(source: String, build: TestBuilder.() -> Unit) {
             }
         }
     )
-    val hirGen = HIRGen(ctx)
 
     val sourceFile = requireNotNull(ctx.resolveSourceFile(QualifiedName()))
 
+    val hirGen = HIRGen(ctx, postAnalysisContext = ctx.analyzer.run(listOf(sourceFile)))
     val module = hirGen.lowerSourceFiles(listOf(sourceFile))
 
     val testCtx = object : TestBuilder {
