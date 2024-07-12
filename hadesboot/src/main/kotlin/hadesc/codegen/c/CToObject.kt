@@ -20,7 +20,6 @@ class CToObject(private val cSource: String, private val target: BuildTarget, pr
         }
         val cOutputPath = Path(".hades/temp_${System.currentTimeMillis()}.c")
         cOutputPath.writeText(cSource)
-        println(cSource)
         val commandParts = mutableListOf(cc, "-o", target.output.toString())
 
         if (options.debugSymbols) {
