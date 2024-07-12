@@ -24,7 +24,7 @@ fn main(): Void {
 
 struct Bytecode {
     val tag: u8
-    val payload: union[A, B]
+    val payload: union<A, B>
 }
 
 struct A {

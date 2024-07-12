@@ -1429,11 +1429,11 @@ class Parser<Ctx>(
             }
             tt.UNION -> {
                 val start = advance()
-                expect(tt.LSQB)
-                val args = parseSeperatedList(tt.COMMA, terminator = tt.RSQB) {
+                expect(tt.LESS_THAN)
+                val args = parseSeperatedList(tt.COMMA, terminator = tt.GREATER_THAN) {
                     parseTypeAnnotation()
                 }
-                val stop = expect(tt.RSQB)
+                val stop = expect(tt.GREATER_THAN)
                 TypeAnnotation.Union(
                     makeLocation(start, stop),
                     args

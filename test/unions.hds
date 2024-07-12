@@ -2,7 +2,7 @@
 import submodule.test_utils as u;
 
 fn main(): Void {
-    val mut x: union[Int, Bool] = #uninitialized;
+    val mut x: union<Int, Bool> = #uninitialized;
     val mut x_ptr = &mut x
     set(x_ptr, 1)
     val x_int: Int = get(x_ptr);
