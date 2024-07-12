@@ -571,6 +571,7 @@ class Analyzer<Ctx>(
     }
 
     private fun visitExtensionDef(declaration: Declaration.ExtensionDef) {
+        annotationToType(declaration.forType)
         declaration.functionDefs.forEach { visitFunctionDef(it) }
     }
 
