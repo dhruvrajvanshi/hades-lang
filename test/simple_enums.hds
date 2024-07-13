@@ -4,7 +4,7 @@ enum T {
     Z
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 fn main(): Void {
     puts(str(T.X))
@@ -17,7 +17,7 @@ fn main(): Void {
     })
 }
 
-fn str(value: T): *u8 {
+fn str(value: T): *cchar {
     return match value {
         X -> b"X"
         Y -> b"Y"

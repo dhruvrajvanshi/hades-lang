@@ -12,10 +12,10 @@ struct t {
     val m_prev: *t;
     val m_child: *t;
     val m_type: CInt;
-    val m_valuestring: *Byte;
+    val m_valuestring: *cchar;
     val m_valueint: CInt;
     val m_valuedouble: Double;
-    val m_string: *Byte;
+    val m_string: *cchar;
 }
 
 struct InitHooks {
@@ -24,11 +24,11 @@ struct InitHooks {
 }
 
 extern fn init_hooks(*InitHooks): Void = cJSON_InitHooks;
-extern fn Parse(*Byte): *mut t = cJSON_Parse;
+extern fn Parse(*cchar): *mut t = cJSON_Parse;
 extern fn Print(*t): *mut Byte = cJSON_Print;
 extern fn PrintUnformatted(*t): *mut Byte = cJSON_PrintUnformatted;
 
-extern fn GetObjectItem(*t, *Byte): *t = cJSON_GetObjectItem;
+extern fn GetObjectItem(*t, *cchar): *t = cJSON_GetObjectItem;
 extern fn IsInvalid(*t): Bool = cJSON_IsInvalid;
 extern fn IsFalse(*t): Bool = cJSON_IsFalse;
 extern fn IsTrue(*t): Bool = cJSON_IsTrue;
@@ -39,15 +39,15 @@ extern fn IsString(*t): Bool = cJSON_IsString;
 extern fn IsArray(*t): Bool = cJSON_IsArray;
 extern fn IsObject(*t): Bool = cJSON_IsObject;
 extern fn IsRaw(*t): Bool = cJSON_IsRaw;
-extern fn GetStringValue(*t): *Byte = cJSON_GetStringValue;
+extern fn GetStringValue(*t): *cchar = cJSON_GetStringValue;
 extern fn GetNumberValue(*t): Double = cJSON_GetNumberValue;
 
 extern fn CreateObject(): *mut t = cJSON_CreateObject;
-extern fn CreateString(*Byte): *mut t = cJSON_CreateString;
+extern fn CreateString(*cchar): *mut t = cJSON_CreateString;
 extern fn CreateNumber(Double): *mut t = cJSON_CreateNumber;
 extern fn CreateBool(Bool): *mut t = cJSON_CreateBool;
 
-extern fn AddItemToObject(*mut t, *Byte, *t): Bool = cJSON_AddItemToObject;
+extern fn AddItemToObject(*mut t, *cchar, *t): Bool = cJSON_AddItemToObject;
 
 extern fn Delete(*mut t): Void = cJSON_Delete;
 

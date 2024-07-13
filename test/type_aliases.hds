@@ -1,11 +1,11 @@
 import submodule.aliases as a;
-type CString = *Byte;
+type CString = *cchar;
 
 type Ptr[T] = *T;
 
 fn main(): Void {
     val s: CString = b"cstr";
-    val s1: Ptr[Byte] = s;
+    val s1: *cchar = s;
     val mut x: a.int = 23;
     val p: a.MutPtr[a.int] = &mut x;
     val x: a.MutPtr[Bool] = &mut x;

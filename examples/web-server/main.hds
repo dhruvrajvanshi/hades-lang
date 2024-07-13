@@ -7,9 +7,9 @@ import example.panic.{panic_with_errno};
 
 extern fn bind_socket(u16): i32 = bind_socket;
 
-type FileDescriptor = c.FileDescriptor;
+type FileDescriptor = c.int;
 
-type CInt = c.CInt;
+type CInt = c.int;
 
 const MAXMSG: Size = 1024;
 const PORT: u16 = 5000;
@@ -42,7 +42,7 @@ const MAX_REQUEST_SIZE: Size = 4096;
 fn handle_connection(fd: FileDescriptor): Void {
     log.info(b"handle connection");
 
-    val request_text_buffer = c.malloc(MAX_REQUEST_SIZE * size_of[Byte]);
+    val request_text_buffer = c.malloc(MAX_REQUEST_SIZE * size_of[cchar]);
     defer mem.free(request_text_buffer);
 
     val read_bytes = c.read(fd, request_text_buffer, MAX_REQUEST_SIZE);
@@ -50,13 +50,13 @@ fn handle_connection(fd: FileDescriptor): Void {
         panic_with_errno(b"handle_connection/read(request_fd)");
     }
 
-    val request_text: *Byte = pointer_cast[Byte](request_text_buffer)
+    val request_text: *cchar = pointer_cast[cchar](request_text_buffer)
 
     val request_str = StringView.t(request_text, read_bytes as usize);
     val request = HTTPRequest.from_string_view(request_str);
 
     log.info(b"Got request: ");
-    log.info(pointer_cast[Byte](request_text));
+    log.info(pointer_cast[cchar](request_text));
 
     val response_body = b"
 <html>
@@ -87,17 +87,17 @@ fn handle_connection(fd: FileDescriptor): Void {
     }
 }
 
-fn http_write(response_fd: FileDescriptor, text: *Byte): Void {
+fn http_write(response_fd: FileDescriptor, text: *cchar): Void {
     val result = c.write(response_fd, pointer_cast[Void](text), c.strlen(text));
     if result < 0 {
         panic_with_errno(b"http_write/write");
     }
 }
 
-fn http_write_line(response_fd: FileDescriptor, text: *Byte): Void {
+fn http_write_line(response_fd: FileDescriptor, text: *cchar): Void {
     http_write(response_fd, text);
     http_write(response_fd, b"\r\n");
 }
 
 /// allocates a new string; caller needs to free
-extern fn size_to_string(Size): *mut Byte = size_to_string;
+extern fn size_to_string(Size): *mut cchar = size_to_string;

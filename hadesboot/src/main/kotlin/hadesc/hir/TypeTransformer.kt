@@ -25,6 +25,11 @@ interface TypeTransformer {
         is Type.Closure -> lowerClosureType(type)
         is Type.Ref -> lowerRefType(type)
         is Type.Array -> lowerArrayType(type)
+        Type.CChar -> lowerCCharType(type)
+    }
+
+    fun lowerCCharType(type: Type): Type {
+        return type
     }
 
     fun lowerArrayType(type: Type.Array): Type = Type.Array(
@@ -114,6 +119,7 @@ interface TypeVisitor {
         is Type.Void -> visitVoidType(type)
         is Type.Bool -> visitBoolType(type)
         is Type.Size -> visitSizeType(type)
+        is Type.CChar -> visitCCharType(type)
         is Type.Ptr -> visitRawPtrType(type)
         is Type.FunctionPtr -> visitFunctionType(type)
         is Type.Constructor -> visitTypeConstructor(type)
@@ -130,6 +136,8 @@ interface TypeVisitor {
         is Type.Ref -> visitRefType(type)
         is Type.Array -> visitArrayType(type)
     }
+
+    fun visitCCharType(type: Type.CChar) = Unit
 
     fun visitArrayType(type: Type.Array) {
         visitType(type.itemType)

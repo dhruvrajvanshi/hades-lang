@@ -1,5 +1,5 @@
 
 struct StringPair {
-    val first: *Byte;
-    val second: *Byte;
+    val first: *cchar;
+    val second: *cchar;
 }

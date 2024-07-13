@@ -367,6 +367,7 @@ class TypeChecker(
             is Type.Size,
             Type.Void,
             Type.Bool,
+            Type.CChar,
             is Type.FloatingPoint -> true
 
             is Type.Ptr -> to.isExternSafe()

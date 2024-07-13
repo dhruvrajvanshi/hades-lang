@@ -1,10 +1,10 @@
 import hades.internal.gc.{gc_alloc}
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
-type Str = *u8
+type Str = *cchar
 fn main(): Void {
-    val void_ptr: *mut Void = gc_alloc(size_of[Str])
+    val void_ptr: *mut void = gc_alloc(size_of[Str])
     val str_ptr: *mut Str = pointer_cast[Str](void_ptr)
     *str_ptr = b"PASS"
 

@@ -1108,6 +1108,12 @@ class HIRGen(
                 typeOfExpression(expression),
                 expression.value
             )
+        } else if (exprType is Type.CChar) {
+            HIRConstant.IntValue(
+                expression.location,
+                exprType,
+                expression.value,
+            )
         } else {
             check(exprType is Type.FloatingPoint)
             HIRConstant.FloatValue(

@@ -1,10 +1,10 @@
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 fn main(): Void {
     defer print_first(b"2", print_first(b"1", 0))
 }
 
-fn print_first(message: *u8, i: usize): usize {
+fn print_first(message: *cchar, i: usize): usize {
     puts(message)
     return i
 }

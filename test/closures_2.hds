@@ -1,5 +1,5 @@
 
-fn main(): Void {
+fn main(): void {
     apply(b"1") |param| {
         puts(param)
         apply(b"2") |other| {
@@ -9,8 +9,8 @@ fn main(): Void {
     }
 }
 
-fn apply(message: *u8, f: |*u8| -> Void): Void {
+fn apply(message: *cchar, f: |*cchar| -> Void): Void {
     f(message)
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts

@@ -3,13 +3,13 @@ import libc as c;
 
 const ERROR_EXIT: i32 = 1;
 
-fn panic_with_errno(message: *Byte): Void {
+fn panic_with_errno(message: *cchar): Void {
     c.perror(message);
     log.fatal(b"Exiting");
     c.exit(ERROR_EXIT);
 }
 
-fn panic(message: *Byte): Void {
+fn panic(message: *cchar): Void {
     log.fatal(message);
     log.fatal(b"Exiting");
     c.exit(ERROR_EXIT);

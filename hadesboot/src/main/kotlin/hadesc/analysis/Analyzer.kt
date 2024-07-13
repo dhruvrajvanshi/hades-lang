@@ -891,6 +891,7 @@ class Analyzer<Ctx>(
         is Type.Size,
         is Type.Integral -> true
         is Type.FloatingPoint -> true
+        is Type.CChar -> true
         else -> false
     }
 
@@ -901,7 +902,7 @@ class Analyzer<Ctx>(
                 is Expression.Var -> inferVarExpresion(expression)
                 is Expression.Call -> inferCallExpression(expression)
                 is Expression.Property -> inferPropertyExpression(expression)
-                is Expression.ByteString -> Type.Ptr(Type.Integral(8, isSigned = false), isMutable = false)
+                is Expression.ByteString -> Type.CChar.ptr()
                 is Expression.BoolLiteral -> Type.Bool
                 is Expression.NullPtr -> inferNullPtrExpression(expression)
                 is Expression.IntLiteral -> inferIntLiteral(expression)

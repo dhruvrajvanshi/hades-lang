@@ -11,7 +11,7 @@ extern fn get_stdin(): *mut FILE = _hdc_get_stdin
 
 /// A null terminated string, commonly used by libc
 /// apis
-type CStr = *u8
+type CStr = *cchar
 
 /// Mutable version of `MutCStr`
 type MutCStr = *mut u8

@@ -1,6 +1,6 @@
 import libc as c;
 
-extern fn bool_to_string(Bool): *Byte = bool_to_string;
+extern fn bool_to_string(bool): *cchar = bool_to_string;
 
 fn main(): Void {
     c.puts(bool_to_string(true));

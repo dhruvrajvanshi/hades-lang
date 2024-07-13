@@ -1,4 +1,4 @@
-extern fn puts(*Byte): Void = puts;
+extern fn puts(*cchar): Void = puts;
 
 fn main(): Void {
     val t = true;
@@ -6,6 +6,6 @@ fn main(): Void {
     puts(apply(false, |value| if (value and t) b"true" else b"false"));
 }
 
-fn apply(bool: Bool, f: |Bool| -> *Byte): *Byte {
+fn apply(bool: Bool, f: |Bool| -> *cchar): *cchar {
     return f(bool);
 }
