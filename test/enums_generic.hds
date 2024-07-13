@@ -19,14 +19,14 @@ fn print[T](value: T): Void where p.Printable[T] {
 
 fn get_string_value(value: Optional[*Byte]): *Byte {
     return match value {
-        Some(val value) -> value,
+        Some(val v) -> v,
         None -> b"None"
     };
 }
 
 fn get_int_value(value: Optional[Int]): Int {
     return match value {
-        Some(val value) -> value,
+        Some(val v) -> v,
         None -> 0
     };
 }
