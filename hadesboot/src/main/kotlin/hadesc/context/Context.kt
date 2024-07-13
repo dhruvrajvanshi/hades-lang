@@ -193,7 +193,6 @@ class Context(
 
         visitSourceFile(stdlibSource("hades.marker"))
         visitSourceFile(stdlibSource("hades.libhdc"))
-        visitSourceFile(stdlibSource("hades.internal.gc"))
         collectedFiles.values.forEach(action)
     }
 
