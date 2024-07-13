@@ -20,6 +20,8 @@ class HIRToC(
             #include <stdbool.h>
             #include <stdint.h>
             #include <stdalign.h>
+        
+            void* memcpy(void* dest, const void* src, size_t n);
         """.trimIndent()
         )
     )
@@ -299,7 +301,7 @@ class HIRToC(
         is HIRStatement.Load -> lowerLoadStatement(statement, into)
         is HIRStatement.LoadRefField -> TODO()
         is HIRStatement.MatchInt -> TODO()
-        is HIRStatement.Memcpy -> TODO()
+        is HIRStatement.Memcpy -> lowerMemcpy(statement, into)
         is HIRStatement.Move -> TODO()
         is HIRStatement.Not -> lowerNotStatement(statement, into)
         is HIRStatement.PointerCast -> lowerPointerCast(statement, into)
@@ -311,6 +313,20 @@ class HIRToC(
         is HIRStatement.SwitchInt -> lowerSwitchInt(statement, into)
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
+    }
+
+    private fun lowerMemcpy(statement: HIRStatement.Memcpy, into: MutableList<CNode>) {
+        into.add(
+            CNode.Call(
+                CNode.Raw("memcpy"),
+                listOf(
+                    lowerExpression(statement.destination),
+                    lowerExpression(statement.source),
+                    lowerExpression(statement.bytes),
+                ),
+                semi = true
+            )
+        )
     }
 
     private fun lowerBinOp(statement: HIRStatement.BinOp, into: MutableList<CNode>) {
