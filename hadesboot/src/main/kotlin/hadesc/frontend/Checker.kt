@@ -9,6 +9,7 @@ import hadesc.ast.*
 import hadesc.context.Context
 import hadesc.diagnostics.Diagnostic
 import hadesc.exhaustive
+import hadesc.hir.BinaryOperator
 import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.resolver.Binding
@@ -1017,6 +1018,14 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
                 expression,
                 Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type)
             )
+        }
+        if (expression.operator == BinaryOperator.REM) {
+            if (expression.lhs.type is Type.FloatingPoint || expression.rhs.type is Type.FloatingPoint) {
+                error(
+                    expression,
+                    Diagnostic.Kind.OperatorNotApplicable(expression.operator, expression.lhs.type, expression.rhs.type)
+                )
+            }
         }
     }
 
