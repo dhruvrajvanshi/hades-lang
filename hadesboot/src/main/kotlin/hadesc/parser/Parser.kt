@@ -882,9 +882,22 @@ class Parser<Ctx>(
             }
             tt.SIZE_OF -> {
                 val start = advance()
-                expect(tt.LSQB)
-                val type = parseTypeAnnotation()
-                val stop = expect(tt.RSQB)
+                val type: TypeAnnotation
+                val stop: Token
+                if (at(tt.DOT)) {
+                    advance()
+                    expect(tt.LESS_THAN)
+                    type = parseTypeAnnotation()
+                    stop = expect(tt.GREATER_THAN)
+                } else if (at(tt.LESS_THAN)) {
+                    advance()
+                    type = parseTypeAnnotation()
+                    stop = expect(tt.GREATER_THAN)
+                } else {
+                    expect(tt.LSQB)
+                    type = parseTypeAnnotation()
+                    stop = expect(tt.RSQB)
+                }
                 Expression.SizeOf(makeLocation(start, stop), type)
             }
             tt.ALIGN_OF -> {
