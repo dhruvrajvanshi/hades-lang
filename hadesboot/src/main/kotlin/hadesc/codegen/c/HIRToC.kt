@@ -251,9 +251,9 @@ class HIRToC(
     }
 
     private fun lowerByteString(expr: HIRConstant.ByteString): CNode {
-        return CNode.Raw('"' + expr.bytes.joinToString("") {
+        return CNode.Cast(CNode.Raw("uint8_t*"), CNode.Raw('"' + expr.bytes.joinToString("") {
             it.escapeToStr()
-        } + '"')
+        } + '"'))
     }
 
     private fun lowerFunctionImplementation(def: HIRDefinition.Function) {
