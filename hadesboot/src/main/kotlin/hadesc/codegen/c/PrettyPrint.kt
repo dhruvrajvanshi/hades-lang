@@ -42,16 +42,23 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Nodes(
             Text("typedef struct $name"),
             Group(
-                Text("{"),
+                Text(" {"),
                 LineIfWrapping,
                 Indent(
-                    fields.map {
-                        it.second.toPPNode() + Text(" ") + Text(it.first) + Text(";")
+                    fields.mapIndexed { idx, it ->
+                        it.second.toPPNode() + Text(" ") +
+                                Text(it.first) + Text(";") +
+                                if (idx != fields.lastIndex)
+                                    LineIfWrapping
+                                else
+                                    Text("")
                     }
                 ),
                 LineIfWrapping,
                 Text("} $name;")
-            )
+            ).let {
+                if (fields.isEmpty()) it else it.forceWrap()
+            }
         )
     }
 
@@ -59,16 +66,22 @@ fun CNode.toPPNode(): PPNode = when (this) {
         Nodes(
             Text("typedef union ${name.c()}"),
             Group(
-                Text("{"),
+                Text(" {"),
                 LineIfWrapping,
                 Indent(
                     members.mapIndexed { idx, it ->
-                        it.toPPNode() + Text(" ") + Text("_$idx") + Text(";")
+                        it.toPPNode() + Text(" ") + Text("_$idx") + Text(";") +
+                        if (idx != members.lastIndex)
+                            LineIfWrapping
+                        else
+                            Text("")
                     }
                 ),
                 LineIfWrapping,
                 Text("} ${name.c()};")
-            )
+            ).let {
+                if (members.isEmpty()) it else it.forceWrap()
+            }
         )
     }
 
