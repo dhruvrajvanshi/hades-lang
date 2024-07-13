@@ -1,7 +1,7 @@
 
 interface SomeTrait[Self] {}
 
-extension BSExtensions for *cchar {
+extension BSExtensions for *u8 {
     fn foo[T](this, value: T): Void where SomeTrait[T] {}
 }
 

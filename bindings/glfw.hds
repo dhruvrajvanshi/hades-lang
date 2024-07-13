@@ -4,7 +4,7 @@ struct Monitor {}
 type CInt = i32
 extern fn init(): CInt = glfwInit;
 extern fn terminate(): Void = glfwTerminate;
-extern fn create_window(CInt, CInt, *cchar, *Monitor, *Window): *Window = glfwCreateWindow;
+extern fn create_window(CInt, CInt, *Byte, *Monitor, *Window): *Window = glfwCreateWindow;
 extern fn make_context_current(*Window): Void = glfwMakeContextCurrent;
 extern fn window_should_close(*Window): Bool = glfwWindowShouldClose;
 extern fn window_swap_buffers(*Window): Void = glfwSwapBuffers;

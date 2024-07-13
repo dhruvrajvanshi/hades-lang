@@ -3,7 +3,7 @@ import libc.{stdout}
 
 extern fn put_usize(usize, *c.FILE): Void = hscript_put_usize
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts
 
 fn main(): Void {
     match Bytecode.B(1) {

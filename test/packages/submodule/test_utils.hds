@@ -2,7 +2,7 @@
 extern fn print_int(Int): Void  = print_int;
 extern fn print_u32(u32): Void  = print_u32;
 extern fn print_bool(Bool): Void = print_bool;
-extern fn print_byte_string(*cchar): Void = print_byte_string;
+extern fn print_byte_string(*Byte): Void = print_byte_string;
 extern fn print_size(Size): Void = print_size;
 extern fn print_f32(f32): Void = print_f32;
 extern fn print_f64(f64): Void = print_f64;

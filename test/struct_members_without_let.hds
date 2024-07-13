@@ -1,5 +1,5 @@
 struct Foo {
-    message: *cchar
+    message: *u8
 }
 
 
@@ -7,4 +7,4 @@ fn main(): Void {
     puts(Foo(b"Test").message)
 }
 
-extern fn puts(*cchar): i32 = puts;
+extern fn puts(*u8): i32 = puts;

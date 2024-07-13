@@ -16,4 +16,4 @@ fn apply(f: || -> Void): Void {
     f()
 }
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts

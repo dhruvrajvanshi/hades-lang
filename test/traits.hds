@@ -15,8 +15,8 @@ implementation Printable[Bool] {
     }
 }
 
-implementation Printable[*cchar] {
-    fn print(self: *cchar, file: *c.FILE): Void {
+implementation Printable[*Byte] {
+    fn print(self: *Byte, file: *c.FILE): Void {
         c.fputs(self, file);
     }
 }

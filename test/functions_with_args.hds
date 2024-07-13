@@ -1,11 +1,11 @@
 
-extern fn puts(*cchar): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-fn print_first(first: *cchar, second: *cchar): Void {
+fn print_first(first: *Byte, second: *Byte): Void {
     puts(first);
 }
 
-fn print_second(first: *cchar, second: *cchar): Void {
+fn print_second(first: *Byte, second: *Byte): Void {
     puts(second);
 }
 

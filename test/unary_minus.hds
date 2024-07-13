@@ -7,4 +7,4 @@ fn main(): Void {
     puts(b"PASS")
 }
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts

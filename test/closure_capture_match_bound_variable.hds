@@ -9,11 +9,11 @@ fn main(): Void {
     }
 }
 
-fn apply(f: || -> void): Void {
+fn apply(f: || -> Void): Void {
     f()
 }
 
 enum X {
-    Y(*cchar)
+    Y(*u8)
 }
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts

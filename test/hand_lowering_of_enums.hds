@@ -1,7 +1,7 @@
 import hades.libhdc.{ file_put_cstr, file_put_usize, file_put_u8, get_stdout, file_put_void_ptr }
 import hades.memory as Mem
 
-fn main(): void {
+fn main(): Void {
     val stdout = get_stdout()
     val discriminant = B_constructor(1)
     match discriminant.tag {

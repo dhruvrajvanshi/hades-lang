@@ -1,7 +1,7 @@
 
-extern const MESSAGE: *cchar = MESSAGE
+extern const MESSAGE: *Byte = MESSAGE
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*Byte): Void = puts
 
 fn main(): Void {
     puts(MESSAGE)

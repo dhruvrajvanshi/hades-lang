@@ -1,4 +1,4 @@
-extern fn puts(*cchar): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
 fn main(): Void {
     puts(b"Hello world");

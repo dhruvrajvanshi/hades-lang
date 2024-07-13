@@ -1,14 +1,14 @@
-extern fn puts(*cchar): Void = puts;
+extern fn puts(*Byte): Void = puts;
 
-fn id(bytes: *cchar): *cchar {
+fn id(bytes: *Byte): *Byte {
     return bytes;
 }
 
-fn first(first: *cchar, second: *cchar): *cchar {
+fn first(first: *Byte, second: *Byte): *Byte {
     return first;
 }
 
-fn second(first: *cchar, second: *cchar): *cchar {
+fn second(first: *Byte, second: *Byte): *Byte {
     return second;
 }
 

@@ -1,3 +1,3 @@
 
-type CString = *cchar;
+type CString = *Byte;
 const message = b"hello";

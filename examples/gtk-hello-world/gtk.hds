@@ -26,33 +26,33 @@ implementation IsContainer[Container] {}
 
 
 const APPLICATION_FLAGS_NONE: i32 = 0
-extern fn application_new(*cchar, CInt): *Application = gtk_application_new
+extern fn application_new(*Byte, CInt): *Application = gtk_application_new
 extern fn object_unref(*Application): Void = gtk_object_unref
 extern fn application_window_new(*Application): *Window = gtk_application_window_new
 extern fn window_set_default_size(*Window, CInt, CInt): Void = gtk_window_set_default_size
-extern fn window_set_title(*Window, *cchar): Void = gtk_window_set_title
+extern fn window_set_title(*Window, *Byte): Void = gtk_window_set_title
 extern fn button_box_new(u32): *ButtonBox = gtk_button_box_new
 extern fn progress_bar_new(): *ProgressBar = gtk_progress_bar_new;
-extern fn progress_bar_set_text(*ProgressBar, *cchar): Void = gtk_progress_bar_set_text;
-extern fn button_new_with_label(*cchar): *Button = gtk_button_new_with_label
+extern fn progress_bar_set_text(*ProgressBar, *Byte): Void = gtk_progress_bar_set_text;
+extern fn button_new_with_label(*Byte): *Button = gtk_button_new_with_label
 extern fn container_add(*Container, *Widget): Void = gtk_container_add
 extern fn widget_show_all(*Widget): Void = gtk_widget_show_all
-extern fn print(*cchar): Void = g_print
+extern fn print(*Byte): Void = g_print
 extern fn gtk_widget_destroy(*Widget): Void = gtk_widget_destroy
-extern fn signal_connect_data(*Widget, *cchar, *Void, *Void, *Void, CInt): Void = g_signal_connect_data
-extern fn application_run(*Application, CInt, **cchar): CInt = g_application_run
-extern fn check_button_new_with_label(*cchar): *CheckButton = gtk_check_button_new_with_label
+extern fn signal_connect_data(*Widget, *Byte, *Void, *Void, *Void, CInt): Void = g_signal_connect_data
+extern fn application_run(*Application, CInt, **Byte): CInt = g_application_run
+extern fn check_button_new_with_label(*Byte): *CheckButton = gtk_check_button_new_with_label
 
 
 fn widget_destroy[W](widget: *W): Void where IsWidget[W] {
     gtk_widget_destroy(widget.as_widget())
 }
 
-fn signal_connect_swapped(instance: *Widget, signal: *cchar, handler: *Void, data: *Void): Void {
+fn signal_connect_swapped(instance: *Widget, signal: *Byte, handler: *Void, data: *Void): Void {
     signal_connect_data(instance, signal, handler, data, nullptr, 2)
 }
 
-fn signal_connect[W](instance: *W, signal: *cchar, handler: *Void, data: *Void): Void where IsWidget[W] {
+fn signal_connect[W](instance: *W, signal: *Byte, handler: *Void, data: *Void): Void where IsWidget[W] {
    signal_connect_data(WIDGET(instance), signal, handler, data, nullptr, 0)
 }
 
@@ -78,7 +78,7 @@ extension WidgetExtensions[T] for T where IsWidget[T] {
     fn as_widget(*this): *Widget {
         return WIDGET(this)
     }
-    fn connect(*this, signal: *cchar, handler: *Void, data: *Void): *T {
+    fn connect(*this, signal: *Byte, handler: *Void, data: *Void): *T {
         signal_connect(this.as_widget(), signal, handler, data)
         return this
     }
@@ -91,7 +91,7 @@ extension ApplicationExtensions for Application {
 }
 
 extension WindowExtensions for Window {
-    fn set_title(*this, title: *cchar): *Window {
+    fn set_title(*this, title: *Byte): *Window {
         window_set_title(this, title)
         return this
     }
@@ -116,7 +116,7 @@ extension WidgetExtensions for Widget {
 }
 
 extension ProgressBarExtensions for ProgressBar {
-    fn set_text(*this, text: *cchar): *ProgressBar {
+    fn set_text(*this, text: *Byte): *ProgressBar {
         progress_bar_set_text(this, text)
         return this
     }

@@ -33,4 +33,4 @@ fn copy[T](destination: *mut T, source: *T): Void {
 }
 
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts

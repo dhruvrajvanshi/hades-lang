@@ -1,12 +1,12 @@
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*Byte): Void = puts
 
 
-fn print_message(getter: || -> *cchar): Void {
+fn print_message(getter: || -> *Byte): Void {
     puts(getter())
 }
 
-fn foo(message: *cchar): Void {
+fn foo(message: *Byte): Void {
     print_message(|| message)
 }
 

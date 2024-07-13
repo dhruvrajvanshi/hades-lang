@@ -15,4 +15,4 @@ fn f(): Size {
     return 15;
 }
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts

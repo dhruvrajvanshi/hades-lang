@@ -47,5 +47,5 @@ fn main(): Void {
     puts(b"PASS")
 }
 
-extern fn puts(*cchar): Bool = puts
+extern fn puts(*u8): Bool = puts
 extern fn exit(i32): Void = exit

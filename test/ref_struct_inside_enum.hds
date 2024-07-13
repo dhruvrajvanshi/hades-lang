@@ -8,11 +8,11 @@ fn main(): Void {
     puts(message)
 }
 
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts
 
 struct Box[T] ref {
     val value: T
 }
 enum Foo {
-    F(Box[*cchar])
+    F(Box[*u8])
 }

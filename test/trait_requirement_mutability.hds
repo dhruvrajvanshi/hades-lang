@@ -2,7 +2,7 @@
 interface Foo[Self] {
     fn foo(self: Self): Void
 }
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts
 
 fn main(): Void {
     val x: *mut usize = nullptr
