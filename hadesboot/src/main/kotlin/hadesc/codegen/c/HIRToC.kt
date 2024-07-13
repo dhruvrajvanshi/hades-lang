@@ -9,10 +9,15 @@ import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
 import hadesc.types.mutPtr
 
+private enum class Phase {
+    Interface,
+    Implementation,
+}
 class HIRToC(
     private val hirModule: HIRModule,
     private val enableDebug: Boolean
 ) {
+    private var phase = Phase.Interface
     private val declarations = mutableListOf<CNode>(
         CNode.Raw(
             """
@@ -30,6 +35,7 @@ class HIRToC(
         for (definition in hirModule.definitions.sortedBy { it.interfaceSortOrder() }) {
             lowerDefinitionInterface(definition)
         }
+        phase = Phase.Implementation
         for (definition in hirModule.definitions.sortedBy { it.definitionSortOrder() }) {
             lowerDefinitionImplementation(definition)
         }
@@ -115,10 +121,13 @@ class HIRToC(
         is Type.Array -> TODO()
         Type.Bool -> CNode.Raw("bool")
         is Type.Constructor -> {
-            val structDecl = hirModule.findStructDefOrNull(type.name)
-            if (structDecl != null && !indirect) {
-                lowerStructImplementation(structDecl)
+            if (phase == Phase.Implementation) {
+                val structDecl = hirModule.findStructDefOrNull(type.name)
+                if (structDecl != null && !indirect) {
+                    lowerStructImplementation(structDecl)
+                }
             }
+
             CNode.Raw(type.name.c())
         }
 
