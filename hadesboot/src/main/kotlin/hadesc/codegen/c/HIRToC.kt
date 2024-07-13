@@ -578,6 +578,8 @@ fun Name.c(): String {
         .replace("$", "_d_")
         .replace("[", "_l_")
         .replace("]", "_r_")
+        .replace("<", "_lt_")
+        .replace(">", "_gt_")
         .replace(".", "_p_")
         .replace("*", "_s_")
         .replace(",", "_c_")
@@ -588,8 +590,6 @@ fun Name.c(): String {
 fun QualifiedName.c(): String {
     return this.names.joinToString("_") {
         it.c()
-
-
     }
 
 }
