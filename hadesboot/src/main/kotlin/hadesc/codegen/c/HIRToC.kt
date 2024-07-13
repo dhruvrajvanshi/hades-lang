@@ -311,7 +311,7 @@ class HIRToC(
         is HIRStatement.LoadRefField -> TODO()
         is HIRStatement.MatchInt -> TODO()
         is HIRStatement.Memcpy -> lowerMemcpy(statement, into)
-        is HIRStatement.Move -> TODO()
+        is HIRStatement.Move -> Unit
         is HIRStatement.Not -> lowerNotStatement(statement, into)
         is HIRStatement.PointerCast -> lowerPointerCast(statement, into)
         is HIRStatement.PtrToInt -> lowerPtrToInt(statement, into)
@@ -323,6 +323,7 @@ class HIRToC(
         is HIRStatement.TypeApplication -> TODO()
         is HIRStatement.While -> TODO()
     }
+
 
     private fun lowerMemcpy(statement: HIRStatement.Memcpy, into: MutableList<CNode>) {
         into.add(
