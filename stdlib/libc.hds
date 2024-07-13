@@ -5,7 +5,7 @@ type ulong = u64
 type long = i64
 type size_t = usize
 type ssize_t = isize
-type char = cchar
+type char = u8
 type void = Void
 type double = Double
 

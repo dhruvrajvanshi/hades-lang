@@ -7,7 +7,7 @@ fn main(): void {
     foo(b"message")
 }
 
-fn foo(message: *cchar): void {
+fn foo(message: *u8): void {
     apply || {
         apply || {
             puts(message)
@@ -15,4 +15,4 @@ fn foo(message: *cchar): void {
     }
 }
 
-extern fn puts(*cchar): void = puts
+extern fn puts(*u8): void = puts

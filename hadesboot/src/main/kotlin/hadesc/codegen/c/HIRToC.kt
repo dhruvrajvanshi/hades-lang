@@ -161,7 +161,6 @@ class HIRToC(
         }
 
         Type.Void -> CNode.Raw("void")
-        Type.CChar -> CNode.Raw("char")
     }
 
     private var _nextId = 0

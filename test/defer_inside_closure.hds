@@ -12,7 +12,7 @@ fn main(): Void {
 
   puts(b"AFTER_APPLY")
 }
-extern fn puts(*cchar): Void = puts
+extern fn puts(*u8): Void = puts
 
 fn apply(f: || -> Void): Void {
     f()

@@ -5,16 +5,16 @@ interface Convert[Self, Other] {
 }
 
 fn main(): Void {
-    c.puts(convert[*cchar, Bool](true));
-    c.puts(convert[*cchar, Bool](false));
+    c.puts(convert[*Byte, Bool](true));
+    c.puts(convert[*Byte, Bool](false));
 }
 
 fn convert[U, T](t: T): U where Convert[T, U] {
     return Convert[T, U].convert(t);
 }
 
-implementation Convert[Bool, *cchar] {
-    fn convert(self: Bool): *cchar {
+implementation Convert[Bool, *Byte] {
+    fn convert(self: Bool): *Byte {
         if self {
             return b"true";
         } else {

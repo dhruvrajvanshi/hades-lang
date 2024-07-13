@@ -58,7 +58,6 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
             "Int" -> Type.Integral(32, true)
             "Bool" -> Type.Bool
             "bool" -> Type.Bool
-            "cchar" -> Type.CChar
             "Byte" -> Type.Integral(8, false)
             "usize" -> Type.Size(isSigned = false)
             "isize" -> Type.Size(isSigned = true)
