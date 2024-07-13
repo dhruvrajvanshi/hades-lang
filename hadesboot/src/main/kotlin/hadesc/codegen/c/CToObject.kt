@@ -42,7 +42,7 @@ class CToObject(private val cSource: String, private val target: BuildTarget, pr
             .inheritIO()
             .start()
             .waitFor()
-        if (exitCode == 0) {
+        if (exitCode == 0 && !options.preserveCSource) {
             cOutputPath.deleteIfExists()
         }
         check(exitCode == 0) { "Failed to compile C source" }
