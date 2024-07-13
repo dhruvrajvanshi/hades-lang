@@ -56,6 +56,6 @@ fn main(): Void {
     log_bool(b"false or true", false or true);
     log_bool(b"false or false", false or false);
 
-    val x = true or short_circuit_false();
-    val y = false and short_circuit_true();
+    val a = true or short_circuit_false();
+    val b = false and short_circuit_true();
 }
