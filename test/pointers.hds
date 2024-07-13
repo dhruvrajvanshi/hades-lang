@@ -1,7 +1,7 @@
 import libc as c;
 fn main(): Void {
     val p = Pair(b"left", b"right");
-    val ptr: *Pair[*Byte] = &p;
+    val ptr: *Pair[*cchar] = &p;
 
     val loaded = *ptr;
 

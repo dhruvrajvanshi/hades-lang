@@ -237,6 +237,7 @@ class HIRToLLVM(
         is Type.Error -> requireUnreachable()
         Type.Void -> diBuilder.createBasicType("Void", 0)
         Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
+        Type.CChar -> diBuilder.createBasicType("cchar", sizeInBits)
         is Type.Integral -> diBuilder.createBasicType(
             (if (isSigned) "s" else "u") + sizeInBits,
             sizeInBits
@@ -869,6 +870,7 @@ class HIRToLLVM(
         }
         Type.Void -> voidTy
         is Type.Bool -> boolTy
+        is Type.CChar -> byteTy
         is Type.Ptr -> ptrTy(lowerType(type.to))
         is Type.Ref -> ptrTy(lowerType(type.inner))
         is Type.FunctionPtr -> {

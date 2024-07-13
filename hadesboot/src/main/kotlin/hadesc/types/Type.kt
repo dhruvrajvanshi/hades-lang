@@ -12,8 +12,9 @@ import hadesc.qualifiedname.QualifiedName
 typealias ParamRef = Type.Param
 sealed interface Type {
     data class Error(val location: SourceLocation, val message: String? = null) : Type
-    object Void : Type
-    object Bool : Type
+    data object Void: Type
+    data object Bool: Type
+    data object CChar: Type
     data class Integral(val size: Int, val isSigned: Boolean) : Type
     data class FloatingPoint(val size: Int) : Type {
         init {
@@ -81,6 +82,7 @@ sealed interface Type {
                 "*${to.prettyPrint()}"
             }
         }
+        is CChar -> "cchar"
         is FunctionPtr -> {
             "fn(${from.joinToString(", ") { it.prettyPrint() }}) -> ${to.prettyPrint()}"
         }
@@ -122,6 +124,7 @@ sealed interface Type {
             is Size,
             is Integral,
             is FloatingPoint,
+            is CChar,
             Bool -> this
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is FunctionPtr -> FunctionPtr(

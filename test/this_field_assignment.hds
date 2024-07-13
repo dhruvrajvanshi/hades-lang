@@ -1,8 +1,8 @@
 struct Foo {
-    val value: *u8
+    val value: *cchar
 }
 extension FooExtensions for Foo {
-   fn set_value(*mut this, new_value: *u8): Void {
+   fn set_value(*mut this, new_value: *cchar): Void {
       this.value = new_value
    }
 }
@@ -13,4 +13,4 @@ fn main(): Void {
 
     puts(foo.value)
 }
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts

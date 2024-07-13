@@ -24,9 +24,9 @@ fn main(): Void {
     val a3 = a // use after conditional move
 }
 
-fn puts_2(a: *u8, b: *u8): Void {
+fn puts_2(a: *cchar, b: *cchar): Void {
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 extern fn randbool(): Bool = randbool

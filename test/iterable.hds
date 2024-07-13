@@ -31,4 +31,4 @@ fn main(): Void {
     }
 }
 
-extern fn puts(*Byte): Void = puts
+extern fn puts(*cchar): Void = puts

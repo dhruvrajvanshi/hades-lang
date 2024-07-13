@@ -25,7 +25,7 @@ fn make_false(mut boxed: Box[Bool]): Void {
     boxed.value = false
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 struct Box[A] ref {
     val value: A

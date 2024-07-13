@@ -1,16 +1,16 @@
-extern fn puts(*Byte): Void = puts;
+extern fn puts(*cchar): Void = puts;
 
 interface Stringifiable[T] {
-    fn to_string(self: T): *Byte;
+    fn to_string(self: T): *cchar;
 }
 
 extension StringifiableExtensions[T] for T where Stringifiable[T] {
-    fn to_string(this): *Byte {
+    fn to_string(this): *cchar {
         return Stringifiable[T].to_string(this);
     }
 }
 implementation Stringifiable[Bool] {
-    fn to_string(self: Bool): *Byte {
+    fn to_string(self: Bool): *cchar {
         return if (self) b"true" else b"false";
     }
 }

@@ -10,4 +10,4 @@ fn main(): Void {
         None -> { puts(b"FAIL") }
     }
 }
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts

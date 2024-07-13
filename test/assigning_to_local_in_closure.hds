@@ -9,7 +9,7 @@ fn main(): Void {
     puts(message)
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 fn call(f: || -> Void): Void {
     f()

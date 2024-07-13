@@ -1,5 +1,5 @@
 /// https://github.com/dhruvrajvanshi/hades-lang/issues/84
-extern fn puts(*Byte): Void = puts;
+extern fn puts(*cchar): Void = puts;
 
 fn main(): Void {
     val message = b"PASS"

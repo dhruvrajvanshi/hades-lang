@@ -7,8 +7,8 @@ fn main(): Void {
     print(get_int_value(Optional.Some(20)));
     print(get_int_value(Optional.None[Int]));
 
-    val opt_message = Optional.Some[*Byte](b"message");
-    val opt_message_none = Optional.None[*Byte];
+    val opt_message = Optional.Some[*cchar](b"message");
+    val opt_message_none = Optional.None[*cchar];
     c.puts(get_string_value(opt_message));
     c.puts(get_string_value(opt_message_none));
 }
@@ -17,7 +17,7 @@ fn print[T](value: T): Void where p.Printable[T] {
     p.Printable[T].print(value);
 }
 
-fn get_string_value(value: Optional[*Byte]): *Byte {
+fn get_string_value(value: Optional[*cchar]): *cchar {
     return match value {
         Some(val value) -> value,
         None -> b"None"

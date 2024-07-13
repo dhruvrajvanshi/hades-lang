@@ -13,9 +13,6 @@ class TypeAnalyzer {
     }
 
     fun isTypeAssignableTo(source: Type, destination: Type): Boolean {
-        if (source == destination) {
-            return true
-        }
         return when {
             source is Type.Error -> true
             destination is Type.Error -> true
@@ -84,7 +81,8 @@ class TypeAnalyzer {
                         isTypeAssignableTo(source = source, destination = destination)
                     }
             }
-            else -> false
+            source == Type.u8 && destination == Type.CChar -> true
+            else -> source == destination
         }
     }
 

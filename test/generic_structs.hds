@@ -1,7 +1,7 @@
 import libc as c;
 
 fn main(): Void {
-    val pair: Pair[*Byte, *Byte] = Pair(b"first", b"second");
+    val pair: Pair[*cchar, *cchar] = Pair(b"first", b"second");
     c.puts(pair.first);
     c.puts(pair.second);
 

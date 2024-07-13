@@ -35,7 +35,7 @@ fn EPIPE(): Int { return 32; }
 fn EDOM(): Int { return 33; }
 fn ERANGE(): Int { return 34; }
 
-fn description(err: Int): *Byte {
+fn description(err: Int): *cchar {
     if err == EPERM() {
         return b"EPERM: Operation not permitted";
     }
