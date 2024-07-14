@@ -25,7 +25,8 @@ val ARITHMETIC_OPERATORS = setOf(
     BinaryOperator.MINUS,
     BinaryOperator.PLUS,
     BinaryOperator.TIMES,
-    BinaryOperator.DIV
+    BinaryOperator.DIV,
+    BinaryOperator.REM,
 )
 class Analyzer<Ctx>(
     private val ctx: Ctx
