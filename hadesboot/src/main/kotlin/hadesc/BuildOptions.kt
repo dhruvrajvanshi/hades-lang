@@ -102,7 +102,6 @@ class BuildCLIOptions : OptionGroup() {
             cSources = yamlCSources + cSources + cSourcesSplit + listOf(
                 Path.of(hadesHome, "stdlib", "libc.c"),
                 Path.of(hadesHome, "stdlib", "libhdc.c"),
-                Path.of(hadesHome, "stdlib", "hades", "internal", "gc.c")
             ),
             dumpLLVMModule = dumpLLVMModule,
             libs = yamlLibs + libs,

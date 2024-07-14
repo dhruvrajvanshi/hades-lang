@@ -74,7 +74,7 @@ val copyStdlib = tasks.register<Copy>("copyStdlib") {
 }
 
 val assembleHadesHome = tasks.register("assembleHadesHome") {
-    dependsOn(copyStdlib, installGC)
+    dependsOn(copyStdlib)
 }
 
 val cleanHadesHome = tasks.register("cleanHadesHome") {

@@ -84,7 +84,6 @@ class LLVMToObject(private val options: BuildOptions, private val target: BuildT
         } else {
             commandParts.add("-L$hadesHome/lib")
             commandParts.add("-I$hadesHome/include")
-            commandParts.add("-lgc")
         }
 
         val outputFile = target.output?.toFile()

@@ -55,11 +55,6 @@ class HIRToLLVM(
         returns = ptrTy(voidTy),
         variadic = false
     )
-    private val gcAlloc = llvmModule.addFunction(
-        "__hades_gc_alloc",
-        from = listOf(sizeTy),
-        to = ptrTy(voidTy)
-    )
 
     fun lower(): LLVMModuleRef {
         if (shouldEmitDebugSymbols) {
@@ -418,15 +413,7 @@ class HIRToLLVM(
     }
 
     private fun lowerAllocRef(statement: HIRStatement.AllocRef): Value {
-        val innerTy = lowerType(statement.type.inner)
-        return builder.buildCall(
-            gcAllocFnType,
-            gcAlloc,
-            args = listOf(
-                LLVM.LLVMSizeOf(innerTy)
-            ),
-            name = statement.name.text
-        )
+        TODO()
     }
 
     private fun lowerPtrToInt(statement: HIRStatement.PtrToInt): Value {

@@ -28,7 +28,6 @@ class CToObject(private val cSource: String, private val target: BuildTarget, pr
 
         commandParts.add("-L$hadesHome/lib")
         commandParts.add("-I$hadesHome/include")
-        commandParts.add("-lgc")
         commandParts.addAll(options.cFlags)
         commandParts.addAll(options.libs.map { "-l$it" })
 

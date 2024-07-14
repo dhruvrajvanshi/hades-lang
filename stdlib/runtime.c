@@ -1,12 +1,9 @@
-#define GC_NOT_DLL
-#include <gc.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 extern void hades_main(int, char**);
 
 int main(int argc, char** argv) {
-    GC_init();
     hades_main(argc, argv);
     return 0;
 }
