@@ -1,16 +1,19 @@
 import libc as c;
 
 fn main(): Size {
-    defer c.puts(b"1");
+    defer { print(b"1") }
     if true {
-        defer c.puts(b"2");
+        defer { print(b"2") }
         if true {
-            defer c.puts(b"3");
-            c.puts(b"4");
+            defer { print(b"3") }
+            print(b"4");
             return 0;
         }
         return 1;
     }
 
     return 1;
+}
+fn print(msg: *u8): void {
+    c.puts(msg)
 }

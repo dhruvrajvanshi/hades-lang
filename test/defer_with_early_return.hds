@@ -1,6 +1,10 @@
 import libc as c;
 
 fn main(): Size {
-    defer c.puts(b"deferred");
+    defer print(b"deferred")
     return 0;
+}
+
+fn print(message: *u8): void {
+    c.puts(message)
 }

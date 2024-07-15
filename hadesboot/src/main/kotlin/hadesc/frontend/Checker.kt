@@ -19,7 +19,7 @@ import hadesc.types.toSubstitution
 import hadesc.unit
 import libhades.collections.Stack
 
-class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostAnalysisContext by postAnalysisContext {
+class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext) : PostAnalysisContext by postAnalysisContext {
     private val returnTypeStack = Stack<Type>()
 
     fun checkProgram() {
@@ -592,6 +592,15 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
     }
 
     private fun checkDeferStatement(statement: Statement.Defer) {
+        if (
+            statement.blockMember is Block.Member.Expression &&
+            statement.blockMember.expression.type !is Type.Void
+        ) {
+            ctx.diagnosticReporter.report(
+                statement.location,
+                "Defer statements must have a return type of void"
+            )
+        }
         checkBlockMember(statement.blockMember)
     }
 
@@ -885,7 +894,8 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext): PostA
         if (enclosingClosure != null) {
             error(
                 expression,
-                Diagnostic.Kind.Text("Use of this is not allowed in closures yet. See https://github.com/dhruvrajvanshi/hades-lang/issues/83"))
+                Diagnostic.Kind.Text("Use of this is not allowed in closures yet. See https://github.com/dhruvrajvanshi/hades-lang/issues/83")
+            )
         }
 
         if (extension == null) {

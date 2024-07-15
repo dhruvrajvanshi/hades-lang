@@ -1,13 +1,17 @@
 
-fn main(): Void {
-    defer puts(b"3")
+fn main(): void {
+    defer print(b"3")
     foo()
 }
 
 fn foo(): u32 {
-    defer puts(b"2")
-    defer puts(b"1")
+    defer print(b"2")
+    defer print(b"1")
     return 1
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*u8): i32 = puts
+
+fn print(message: *u8): void {
+    puts(message)
+}

@@ -9,7 +9,7 @@ type char = u8
 type void = Void
 type double = Double
 
-extern fn puts(*char): void = puts;
+extern fn puts(*char): int = puts;
 extern fn exit(int): void = exit;
 extern fn malloc(size_t): *mut void = malloc;
 extern fn free(*mut void): void = free;
