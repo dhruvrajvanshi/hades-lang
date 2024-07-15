@@ -20,19 +20,46 @@ class CToObject(private val cSource: String, private val target: BuildTarget, pr
         }
         val cOutputPath = Path(".hades/temp_${System.currentTimeMillis()}.c")
         cOutputPath.writeText(cSource)
-        val commandParts = mutableListOf(cc, "-o", target.output.toString())
 
+        val commandParts = mutableListOf(cc)
         if (options.debugSymbols) {
-            commandParts.add("-g")
+            if (!shouldUseMicrosoftCL) {
+                commandParts.add("-g")
+            } else {
+                commandParts.add("/DEBUG")
+            }
+        } else {
+            if (!SystemUtils.IS_OS_WINDOWS) {
+                // -flto doesn't work on windows GCC, that's why this condition isn't `shouldUseMicrosoftCL`
+                commandParts.add("-flto")
+            }
+            if (!shouldUseMicrosoftCL) {
+                commandParts.add("-O2")
+            } else {
+                commandParts.add("/O2")
+                commandParts.add("/GL")
+                commandParts.add("/GF")
+                commandParts.add("/Gw")
+            }
         }
 
-        commandParts.add("-L$hadesHome/lib")
-        commandParts.add("-I$hadesHome/include")
+        if (SystemUtils.IS_OS_WINDOWS && !shouldUseMicrosoftCL) {
+            commandParts.add("-D")
+            commandParts.add("__HDC_CHKSTK_UNAVAILABLE")
+        }
+
+        if (shouldUseMicrosoftCL) {
+            commandParts.add("/Fe\"${target.output}\"")
+        } else {
+            commandParts.add("-o")
+            commandParts.add(target.output.toString())
+        }
+
+        commandParts.addAll(options.cSources.map { it.toString() })
+        commandParts.add(cOutputPath.toString())
         commandParts.addAll(options.cFlags)
         commandParts.addAll(options.libs.map { "-l$it" })
 
-        commandParts.add(cOutputPath.toString())
-        commandParts.addAll(options.cSources.map { it.toString() })
 
         println(commandParts.joinToString(" "))
 
