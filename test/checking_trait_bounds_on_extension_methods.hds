@@ -10,7 +10,7 @@ fn foo[T](value: T): Void where SomeTrait[T] {}
 const global_alias = foo
 
 fn main(): Void {
-    b"Should show error".foo(b"Because SomeTrait[*u8] is not implemented")
-    foo(b"")
-    global_alias(b"")
+    c"Should show error".foo(c"Because SomeTrait[*u8] is not implemented")
+    foo(c"")
+    global_alias(c"")
 }

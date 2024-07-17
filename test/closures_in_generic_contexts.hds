@@ -1,7 +1,7 @@
 
 fn main(): Void {
-    puts(apply_1(b"Hello", |value| value));
-    puts(apply_1(true, |value| if (value) b"World" else b"false"));
+    puts(apply_1(c"Hello", |value| value));
+    puts(apply_1(true, |value| if (value) c"World" else c"false"));
 }
 
 fn apply_1[T, U](value: T, f: |T| -> U): U {

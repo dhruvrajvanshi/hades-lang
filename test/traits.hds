@@ -8,9 +8,9 @@ interface Printable[Self] {
 implementation Printable[Bool] {
     fn print(self: Bool, file: *c.FILE): Void {
         if self {
-            c.fputs(b"true", file);
+            c.fputs(c"true", file);
         } else {
-            c.fputs(b"false", file);
+            c.fputs(c"false", file);
         }
     }
 }
@@ -23,9 +23,9 @@ implementation Printable[*Byte] {
 
 implementation[T] Printable[Box[T]] where Printable[T] {
     fn print(self: Box[T], file: *c.FILE): Void {
-        c.fputs(b"Box(", file);
+        c.fputs(c"Box(", file);
         print_alias(self.value); // because print might refer to this function;
-        c.fputs(b")", file);
+        c.fputs(c")", file);
     }
 }
 
@@ -44,7 +44,7 @@ fn print_alias[T](value: T): Void where Printable[T] {
 fn println[T](value: T): Void
     where Printable[T] {
     print(value);
-    c.fputs(b"\n", stdout());
+    c.fputs(c"\n", stdout());
 }
 
 fn main(): Void {
@@ -55,5 +55,5 @@ fn main(): Void {
     // println[Box[Bool]](Box(true), &printable_box[T]);
     println(Box(true));
     println(Box(false));
-    println(Box(b"hello"));
+    println(Box(c"hello"));
 }

@@ -13,7 +13,7 @@ fn main(): Void {
 }
 
 fn line(): Void {
-    c.puts(b"");
+    c.puts(c"");
 }
 
 extern fn print_i8(i8): Void = pta_print_i8;

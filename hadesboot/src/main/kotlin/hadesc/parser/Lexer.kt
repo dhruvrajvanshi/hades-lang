@@ -234,7 +234,7 @@ class Lexer(private val file: SourcePath, text: Text) {
 
     private fun identifierOrKeyword(): Token {
         val first = advance()
-        if (first == 'b' && currentChar == '"') {
+        if (first == 'c' && currentChar == '"') {
             advance()
             while (true) {
                 if (currentChar == '"' || currentChar == EOF_CHAR) {

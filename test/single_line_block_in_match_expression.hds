@@ -6,8 +6,8 @@ enum OptInt {
 
 fn main(): Void {
     match OptInt.Some(5) {
-        Some(let i) -> { puts(b"PASS") }
-        None -> { puts(b"FAIL") }
+        Some(let i) -> { puts(c"PASS") }
+        None -> { puts(c"FAIL") }
     }
 }
 extern fn puts(*u8): Void = puts

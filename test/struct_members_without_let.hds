@@ -4,7 +4,7 @@ struct Foo {
 
 
 fn main(): Void {
-    puts(Foo(b"Test").message)
+    puts(Foo(c"Test").message)
 }
 
 extern fn puts(*u8): i32 = puts;

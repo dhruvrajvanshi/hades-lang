@@ -6,7 +6,7 @@ struct Pair[First, Second] {
 }
 
 fn main(): Void {
-    val pair = true.pair_with(b"Hello");
+    val pair = true.pair_with(c"Hello");
     puts(pair.second);
 }
 

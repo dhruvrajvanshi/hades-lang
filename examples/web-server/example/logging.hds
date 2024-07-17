@@ -3,19 +3,19 @@ import hades.memory as mem;
 import example.StringView.{ToStringView}
 
 fn fatal[T](text: T): Void where ToStringView[T] {
-    log(b"FATAL", text);
+    log(c"FATAL", text);
 }
 
 fn info[T](text: T): Void where ToStringView[T] {
-    log(b"INFO", text);
+    log(c"INFO", text);
 }
 
 fn error[T](text: T): Void where ToStringView[T] {
-    log(b"ERROR", text);
+    log(c"ERROR", text);
 }
 
 fn debug[T](text: T): Void where ToStringView[T] {
-    log(b"DEBUG", text);
+    log(c"DEBUG", text);
 }
 
 fn log_value[T](tag: *Byte, value: T, copy_to_c: *|T| -> *mut Byte): Void {
@@ -28,9 +28,9 @@ fn log_value[T](tag: *Byte, value: T, copy_to_c: *|T| -> *mut Byte): Void {
 
 fn log[T](tag: *Byte, text: T): Void where ToStringView[T] {
     c.fputs(tag, c.stderr());
-    c.fputs(b": ", c.stderr());
+    c.fputs(c": ", c.stderr());
     val copy = text.to_string_view().copy_to_c()
     defer mem.free(copy)
     c.fputs(copy, c.stderr());
-    c.fputs(b"\n", c.stderr());
+    c.fputs(c"\n", c.stderr());
 }

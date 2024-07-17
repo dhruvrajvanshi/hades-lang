@@ -1,13 +1,13 @@
 import libc as c;
 
 fn main(): Void {
-    c.puts(b"4");
+    c.puts(c"4");
     if true {
-        c.puts(b"6");
+        c.puts(c"6");
         if true {
-            c.puts(b"8");
+            c.puts(c"8");
         }
-        c.puts(b"10");
+        c.puts(c"10");
     }
-    c.puts(b"12");
+    c.puts(c"12");
 }

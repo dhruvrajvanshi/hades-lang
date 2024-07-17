@@ -10,6 +10,6 @@ extension TextExtensions for *Byte {
 }
 
 fn main(): Void {
-    val text = b"PASS"
+    val text = c"PASS"
     call(|| { text.print(); })
 }

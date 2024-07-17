@@ -1,42 +1,42 @@
 import libc as c;
 
 fn main(): Void {
-    print(b"main start");
-    defer print(b"defer 1")
-    defer print(b"defer 2")
+    print(c"main start");
+    defer print(c"defer 1")
+    defer print(c"defer 2")
 
     if true {
-        print(b"if true start");
-        defer print(b"defer 3")
-        print(b"if true end");
+        print(c"if true start");
+        defer print(c"defer 3")
+        print(c"if true end");
     }
 
     if false {
-        defer print(b"DON'T PRINT")
+        defer print(c"DON'T PRINT")
     }
 
-    print(b"calling f");
+    print(c"calling f");
     f();
-    print(b"f returned");
+    print(c"f returned");
 
 
     if true {
-        defer print(b"nested outer")
+        defer print(c"nested outer")
         if true {
-            defer print(b"nested inner")
-            print(b"before nested inner");
+            defer print(c"nested inner")
+            print(c"before nested inner");
         }
-        print(b"inner nested block done");
+        print(c"inner nested block done");
     }
 
-    print(b"main end");
+    print(c"main end");
 }
 
 fn f(): Void {
-    print(b"f start");
-    defer print(b"defer 4")
-    defer print(b"defer 5")
-    print(b"f end");
+    print(c"f start");
+    defer print(c"defer 4")
+    defer print(c"defer 5")
+    print(c"f end");
 }
 fn print(msg: *u8): void {
     c.puts(msg)

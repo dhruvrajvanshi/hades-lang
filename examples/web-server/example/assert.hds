@@ -4,7 +4,7 @@ import example.logging as log;
 fn assert(condition: Bool, get_message: || -> *Byte): Void {
     if not condition {
         val message = get_message();
-        log.fatal(b"Assertion failed");
+        log.fatal(c"Assertion failed");
         log.fatal(message);
         c.perror(message);
         c.exit(1);

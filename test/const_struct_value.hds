@@ -8,13 +8,13 @@ struct VTable {
 }
 
 fn i32Run(): void {
-    puts(b"i32Run")
+    puts(c"i32Run")
 }
 
 const i32VTable: VTable = VTable(i32Run)
 
 fn f64Run(): void {
-    puts(b"f64Run")
+    puts(c"f64Run")
 }
 const f64VTable: VTable = VTable(f64Run)
 

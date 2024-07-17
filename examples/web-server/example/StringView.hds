@@ -27,17 +27,17 @@ extension StringViewExtensions for t {
     }
 
     fn offset(this, offset: Size): Byte {
-        assert(offset < this.length()) || b"StringView.offset: Overflow";
+        assert(offset < this.length()) || c"StringView.offset: Overflow";
         return *mem.pointer_add(this.buffer(), offset);
     }
 
     fn take(this, length: Size): t {
-        assert(this.length() >= length) || b"StringView.take(); length overflow";
+        assert(this.length() >= length) || c"StringView.take(); length overflow";
         return t(this.buffer(), length);
     }
 
     fn drop(this, length: Size): t {
-        assert(this.length() >= length) || b"StringView.drop(); length overflow";
+        assert(this.length() >= length) || c"StringView.drop(); length overflow";
         return t(mem.pointer_add(this.buffer(), length), this.length() - length);
     }
 

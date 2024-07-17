@@ -1,5 +1,5 @@
 extern fn puts(*Byte): Void = puts;
 
 fn main(): Void {
-    puts(b"Hello world");
+    puts(c"Hello world");
 }

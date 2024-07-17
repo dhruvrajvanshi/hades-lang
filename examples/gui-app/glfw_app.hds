@@ -12,7 +12,7 @@ fn main_loop(window: *glfw.Window): Void {
 fn main(): Void {
     glfw.init();
 
-    val window = glfw.create_window(640, 480, b"Hello World", nullptr, nullptr);
+    val window = glfw.create_window(640, 480, c"Hello World", nullptr, nullptr);
 
     glfw.make_context_current(window);
 

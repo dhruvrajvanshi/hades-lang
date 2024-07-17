@@ -1,6 +1,6 @@
 import libc as c;
 fn main(): Void {
-    val p = Pair(b"left", b"right");
+    val p = Pair(c"left", c"right");
     val ptr: *Pair[*Byte] = &p;
 
     val loaded = *ptr;

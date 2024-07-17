@@ -6,9 +6,9 @@ fn main(): Void {
     val x_ptr_new = @intrinsic.int_to_ptr[*u32](x_ptr_int)
 
     if (*x_ptr_new) != 10 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
-    puts(b"PASS")
+    puts(c"PASS")
 }
 
 extern fn puts(*u8): Void = puts

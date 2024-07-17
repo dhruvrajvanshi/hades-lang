@@ -2,8 +2,8 @@ extern fn puts(*Byte): Void = puts;
 
 fn main(): Void {
     val t = true;
-    puts(apply(true, |value| if (value and t) b"true" else b"false"));
-    puts(apply(false, |value| if (value and t) b"true" else b"false"));
+    puts(apply(true, |value| if (value and t) c"true" else c"false"));
+    puts(apply(false, |value| if (value and t) c"true" else c"false"));
 }
 
 fn apply(bool: Bool, f: |Bool| -> *Byte): *Byte {

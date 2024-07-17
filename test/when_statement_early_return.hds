@@ -7,7 +7,7 @@ fn main(): Void {
 
    match (T.X) {
       X -> {
-        puts(b"PASS")
+        puts(c"PASS")
         return
       }
       Y -> {}

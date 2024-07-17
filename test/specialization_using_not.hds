@@ -8,12 +8,12 @@ implementation Foo[Bool] {
 
 implementation[T] Foo[Box[T]] where Foo[T] {
     fn foo(): Void {
-        puts(b"Contains Foo")
+        puts(c"Contains Foo")
     }
 }
 implementation[T] Foo[Box[T]] where not Foo[T] {
     fn foo(): Void {
-        puts(b"Does not contain Foo")
+        puts(c"Does not contain Foo")
     }
 }
 

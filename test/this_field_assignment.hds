@@ -8,8 +8,8 @@ extension FooExtensions for Foo {
 }
 
 fn main(): Void {
-    val mut foo = Foo(b"FAIL")
-    (&mut foo).set_value(b"PASS")
+    val mut foo = Foo(c"FAIL")
+    (&mut foo).set_value(c"PASS")
 
     puts(foo.value)
 }

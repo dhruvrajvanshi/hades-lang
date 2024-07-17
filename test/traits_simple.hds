@@ -16,9 +16,9 @@ fn convert[U, T](t: T): U where Convert[T, U] {
 implementation Convert[Bool, *Byte] {
     fn convert(self: Bool): *Byte {
         if self {
-            return b"true";
+            return c"true";
         } else {
-            return b"false";
+            return c"false";
         }
     }
 }

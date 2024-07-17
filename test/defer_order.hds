@@ -2,7 +2,7 @@ extern fn puts(*u8): Void = puts
 
 fn main(): Void {
     defer {
-      print_first(b"2", print_first(b"1", 0))
+      print_first(c"2", print_first(c"1", 0))
       void()
     }
 }

@@ -23,7 +23,7 @@ implementation[T] Iterable[Pair[T, T], T] {
 }
 
 fn main(): Void {
-    val _pair = Pair(b"Hello", b"World")
+    val _pair = Pair(c"Hello", c"World")
     val pair = &_pair
 
     pair.for_each |value| {

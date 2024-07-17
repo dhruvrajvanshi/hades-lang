@@ -1,9 +1,9 @@
 
 fn main(): Void {
-    val mut message = b"FAIL"
+    val mut message = c"FAIL"
 
     call || {
-        message = b"PASS"
+        message = c"PASS"
     }
 
     puts(message)

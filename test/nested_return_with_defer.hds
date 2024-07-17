@@ -1,12 +1,12 @@
 import libc as c;
 
 fn main(): Size {
-    defer { print(b"1") }
+    defer { print(c"1") }
     if true {
-        defer { print(b"2") }
+        defer { print(c"2") }
         if true {
-            defer { print(b"3") }
-            print(b"4");
+            defer { print(c"3") }
+            print(c"4");
             return 0;
         }
         return 1;

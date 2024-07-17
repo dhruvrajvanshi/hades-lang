@@ -1,15 +1,15 @@
 extern fn puts(*Byte): Void = puts
 
 fn main(): Void {
-    val mut box = Box(b"initial")
+    val mut box = Box(c"initial")
     val mut box_ptr = &mut box
     val field_ptr = &mut box_ptr.value
     puts(*field_ptr)
-    box_ptr.value = b"change 1"
+    box_ptr.value = c"change 1"
 
     puts(box_ptr.value)
 
-    *field_ptr = b"change 2"
+    *field_ptr = c"change 2"
 
     puts(box_ptr.value)
 

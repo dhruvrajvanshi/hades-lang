@@ -1,12 +1,12 @@
 
 fn main(): Void {
-    val mut x = b"1"
+    val mut x = c"1"
     apply || {
         puts(x)
-        val y = b"2"
+        val y = c"2"
         apply || {
             puts(y)
-            x = b"3"
+            x = c"3"
             puts(x)
         }
     }

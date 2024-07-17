@@ -2,11 +2,11 @@
 extern fn puts(*Byte): Void = puts;
 
 fn main(): Void {
-    val mut message = b"Hello";
+    val mut message = c"Hello";
 
     apply(|| {
        puts(message);
-       message = b"World";
+       message = c"World";
     });
 
     puts(message);

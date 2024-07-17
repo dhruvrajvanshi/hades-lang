@@ -7,20 +7,20 @@ fn main(): Void {
     match T.A {
         A -> {}
         _ -> {
-            puts(b"FAIL")
+            puts(c"FAIL")
         }
     }
 
     match T.C {
         C -> {}
         _ -> {
-            puts(b"FAIL")
+            puts(c"FAIL")
         }
     }
 
     match T.D {
         D -> {
-            puts(b"PASS")
+            puts(c"PASS")
         }
         _ -> {}
     }

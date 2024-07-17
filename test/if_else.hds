@@ -1,31 +1,31 @@
 
 fn main(): Void {
     if true {
-        puts(b"if true without else");
+        puts(c"if true without else");
     }
 
     val tr = true;
     if tr {
-        val v = b"if true with inner variable";
+        val v = c"if true with inner variable";
         puts(v);
     }
 
     if false {
-        puts(b"should not be printed");
+        puts(c"should not be printed");
     }
 
     if false {
-        puts(b"should not be printed");
+        puts(c"should not be printed");
     } else {
-        puts(b"if false with empty body");
+        puts(c"if false with empty body");
     }
 
     if not true {
-        puts(b"If not true");
+        puts(c"If not true");
     }
 
     if not false {
-        puts(b"If not false");
+        puts(c"If not false");
     }
 }
 

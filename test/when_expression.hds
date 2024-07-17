@@ -7,11 +7,11 @@ enum T {
 fn main(): Void {
     val x = match (T.B) {
         A -> {
-            puts(b"FAIL")
+            puts(c"FAIL")
             false
         }
         B -> {
-            puts(b"PASS")
+            puts(c"PASS")
             false
         }
     }

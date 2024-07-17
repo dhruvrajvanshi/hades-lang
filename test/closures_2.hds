@@ -1,8 +1,8 @@
 
 fn main(): Void {
-    apply(b"1") |param| {
+    apply(c"1") |param| {
         puts(param)
-        apply(b"2") |other| {
+        apply(c"2") |other| {
             puts(other)
             puts(param)
         }

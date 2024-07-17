@@ -8,5 +8,5 @@ extension TExtensions[Self] for Self where T[Self] {
 
 fn main() : Void {
     true.foo();
-    b"".foo();
+    c"".foo();
 }

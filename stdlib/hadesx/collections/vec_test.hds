@@ -8,34 +8,34 @@ import hades.memory as Mem
 import hadesx.ops.for_each.{for_each}
 
 fn main(): Void {
-    test(b"Allocating and dropping empty vec with non drop types") || {
+    test(c"Allocating and dropping empty vec with non drop types") || {
         val mut v = VecM.empty[usize](); defer drop(move v)
     }
 
-    test(b"Allocating and droping empty vec with drop types") || {
+    test(c"Allocating and droping empty vec with drop types") || {
         val mut v = VecM.empty[HasDrop](); defer drop(move v)
     }
 
-    test(b"Push to empty vector") || {
+    test(c"Push to empty vector") || {
         val mut v = VecM.empty[*u8](); defer drop(move v)
         val vec = &mut v
-        vec.push(b"Hello")
-           .push(b"World")
+        vec.push(c"Hello")
+           .push(c"World")
     }
 
-    test(b"ForEach") || {
+    test(c"ForEach") || {
         val mut index: usize = 0
         val mut v = VecM.empty[*u8](); defer drop(move v)
         val vec = &mut v
-        vec.push(b"Hello")
-           .push(b"World")
+        vec.push(c"Hello")
+           .push(c"World")
 
          vec.for_each |it| {
             puts(*it)
          }
     }
 
-    test(b"Drops members") || {
+    test(c"Drops members") || {
         // val mut v = VecM.empty[*u8]
     }
 

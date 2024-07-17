@@ -1,9 +1,9 @@
 fn main(): Void {
-    val x = b"Value"
+    val x = c"Value"
 
     while randbool() {
         val y = move x // #Error:UseAfterMove
-        val a = b"Value"
+        val a = c"Value"
         while randbool() {
             val b = move a // #Error:UseAfterMove
         }

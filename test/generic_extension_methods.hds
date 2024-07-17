@@ -1,8 +1,8 @@
 import libc as c;
 
 fn main(): Void {
-    c.puts(Pair(b"first", b"second").first());
-    c.puts(Pair(b"first", b"second").second());
+    c.puts(Pair(c"first", c"second").first());
+    c.puts(Pair(c"first", c"second").second());
 }
 
 struct Pair[First, Second] {

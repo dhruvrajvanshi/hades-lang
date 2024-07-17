@@ -2,6 +2,6 @@ import submodule.string_pair as s;
 import libc as c;
 
 fn main(): Void {
-    c.puts(s.StringPair(b"first", b"second").first);
+    c.puts(s.StringPair(c"first", c"second").first);
 }
 

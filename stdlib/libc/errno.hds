@@ -37,106 +37,106 @@ fn ERANGE(): Int { return 34; }
 
 fn description(err: Int): *Byte {
     if err == EPERM() {
-        return b"EPERM: Operation not permitted";
+        return c"EPERM: Operation not permitted";
     }
     if err == ENOENT() {
-        return b"ENOENT: No such file or directory";
+        return c"ENOENT: No such file or directory";
     }
     if err == ESRCH() {
-        return b"ESRCH: No such process";
+        return c"ESRCH: No such process";
     }
     if err == EINTR() {
-        return b"EINTR: Interrupted system call";
+        return c"EINTR: Interrupted system call";
     }
     if err == EIO() {
-        return b"EIO: I/O error";
+        return c"EIO: I/O error";
     }
     if err == ENXIO() {
-        return b"ENXIO: No such device or address";
+        return c"ENXIO: No such device or address";
     }
     if err == E2BIG() {
-        return b"E2BIG: Argument list too long";
+        return c"E2BIG: Argument list too long";
     }
     if err == ENOEXEC() {
-        return b"ENOEXEC: Exec format error";
+        return c"ENOEXEC: Exec format error";
     }
     if err == EBADF() {
-        return b"EBADF: Bad file number";
+        return c"EBADF: Bad file number";
     }
     if err == ECHILD() {
-        return b"ECHILD: No child processes";
+        return c"ECHILD: No child processes";
     }
     if err == EAGAIN() {
-        return b"EAGAIN: Try again";
+        return c"EAGAIN: Try again";
     }
     if err == ENOMEM() {
-        return b"ENOMEM: Out of memory";
+        return c"ENOMEM: Out of memory";
     }
     if err == EACCES() {
-        return b"EACCES: Permission denied";
+        return c"EACCES: Permission denied";
     }
     if err == EFAULT() {
-        return b"EFAULT: Bad address";
+        return c"EFAULT: Bad address";
     }
     if err == ENOTBLK() {
-        return b"ENOTBLK: Block device required";
+        return c"ENOTBLK: Block device required";
     }
     if err == EBUSY() {
-        return b"EBUSY: Device or resource busy";
+        return c"EBUSY: Device or resource busy";
     }
     if err == EEXIST() {
-        return b"EEXIST: File exists";
+        return c"EEXIST: File exists";
     }
     if err == EXDEV() {
-        return b"EXDEV: Cross-device link";
+        return c"EXDEV: Cross-device link";
     }
     if err == ENODEV() {
-        return b"ENODEV: No such device";
+        return c"ENODEV: No such device";
     }
     if err == ENOTDIR() {
-        return b"ENOTDIR: Not a directory";
+        return c"ENOTDIR: Not a directory";
     }
     if err == EISDIR() {
-        return b"EISDIR: Is a directory";
+        return c"EISDIR: Is a directory";
     }
     if err == EINVAL() {
-        return b"EINVAL: Invalid argument";
+        return c"EINVAL: Invalid argument";
     }
     if err == ENFILE() {
-        return b"ENFILE: File table overflow";
+        return c"ENFILE: File table overflow";
     }
     if err == EMFILE() {
-        return b"EMFILE: Too many open files";
+        return c"EMFILE: Too many open files";
     }
     if err == ENOTTY() {
-        return b"ENOTTY: Not a typewriter";
+        return c"ENOTTY: Not a typewriter";
     }
     if err == ETXTBSY() {
-        return b"ETXTBSY: Text file busy";
+        return c"ETXTBSY: Text file busy";
     }
     if err == EFBIG() {
-        return b"EFBIG: File too large";
+        return c"EFBIG: File too large";
     }
     if err == ENOSPC() {
-        return b"ENOSPC: No space left on device";
+        return c"ENOSPC: No space left on device";
     }
     if err == ESPIPE() {
-        return b"ESPIPE: Illegal seek";
+        return c"ESPIPE: Illegal seek";
     }
     if err == EROFS() {
-        return b"EROFS: Read-only file system";
+        return c"EROFS: Read-only file system";
     }
     if err == EMLINK() {
-        return b"EMLINK: Too many links";
+        return c"EMLINK: Too many links";
     }
     if err == EPIPE() {
-        return b"EPIPE: Broken pipe";
+        return c"EPIPE: Broken pipe";
     }
     if err == EDOM() {
-        return b"EDOM: Math argument out of domain of func";
+        return c"EDOM: Math argument out of domain of func";
     }
     if err == ERANGE() {
-        return b"ERANGE: Math result not representable";
+        return c"ERANGE: Math result not representable";
     }
-    return b"";
+    return c"";
 }

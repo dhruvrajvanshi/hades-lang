@@ -1,6 +1,6 @@
 extern fn puts(*Byte): Void = puts
 fn main(): Void {
-    val box = Box(b"associated method")
+    val box = Box(c"associated method")
 
     for_each(&box) |value| {
         puts(*value)

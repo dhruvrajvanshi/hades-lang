@@ -1,16 +1,16 @@
 
 fn main(): Void {
-  val m = b"DEFER_OUTSIDE_CLOSURE"
+  val m = c"DEFER_OUTSIDE_CLOSURE"
   defer puts(m)
-  puts(b"BEFORE_APPLY")
+  puts(c"BEFORE_APPLY")
   apply || {
-    val m = b"DEFER_INSIDE_CLOSURE"
+    val m = c"DEFER_INSIDE_CLOSURE"
     defer puts(m)
-    puts(b"BEFORE_DEFER_INSIDE_CLOSURE")
+    puts(c"BEFORE_DEFER_INSIDE_CLOSURE")
     return
   }
 
-  puts(b"AFTER_APPLY")
+  puts(c"AFTER_APPLY")
 }
 extern fn puts(*u8): Void = puts
 

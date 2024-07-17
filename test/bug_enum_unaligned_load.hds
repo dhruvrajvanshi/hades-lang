@@ -8,12 +8,12 @@ extern fn puts(*u8): Void = puts
 fn main(): Void {
     match Bytecode.B(1) {
             A -> {
-                c.fputs(b"A", stdout())
+                c.fputs(c"A", stdout())
             }
             B(val value) -> {
-                c.fputs(b"B(", stdout())
+                c.fputs(c"B(", stdout())
                 put_usize(value, stdout())
-                c.fputs(b")\n", stdout())
+                c.fputs(c")\n", stdout())
             }
     }
 }

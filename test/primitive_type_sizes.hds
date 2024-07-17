@@ -2,19 +2,19 @@ import submodule.test_utils as utils;
 
 fn print_size[T](name: *Byte): Void {
     utils.print_byte_string(name);
-    utils.print_byte_string(b": ");
+    utils.print_byte_string(c": ");
     utils.print_size(size_of[T]);
 }
 
 fn main(): Void {
-    print_size[u8](b"u8");
-    print_size[i8](b"i8");
-    print_size[u16](b"u16");
-    print_size[i16](b"i16");
-    print_size[u32](b"u32");
-    print_size[i32](b"i32");
-    print_size[u64](b"u64");
-    print_size[i64](b"i64");
-    print_size[f32](b"f32");
-    print_size[f64](b"f64");
+    print_size[u8](c"u8");
+    print_size[i8](c"i8");
+    print_size[u16](c"u16");
+    print_size[i16](c"i16");
+    print_size[u32](c"u32");
+    print_size[i32](c"i32");
+    print_size[u64](c"u64");
+    print_size[i64](c"i64");
+    print_size[f32](c"f32");
+    print_size[f64](c"f64");
 }

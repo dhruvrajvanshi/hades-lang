@@ -1,8 +1,8 @@
 import libc as libc;
 
 fn main(): Void {
-    val local_variable = b"local_variables";
-    val another_local = b"another_local";
+    val local_variable = c"local_variables";
+    val another_local = c"another_local";
     libc.puts(local_variable);
     libc.puts(another_local);
 }

@@ -3,10 +3,10 @@ extern fn puts(*u8): Void = puts
 fn main(): Void {
     match 1 {
         1 -> {
-            puts(b"1")
+            puts(c"1")
         }
         _ -> {
-            puts(b"Not 1")
+            puts(c"Not 1")
         }
     }
 }

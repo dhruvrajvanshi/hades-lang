@@ -6,14 +6,14 @@ extension ApplyExtensions[T] for T {
 }
 
 fn main(): Void {
-    val _message = b"Hello world"
+    val _message = c"Hello world"
     val message = &_message
 
     message.apply |msg| {
         puts(*msg)
     }
 
-    val _another_message = b"Without parens"
+    val _another_message = c"Without parens"
     val another_message = &_another_message
     another_message.apply |msg| {
         puts(*msg)

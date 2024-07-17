@@ -1,6 +1,6 @@
 
 fn main(): Void {
-    val x = b"HERE"
+    val x = c"HERE"
 
     val mut f = 3
     puts(x)
@@ -16,7 +16,7 @@ fn main(): Void {
 
     val p = move x // use after move
 
-    val a = b""
+    val a = c""
     if randbool() {
         val a1 = move a
     }

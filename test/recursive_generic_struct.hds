@@ -11,7 +11,7 @@ struct List[T] {
 }
 
 fn main(): Void {
-    val l = List(allocate_new(Node(b"hello", nullptr)));
+    val l = List(allocate_new(Node(c"hello", nullptr)));
     c.puts(l.m_head.m_data);
 }
 fn allocate_new[T](value: T): *mut T {

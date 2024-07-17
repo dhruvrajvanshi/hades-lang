@@ -17,7 +17,7 @@ fn main(): Void {
     }
 
     if not a_pass {
-        puts(b"a FAIL")
+        puts(c"a FAIL")
     }
 
     val b_pass = match b {
@@ -27,7 +27,7 @@ fn main(): Void {
     }
 
     if not b_pass {
-        puts(b"b FAIL")
+        puts(c"b FAIL")
     }
 
     val c_pass = match c {
@@ -37,14 +37,14 @@ fn main(): Void {
     }
 
     if not c_pass {
-        puts(b"c FAIL")
+        puts(c"c FAIL")
     }
 
     if not a_pass or not b_pass or not c_pass {
         exit(1)
     }
 
-    puts(b"PASS")
+    puts(c"PASS")
 }
 
 extern fn puts(*u8): Bool = puts

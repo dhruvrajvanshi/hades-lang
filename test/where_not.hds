@@ -1,6 +1,6 @@
 
 fn main(): Void {
-    not_foo(b"123")
+    not_foo(c"123")
     not_foo(true) // expected error because Bool is not Foo
 }
 interface Foo[T] {}

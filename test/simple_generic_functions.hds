@@ -1,9 +1,9 @@
 import libc as c;
 
 fn main(): Void {
-    c.puts(id(b"first"));
+    c.puts(id(c"first"));
     if id(true) {
-        c.puts(b"second");
+        c.puts(c"second");
     }
 }
 

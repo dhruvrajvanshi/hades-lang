@@ -1,47 +1,47 @@
 
 fn main(): Void {
     if @intrinsic.mul[u8](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[i8](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[u16](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[i16](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[u32](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[i32](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
 
     if @intrinsic.mul[u64](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[i64](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[usize](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
     if @intrinsic.mul[isize](6, 3) != 18 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 
-    puts(b"PASS")
+    puts(c"PASS")
 }
 
 extern fn puts(*u8): Void = puts

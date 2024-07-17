@@ -8,9 +8,9 @@ const sv = StringView.from_c_string;
 const assert = Assert.assert;
 
 fn main(): Void {
-    val request_1 = HTTPRequest.from_string_view(b"HTTP/1.1 GET /test\r\n" |> StringView.from_c_string);
+    val request_1 = HTTPRequest.from_string_view(c"HTTP/1.1 GET /test\r\n" |> StringView.from_c_string);
 
-    assert(request_1.method().equals(HTTPMethod.GET()) || b"Should parse GET method from status correctly";
-    assert(request_1.uri().equals(sv(b"/test"))) || b"Should parse URI correctly";
+    assert(request_1.method().equals(HTTPMethod.GET()) || c"Should parse GET method from status correctly";
+    assert(request_1.uri().equals(sv(c"/test"))) || c"Should parse URI correctly";
 
 }

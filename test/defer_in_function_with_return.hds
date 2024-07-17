@@ -1,12 +1,12 @@
 
 fn main(): void {
-    defer print(b"3")
+    defer print(c"3")
     foo()
 }
 
 fn foo(): u32 {
-    defer print(b"2")
-    defer print(b"1")
+    defer print(c"2")
+    defer print(c"1")
     return 1
 }
 

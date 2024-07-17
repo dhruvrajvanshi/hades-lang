@@ -6,18 +6,18 @@ fn main(): Void {
     val discriminant = B_constructor(1)
     match discriminant.tag {
             0 -> {
-                file_put_cstr(stdout, b"A")
+                file_put_cstr(stdout, c"A")
             }
             1 -> {
                 val payload_ptr: *B = pointer_cast[B](&discriminant.payload)
                 val payload: B = *payload_ptr
                 val value = payload._1
-                file_put_cstr(stdout, b"B(")
+                file_put_cstr(stdout, c"B(")
                 file_put_usize(stdout, value)
-                file_put_cstr(stdout, b")\n")
+                file_put_cstr(stdout, c")\n")
             }
             _ -> {
-                file_put_cstr(stdout, b"FAIL")
+                file_put_cstr(stdout, c"FAIL")
             }
     }
 }
@@ -47,5 +47,5 @@ fn B_constructor(_1: usize): Bytecode {
 
 fn dump_ptr[T](ptr: *T): Void {
     file_put_void_ptr(get_stdout(), pointer_cast[Void](ptr))
-    file_put_cstr(get_stdout(), b"\n")
+    file_put_cstr(get_stdout(), c"\n")
 }

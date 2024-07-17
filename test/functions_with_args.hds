@@ -10,6 +10,6 @@ fn print_second(first: *Byte, second: *Byte): Void {
 }
 
 fn main(): Void {
-    print_first(b"first", b"second");
-    print_second(b"first", b"second");
+    print_first(c"first", c"second");
+    print_second(c"first", c"second");
 }

@@ -2,7 +2,7 @@
 extern fn puts(*Byte): Void = puts;
 
 fn main(): Void {
-    val message = b"PASS"
+    val message = c"PASS"
     defer puts(message)
     call || {
     }

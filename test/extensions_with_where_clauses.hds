@@ -11,7 +11,7 @@ extension StringifiableExtensions[T] for T where Stringifiable[T] {
 }
 implementation Stringifiable[Bool] {
     fn to_string(self: Bool): *Byte {
-        return if (self) b"true" else b"false";
+        return if (self) c"true" else c"false";
     }
 }
 

@@ -1,6 +1,6 @@
 
 fn main(): Void {
-    val x = Pair(true, b"fourth").second;
+    val x = Pair(true, c"fourth").second;
 }
 
 

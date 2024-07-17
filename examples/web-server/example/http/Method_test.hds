@@ -6,11 +6,11 @@ const assert = Assert.assert;
 
 fn main(): Void {
     assert(
-        HTTPMethod.from_c_string(b"GET").equals(HTTPMethod.GET()),
-        || b"Should parse string 'GET'"
+        HTTPMethod.from_c_string(c"GET").equals(HTTPMethod.GET()),
+        || c"Should parse string 'GET'"
     );
     assert(
-        HTTPMethod.from_c_string(b"POST").equals(HTTPMethod.POST()),
-        || b"Should parse string 'POST'"
+        HTTPMethod.from_c_string(c"POST").equals(HTTPMethod.POST()),
+        || c"Should parse string 'POST'"
     );
 }

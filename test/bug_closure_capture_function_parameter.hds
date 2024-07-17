@@ -12,7 +12,7 @@ fn foo(message: *Byte): Void {
 
 fn main(): Void {
 
-    val message = b"PASS"
+    val message = c"PASS"
 
     foo(message)
 }

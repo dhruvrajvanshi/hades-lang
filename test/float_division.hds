@@ -7,7 +7,7 @@ fn main(): Void {
     print_f32(x / y)
 
     if x < y {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 }
 

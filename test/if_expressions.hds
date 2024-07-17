@@ -1,8 +1,8 @@
 import libc as c;
 
 fn main(): Void {
-    val x = if (true) b"1" else b"2";
+    val x = if (true) c"1" else c"2";
     c.puts(x);
-    val y = if (false) b"1" else b"2";
+    val y = if (false) c"1" else c"2";
     c.puts(y);
 }

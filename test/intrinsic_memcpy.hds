@@ -1,8 +1,8 @@
 
 
 fn main(): Void {
-    val pass = b"PASS"
-    val mut pass_ = b""
+    val pass = c"PASS"
+    val mut pass_ = c""
 
      copy(&mut pass_, &pass)
 
@@ -14,7 +14,7 @@ fn main(): Void {
      copy(&mut f_, &f)
 
      if f_ {
-        puts(b"FAIL")
+        puts(c"FAIL")
      }
 
      val one = 1
@@ -23,7 +23,7 @@ fn main(): Void {
      copy(&mut _one, &one)
 
      if _one != 1 {
-        puts(b"FAIL")
+        puts(c"FAIL")
      }
 
 }

@@ -1,7 +1,7 @@
 extern fn puts(*Byte): Void = puts;
 fn main(): Void {
     apply(|| {
-        puts(b"Hello");
+        puts(c"Hello");
     });
 }
 

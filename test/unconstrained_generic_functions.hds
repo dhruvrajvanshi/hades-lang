@@ -1,10 +1,10 @@
 import libc as c;
 
 fn main(): Void {
-    c.puts(id(b"id"));
-    c.puts(first(b"first", true));
-    c.puts(second(false, b"second"));
-    c.puts(second(true, StringPair(b"third", b"fourth")).first);
+    c.puts(id(c"id"));
+    c.puts(first(c"first", true));
+    c.puts(second(false, c"second"));
+    c.puts(second(true, StringPair(c"third", c"fourth")).first);
     fourth(true);
 }
 
@@ -22,9 +22,9 @@ fn second[A, B](first: A, second: B): B {
 }
 
 fn fourth[T](value: T): T {
-    c.puts(id(b"fourth"));
+    c.puts(id(c"fourth"));
     val copy = id(value);
-    c.puts(id(StringPair(b"fifth", b"sixth")).first);
+    c.puts(id(StringPair(c"fifth", c"sixth")).first);
     return value;
 }
 

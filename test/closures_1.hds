@@ -1,16 +1,16 @@
 
 extern fn puts(*u8): Void = puts
 fn main(): Void {
-  foo(b"1")
+  foo(c"1")
 }
 
 fn foo(message: *u8): Void {
-  val message2 = b"2"
-  val mut message3 = b"FAIL"
+  val message2 = c"2"
+  val mut message3 = c"FAIL"
   apply || {
     puts(message)
     puts(message2)
-    message3 = b"3"
+    message3 = c"3"
     puts(message3)
   }
 }

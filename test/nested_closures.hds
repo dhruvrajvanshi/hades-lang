@@ -2,9 +2,9 @@ extern fn puts(*Byte): Void = puts
 
 fn main(): Void {
     a || {
-        puts(b"outer")
+        puts(c"outer")
         b || {
-            puts(b"inner")
+            puts(c"inner")
         }
     }
 }

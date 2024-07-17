@@ -100,7 +100,7 @@ Instructions to come in the future.
 ```scala
 extern fn puts(*u8): Void = puts // by default, programs are linked with libc. This means you can declare pre-existing C functions as extern
 fn main(): Void {
-    puts(b"Hello world");
+    puts(c"Hello world");
 }
 ```
 
@@ -108,7 +108,7 @@ Local variables
 ```scala
 
 fn main(): Void {
-  val x: *Byte = b"Hello world"; // the type annotation can be omitted
+  val x: *Byte = c"Hello world"; // the type annotation can be omitted
   c.puts(x);
 }
 
@@ -129,7 +129,7 @@ struct Pair[A, B] {
 
 fn main(): Void {
   if true {
-    val pair = Pair(1, b"text"); // Type arguments to Pair are inferred
+    val pair = Pair(1, c"text"); // Type arguments to Pair are inferred
     print_pair_second(pair); // function arguments are passed as value (a copy of pair is sent to print_pair
     val pair_ptr = &pair; // you can take address of local variables and pass them as pointers
     pair.print_second(); // this is an extension function call
@@ -137,7 +137,7 @@ fn main(): Void {
     val mut_pair_ptr = &mut pair // taking a mutable pointer
     puts(mut_pair_ptr.second) // calling dot on a pointer dereferences it
     val second_field_ptr = &pair.second // we can get a field offset using &stuctval.field
-    mut_pair_ptr.second = b"value" // dereferencing dot operator works for assignments as well
+    mut_pair_ptr.second = c"value" // dereferencing dot operator works for assignments as well
   }
 }
 
@@ -167,7 +167,7 @@ extension PairExtensions[T] for Pair[T, *Byte] {
 import some.nested_module as nested_module;
 
 fn main(): Void {
-    val x = Pair(true, b"x");
+    val x = Pair(true, c"x");
     // because extension method is declared as *this,
     // we have to take pointer to x to pass it to the method.
     (&x).print_second();
@@ -193,9 +193,9 @@ trait Printable[Self] {
 implementation Printable[Bool] {
   fn print(self: Bool): Void {
     if *this {
-      c.puts(b"true");
+      c.puts(c"true");
     } else {
-      c.puts(b"false");
+      c.puts(c"false");
     }
   }
 }
@@ -230,15 +230,15 @@ struct Box[T] {
 // but it doesn't solve it for custom interfaces.
 implementation[T] Printable[Box[T]] where Printable[T] {
   fn print(self: Box[T]): Void {
-     print(b"Box("); // implementation Box[*Byte] is omitted for berevity
+     print(c"Box("); // implementation Box[*Byte] is omitted for berevity
      print(self);
-     print(b")");
+     print(c")");
   }
 }
 
 fn f() {
   print(Box(true)); // works
-  print(Box(b"hello")); // works
+  print(Box(c"hello")); // works
   print(Box(10)); // Type error because we haven't provided a Printable[Int] implementation
 }
 ```
@@ -331,14 +331,14 @@ heap allocated closures.
 ```scala
 
 fn main(): Void {
-  puts(apply(true, |value| if (value) b"true" else b"false")); // prints "true"
+  puts(apply(true, |value| if (value) c"true" else c"false")); // prints "true"
   // closures can have a block body
   // prints "Done"
   puts(apply(true, |value| {
     if value {
-      return b"Done";
+      return c"Done";
     } else {
-      return b"Not done";
+      return c"Not done";
     }
   });
 }

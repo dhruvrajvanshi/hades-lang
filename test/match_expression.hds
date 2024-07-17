@@ -1,9 +1,9 @@
 extern fn puts(*Byte): Void = puts
 fn main(): Void {
     val message = match 3 {
-        1 -> b"FAIL"
-        3 -> b"PASS"
-        _ -> b"FAIL"
+        1 -> c"FAIL"
+        3 -> c"PASS"
+        _ -> c"FAIL"
     }
 
     match 4 {
@@ -11,13 +11,13 @@ fn main(): Void {
             puts(message)
         }
         _ -> {
-            puts(b"FAIL")
+            puts(c"FAIL")
         }
     }
 
     match 5 {
         4 -> {
-            puts(b"FAIL")
+            puts(c"FAIL")
         }
         _ -> {
 
@@ -30,6 +30,6 @@ fn main(): Void {
     }
 
     if ival == 0 {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
 }

@@ -2,7 +2,7 @@
 
 fn main(): Void {
     val x = 1
-    (puts)(b"PASS")
+    (puts)(c"PASS")
 }
 
 extern fn puts(*u8): Void = puts

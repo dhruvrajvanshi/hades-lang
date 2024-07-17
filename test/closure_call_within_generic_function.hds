@@ -2,7 +2,7 @@
 extern fn puts(*Byte): Void = puts;
 
 fn main(): Void {
-    puts(f(b"World"));
+    puts(f(c"World"));
 }
 
 fn apply[T, U](value: T, f: |T| -> U): U {
@@ -10,7 +10,7 @@ fn apply[T, U](value: T, f: |T| -> U): U {
 }
 
 fn f[T](value: T): T {
-    val hello = b"Hello";
+    val hello = c"Hello";
     return apply(value, |x| {
         puts(hello);
         return x;

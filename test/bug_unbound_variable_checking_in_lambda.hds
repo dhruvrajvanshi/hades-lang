@@ -1,4 +1,4 @@
 
 fn main(): Void {
-    val x = || strlen(b"Something wrong")
+    val x = || strlen(c"Something wrong")
 }

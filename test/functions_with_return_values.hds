@@ -13,7 +13,7 @@ fn second(first: *Byte, second: *Byte): *Byte {
 }
 
 fn main(): Void {
-    puts(id(b"id"));
-    puts(first(b"first", b"second"));
-    puts(second(b"first", b"second"));
+    puts(id(c"id"));
+    puts(first(c"first", c"second"));
+    puts(second(c"first", c"second"));
 }

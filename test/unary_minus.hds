@@ -2,9 +2,9 @@
 fn main(): Void {
     val x = 1
     if -1 != -x {
-        puts(b"FAIL")
+        puts(c"FAIL")
     }
-    puts(b"PASS")
+    puts(c"PASS")
 }
 
 extern fn puts(*u8): Void = puts

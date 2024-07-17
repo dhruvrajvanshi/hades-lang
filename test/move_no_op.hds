@@ -1,6 +1,6 @@
 
 fn main(): Void {
-    val x = b"PASS"
+    val x = c"PASS"
     val y = move x
     puts(y)
 }

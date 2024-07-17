@@ -17,8 +17,8 @@ extension BoolExt for Bool {
 
 fn printb(value: Bool): Void {
     if value {
-        c.puts(b"true");
+        c.puts(c"true");
     } else {
-        c.puts(b"false");
+        c.puts(c"false");
     }
 }

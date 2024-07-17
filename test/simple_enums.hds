@@ -12,15 +12,15 @@ fn main(): Void {
     puts(str(T.Z))
 
     puts(match T.X {
-        Y -> b"FAIL"
-        _ -> b"PASS"
+        Y -> c"FAIL"
+        _ -> c"PASS"
     })
 }
 
 fn str(value: T): *u8 {
     return match value {
-        X -> b"X"
-        Y -> b"Y"
-        Z -> b"Z"
+        X -> c"X"
+        Y -> c"Y"
+        Z -> c"Z"
     }
 }

@@ -3,8 +3,8 @@ extern fn strlen(*Byte): Int = strlen;
 
 fn main(): Void {
 
-    val message1 = b"true";
-    val message2 = b"false";
+    val message1 = c"true";
+    val message2 = c"false";
 
     val closure: || -> Void = if (strlen(message1) == 4) (|| {
         puts(message1);

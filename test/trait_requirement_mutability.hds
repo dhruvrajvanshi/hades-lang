@@ -16,6 +16,6 @@ fn foo[T](value: T): Void where Foo[T] {
 
 implementation Foo[*usize] {
     fn foo(self: *usize): Void {
-        puts(b"PASS")
+        puts(c"PASS")
     }
 }

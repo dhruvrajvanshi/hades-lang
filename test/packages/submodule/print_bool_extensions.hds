@@ -3,9 +3,9 @@ import libc as c;
 extension BoolPrinter for Bool {
     fn print(this): Void {
         if this {
-            c.puts(b"true");
+            c.puts(c"true");
         } else {
-            c.puts(b"false");
+            c.puts(c"false");
         }
     }
 

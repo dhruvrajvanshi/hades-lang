@@ -5,5 +5,5 @@ fn debug(msg: *u8): Void {
 }
 fn debugln(msg: *u8): Void {
     debug(msg)
-    fputs(b"\n", stderr())
+    fputs(c"\n", stderr())
 }

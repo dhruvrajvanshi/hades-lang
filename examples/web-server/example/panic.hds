@@ -5,13 +5,13 @@ const ERROR_EXIT: i32 = 1;
 
 fn panic_with_errno(message: *Byte): Void {
     c.perror(message);
-    log.fatal(b"Exiting");
+    log.fatal(c"Exiting");
     c.exit(ERROR_EXIT);
 }
 
 fn panic(message: *Byte): Void {
     log.fatal(message);
-    log.fatal(b"Exiting");
+    log.fatal(c"Exiting");
     c.exit(ERROR_EXIT);
 }
 

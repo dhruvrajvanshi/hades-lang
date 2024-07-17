@@ -7,7 +7,7 @@ fn main(): Void {
     val x = T.X
 
     puts(match x {
-        X -> b"PASS"
+        X -> c"PASS"
     })
 }
 

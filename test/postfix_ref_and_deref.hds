@@ -1,6 +1,6 @@
 
 fn main(): Void {
-    val mut x = b"PASS"
+    val mut x = c"PASS"
 
     val mut x_mut_ptr: *mut *u8 = x.&mut
     val x_ptr: **u8 = x.&

@@ -4,14 +4,14 @@ fn main(): Void {
 
 fn f(): Size {
     if true {
-        puts(b"8");
+        puts(c"8");
         if true {
-            puts(b"10");
+            puts(c"10");
             return 10;
         }
-        puts(b"should not print");
+        puts(c"should not print");
     }
-    puts(b"should not print");
+    puts(c"should not print");
     return 15;
 }
 

@@ -2,11 +2,11 @@ import libc as libc;
 import submodule.string_pair as s;
 
 fn main(): Void {
-    val pair: s.StringPair = s.StringPair(b"first", b"second");
+    val pair: s.StringPair = s.StringPair(c"first", c"second");
     libc.puts(pair.first);
     libc.puts(pair.second);
-    val third = s.StringPair(b"third", b"nothing").first;
+    val third = s.StringPair(c"third", c"nothing").first;
     libc.puts(third);
-    libc.puts(s.StringPair(b"third", b"fourth").second);
+    libc.puts(s.StringPair(c"third", c"fourth").second);
 }
 

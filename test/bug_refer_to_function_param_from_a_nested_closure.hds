@@ -4,7 +4,7 @@ fn apply(f: || -> void): void {
 }
 
 fn main(): void {
-    foo(b"message")
+    foo(c"message")
 }
 
 fn foo(message: *u8): void {

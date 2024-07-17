@@ -4,7 +4,7 @@ type CString = *Byte;
 type Ptr[T] = *T;
 
 fn main(): Void {
-    val s: CString = b"cstr";
+    val s: CString = c"cstr";
     val s1: Ptr[Byte] = s;
     val mut x: a.int = 23;
     val p: a.MutPtr[a.int] = &mut x;

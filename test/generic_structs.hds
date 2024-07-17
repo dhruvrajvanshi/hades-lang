@@ -1,11 +1,11 @@
 import libc as c;
 
 fn main(): Void {
-    val pair: Pair[*Byte, *Byte] = Pair(b"first", b"second");
+    val pair: Pair[*Byte, *Byte] = Pair(c"first", c"second");
     c.puts(pair.first);
     c.puts(pair.second);
 
-    c.puts(make_pair(true, b"fourth").second);
+    c.puts(make_pair(true, c"fourth").second);
 
 }
 
@@ -18,7 +18,7 @@ fn make_pair[T, U](first: T, second: U): Pair[T, U] {
     val copy = Pair(first, second);
     val copy_of_copy = copy;
     c.puts(
-        make_nested_pair(false, b"second", Pair(b"third", true))
+        make_nested_pair(false, c"second", Pair(c"third", true))
             .second
             .first);
     return copy_of_copy;

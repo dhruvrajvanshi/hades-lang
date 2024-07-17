@@ -2,9 +2,9 @@ extern fn puts(*u8): Void = puts
 
 fn main(): Void {
     {
-        puts(b"1")
+        puts(c"1")
         {
-            puts(b"2")
+            puts(c"2")
         }
     }
 }

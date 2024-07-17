@@ -1,6 +1,6 @@
 
 fn main(): Void {
-    match X.Y(b"PASS") {
+    match X.Y(c"PASS") {
         Y(val message) -> {
             apply || {
                 puts(message)

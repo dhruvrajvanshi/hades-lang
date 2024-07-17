@@ -2,59 +2,59 @@ import submodule.test_utils as utils;
 import libc as c;
 
 fn short_circuit_true(): Bool {
-    c.puts(b"Should not be printed");
+    c.puts(c"Should not be printed");
     return true;
 }
 
 fn short_circuit_false(): Bool {
-    c.puts(b"Should not be printed");
+    c.puts(c"Should not be printed");
     return false;
 }
 
 fn log_bool(message: *Byte, condition: Bool): Void {
     utils.print_byte_string(message);
-    utils.print_byte_string(b" -> ");
+    utils.print_byte_string(c" -> ");
     utils.print_bool(condition);
 }
 
 fn log_int(message: *Byte, value: Int): Void {
      utils.print_byte_string(message);
-     utils.print_byte_string(b" -> ");
+     utils.print_byte_string(c" -> ");
      utils.print_int(value);
  }
 
 fn main(): Void {
     val x = 1;
-    log_int(b"1 + 1", x + 1);
-    log_int(b"1 - 1", x - 1);
-    log_int(b"2 * 5", 2 * 5);
+    log_int(c"1 + 1", x + 1);
+    log_int(c"1 - 1", x - 1);
+    log_int(c"2 * 5", 2 * 5);
 
-    log_int(b"1 + 2 * 5", 1 + 2 * 5);
-    log_int(b"2 * 5 + 1", 2 * 5 + 1);
+    log_int(c"1 + 2 * 5", 1 + 2 * 5);
+    log_int(c"2 * 5 + 1", 2 * 5 + 1);
 
-    log_bool(b"1 > 0", x > 0);
+    log_bool(c"1 > 0", x > 0);
 
-    log_bool(b"1 >= 0", x >= 0);
-    log_bool(b"1 > 1", x > 1);
-    log_bool(b"1 >= 1", x >= 1);
-    log_bool(b"1 < 1", x < 1);
-    log_bool(b"1 <= 1", x <= 1);
+    log_bool(c"1 >= 0", x >= 0);
+    log_bool(c"1 > 1", x > 1);
+    log_bool(c"1 >= 1", x >= 1);
+    log_bool(c"1 < 1", x < 1);
+    log_bool(c"1 <= 1", x <= 1);
 
-    log_bool(b"1 == 1", x == 1);
-    log_bool(b"1 == 2", x == 2);
-    log_bool(b"1 != 2", x != 2);
-    log_bool(b"1 != 1", x != 1);
+    log_bool(c"1 == 1", x == 1);
+    log_bool(c"1 == 2", x == 2);
+    log_bool(c"1 != 2", x != 2);
+    log_bool(c"1 != 1", x != 1);
 
 
-    log_bool(b"true and false", true and false);
-    log_bool(b"true and true", true and true);
-    log_bool(b"false and true", false and true);
-    log_bool(b"false and false", false and false);
+    log_bool(c"true and false", true and false);
+    log_bool(c"true and true", true and true);
+    log_bool(c"false and true", false and true);
+    log_bool(c"false and false", false and false);
 
-    log_bool(b"true or false", true or false);
-    log_bool(b"true or true", true or true);
-    log_bool(b"false or true", false or true);
-    log_bool(b"false or false", false or false);
+    log_bool(c"true or false", true or false);
+    log_bool(c"true or true", true or true);
+    log_bool(c"false or true", false or true);
+    log_bool(c"false or false", false or false);
 
     val a = true or short_circuit_false();
     val b = false and short_circuit_true();

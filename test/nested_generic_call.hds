@@ -12,5 +12,5 @@ fn main(): Void {
 }
 
 fn bool_to_text(bool: Bool): *u8 {
-    return b"PASS"
+    return c"PASS"
 }

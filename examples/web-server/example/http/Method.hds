@@ -23,21 +23,21 @@ fn DELETE(): t {
 }
 
 fn from_string_view(method: StringView.t): t {
-    if method.equals(b"GET") {
+    if method.equals(c"GET") {
         return t(1);
     }
-    if method.equals(b"POST") {
+    if method.equals(c"POST") {
         return t(2);
     }
-    if method.equals(b"PUT") {
+    if method.equals(c"PUT") {
         return t(3);
     }
-    if method.equals(b"DELETE") {
+    if method.equals(c"DELETE") {
         return t(4);
     }
-    log.error(b"Invalid method: ");
+    log.error(c"Invalid method: ");
     log.error(method.buffer());
-    unreachable || b"Invalid method";
+    unreachable || c"Invalid method";
     return t(0);
 }
 
