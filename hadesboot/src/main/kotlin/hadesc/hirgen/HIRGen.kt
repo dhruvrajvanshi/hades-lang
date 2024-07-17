@@ -646,7 +646,7 @@ class HIRGen(
             is Expression.Var -> exprGen.lowerVarExpression(expression)
             is Expression.Call -> exprGen.lowerCallExpression(expression)
             is Expression.Property -> lowerPropertyExpression(expression)
-            is Expression.ByteString -> lowerByteString(expression)
+            is Expression.CString -> lowerCString(expression)
             is Expression.BoolLiteral -> lowerBoolLiteral(expression)
             is Expression.NullPtr -> lowerNullPtr(expression)
             is Expression.IntLiteral -> lowerIntLiteral(expression)
@@ -1248,11 +1248,11 @@ class HIRGen(
             )
         }
 
-    private fun lowerByteString(expression: Expression.ByteString): HIROperand {
-        return HIRConstant.ByteString(
+    private fun lowerCString(expression: Expression.CString): HIROperand {
+        return HIRConstant.CString(
             expression.location,
             typeOfExpression(expression),
-            expression.bytes
+            expression.text
         )
     }
 

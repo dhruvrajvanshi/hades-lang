@@ -506,7 +506,7 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
     }
 
     fun transformConstant(expression: HIRConstant): HIRConstant = when (expression) {
-        is HIRConstant.ByteString -> expression
+        is HIRConstant.CString -> expression
         is HIRConstant.BoolValue -> expression
         is HIRConstant.IntValue -> expression
         is HIRConstant.FloatValue -> expression

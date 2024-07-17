@@ -655,7 +655,7 @@ class Checker(val ctx: Context, postAnalysisContext: PostAnalysisContext) : Post
                 is Expression.Var -> checkVarExpression(expression)
                 is Expression.Call -> checkCallExpression(expression)
                 is Expression.Property -> checkPropertyExpression(expression)
-                is Expression.ByteString -> Unit
+                is Expression.CString -> Unit
                 is Expression.BoolLiteral -> Unit
                 is Expression.NullPtr -> checkNullPtrExpression(expression)
                 is Expression.IntLiteral -> Unit

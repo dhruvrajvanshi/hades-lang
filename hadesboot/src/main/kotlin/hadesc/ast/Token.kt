@@ -69,7 +69,7 @@ data class Token(
         HEX_INT_LITERAL,
         CONST,
 
-        BYTE_STRING,
+        CSTRING,
 
         DOT,
         SEMICOLON,

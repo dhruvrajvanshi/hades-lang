@@ -66,7 +66,7 @@ interface SyntaxVisitor {
         is Expression.AddressOfMut -> visitAddressOfMutExpr(expression)
         is Expression.BinaryOperation -> visitBinaryOperationExpr(expression)
         is Expression.BoolLiteral -> visitBoolLiteralExpr(expression)
-        is Expression.ByteString -> visitByteStringExpr(expression)
+        is Expression.CString -> visitCString(expression)
         is Expression.Call -> visitCallExpr(expression)
         is Expression.Closure -> visitClosureExpr(expression)
         is Expression.Deref -> visitDerefExpr(expression)
@@ -128,7 +128,7 @@ interface SyntaxVisitor {
         visitType(expression.rhs)
     }
 
-    fun visitByteStringExpr(expression: Expression.ByteString) {
+    fun visitCString(expression: Expression.CString) {
     }
 
     fun visitCallExpr(expression: Expression.Call) {

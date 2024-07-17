@@ -346,7 +346,7 @@ internal class HIRGenExpression(
         when (expression) {
             is Expression.IntLiteral,
             is Expression.FloatLiteral,
-            is Expression.ByteString,
+            is Expression.CString,
             is Expression.ByteCharLiteral,
                 -> lowerExpression(expression) as HIRConstant
             is Expression.Var -> lowerConstVarExpression(expression)

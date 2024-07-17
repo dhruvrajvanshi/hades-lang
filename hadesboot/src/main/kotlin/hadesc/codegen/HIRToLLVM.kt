@@ -753,7 +753,7 @@ class HIRToLLVM(
     private fun lowerConstant(constant: HIRConstant): Value =
         when (constant) {
             is HIRConstant.BoolValue -> if (constant.value) trueValue else falseValue
-            is HIRConstant.ByteString -> lowerByteString(constant)
+            is HIRConstant.CString -> lowerCString(constant)
             is HIRConstant.FloatValue -> lowerFloatLiteral(constant)
             is HIRConstant.IntValue -> lowerIntLiteral(constant)
             is HIRConstant.NullPtr -> lowerNullPtr(constant)
@@ -790,8 +790,8 @@ class HIRToLLVM(
         )
     }
 
-    private fun lowerByteString(constant: HIRConstant.ByteString): Value {
-        val text = constant.bytes.decodeToString()
+    private fun lowerCString(constant: HIRConstant.CString): Value {
+        val text = constant.text
         val constStringRef = constantString(text, dontNullTerminate = false, context = llvmCtx)
         val globalRef = llvmModule.addGlobal(
             stringLiteralName(),

@@ -225,7 +225,7 @@ class HIRToC(
         }
 
         is HIRConstant.BoolValue -> CNode.Raw(if (expr.value) "true" else "false")
-        is HIRConstant.ByteString -> lowerByteString(expr)
+        is HIRConstant.CString -> lowerCString(expr)
         is HIRConstant.Error -> requireUnreachable()
         is HIRConstant.FloatValue -> CNode.Raw(expr.value.toString())
         is HIRConstant.GlobalFunctionRef -> CNode.Raw(lowerMainFnNameIfRequired(expr.name).c())
@@ -250,8 +250,8 @@ class HIRToC(
         )
     }
 
-    private fun lowerByteString(expr: HIRConstant.ByteString): CNode {
-        return CNode.Cast(CNode.Raw("uint8_t*"), CNode.Raw('"' + expr.bytes.joinToString("") {
+    private fun lowerCString(expr: HIRConstant.CString): CNode {
+        return CNode.Cast(CNode.Raw("uint8_t*"), CNode.Raw('"' + expr.text.toCharArray().joinToString {
             it.escapeToStr()
         } + '"'))
     }
@@ -658,17 +658,17 @@ fun HIRDefinition.interfaceSortOrder(): Int {
     }
 }
 
-fun Byte.escapeToStr(): String = when {
-    '\\'.code == toInt() -> "\\\\"
-    '\n'.code == toInt() -> "\\n"
-    '\r'.code == toInt() -> "\\r"
-    '\t'.code == toInt() -> "\\t"
-    '"'.code == toInt() -> "\\\""
-    toInt() < 127
-    -> Char(toInt()).toString()
+fun Char.escapeToStr(): String = when {
+    '\\' == this -> "\\\\"
+    '\n' == this -> "\\n"
+    '\r' == this -> "\\r"
+    '\t' == this -> "\\t"
+    '"' == this -> "\\\""
+    code < 127
+    -> toString()
 
     else ->
-        "\\x${toInt().toString(16).padStart(2, '0')}"
+        "\\x${code.toString(16).padStart(2, '0')}"
 }
 
 fun BinaryOperator.toC(): String = when (this) {

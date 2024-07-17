@@ -902,7 +902,7 @@ class Analyzer<Ctx>(
                 is Expression.Var -> inferVarExpresion(expression)
                 is Expression.Call -> inferCallExpression(expression)
                 is Expression.Property -> inferPropertyExpression(expression)
-                is Expression.ByteString -> Type.Ptr(Type.Integral(8, isSigned = false), isMutable = false)
+                is Expression.CString -> Type.Ptr(Type.Integral(8, isSigned = false), isMutable = false)
                 is Expression.BoolLiteral -> Type.Bool
                 is Expression.NullPtr -> inferNullPtrExpression(expression)
                 is Expression.IntLiteral -> inferIntLiteral(expression)
@@ -1838,7 +1838,7 @@ class Analyzer<Ctx>(
         return when (initializer) {
             is Expression.IntLiteral,
             is Expression.BoolLiteral,
-            is Expression.ByteString,
+            is Expression.CString,
             is Expression.FloatLiteral,
             is Expression.Var -> true
             is Expression.Property -> {

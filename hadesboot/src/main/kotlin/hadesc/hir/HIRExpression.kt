@@ -48,7 +48,7 @@ sealed interface HIRExpression : HIRNode {
         is ParamRef -> name.text
         is TraitMethodRef -> "${traitName.mangle()}[${traitArgs.joinToString(", ") {it.prettyPrint()} }]." +
             methodName.text
-        is HIRConstant.ByteString -> "b\"" + String(bytes)
+        is HIRConstant.CString -> "c\"" + text
             .replace("\"", "\"\"")
             .replace("\\", "\\\\") + "\""
         is HIRConstant.BoolValue -> value.toString()

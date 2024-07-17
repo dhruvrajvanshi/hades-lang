@@ -6,10 +6,10 @@ import hadesc.types.Type
 
 sealed interface HIRConstant : HIROperand {
 
-    data class ByteString(
+    data class CString(
         override val location: SourceLocation,
         override val type: Type,
-        val bytes: ByteArray
+        val text: String
     ) : HIRConstant
 
     data class BoolValue(

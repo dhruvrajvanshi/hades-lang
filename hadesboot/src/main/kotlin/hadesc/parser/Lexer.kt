@@ -244,7 +244,7 @@ class Lexer(private val file: SourcePath, text: Text) {
                     advance()
                 }
             }
-            return makeToken(tt.BYTE_STRING)
+            return makeToken(tt.CSTRING)
         } else if (first == 'b' && currentChar == '\'') {
             advance()
             while (currentChar != '\'' && currentChar != EOF_CHAR) {

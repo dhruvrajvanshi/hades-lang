@@ -25,9 +25,9 @@ sealed interface Expression : HasLocation {
         val property: Identifier
     ) : Expression
 
-    data class ByteString(
+    data class CString(
         override val location: SourceLocation,
-        val bytes: ByteArray
+        val text: String,
     ) : Expression
 
     data class BoolLiteral(

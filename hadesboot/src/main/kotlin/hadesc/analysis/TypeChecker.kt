@@ -2,7 +2,6 @@ package hadesc.analysis
 
 import hadesc.Name
 import hadesc.ast.*
-import hadesc.diagnostics.Diagnostic
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
@@ -189,7 +188,7 @@ class TypeChecker(
             is Expression.BlockExpression -> todo(expression)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.ByteCharLiteral -> Type.u8
-            is Expression.ByteString -> Type.u8.ptr()
+            is Expression.CString -> Type.u8.ptr()
             is Expression.Call -> inferCall(expression)
             is Expression.Closure -> todo(expression)
             is Expression.Deref -> todo(expression)

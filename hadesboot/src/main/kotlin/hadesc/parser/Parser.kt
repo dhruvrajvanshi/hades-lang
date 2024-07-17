@@ -30,7 +30,7 @@ private val statementPredictors = setOf(
     tt.DEFER
 )
 private val statementRecoveryTokens: Set<TokenKind> = setOf(tt.EOF, tt.WHILE, tt.MATCH) + statementPredictors
-private val byteStringEscapes = mapOf(
+private val cStringEscapes = mapOf(
     'n' to '\n',
     '0' to '\u0000',
     'r' to '\r',
@@ -852,7 +852,7 @@ class Parser<Ctx>(
                 result
             }
             tt.ID -> parseExpressionVar()
-            tt.BYTE_STRING -> parseExpressionByteString()
+            tt.CSTRING -> parseExpressionCString()
             tt.NULLPTR -> {
                 Expression.NullPtr(advance().location)
             }
@@ -1067,7 +1067,7 @@ class Parser<Ctx>(
         val text = token.text.drop(2).dropLast(1)
 
         val char = if (text[0] == '\\') {
-            val escape = byteStringEscapes[text[1]]
+            val escape = cStringEscapes[text[1]]
             if (escape == null) {
                 diagnosticReporter.report(token.location, Diagnostic.Kind.InvalidEscape(text[1]))
                 '\u0000'
@@ -1135,9 +1135,9 @@ class Parser<Ctx>(
         return closure
     }
 
-    private fun parseExpressionByteString(): Expression {
-        val token = expect(tt.BYTE_STRING)
-        val bytes = makeList {
+    private fun parseExpressionCString(): Expression {
+        val token = expect(tt.CSTRING)
+        val chars = makeList<Char> {
             val firstCharIndexInQuote = 2
             var i = firstCharIndexInQuote
             while (i < token.text.length - 1) {
@@ -1145,20 +1145,20 @@ class Parser<Ctx>(
                 if (char == '\\') {
                     i++
                     assert(i < token.text.length - 1) { TODO("Byte string ended abruptly") }
-                    val escapeChar = byteStringEscapes[token.text[i]]
+                    val escapeChar = cStringEscapes[token.text[i]]
                     if (escapeChar != null) {
-                        add(escapeChar.code.toByte())
+                        add(escapeChar)
                     } else {
                         TODO("Invalid byte string escape $escapeChar in ${token.location}")
                     }
                 } else {
-                    addAll("$char".encodeToByteArray().toList())
+                    add(char)
                 }
 
                 i++
             }
         }
-        return Expression.ByteString(token.location, bytes.toByteArray())
+        return Expression.CString(token.location, chars.joinToString(""))
     }
 
     private fun parseExpressionTail(head: Expression, allowCalls: Boolean = true): Expression {
