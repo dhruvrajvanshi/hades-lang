@@ -50,7 +50,7 @@ fn handle_connection(fd: FileDescriptor): Void {
         panic_with_errno(c"handle_connection/read(request_fd)");
     }
 
-    val request_text: *Byte = pointer_cast[Byte](request_text_buffer)
+    val request_text: *cchar = pointer_cast[Byte](request_text_buffer)
 
     val request_str = StringView.t(request_text, read_bytes as usize);
     val request = HTTPRequest.from_string_view(request_str);
@@ -87,14 +87,14 @@ fn handle_connection(fd: FileDescriptor): Void {
     }
 }
 
-fn http_write(response_fd: FileDescriptor, text: *Byte): Void {
+fn http_write(response_fd: FileDescriptor, text: *cchar): Void {
     val result = c.write(response_fd, pointer_cast[Void](text), c.strlen(text));
     if result < 0 {
         panic_with_errno(c"http_write/write");
     }
 }
 
-fn http_write_line(response_fd: FileDescriptor, text: *Byte): Void {
+fn http_write_line(response_fd: FileDescriptor, text: *cchar): Void {
     http_write(response_fd, text);
     http_write(response_fd, c"\r\n");
 }

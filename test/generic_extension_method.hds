@@ -1,4 +1,4 @@
-extern fn puts(*Byte): Void = puts;
+extern fn puts(*cchar): Void = puts;
 
 struct Pair[First, Second] {
     val first: First;

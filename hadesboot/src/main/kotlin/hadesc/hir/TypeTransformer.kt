@@ -25,7 +25,10 @@ interface TypeTransformer {
         is Type.Closure -> lowerClosureType(type)
         is Type.Ref -> lowerRefType(type)
         is Type.Array -> lowerArrayType(type)
+        Type.CChar -> lowerCCharType(type)
     }
+
+    fun lowerCCharType(type: Type): Type = type
 
     fun lowerArrayType(type: Type.Array): Type = Type.Array(
         lowerType(type.itemType),
@@ -129,7 +132,10 @@ interface TypeVisitor {
         is Type.Closure -> visitClosureType(type)
         is Type.Ref -> visitRefType(type)
         is Type.Array -> visitArrayType(type)
+        Type.CChar -> visitCCharType(type)
     }
+
+    fun visitCCharType(type: Type) = Unit
 
     fun visitArrayType(type: Type.Array) {
         visitType(type.itemType)

@@ -1,4 +1,4 @@
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 fn main(): Void {
     defer {
@@ -7,7 +7,7 @@ fn main(): Void {
     }
 }
 
-fn print_first(message: *u8, i: usize): usize {
+fn print_first(message: *cchar, i: usize): usize {
     puts(message)
     return i
 }

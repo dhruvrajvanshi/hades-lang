@@ -14,4 +14,4 @@ fn main(): Void {
    }
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts

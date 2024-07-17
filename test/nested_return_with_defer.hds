@@ -14,6 +14,6 @@ fn main(): Size {
 
     return 1;
 }
-fn print(msg: *u8): void {
+fn print(msg: *cchar): void {
     c.puts(msg)
 }

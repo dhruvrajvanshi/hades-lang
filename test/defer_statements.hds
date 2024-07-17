@@ -38,6 +38,6 @@ fn f(): Void {
     defer print(c"defer 5")
     print(c"f end");
 }
-fn print(msg: *u8): void {
+fn print(msg: *cchar): void {
     c.puts(msg)
 }

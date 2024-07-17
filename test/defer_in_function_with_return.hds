@@ -10,8 +10,8 @@ fn foo(): u32 {
     return 1
 }
 
-extern fn puts(*u8): i32 = puts
+extern fn puts(*cchar): i32 = puts
 
-fn print(message: *u8): void {
+fn print(message: *cchar): void {
     puts(message)
 }

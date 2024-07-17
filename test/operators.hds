@@ -11,13 +11,13 @@ fn short_circuit_false(): Bool {
     return false;
 }
 
-fn log_bool(message: *Byte, condition: Bool): Void {
+fn log_bool(message: *cchar, condition: Bool): Void {
     utils.print_byte_string(message);
     utils.print_byte_string(c" -> ");
     utils.print_bool(condition);
 }
 
-fn log_int(message: *Byte, value: Int): Void {
+fn log_int(message: *cchar, value: Int): Void {
      utils.print_byte_string(message);
      utils.print_byte_string(c" -> ");
      utils.print_int(value);

@@ -6,11 +6,11 @@ import hades.memory as mem;
 import example.debug as Debug;
 
 struct t {
-    val m_buffer: *Byte;
+    val m_buffer: *cchar;
     val m_length: Size;
 }
 
-fn from_c_string(cstr: *Byte): t {
+fn from_c_string(cstr: *cchar): t {
     return t(cstr, c.strlen(cstr));
 }
 
@@ -18,7 +18,7 @@ const from_c = from_c_string;
 
 extension StringViewExtensions for t {
 
-    fn buffer(this): *Byte {
+    fn buffer(this): *cchar {
         return this.m_buffer;
     }
 
@@ -41,7 +41,7 @@ extension StringViewExtensions for t {
         return t(mem.pointer_add(this.buffer(), length), this.length() - length);
     }
 
-    fn starts_with_c(this, start: *Byte): Bool {
+    fn starts_with_c(this, start: *cchar): Bool {
         return this.starts_with(from_c_string(start));
     }
 
@@ -124,8 +124,8 @@ extension ToStringViewExtensions[Self] for Self where ToStringView[Self] {
 }
 
 
-implementation ToStringView[*Byte] {
-    fn to_string_view(self: *Byte): t {
+implementation ToStringView[*cchar] {
+    fn to_string_view(self: *cchar): t {
         return t(self, strlen(self) as Size)
     }
 }

@@ -172,6 +172,7 @@ class HIRToC(
         }
 
         Type.Void -> CNode.Raw("void")
+        Type.CChar -> CNode.Raw("char")
     }
 
     private var _nextId = 0
@@ -251,9 +252,9 @@ class HIRToC(
     }
 
     private fun lowerCString(expr: HIRConstant.CString): CNode {
-        return CNode.Cast(CNode.Raw("uint8_t*"), CNode.Raw('"' + expr.text.toCharArray().joinToString {
+        return CNode.Raw('"' + expr.text.toCharArray().joinToString("") {
             it.escapeToStr()
-        } + '"'))
+        } + '"')
     }
 
     private fun lowerFunctionImplementation(def: HIRDefinition.Function) {

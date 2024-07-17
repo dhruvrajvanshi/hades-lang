@@ -28,4 +28,4 @@ fn run(vtable: VTable): void {
     vtable.run()
 }
 
-extern fn puts(*u8): void = puts
+extern fn puts(*cchar): void = puts

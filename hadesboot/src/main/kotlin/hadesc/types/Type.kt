@@ -14,6 +14,7 @@ sealed interface Type {
     data class Error(val location: SourceLocation, val message: String? = null) : Type
     object Void : Type
     object Bool : Type
+    data object CChar : Type
     data class Integral(val size: Int, val isSigned: Boolean) : Type
     data class FloatingPoint(val size: Int) : Type {
         init {
@@ -74,6 +75,7 @@ sealed interface Type {
         is Error -> "Error<$location>"
         Void -> "void"
         Bool -> "bool"
+        CChar -> "cchar"
         is Ptr -> {
             if (isMutable) {
                 "*mut ${to.prettyPrint()}"
@@ -158,6 +160,7 @@ sealed interface Type {
 
             is Ref -> copy(inner.recurse())
             is Array -> Array(itemType.recurse(), length)
+            CChar -> this
         }
     }
 

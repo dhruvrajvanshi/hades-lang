@@ -76,6 +76,7 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
             "f16" -> Type.FloatingPoint(16)
             "f32" -> Type.FloatingPoint(32)
             "f64" -> Type.FloatingPoint(64)
+            "cchar" -> Type.CChar
             else -> null
         }
         if (builtinType != null) {

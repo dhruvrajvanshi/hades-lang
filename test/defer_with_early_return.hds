@@ -5,6 +5,6 @@ fn main(): Size {
     return 0;
 }
 
-fn print(message: *u8): void {
+fn print(message: *cchar): void {
     c.puts(message)
 }

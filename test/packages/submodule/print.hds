@@ -1,5 +1,5 @@
 import libc as libc;
 
-fn print(message: *Byte): Void {
+fn print(message: *cchar): Void {
     libc.puts(message);
 }

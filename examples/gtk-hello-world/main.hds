@@ -2,7 +2,7 @@ import gtk as Gtk
 import libc as c
 import libc.{exit}
 
-fn main(argc: i32, argv: **Byte): Void {
+fn main(argc: i32, argv: **cchar): Void {
   val app = Gtk.application_new(c"org.gtk.example", Gtk.APPLICATION_FLAGS_NONE)
   val status = run(app, argc, argv)
 
@@ -10,7 +10,7 @@ fn main(argc: i32, argv: **Byte): Void {
 }
 
 
-fn run(app: *Gtk.Application, argc: i32, argv: **Byte): i32 {
+fn run(app: *Gtk.Application, argc: i32, argv: **cchar): i32 {
   Gtk.signal_connect(app, c"activate", Gtk.CALLBACK(on_app_activate), nullptr)
   return Gtk.application_run(app, argc, argv)
 }

@@ -7,6 +7,6 @@ extension E for Bool {
 }
 
 fn main(): Void {
-    puts(true.id[*u8](c"PASS"))
+    puts(true.id[*cchar](c"PASS"))
 }
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts

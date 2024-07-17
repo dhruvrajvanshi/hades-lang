@@ -1,9 +1,9 @@
-extern fn puts(*Byte): Void = puts
+extern fn puts(*cchar): Void = puts
 
 fn call(f: || -> Void): Void {
     f()
 }
-extension TextExtensions for *Byte {
+extension TextExtensions for *cchar {
     fn print(this): Void {
         puts(this)
     }

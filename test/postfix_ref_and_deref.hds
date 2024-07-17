@@ -2,18 +2,18 @@
 fn main(): Void {
     val mut x = c"PASS"
 
-    val mut x_mut_ptr: *mut *u8 = x.&mut
-    val x_ptr: **u8 = x.&
+    val mut x_mut_ptr: *mut *cchar = x.&mut
+    val x_ptr: **cchar = x.&
     puts(x_mut_ptr.*)
     puts(x_ptr.*)
 
     x.&.print()
 
 }
-extension StrExtensions for *u8 {
+extension StrExtensions for *cchar {
     fn print(*this): Void {
         puts(this.*)
     }
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts

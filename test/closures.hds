@@ -1,15 +1,15 @@
-extern fn puts(*Byte): Void = puts;
+extern fn puts(*cchar): Void = puts;
 
 fn main(): Void {
     val capture = c"capture";
-    val print_str = |str: *Byte|: *Byte {
+    val print_str = |str: *cchar|: *cchar {
         puts(capture);
         puts(c"printing string");
         puts(str);
         return c"result";
     };
 
-    val result = print_both_and_return_second[Bool, *Byte, *Byte](true, c"hello", |b| {
+    val result = print_both_and_return_second[Bool, *cchar, *cchar](true, c"hello", |b| {
         puts(capture);
         puts(c"printing boolean");
         if b {

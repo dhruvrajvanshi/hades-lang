@@ -1,10 +1,10 @@
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 fn main(): Void {
   foo(c"1")
 }
 
-fn foo(message: *u8): Void {
+fn foo(message: *cchar): Void {
   val message2 = c"2"
   val mut message3 = c"FAIL"
   apply || {
@@ -15,6 +15,6 @@ fn foo(message: *u8): Void {
   }
 }
 
-fn apply(f: || -> Void): Void {
+fn apply(f: || -> void): Void {
     f()
 }

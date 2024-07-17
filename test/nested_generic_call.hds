@@ -3,7 +3,7 @@ fn id[T](value: T): T {
     return value
 }
 
-extern fn puts(*u8): Void = puts
+extern fn puts(*cchar): Void = puts
 
 fn main(): Void {
     puts(id(id(
@@ -11,6 +11,6 @@ fn main(): Void {
     )))
 }
 
-fn bool_to_text(bool: Bool): *u8 {
+fn bool_to_text(bool: Bool): *cchar {
     return c"PASS"
 }

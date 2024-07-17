@@ -8,4 +8,4 @@ fn apply_1[T, U](value: T, f: |T| -> U): U {
     return f(value);
 }
 
-extern fn puts(*Byte): Void = puts;
+extern fn puts(*cchar): Void = puts;

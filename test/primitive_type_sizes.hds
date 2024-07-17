@@ -1,6 +1,6 @@
 import submodule.test_utils as utils;
 
-fn print_size[T](name: *Byte): Void {
+fn print_size[T](name: *cchar): Void {
     utils.print_byte_string(name);
     utils.print_byte_string(c": ");
     utils.print_size(size_of[T]);

@@ -1,5 +1,5 @@
-extern fn puts(*Byte): Void = puts;
-extern fn strlen(*Byte): Int = strlen;
+extern fn puts(*cchar): Void = puts;
+extern fn strlen(*cchar): Int = strlen;
 
 fn main(): Void {
 

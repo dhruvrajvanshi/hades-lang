@@ -380,6 +380,7 @@ class TypeChecker(
             is Type.Select -> false
             is Type.Array -> itemType.isExternSafe()
             is Type.Error -> true
+            Type.CChar -> true
         }
     }
 
