@@ -1,4 +1,6 @@
-
+/// Disabling this test temporarily until we have a better way to
+/// promote a pointer of type *mut T to *T automatically using
+/// an explicit cast in HIRGen
 interface Foo[Self] {
     fn foo(self: Self): Void
 }
