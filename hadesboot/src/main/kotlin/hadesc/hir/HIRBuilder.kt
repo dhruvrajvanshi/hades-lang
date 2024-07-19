@@ -107,7 +107,7 @@ interface HIRBuilder {
         val fieldIndex = structDef.fieldIndex(name)
         val typeArgs = lhsStructType.typeArgs()
         val fieldType = structDef.fieldType(name).applyTypeArgs(structDef.typeParams, typeArgs)
-        val s = emit(HIRStatement.GetStructFieldPointer(location, resultName, fieldType.mutPtr(), this, name, fieldIndex))
+        val s = emit(HIRStatement.GetStructFieldPointer(location, resultName, fieldType.ptr(lhsType.isMutable), this, name, fieldIndex))
 
         return HIRExpression.LocalRef(
             location,

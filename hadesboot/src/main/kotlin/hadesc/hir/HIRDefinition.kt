@@ -136,10 +136,12 @@ sealed class HIRDefinition : HasLocation {
             }
         }
 
-        fun instanceType(typeArgs: List<Type> = emptyList()): Type {
+        fun instanceType(typeArgs: List<Type>? = null): Type {
             return if (typeParams == null) {
+                require(typeArgs == null)
                 Type.Constructor(name)
             } else {
+                requireNotNull(typeArgs)
                 check(typeParams.size == typeArgs.size)
                 Type.Application(
                     Type.Constructor(name),

@@ -325,15 +325,15 @@ class HIRGen(
             )
         } ?: emptyList()
         val fnName = enumCaseStructDef.name.append(ctx.makeName("constructor"))
-        val typeArgs = enumStructDef.typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList()
+        val typeArgs = enumStructDef.typeParams?.map { Type.Param(it.toBinder()) }
         val instanceType = lowerType(enumStructDef.instanceType(typeArgs))
         val payloadType = lowerType(enumCaseStructDef.instanceType(typeArgs))
         val body = buildBlock(case.name.location, ctx.makeName("entry")) {
             currentLocation = case.name.location
             val resultRef = emitAlloca("result", instanceType)
-            val resultPtr = resultRef.ptr()
+            val resultPtr = resultRef.mutPtr()
             emitStore(
-                resultPtr.fieldPtr(enumTagFieldName),
+                resultPtr.fieldPtr(enumTagFieldName, ctx.makeUniqueName("tag_ptr")),
                 caseTagDef.ref()
             )
             val payloadPtr = resultPtr

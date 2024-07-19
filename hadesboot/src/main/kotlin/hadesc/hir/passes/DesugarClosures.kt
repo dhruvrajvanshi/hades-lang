@@ -1,7 +1,5 @@
 package hadesc.hir.passes
 
-import hadesc.ast.Binder
-import hadesc.ast.Identifier
 import hadesc.context.IdGenCtx
 import hadesc.context.NamingCtx
 import hadesc.hir.*
@@ -11,6 +9,7 @@ import hadesc.location.Position
 import hadesc.location.SourceLocation
 import hadesc.location.SourcePath
 import hadesc.types.Type
+import hadesc.types.mutPtr
 import hadesc.types.ptr
 import java.nio.file.Path
 
@@ -20,12 +19,10 @@ class DesugarClosures(
 ) : AbstractHIRTransformer() {
 
     override fun transformAllocateClosure(statement: AllocateClosure): Collection<HIRStatement> {
-        val closureRef = emitAlloca(statement.name, closureStruct.instanceType(listOf(statement.type.to)))
+        val closureRef = emitAlloca(statement.name, closureStruct.instanceType())
         emitStore(
             closureRef.mutPtr().fieldPtr(closureFunctionPtrName),
-            statement.function.ptrCast(
-                fnTypeThatReturns(statement.type.to)
-            )
+            statement.function.ptrCast(Type.Void)
         )
         emitStore(
             closureRef.mutPtr().fieldPtr(closureCtxFieldName),
@@ -44,7 +41,7 @@ class DesugarClosures(
         ).load()
         val ctxPtr = closureRef.fieldPtr(closureCtxFieldName).load()
 
-        check(ctxPtr.type == Type.Void.ptr())
+        check(ctxPtr.type == Type.Void.mutPtr())
 
         emitCall(
             fnPtr,
@@ -57,7 +54,7 @@ class DesugarClosures(
     override fun lowerType(type: Type): Type {
         return when (type) {
             is Type.Closure ->
-                closureStruct.instanceType(listOf(type.to)).ptr()
+                closureStruct.instanceType().ptr()
             else -> super.lowerType(type)
         }
     }
@@ -71,14 +68,12 @@ class DesugarClosures(
             Position(0, 0)
         )
         val structName = namingCtx.makeName("\$builtin.Closure")
-        val typeParamName = namingCtx.makeName("T")
-        val typeParam = Binder(Identifier(location, typeParamName), idCtx.makeBinderId())
         val def = HIRDefinition.Struct(
             location = location,
-            typeParams = listOf(HIRTypeParam(location, typeParamName, typeParam.id)),
+            typeParams = null,
             fields = listOf(
-                closureCtxFieldName to Type.Void.ptr(),
-                closureFunctionPtrName to fnTypeThatReturns(Type.Param(typeParam)).ptr()
+                closureCtxFieldName to Type.Void.mutPtr(),
+                closureFunctionPtrName to Type.Void.ptr(),
             ),
             name = structName.toQualifiedName()
         )

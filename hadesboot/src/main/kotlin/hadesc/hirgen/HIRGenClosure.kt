@@ -86,12 +86,12 @@ internal class HIRGenClosure(
                     //    }
                     if (closureCtx?.getCapture(binder.name) != null) {
                         emitStore(
-                            contextRef.ptr().fieldPtr(binder.name),
+                            contextRef.mutPtr().fieldPtr(binder.name),
                             closureCtx.captureParam.ref().fieldPtr(binder.name).load()
                         )
                     } else {
                         emitStore(
-                            contextRef.ptr().fieldPtr(binder.name),
+                            contextRef.mutPtr().fieldPtr(binder.name),
                             HIRExpression.ParamRef(
                                 currentLocation,
                                 type,
@@ -106,7 +106,7 @@ internal class HIRGenClosure(
                 is Binding.ValBinding -> {
                     val capturePtr = getCapturePointer(binding)
                     emitStore(
-                        contextRef.ptr()
+                        contextRef.mutPtr()
                             .fieldPtr(binder.name, ctx.makeUniqueName(binder.name.text + "_ptr_ptr")),
                         capturePtr
                     )
@@ -115,7 +115,7 @@ internal class HIRGenClosure(
                 is Binding.MatchArmEnumCaseArg -> {
                     val capturePtr = getCapturePointer(binding)
                     emitStore(
-                        contextRef.ptr()
+                        contextRef.mutPtr()
                             .fieldPtr(binder.name, ctx.makeUniqueName(binder.name.text + "_ptr_ptr")),
                         capturePtr
                     )

@@ -151,7 +151,7 @@ class HIRToC(
         }
 
         is Type.Integral -> CNode.Raw(lowerIntegralType(type))
-        is Type.Ptr -> CNode.PtrType(lowerType(type.to, indirect = true), isConst = false)
+        is Type.Ptr -> CNode.PtrType(lowerType(type.to, indirect = true), isConst = !type.isMutable)
         is Type.Ref -> TODO()
         is Type.Size -> CNode.Raw("size_t")
         is Type.UntaggedUnion -> {

@@ -231,14 +231,6 @@ class Monomorphization(
         )
     }
 
-    override fun lowerRawPtrType(type: Type.Ptr): Type {
-        // specialized names should be uniform for both pointer types
-        //
-        // mutability is checked at the frontend, after that, we don't really
-        // care about it
-        return Type.Ptr(lowerType(type.to), isMutable = false)
-    }
-
     private val specializedTypes = mutableMapOf<QualifiedName, Type.Application>()
     override fun lowerTypeApplication(type: Type.Application): Type {
         require(type.callee is Type.Constructor)
