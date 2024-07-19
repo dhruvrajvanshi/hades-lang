@@ -35,7 +35,7 @@ class DesugarClosures(
         val closureRef = transformExpression(statement.closureRef)
         val fnPtr = closureRef.fieldPtr(closureFunctionPtrName).ptrCast(
             Type.FunctionPtr(
-                from = statement.args.map { it.type } + Type.Void.ptr(),
+                from = statement.args.map { it.type } + Type.Void.mutPtr(),
                 to = statement.type
             )
         ).load()
