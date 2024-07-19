@@ -6,7 +6,7 @@ import hadesboot.prettyprint.PPNode.*
 fun CNode.toPPNode(): PPNode = when (this) {
     is CNode.Include -> Text("#include \"$path\"")
     is CNode.Raw -> Text(code)
-    is CNode.PtrType -> Text(if (isConst) "const " else "") + type.toPPNode() + Text("*")
+    is CNode.PtrType -> type.toPPNode() + Text(if (isConst) " const *" else "*")
     is CNode.FnSignature -> Nodes(
         if (isExtern) Text("extern ") else Text(""),
         returnType.toPPNode(),
