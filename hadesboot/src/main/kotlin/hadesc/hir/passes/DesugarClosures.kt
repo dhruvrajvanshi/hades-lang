@@ -73,7 +73,7 @@ class DesugarClosures(
             typeParams = null,
             fields = listOf(
                 closureCtxFieldName to Type.Void.mutPtr(),
-                closureFunctionPtrName to Type.Void.ptr(),
+                closureFunctionPtrName to Type.Void.mutPtr(),
             ),
             name = structName.toQualifiedName()
         )

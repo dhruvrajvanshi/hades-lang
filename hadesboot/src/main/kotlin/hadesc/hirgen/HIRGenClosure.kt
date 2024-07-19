@@ -87,7 +87,8 @@ internal class HIRGenClosure(
                     if (closureCtx?.getCapture(binder.name) != null) {
                         emitStore(
                             contextRef.mutPtr().fieldPtr(binder.name),
-                            closureCtx.captureParam.ref().fieldPtr(binder.name).load()
+                            closureCtx.capturePtr
+                                .fieldPtr(binder.name).load()
                         )
                     } else {
                         emitStore(
@@ -162,31 +163,49 @@ internal class HIRGenClosure(
         captureStruct: HIRDefinition.Struct
     ): HIRDefinition.Function = scoped {
         val fnName = ctx.makeUniqueName("closure_fn")
-        val captureTypeArgs =
-            if (captureStruct.typeParams == null) {
-                emptyList()
-            } else {
-                captureInfo.types.map { Type.Param(it) }
-            }
-
         val captureParam = HIRParam(
             expression.location,
             Binder(Identifier(currentLocation, closureCtxParamName), ctx.makeBinderId()),
-            captureStruct.instanceType(captureTypeArgs).ptr()
+            Type.Void.mutPtr()
         )
         val returnType = ctx.analyzer.getReturnType(expression)
         val body = scoped {
-            closureGenStack.push(ClosureGenContext(captureParam, captureStruct))
+            val capturePtrName = ctx.makeUniqueName("ctx")
+            closureGenStack.push(
+                ClosureGenContext(
+                    captureInfo,
+                    captureStruct,
+                    capturePtrName,
+                )
+            )
             defer { closureGenStack.pop() }
             val intoBlock = HIRBlock(expression.body.location, ctx.makeName("entry"))
             when (expression.body) {
                 is ClosureBody.Block -> {
                     val addReturnVoid = returnType is Type.Void && !hasTerminator(expression.body.block)
-                    lowerBlock(expression.body.block, addReturnVoid = addReturnVoid, into = intoBlock)
+                    lowerBlock(
+                        expression.body.block,
+                        addReturnVoid = addReturnVoid,
+                        into = intoBlock,
+                        before = {
+                            captureParam.ref().ptrCast(
+                                captureStruct.instanceType(
+                                    captureInfo.types.map { Type.Param(it) }
+                                ),
+                                capturePtrName,
+                            )
+                        }
+                    )
                 }
 
                 is ClosureBody.Expression -> {
                     buildBlock(into = intoBlock) {
+                        captureParam.ref().ptrCast(
+                            captureStruct.instanceType(
+                                captureInfo.types.map { Type.Param(it) }
+                            ),
+                            capturePtrName,
+                        )
                         emit(
                             HIRStatement.Return(
                                 currentLocation,
@@ -227,13 +246,13 @@ internal class HIRGenClosure(
     internal fun lowerCaptureBinding(name: Identifier, binding: Binding.Local): HIROperand {
         val closureCtx = closureGenStack.peek()
         check(closureCtx != null)
-        val captureParam = closureCtx.captureParam
+        val capturePtr = closureCtx.capturePtr
         return when (binding) {
             // Function and Closure params are captured by value
             // ValBindings are captured by ptr (because they can be mutated)
             is Binding.ClosureParam,
             is Binding.FunctionParam ->
-                captureParam.ref() // *Ctx
+                capturePtr // *Ctx
                     .fieldPtr(
                         name.name,
                         name.uniqueNameWithSuffix("_ptr")
@@ -252,7 +271,8 @@ internal class HIRGenClosure(
         val closureCtx = closureGenStack.peek()
         check(closureCtx != null)
         val ptr =
-            closureCtx.captureParam.ref() // *Ctx
+            closureCtx.capturePtr
+                // *Ctx
                 .fieldPtr(statement.name.name) // **mut FieldType
                 .load() // *mut FieldType
         emitStore(ptr, lowerExpression(statement.value))
@@ -267,7 +287,7 @@ internal class HIRGenClosure(
     private fun getCapturePointer(binder: Binder): HIROperand {
         for (closureGenCtx in closureGenStack.items().reversed()) {
             closureGenCtx.getCapture(binder.name) ?: continue
-            val ctxPtr = closureGenCtx.captureParam.ref()
+            val ctxPtr = closureGenCtx.capturePtr
             return ctxPtr.fieldPtr(binder.name)
                 .load()
         }
@@ -284,10 +304,27 @@ internal class HIRGenClosure(
 }
 
 data class ClosureGenContext(
-    val captureParam: HIRParam,
-    val captureStruct: HIRDefinition.Struct
+    private val captureInfo: ClosureCaptures,
+    private val captureStruct: HIRDefinition.Struct,
+    private val capturePtrName: Name,
 ) {
     fun getCapture(name: Name): Type? {
         return captureStruct.fields.find { it.first == name }?.second
     }
+
+    private fun captureType(): Type {
+        val captureTypeArgs =
+            if (captureStruct.typeParams == null) {
+                emptyList()
+            } else {
+                captureInfo.types.map { Type.Param(it) }
+            }
+        return captureStruct.instanceType(captureTypeArgs)
+    }
+
+    val capturePtr = HIRExpression.LocalRef(
+        captureStruct.location,
+        captureType().mutPtr(),
+        capturePtrName
+    )
 }

@@ -226,10 +226,13 @@ interface HIRBuilder {
     }
 
     fun HIRExpression.ptrCast(toPointerOfType: Type, nameHint: String = ""): HIRExpression.LocalRef {
+        return ptrCast(toPointerOfType, namingCtx.makeUniqueName(nameHint))
+    }
+    fun HIRExpression.ptrCast(toPointerOfType: Type, name: Name): HIRExpression.LocalRef {
         val s = emit(
             HIRStatement.PointerCast(
                 currentLocation,
-                namingCtx.makeUniqueName(nameHint),
+                name,
                 toPointerOfType,
                 this
             )
