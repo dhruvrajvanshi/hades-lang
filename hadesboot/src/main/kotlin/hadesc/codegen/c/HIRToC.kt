@@ -570,6 +570,7 @@ private fun HIRDefinition.definitionSortOrder(): Int = when (this) {
 private val reservedCIdentifiers = setOf(
     "bool",
     "break",
+    "void",
 )
 fun Name.c(): String {
     var text = this.text
