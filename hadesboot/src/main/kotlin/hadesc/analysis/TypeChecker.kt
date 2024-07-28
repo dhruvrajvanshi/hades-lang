@@ -1,6 +1,7 @@
 package hadesc.analysis
 
 import hadesc.Name
+import hadesc.analysis.tc.Env
 import hadesc.ast.*
 import hadesc.diagnostics.DiagnosticReporter
 import hadesc.hir.TypeVisitor
@@ -22,9 +23,20 @@ class TypeChecker(
     private val program: List<SourceFile>,
     private val resolver: NewResolver,
 ) {
+    private var env: Env = Env.empty
     fun check() {
         for (file in program) {
+            env = Env.ofSourceFile(
+                file,
+                resolver,
+                lower = { lower() },
+                parent = env
+            )
             visitSourceFile(file)
+            val parent = env.parent
+            requireNotNull(parent)
+            check(parent === Env.empty)
+            env = parent
         }
     }
 
@@ -188,7 +200,7 @@ class TypeChecker(
             is Expression.BlockExpression -> todo(expression)
             is Expression.BoolLiteral -> Type.Bool
             is Expression.ByteCharLiteral -> Type.u8
-            is Expression.CString -> Type.u8.ptr()
+            is Expression.CString -> Type.CChar.ptr()
             is Expression.Call -> inferCall(expression)
             is Expression.Closure -> todo(expression)
             is Expression.Deref -> todo(expression)

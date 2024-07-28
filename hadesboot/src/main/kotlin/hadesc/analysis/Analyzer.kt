@@ -1,6 +1,7 @@
 package hadesc.analysis
 
 import hadesc.Name
+import hadesc.analysis.tc.Env
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.*
 import hadesc.context.IdGenCtx
@@ -14,6 +15,7 @@ import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
+import hadesc.resolver.NewResolver
 import hadesc.resolver.TypeBinding
 import hadesc.types.*
 import hadesc.unit
@@ -38,10 +40,21 @@ class Analyzer<Ctx>(
     val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
     private val astConv = ASTConv(ctx.resolver)
+    private var env: Env = Env.empty
 
     fun run(sourceFiles: List<SourceFile>): PostAnalysisContext {
         sourceFiles.forEach { sourceFile ->
+            env = Env.ofSourceFile(
+                sourceFile,
+                ctx.resolver,
+                parent = env,
+                lower = { annotationToType(this) }
+            )
             sourceFile.declarations.forEach { visitDeclaration(it) }
+            val parent = env.parent
+            checkNotNull(parent)
+            check(parent === Env.empty)
+            env = parent
         }
 
         return object : PostAnalysisContext {
