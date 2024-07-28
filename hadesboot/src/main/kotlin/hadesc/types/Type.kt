@@ -42,7 +42,11 @@ sealed interface Type {
 
     data class Constructor(val name: QualifiedName) : Type
 
-    data class ForAll(val params: List<Param>, val body: Type) : Type
+    data class ForAll(
+        val params: List<Param>,
+        val body: Type,
+        val requirements: List<TraitRequirement> = emptyList(),
+    ) : Type
 
     data class GenericInstance(
         val originalName: Name,
@@ -92,7 +96,10 @@ sealed interface Type {
         is Constructor -> name.mangle()
         is Size -> if (isSigned) "isize" else "usize"
         is UntaggedUnion -> "union<" + members.joinToString(", ") { it.prettyPrint() } + ">"
-        is ForAll -> "for<${params.joinToString(", ") { it.prettyPrint() }}> => ${body.prettyPrint()}"
+        is ForAll -> "for<${params.joinToString(", ") { it.prettyPrint() }}> => ${body.prettyPrint()}" +
+                if (requirements.isEmpty())
+                    ""
+                else " where " + requirements.joinToString(", ") { it.prettyPrint() }
         is Integral -> "${if (isSigned) "i" else "u" }$size"
         is FloatingPoint -> "f$size"
         is AssociatedTypeRef -> binder.identifier.name.text

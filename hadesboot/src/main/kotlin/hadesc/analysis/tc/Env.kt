@@ -1,9 +1,9 @@
 package hadesc.analysis.tc
 
 import hadesc.Name
+import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
-import hadesc.ast.Param
 import hadesc.ast.SourceFile
 import hadesc.ast.TypeAnnotation
 import hadesc.resolver.Binding
@@ -59,9 +59,19 @@ sealed interface Env {
                     to = signature.returnType.lower()
                 )
                 return if (typeParams != null) {
+                    val requirements = signature.whereClause?.traitRequirements?.mapNotNull { requirement ->
+                        val declaration = resolver.resolveDeclaration(requirement.path)
+                        val args = requirement.typeArgs?.map { it.lower() }
+                        if (declaration !is Declaration.TraitDef) {
+                            null
+                        } else {
+                            TraitRequirement(resolver.qualifiedName(declaration.name), args ?: listOf(), negated = requirement.negated)
+                        }
+                    }
                     Type.ForAll(
                         typeParams.map { Type.Param(it.binder) },
                         fnPtrType,
+                        requirements = requirements ?: emptyList(),
                     )
                 } else {
                     fnPtrType

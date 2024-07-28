@@ -1591,7 +1591,10 @@ class Analyzer<Ctx>(
                         traitRequirements = null
                     )
                 is Type.ForAll -> {
-                    return recurse(type.body, type.params)
+                    val inner = recurse(type.body, type.params)
+                    return inner?.copy(
+                        traitRequirements = (inner.traitRequirements ?: emptyList()) + type.requirements
+                    )
                 }
                 is Type.GenericInstance -> {
                     if (typeAnalyzer.getInstantiatedType(type) == null) {

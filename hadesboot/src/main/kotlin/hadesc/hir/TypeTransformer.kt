@@ -69,7 +69,8 @@ interface TypeTransformer {
     fun lowerTypeFunction(type: Type.ForAll): Type {
         return Type.ForAll(
             params = type.params,
-            body = lowerType(type.body)
+            body = lowerType(type.body),
+            requirements = type.requirements.map { lowerTraitRequirement(it) }
         )
     }
 
