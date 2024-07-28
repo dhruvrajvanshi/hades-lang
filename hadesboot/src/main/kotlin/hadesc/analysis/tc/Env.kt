@@ -27,10 +27,20 @@ sealed interface Env {
         val values: Map<Name, Type>,
         val enumDeclarations: Map<Name, Declaration.Enum>,
     ): Env
+    data class Let(
+        override val parent: Env,
+        val name: Name,
+        val type: Type,
+    ): Env
 
     fun resolveValue(name: Name): Type? = when(this) {
         Empty -> null
         is Scope -> values[name] ?: parent?.resolveValue(name)
+        is Let ->
+            if (name == this.name)
+                type
+            else
+                parent.resolveValue(name)
     }
 
     companion object {
