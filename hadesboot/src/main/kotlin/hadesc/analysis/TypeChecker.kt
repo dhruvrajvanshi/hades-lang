@@ -29,7 +29,7 @@ class TypeChecker(
             env = Env.ofSourceFile(
                 file,
                 resolver,
-                lower = { lower() },
+                lowerType = { it.lower() },
                 parent = env
             )
             visitSourceFile(file)
