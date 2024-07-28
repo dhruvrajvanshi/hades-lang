@@ -203,6 +203,7 @@ sealed interface Type {
         val f32 = FloatingPoint(32)
         val f64 = FloatingPoint(64)
         val i64 = Integral(isSigned = true, size = 64)
+        val i32 = Integral(isSigned = true, size = 32)
     }
 }
 
