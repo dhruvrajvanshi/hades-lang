@@ -234,7 +234,7 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
         return null
     }
 
-    fun resolveDeclaration(path: QualifiedPath): Declaration? {
+    override fun resolveDeclaration(path: QualifiedPath): Declaration? {
         if (path.identifiers.size == 1) {
             val name = path.identifiers.first()
             return findDeclarationOf(sourceFileOf(name), name)
@@ -481,5 +481,6 @@ interface NewResolver {
     fun resolve(name: Identifier): Binding?
     fun qualifiedName(binder: Binder): QualifiedName
     fun resolveTypeVariable(ident: Identifier): TypeBinding?
+    fun resolveDeclaration(path: QualifiedPath): Declaration?
 
 }
