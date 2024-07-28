@@ -48,7 +48,7 @@ class Analyzer<Ctx>(
                 sourceFile,
                 ctx.resolver,
                 parent = env,
-                lower = { annotationToType(this) }
+                lowerType = { annotationToType(it) }
             )
             sourceFile.declarations.forEach { visitDeclaration(it) }
             val parent = env.parent
@@ -619,7 +619,15 @@ class Analyzer<Ctx>(
         def.signature.whereClause?.let { visitWhereClause(it) }
         val returnType = annotationToType(def.signature.returnType)
         returnTypeStack.push(returnType)
+        val oldEnv = env
+        env = Env.ofFunction(
+            def,
+            parent = env,
+            lowerType = { annotationToType(it) }
+        )
         checkBlock(def.body)
+        check(oldEnv === env.parent)
+        env = requireNotNull(env.parent)
         returnTypeStack.pop()
     }
 
@@ -1206,6 +1214,10 @@ class Analyzer<Ctx>(
     }
 
     private fun inferIdentifier(name: Identifier): Type {
+        val fromEnv = env.resolveValue(name.name)
+        if (fromEnv != null) {
+            return fromEnv
+        }
         return when (val binding = ctx.resolver.resolve(name)) {
             null -> {
                 Type.Error(name.location)

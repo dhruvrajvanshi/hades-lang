@@ -3,11 +3,16 @@ package hadesc.analysis.tc
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
+import hadesc.ast.Param
 import hadesc.ast.SourceFile
 import hadesc.ast.TypeAnnotation
 import hadesc.resolver.Binding
 import hadesc.resolver.NewResolver
 import hadesc.types.Type
+
+fun interface TypeLower {
+    operator fun invoke(typeAnnotation: TypeAnnotation): Type
+}
 
 sealed interface Env {
     val parent: Env?
@@ -21,6 +26,11 @@ sealed interface Env {
         val enumDeclarations: Map<Name, Declaration.Enum>,
     ): Env
 
+    fun resolveValue(name: Name): Type? = when(this) {
+        Empty -> null
+        is Scope -> values[name] ?: parent?.resolveValue(name)
+    }
+
     companion object {
         @JvmStatic
         val empty = Empty
@@ -29,9 +39,11 @@ sealed interface Env {
         fun ofSourceFile(
             file: SourceFile,
             resolver: NewResolver,
-            lower: TypeAnnotation.() -> Type,
+            lowerType: TypeLower,
             parent: Env?,
         ): Env {
+            fun TypeAnnotation.lower(): Type = lowerType(this)
+
             fun Declaration.ExternFunctionDef.type(): Type.FunctionPtr {
                 val paramTypes = paramTypes.map { it.lower() }
                 val returnType = returnType.lower()
@@ -153,6 +165,22 @@ sealed interface Env {
                 }
             }
             return Scope(parent, values, enumDecls)
+        }
+
+        fun ofFunction(
+            def: Declaration.FunctionDef,
+            parent: Env,
+            lowerType: TypeLower,
+        ): Env {
+            fun TypeAnnotation.lower(): Type = lowerType(this)
+
+            return Scope(
+                parent = parent,
+                values = def.params.associate {
+                    it.binder.name to (it.annotation?.lower() ?: Type.Error(it.location, "Missing type annotation"))
+                },
+                enumDeclarations = emptyMap(),
+            )
         }
     }
 }
