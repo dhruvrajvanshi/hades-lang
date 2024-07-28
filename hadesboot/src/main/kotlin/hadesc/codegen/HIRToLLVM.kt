@@ -854,7 +854,7 @@ class HIRToLLVM(
     private val structTypes = mutableMapOf<QualifiedName, llvm.Type>()
     private fun lowerType(type: Type): llvm.Type = when (type) {
         is Type.Error -> requireUnreachable {
-            "${type.location}"
+            "${type.location}: ${type.message}"
         }
         Type.Void -> voidTy
         is Type.Bool -> boolTy

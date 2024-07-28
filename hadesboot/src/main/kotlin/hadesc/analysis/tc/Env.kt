@@ -4,11 +4,13 @@ import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
+import hadesc.ast.Expression
 import hadesc.ast.SourceFile
 import hadesc.ast.TypeAnnotation
 import hadesc.resolver.Binding
 import hadesc.resolver.NewResolver
 import hadesc.types.Type
+import hadesc.types.ptr
 
 fun interface TypeLower {
     operator fun invoke(typeAnnotation: TypeAnnotation): Type
@@ -104,10 +106,27 @@ sealed interface Env {
             }
             val values = mutableMapOf<Name, Type>()
             val enumDecls = mutableMapOf<Name, Declaration.Enum>()
+            fun Declaration.ConstDefinition.type(): Type {
+                if (annotation != null) {
+                    return annotation.lower()
+                }
+                return when (initializer) {
+                    is Expression.Var -> {
+                        values[initializer.name.name] ?: Type.Error(location, "Type annotation is required here")
+                    }
+                    is Expression.IntLiteral -> Type.i32
+                    is Expression.BoolLiteral -> Type.Bool
+                    is Expression.CString -> Type.CChar.ptr()
+                    is Expression.FloatLiteral -> Type.f64
+                    else ->
+                        Type.Error(location, "Type annotation is required here")
+                }
+            }
+
             for (decl in file.declarations) {
                 when (decl) {
                     is Declaration.ConstDefinition -> {
-                        values[decl.name.name] = decl.annotation?.lower() ?: Type.Error(decl.location, "Type annotation is required here")
+                        values[decl.name.name] = decl.type()
                     }
                     is Declaration.Enum -> {
                         enumDecls[decl.name.name] = decl
@@ -146,12 +165,7 @@ sealed interface Env {
                                 }
 
                                 is Binding.GlobalConst -> {
-                                    values[binding.declaration.name.name] =
-                                        binding.declaration.annotation?.lower() ?:
-                                            Type.Error(
-                                                binding.declaration.location,
-                                                "Type annotation required"
-                                            )
+                                    values[binding.declaration.name.name] = binding.declaration.type()
                                 }
                                 is Binding.GlobalFunction -> {
                                     values[binding.declaration.name.name] = binding.declaration.type()
