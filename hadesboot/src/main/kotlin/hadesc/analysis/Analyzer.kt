@@ -428,6 +428,12 @@ class Analyzer<Ctx>(
         }
     }
     private fun resolveStructFieldBinding(expression: Expression.Property): PropertyBinding? {
+        // TODO: Remove this inferExpression call.
+        //       This function can be called to "try" if the property expression is a struct field binding.
+        //       but in case when expression.lhs refers to something that's not a real expression, e.g. a module path
+        //       access or a enum constructor call, inferExpression would fail.
+        //       Solving this would probably require adding a "Module" type so that every expression can be treated as
+        //       having a type, making the type checker much simpler to reason about.
         val lhsType = inferExpression(expression.lhs)
         return resolveStructFieldBinding(lhsType, expression.property)
     }
@@ -640,9 +646,11 @@ class Analyzer<Ctx>(
     }
 
     private fun checkBlock(block: Block) {
+        val oldEnv = env
         for (member in block.members) {
             checkBlockMember(member)
         }
+        env = oldEnv
     }
 
     private fun checkBlockMember(member: Block.Member): Unit = when (member) {
@@ -737,11 +745,17 @@ class Analyzer<Ctx>(
 
     private fun visitValStatement(statement: Statement.Val) {
         val expectedType = statement.typeAnnotation?.let { annotationToType(it) }
-        if (expectedType != null) {
+        val type = if (expectedType != null) {
             checkExpression(statement.rhs, expectedType)
+            expectedType
         } else {
             inferExpression(statement.rhs)
         }
+        env = Env.Let(
+            parent = env,
+            name = statement.binder.name,
+            type = type,
+        )
     }
 
     private fun isPredicateOperator(operator: BinaryOperator): Boolean {
@@ -1048,6 +1062,7 @@ class Analyzer<Ctx>(
         }
 
     private fun inferBlockExpression(expression: Expression.BlockExpression): Type {
+        val oldEnv = env
         val lastExpression = expression.block.members.lastOrNull() ?: return Type.Void
 
         expression.block.members.dropLast(1).forEach {
@@ -1062,7 +1077,7 @@ class Analyzer<Ctx>(
                 checkStatement(lastExpression.statement)
             }
         }
-
+        env = oldEnv
         return Type.Void
     }
 
@@ -1219,10 +1234,24 @@ class Analyzer<Ctx>(
             return fromEnv
         }
         return when (val binding = ctx.resolver.resolve(name)) {
+            // TODO: Remove `typeOfBinding`
+            is Binding.ValBinding,
+            is Binding.GlobalConst,
+            is Binding.ExternConst,
+            is Binding.ExternFunction,
+            is Binding.GlobalFunction,
+            is Binding.Struct,
+            is Binding.FunctionParam,
+                -> requireUnreachable {
+                    "The type of ${binding::class.simpleName} should be handled by the env"
+                }
+            is Binding.MatchArmEnumCaseArg,
+            is Binding.ClosureParam,
+            is Binding.Enum,
+                -> typeOfBinding(binding)
             null -> {
-                Type.Error(name.location)
+                Type.Error(name.location, "Unbound variable: ${name.name.text}")
             }
-            else -> typeOfBinding(binding)
         }
     }
 
