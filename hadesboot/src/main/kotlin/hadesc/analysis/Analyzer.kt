@@ -15,7 +15,6 @@ import hadesc.hir.TypeVisitor
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.resolver.Binding
-import hadesc.resolver.NewResolver
 import hadesc.resolver.TypeBinding
 import hadesc.types.*
 import hadesc.unit
@@ -296,8 +295,6 @@ class Analyzer<Ctx>(
         }
         return null
     }
-
-    private fun Type.Param.toParamRef() = Type.Param(binder)
 
     private fun instantiateTypeAndSubstitution(
         type: Type,
@@ -1655,156 +1652,6 @@ class Analyzer<Ctx>(
 
     private fun annotationToType(annotation: TypeAnnotation): Type =
         astConv.typeAnnotationToType(annotation)
-
-    private fun arrayTypeAnnotationToType(annotation: TypeAnnotation.Array): Type =
-        Type.Array(annotationToType(annotation.itemType), annotation.length)
-
-    private fun closureAnnotationToType(annotation: TypeAnnotation.Closure): Type {
-        return Type.Closure(
-            annotation.from.map { annotationToType(it) },
-            annotationToType(annotation.to)
-        )
-    }
-
-    private fun functionAnnotationToType(annotation: TypeAnnotation.FunctionPtr): Type {
-        return Type.FunctionPtr(
-            from = annotation.from.map { annotationToType(it) },
-            to = annotationToType(annotation.to),
-            traitRequirements = null
-        )
-    }
-
-    private fun unionAnnotationToType(annotation: TypeAnnotation.Union): Type {
-        return Type.UntaggedUnion(
-            annotation.args.map { annotationToType(it) }
-        )
-    }
-
-    private fun typeApplicationAnnotationToType(annotation: TypeAnnotation.Application): Type {
-        val callee = annotationToType(annotation.callee)
-        return if (callee is Type.ForAll) {
-            val args = annotation.args.map { annotationToType(it) }
-            val substitution = callee.params.zip(args).toSubstitution()
-            callee.body.applySubstitution(substitution)
-        } else {
-            Type.Error(annotation.location)
-        }
-    }
-
-    private fun qualifiedAnnotationToType(annotation: TypeAnnotation.Qualified): Type {
-        val binding = ctx.resolver.resolveQualifiedType(annotation.qualifiedPath)
-        return if (binding == null) {
-            Type.Error(annotation.location)
-        } else {
-            return typeOfTypeBinding(binding)
-        }
-    }
-
-    private fun mutPtrAnnotationToType(annotation: TypeAnnotation.MutPtr): Type {
-        return Type.Ptr(
-            to = annotationToType(annotation.to),
-            isMutable = true
-        )
-    }
-
-    private fun ptrAnnotationToType(annotation: TypeAnnotation.Ptr): Type {
-        return Type.Ptr(
-            to = annotationToType(annotation.to),
-            isMutable = false
-        )
-    }
-
-    private fun typeOfTypeAlias(binding: TypeBinding.TypeAlias): Type {
-        return if (binding.declaration.typeParams != null) {
-            return Type.ForAll(
-                binding.declaration.makeTypeParams(),
-                annotationToType(binding.declaration.rhs)
-            )
-        } else {
-            annotationToType(binding.declaration.rhs)
-        }
-    }
-
-    private fun typeOfTraitTypeBinding(binding: TypeBinding.Trait): Type {
-        val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
-
-        return Type.ForAll(
-            params = binding.declaration.makeTypeParams(),
-            body = Type.Application(
-                typeConstructor,
-                args = binding.declaration.params.map { Type.Param(it.binder) }
-            )
-        )
-    }
-    private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
-        val qualifiedName = ctx.resolver.qualifiedStructName(binding.declaration)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
-
-        return if (binding.declaration.typeParams == null) {
-            typeConstructor
-        } else {
-            Type.ForAll(
-                params = binding.declaration.makeTypeParams(),
-                body = Type.Application(
-                    typeConstructor,
-                    args = binding.declaration.typeParams.map { Type.Param(it.binder) }
-                )
-            )
-        }
-    }
-    private fun typeOfEnumBinding(binding: TypeBinding.Enum): Type {
-        val qualifiedName = ctx.resolver.qualifiedName(binding.declaration.name)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
-
-        return if (binding.declaration.typeParams == null) {
-            typeConstructor
-        } else {
-            Type.ForAll(
-                params = binding.declaration.makeTypeParams(),
-                body = Type.Application(
-                    typeConstructor,
-                    args = binding.declaration.typeParams.map { Type.Param(it.binder) }
-                )
-            )
-        }
-    }
-
-    private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
-        val resolved = resolveTypeVariable(annotation)
-        return resolved ?: Type.Error(annotation.location)
-    }
-
-    private fun resolveTypeVariable(annotation: TypeAnnotation.Var): Type? {
-        val binding = ctx.resolver.resolveTypeVariable(annotation.name) ?: return null
-        return typeOfTypeBinding(binding)
-    }
-
-    private fun typeOfTypeBinding(binding: TypeBinding): Type {
-        return when (binding) {
-            is TypeBinding.Struct -> typeOfStructBinding(binding)
-            is TypeBinding.TypeParam -> typeOfTypeParam(binding)
-            is TypeBinding.TypeAlias -> typeOfTypeAlias(binding)
-            is TypeBinding.Trait -> typeOfTraitTypeBinding(binding)
-            is TypeBinding.Enum -> typeOfEnumBinding(binding)
-            is TypeBinding.Builtin -> binding.type
-            is TypeBinding.AssociatedType -> typeOfAssociatedTypeBinding(binding)
-        }
-    }
-
-    private fun typeOfAssociatedTypeBinding(binding: TypeBinding.AssociatedType): Type {
-        val traitDef = ctx.resolver.getEnclosingTraitDef(binding.binder)
-        requireNotNull(traitDef)
-        return Type.Select(
-            ctx.resolver.qualifiedName(traitDef.name),
-            traitArgs = traitDef.params.map { Type.Param(it.binder) },
-            associatedTypeName = binding.binder.name
-        )
-    }
-
-    private fun typeOfTypeParam(binding: TypeBinding.TypeParam): Type {
-        return Type.Param(binding.binder)
-    }
 
     fun typeOfBinder(binder: Binder): Type = when (val binding = ctx.resolver.resolve(binder.identifier)) {
         null -> Type.Error(binder.location)
