@@ -112,21 +112,4 @@ class ASTConv(val resolver: Resolver<*>) {
     }
 
     private fun List<TypeAnnotation>.types() = map { it.type() }
-
-    private fun typeOfStructBinding(binding: TypeBinding.Struct): Type {
-        val qualifiedName = resolver.qualifiedStructName(binding.declaration)
-        val typeConstructor = Type.Constructor(name = qualifiedName)
-
-        return if (binding.declaration.typeParams == null) {
-            typeConstructor
-        } else {
-            Type.ForAll(
-                params = binding.declaration.makeTypeParams(),
-                body = Type.Application(
-                    typeConstructor,
-                    args = binding.declaration.typeParams.map { Type.Param(it.binder) }
-                )
-            )
-        }
-    }
 }
