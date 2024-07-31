@@ -36,7 +36,7 @@ class Analyzer<Ctx>(
     Ctx: IdGenCtx,
     Ctx: NamingCtx
 {
-    val typeAnalyzer = TypeAnalyzer()
+    private val typeAnalyzer = TypeAnalyzer()
     private val returnTypeStack = Stack<Type?>()
     private val astConv = ASTConv(ctx.resolver)
     private var env: Env = Env.empty
