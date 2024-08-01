@@ -967,22 +967,21 @@ class Analyzer<Ctx>(
     }
 
     private fun inferMatchExpression(expression: Expression.Match): Type {
-        inferExpression(expression.value)
-        val firstArm = expression.arms.firstOrNull()?.value
-        val expectedType = if (firstArm == null) {
-            Type.Error(expression.location)
-        } else {
-            inferExpression(firstArm)
-        }
+        val discriminantType = inferExpression(expression.value)
+        var expectedType: Type? = null
 
-        for (arm in expression.arms) {
-            if (expectedType !is Type.Error) {
-                checkExpression(arm.value, expectedType)
+        expression.arms.forEachIndexed { index, arm ->
+            val oldEnv = env
+            env = extendEnvWithPattern(env, arm.pattern, discriminantType)
+            if (index == 0) {
+                expectedType = inferExpression(arm.value)
             } else {
-                inferExpression(arm.value)
+                checkExpression(arm.value, checkNotNull(expectedType))
             }
+            env = oldEnv
+
         }
-        return expectedType
+        return expectedType ?: Type.Error(expression.location, "Match expression with no arms")
     }
 
     private fun inferUnaryMinus(expression: Expression.UnaryMinus): Type {
@@ -1079,11 +1078,46 @@ class Analyzer<Ctx>(
     }
 
     private fun checkMatchExpression(expression: Expression.Match, expectedType: Type): Type {
-        inferExpression(expression.value)
+        val discriminantType = inferExpression(expression.value)
         for (arm in expression.arms) {
+            val oldEnv = env
+            env = extendEnvWithPattern(env, arm.pattern, discriminantType)
             checkExpression(arm.value, expectedType)
+            env = oldEnv
         }
         return expectedType
+    }
+
+    private fun extendEnvWithPattern(prevEnv: Env, pattern: Pattern, discriminantType: Type): Env {
+        when (pattern) {
+            is Pattern.Wildcard,
+            is Pattern.IntLiteral -> Unit
+            is Pattern.Val -> {
+                return Env.Let(
+                    parent = prevEnv,
+                    name = pattern.binder.name,
+                    type = discriminantType,
+                )
+            }
+            is Pattern.EnumCase -> {
+                val decl = getEnumTypeDeclaration(discriminantType)
+                val case = decl?.getCase(pattern.identifier.name) ?: return env
+                var resultEnv = env
+                for ((param, arg) in case.first.params?.zip(pattern.args ?: emptyList()) ?: emptyList()) {
+                    val paramType = annotationToType(param.annotation).applyTypeParams(
+                        decl.typeParams,
+                        discriminantType.typeArgs(),
+                    )
+                    resultEnv = extendEnvWithPattern(
+                        resultEnv,
+                        arg,
+                        paramType
+                    )
+                }
+                return resultEnv
+            }
+        }
+        return env
     }
 
     private fun inferTypeApplication(expression: Expression.TypeApplication): Type {
@@ -1238,11 +1272,11 @@ class Analyzer<Ctx>(
             is Binding.ExternFunction,
             is Binding.GlobalFunction,
             is Binding.Struct,
+            is Binding.MatchArmEnumCaseArg,
             is Binding.FunctionParam,
                 -> requireUnreachable {
                     "The type of ${binding::class.simpleName} should be handled by the env"
                 }
-            is Binding.MatchArmEnumCaseArg,
             is Binding.ClosureParam,
             is Binding.Enum,
                 -> typeOfBinding(binding)

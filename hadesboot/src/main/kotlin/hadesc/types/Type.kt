@@ -5,6 +5,7 @@ import hadesc.Name
 import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
+import hadesc.ast.TypeParam
 import hadesc.hir.HIRTypeParam
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -194,6 +195,10 @@ sealed interface Type {
             }.toSubstitution()
             this.applySubstitution(subst)
         }
+    }
+    fun applyTypeParams(typeParams: List<TypeParam>?, args: List<Type>): Type {
+        val subst = Substitution(typeParams?.zip(args)?.associate { it.first.binder.id to it.second } ?: emptyMap())
+        return applySubstitution(subst)
     }
 
     companion object {
