@@ -1,9 +1,9 @@
 import libc.{stderr, fputs}
 
-fn debug(msg: *u8): Void {
+fn debug(msg: *cchar): Void {
     fputs(msg, stderr())
 }
-fn debugln(msg: *u8): Void {
+fn debugln(msg: *cchar): Void {
     debug(msg)
     fputs(c"\n", stderr())
 }
