@@ -3,7 +3,7 @@ import hadesx.debug.{debugln}
 import hadesx.internal.libc.{wait, fork}
 import libc.{puts, exit}
 
-fn test(name: *u8, f: || -> Void): Void {
+fn test(name: *cchar, f: || -> Void): Void {
     // val child_pid = fork()
     // if (child_pid == -1) {
     //     panic(c"Couldn't fork")

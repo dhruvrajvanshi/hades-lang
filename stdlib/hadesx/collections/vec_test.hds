@@ -17,7 +17,7 @@ fn main(): Void {
     }
 
     test(c"Push to empty vector") || {
-        val mut v = VecM.empty[*u8](); defer drop(move v)
+        val mut v = VecM.empty[*cchar](); defer drop(move v)
         val vec = &mut v
         vec.push(c"Hello")
            .push(c"World")
@@ -25,7 +25,7 @@ fn main(): Void {
 
     test(c"ForEach") || {
         val mut index: usize = 0
-        val mut v = VecM.empty[*u8](); defer drop(move v)
+        val mut v = VecM.empty[*cchar](); defer drop(move v)
         val vec = &mut v
         vec.push(c"Hello")
            .push(c"World")
@@ -36,7 +36,7 @@ fn main(): Void {
     }
 
     test(c"Drops members") || {
-        // val mut v = VecM.empty[*u8]
+        // val mut v = VecM.empty[*cchar]
     }
 
 }

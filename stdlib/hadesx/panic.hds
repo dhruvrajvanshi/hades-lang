@@ -1,6 +1,6 @@
 import libc.{fputs, stderr}
 extern fn abort(): Void = abort
-fn panic(message: *u8): Void {
+fn panic(message: *cchar): Void {
     fputs(message, stderr())
     fputs(c"\n", stderr())
     abort()
