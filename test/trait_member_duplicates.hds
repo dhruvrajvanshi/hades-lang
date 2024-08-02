@@ -1,5 +1,0 @@
-
-interface T[This] {
-    fn t(): Void;
-    fn t(): Void;
-}

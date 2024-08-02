@@ -57,7 +57,6 @@ class HIRToC(
         is HIRDefinition.ExternConst -> lowerExternConstInterface(definition)
         is HIRDefinition.ExternFunction -> lowerExternFunctionInterface(definition)
         is HIRDefinition.Function -> lowerFunctionInterface(definition)
-        is HIRDefinition.Implementation -> requireUnreachable { "Expected previous phases to eliminate interfaces" }
         is HIRDefinition.Struct -> lowerStructInterface(definition)
     }
 
@@ -106,13 +105,11 @@ class HIRToC(
 
     private val fnPtrNames = mutableMapOf<String, Name>()
     private fun lowerType(type: Type, indirect: Boolean = false): CNode = when (type) {
-        is Type.AssociatedTypeRef,
         is Type.Application,
         is Type.Closure,
         is Type.Error,
         is Type.GenericInstance,
         is Type.Param,
-        is Type.Select,
         is Type.ForAll,
         -> {
             requireUnreachable()
@@ -197,7 +194,7 @@ class HIRToC(
         return "${prefix}${type.size}_t"
     }
 
-    private fun lowerStructInterface(definition: HIRDefinition.Struct): Unit {
+    private fun lowerStructInterface(definition: HIRDefinition.Struct) {
         declarations.add(CNode.Raw("typedef struct ${definition.name.c()} ${definition.name.c()};"))
     }
 
@@ -206,7 +203,6 @@ class HIRToC(
         is HIRDefinition.Function -> lowerFunctionImplementation(definition)
         is HIRDefinition.ExternConst -> {}
         is HIRDefinition.ExternFunction -> {}
-        is HIRDefinition.Implementation -> requireUnreachable()
         is HIRDefinition.Struct -> lowerStructImplementation(definition)
     }
 
@@ -564,7 +560,6 @@ private fun HIRDefinition.definitionSortOrder(): Int = when (this) {
     is HIRDefinition.ExternFunction -> 2
     is HIRDefinition.Const -> 3
     is HIRDefinition.Function -> 4
-    is HIRDefinition.Implementation -> requireUnreachable()
 }
 
 private val reservedCIdentifiers = setOf(
@@ -651,7 +646,6 @@ sealed interface CNode {
 fun HIRDefinition.interfaceSortOrder(): Int {
     return when (this) {
         is HIRDefinition.Struct -> 0
-        is HIRDefinition.Implementation -> requireUnreachable { "Expected previous phases to eliminate implementations" }
         is HIRDefinition.ExternConst -> 1
         is HIRDefinition.ExternFunction -> 2
         is HIRDefinition.Const -> 3

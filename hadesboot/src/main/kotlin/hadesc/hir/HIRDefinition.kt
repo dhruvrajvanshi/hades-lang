@@ -1,7 +1,6 @@
 package hadesc.hir
 
 import hadesc.Name
-import hadesc.analysis.TraitRequirement
 import hadesc.location.HasLocation
 import hadesc.location.SourceLocation
 import hadesc.qualifiedname.QualifiedName
@@ -15,7 +14,7 @@ sealed class HIRDefinition : HasLocation {
         val signature: HIRFunctionSignature,
         val basicBlocks: MutableList<HIRBlock> = mutableListOf()
     ) : HIRDefinition() {
-        fun findBlock(label: Name): HIRBlock? {
+        private fun findBlock(label: Name): HIRBlock? {
             return basicBlocks.find { it.name == label }
         }
 
@@ -33,7 +32,6 @@ sealed class HIRDefinition : HasLocation {
             val functionPtrType = Type.FunctionPtr(
                 from = params.map { it.type },
                 to = returnType,
-                traitRequirements = null
             )
             return if (typeParams != null) {
                 Type.ForAll(
@@ -49,7 +47,6 @@ sealed class HIRDefinition : HasLocation {
             val functionPtrType = Type.FunctionPtr(
                 from = params.map { it.type },
                 to = returnType,
-                traitRequirements = null
             ).ptr()
             return if (typeParams != null) {
                 Type.ForAll(
@@ -80,7 +77,6 @@ sealed class HIRDefinition : HasLocation {
         val type get() = Type.FunctionPtr(
             from = params,
             to = returnType,
-            traitRequirements = null
         )
     }
 
@@ -90,20 +86,6 @@ sealed class HIRDefinition : HasLocation {
         val type: Type,
         val externName: Name
     ) : HIRDefinition()
-
-    data class Implementation(
-        override val location: SourceLocation,
-        val traitRequirements: List<TraitRequirement>,
-        val typeParams: List<HIRTypeParam>?,
-        val typeAliases: Map<Name, Type>,
-        val traitName: QualifiedName,
-        val traitArgs: List<Type>,
-        val functions: List<Function>
-    ) : HIRDefinition() {
-        init {
-            require(traitArgs.isNotEmpty())
-        }
-    }
 
     data class Struct(
         override val location: SourceLocation,
@@ -123,7 +105,6 @@ sealed class HIRDefinition : HasLocation {
             val fnType = Type.FunctionPtr(
                 from = fields.map { it.second },
                 to = instanceType,
-                traitRequirements = null
             )
 
             return if (typeParams == null) {
@@ -204,27 +185,6 @@ sealed class HIRDefinition : HasLocation {
                 "\n}"
         }
         is Const -> "const ${name.mangle()}: ${initializer.type.prettyPrint()} = ${initializer.prettyPrint()}"
-        is Implementation ->
-            "implementation" +
-                ppTypeParams(typeParams) +
-                "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() } }] " +
-                ppTraitRequirements(traitRequirements) +
-                "{\n" +
-                functions.joinToString("\n") { it.prettyPrint() }.prependIndent("  ") +
-                "\n}"
         is ExternConst -> "extern const ${name.mangle()}: ${type.prettyPrint()} = $externName"
-    }
-}
-private fun ppTraitRequirements(traitRequirements: List<TraitRequirement>): String {
-    if (traitRequirements.isEmpty()) {
-        return ""
-    }
-    return "where " + traitRequirements.joinToString(", ") { it.prettyPrint() }
-}
-private fun ppTypeParams(typeParams: List<HIRTypeParam>?): String {
-    return if (typeParams == null) {
-        " "
-    } else {
-        "[" + typeParams.joinToString(", ") { it.prettyPrint() } + "] "
     }
 }

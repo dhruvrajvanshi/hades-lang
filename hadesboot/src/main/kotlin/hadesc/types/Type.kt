@@ -2,7 +2,6 @@ package hadesc.types
 
 import hadesc.BinderId
 import hadesc.Name
-import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Binder
 import hadesc.ast.TypeParam
@@ -33,7 +32,6 @@ sealed interface Type {
     data class FunctionPtr(
         val from: List<Type>,
         val to: Type,
-        val traitRequirements: List<TraitRequirement>? = null
     ) : Type
 
     data class Closure(
@@ -46,7 +44,6 @@ sealed interface Type {
     data class ForAll(
         val params: List<Param>,
         val body: Type,
-        val requirements: List<TraitRequirement> = emptyList(),
     ) : Type
 
     data class GenericInstance(
@@ -58,9 +55,6 @@ sealed interface Type {
     data class Application(val callee: Type, val args: List<Type>) : Type
     data class UntaggedUnion(val members: List<Type>) : Type
 
-    data class AssociatedTypeRef(val binder: Binder) : Type
-
-    data class Select(val traitName: QualifiedName, val traitArgs: List<Type>, val associatedTypeName: Name) : Type
 
     /**
      * A GC managed pointer to [inner] type.
@@ -97,14 +91,9 @@ sealed interface Type {
         is Constructor -> name.mangle()
         is Size -> if (isSigned) "isize" else "usize"
         is UntaggedUnion -> "union<" + members.joinToString(", ") { it.prettyPrint() } + ">"
-        is ForAll -> "for<${params.joinToString(", ") { it.prettyPrint() }}> => ${body.prettyPrint()}" +
-                if (requirements.isEmpty())
-                    ""
-                else " where " + requirements.joinToString(", ") { it.prettyPrint() }
+        is ForAll -> "for<${params.joinToString(", ") { it.prettyPrint() }}> => ${body.prettyPrint()}"
         is Integral -> "${if (isSigned) "i" else "u" }$size"
         is FloatingPoint -> "f$size"
-        is AssociatedTypeRef -> binder.identifier.name.text
-        is Select -> "${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}].${associatedTypeName.text}"
         is Closure -> {
             val returnTy = to.prettyPrint()
             val params = from.joinToString(",") { it.prettyPrint() }
@@ -136,9 +125,6 @@ sealed interface Type {
             is Ptr -> Ptr(to.recurse(), isMutable = isMutable)
             is FunctionPtr -> FunctionPtr(
                 from = this.from.map { it.recurse() },
-                traitRequirements = this.traitRequirements?.map {
-                    TraitRequirement(it.traitRef, it.arguments.map { t -> t.recurse() }, it.negated)
-                },
                 to = this.to.recurse()
             )
             is ParamRef -> {
@@ -154,12 +140,6 @@ sealed interface Type {
             is ForAll -> ForAll(
                 params,
                 body.recurse()
-            )
-            is AssociatedTypeRef -> {
-                substitution[this.binder.id] ?: this
-            }
-            is Select -> copy(
-                traitArgs = traitArgs.map { it.recurse() }
             )
             is Closure -> copy(
                 from = from.map { it.recurse() },

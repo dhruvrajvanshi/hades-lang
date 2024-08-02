@@ -37,7 +37,6 @@ data class HIRModule(
         is HIRDefinition.ExternFunction -> definition.name == name
         is HIRDefinition.Struct -> definition.name == name
         is HIRDefinition.Const -> definition.name == name
-        is HIRDefinition.Implementation -> false
         is HIRDefinition.ExternConst -> definition.name == name
     }
 

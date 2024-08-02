@@ -1,6 +1,0 @@
-test/no_copy.hds:15: CopyOfNoCopyTypeNotAllowed
-test/no_copy.hds:18: CopyOfNoCopyTypeNotAllowed
-test/no_copy.hds:20: CopyOfNoCopyTypeNotAllowed
-test/no_copy.hds:23: CopyOfNoCopyTypeNotAllowed
-test/no_copy.hds:26: CopyOfNoCopyTypeNotAllowed
-test/no_copy.hds:30: CopyOfNoCopyTypeNotAllowed

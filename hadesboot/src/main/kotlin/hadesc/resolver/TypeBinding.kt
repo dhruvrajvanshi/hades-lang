@@ -16,17 +16,11 @@ sealed class TypeBinding {
         val declaration: Declaration.TypeAlias
     ) : TypeBinding()
 
-    data class Trait(
-        val declaration: Declaration.TraitDef
-    ) : TypeBinding()
-
     data class Enum(
         val declaration: Declaration.Enum
     ) : TypeBinding()
 
     data class Builtin(val type: Type) : TypeBinding()
-
-    data class AssociatedType(val binder: Binder) : TypeBinding()
 
     fun isLocalTo(scope: HasLocation) = when (this) {
         is TypeParam -> binder.location.isWithin(scope.location)

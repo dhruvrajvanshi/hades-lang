@@ -19,7 +19,7 @@ internal typealias tt = Token.Kind
 
 private val declarationRecoveryTokens = setOf(
     tt.EOF, tt.IMPORT, tt.FN, tt.EXTERN, tt.STRUCT, tt.CONST,
-    tt.INTERFACE, tt.IMPLEMENTATION, tt.AT_SYMBOL,
+    tt.AT_SYMBOL,
     tt.TYPE, tt.EXTENSION
 )
 private val statementPredictors = setOf(
@@ -131,8 +131,6 @@ class Parser<Ctx>(
             tt.CONST -> parseConstDef()
             tt.TYPE -> parseTypeAliasDeclaration()
             tt.EXTENSION -> parseExtensionDef()
-            tt.INTERFACE -> parseTraitDef()
-            tt.IMPLEMENTATION -> parseImplementationDef()
             tt.ENUM -> parseEnumDef(decorators)
             else -> {
                 syntaxError(currentToken.location, Diagnostic.Kind.DeclarationExpected)
@@ -220,72 +218,12 @@ class Parser<Ctx>(
         }
     }
 
-    private fun parseImplementationDef(): Declaration {
-        val start = expect(tt.IMPLEMENTATION)
-        val typeParams = parseOptionalTypeParams()
-        val traitRef = parseQualifiedPath()
-        expect(tt.LSQB)
-        val traitArguments = parseSeperatedList(tt.COMMA, tt.RSQB) {
-            parseTypeAnnotation()
-        }
-        expect(tt.RSQB)
-        val whereClause = parseOptionalWhereClause()
-        expect(tt.LBRACE)
-        val defs = makeList {
-            while (!at(tt.EOF) && !at(tt.RBRACE)) {
-                add(parseDeclaration())
-            }
-        }
-        val stop = expect(tt.RBRACE)
-        return Declaration.ImplementationDef(
-            makeLocation(start, stop),
-            ctx.makeDefId(),
-            typeParams,
-            traitRef,
-            traitArguments,
-            whereClause,
-            defs
-        )
-    }
-
-    private fun parseTraitDef(): Declaration {
-        val start = expect(tt.INTERFACE)
-        val binder = parseBinder()
-        val typeParams = parseOptionalTypeParams() ?: emptyList()
-        expect(tt.LBRACE)
-        val signatures = makeList {
-            while (!at(tt.RBRACE) && !at(tt.EOF)) {
-                add(parseTraitMember())
-                expect(tt.SEMICOLON)
-            }
-        }
-        val stop = expect(tt.RBRACE)
-        return Declaration.TraitDef(
-            makeLocation(start, stop),
-            ctx.makeDefId(),
-            binder,
-            typeParams,
-            signatures
-        )
-    }
-
-    private fun parseTraitMember() = when (currentToken.kind) {
-        tt.FN -> Declaration.TraitMember.Function(parseFunctionSignature())
-        else -> {
-            expect(tt.TYPE)
-            val result = Declaration.TraitMember.AssociatedType(parseBinder())
-            expect(tt.SEMICOLON)
-            result
-        }
-    }
-
     private fun parseExtensionDef(): Declaration.ExtensionDef {
         val start = expect(tt.EXTENSION)
         val binder = parseBinder()
         val typeParams = parseOptionalTypeParams()
         expect(tt.FOR)
         val forType = parseTypeAnnotation()
-        val whereClause = parseOptionalWhereClause()
         expect(tt.LBRACE)
         val functions = mutableListOf<Declaration>()
         while (!at(tt.EOF) && !at(tt.RBRACE)) {
@@ -298,7 +236,6 @@ class Parser<Ctx>(
             binder,
             typeParams,
             forType,
-            whereClause,
             functions
         )
     }
@@ -319,44 +256,6 @@ class Parser<Ctx>(
         }
     }
 
-    private fun parseOptionalWhereClause(): WhereClause? {
-        return if (at(tt.WHERE)) {
-            val start = advance()
-            val refs = parseSeperatedList(seperator = tt.COMMA, terminator = tt.LBRACE) {
-                parseTraitRef()
-            }
-            val stop: HasLocation = refs.lastOrNull() ?: start
-            WhereClause(makeLocation(start, stop), refs)
-        } else {
-            null
-        }
-    }
-
-    private fun parseTraitRef(): TraitRequirementAnnotation {
-        val negated =
-            if (currentToken.kind == TokenKind.NOT) {
-                advance().let { true }
-            } else {
-                false
-            }
-        val path = parseQualifiedPath()
-        val args: List<TypeAnnotation>
-        if (at(tt.LSQB)) {
-            advance()
-            args = parseSeperatedList(tt.COMMA, tt.RSQB) {
-                parseTypeAnnotation()
-            }
-            expect(tt.RSQB)
-        } else {
-            expect(tt.LESS_THAN)
-            args = parseSeperatedList(tt.COMMA, tt.GREATER_THAN) {
-                parseTypeAnnotation()
-            }
-            expect(tt.GREATER_THAN)
-        }
-        return TraitRequirementAnnotation(path, args, negated = negated)
-    }
-
     private fun parseFunctionSignature(): FunctionSignature {
         val start = expect(tt.FN)
         val binder = parseBinder()
@@ -370,7 +269,6 @@ class Parser<Ctx>(
                 diagnosticReporter.report(currentToken.location, Diagnostic.Kind.MissingTypeAnnotation)
                 TypeAnnotation.Error(currentToken.location)
             }
-        val whereClause = parseOptionalWhereClause()
         return FunctionSignature(
             makeLocation(start, returnType),
             ctx.makeDefId(),
@@ -380,7 +278,6 @@ class Parser<Ctx>(
             thisParamFlags,
             params,
             returnType,
-            whereClause
         )
     }
 
@@ -550,16 +447,6 @@ class Parser<Ctx>(
             return Declaration.ImportAs(modulePath, asName)
         }
     }
-
-    private fun parseQualifiedPath(): QualifiedPath = QualifiedPath(
-        makeList {
-            add(parseIdentifier())
-            while (at(tt.DOT)) {
-                advance()
-                add(parseIdentifier())
-            }
-        }
-    )
 
     private fun parseIdentifier(tokenKind: TokenKind = tt.ID): Identifier {
         val tok = expect(tokenKind)
@@ -1518,17 +1405,6 @@ class Parser<Ctx>(
                         makeLocation(head, end),
                         head,
                         args
-                    )
-                )
-            }
-            tt.DOT -> {
-                advance()
-                val identifier = parseIdentifier()
-                parseTypeAnnotationTail(
-                    TypeAnnotation.Select(
-                        makeLocation(head, identifier),
-                        head,
-                        identifier
                     )
                 )
             }

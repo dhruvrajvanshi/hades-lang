@@ -3,7 +3,6 @@ package hadesc.diagnostics
 import com.diogonunes.jcolor.Ansi
 import com.diogonunes.jcolor.Attribute
 import hadesc.Name
-import hadesc.analysis.TraitRequirement
 import hadesc.ast.Binder
 import hadesc.ast.Declaration
 import hadesc.ast.QualifiedPath
@@ -105,7 +104,6 @@ data class Diagnostic(
         object NoSuchMember : Kind(Severity.ERROR)
         object ReturningFromVoidFunction : Kind(Severity.ERROR)
         object MissingThisParam : Kind(Severity.ERROR)
-        data class TraitRequirementNotSatisfied(val requirement: TraitRequirement) : Kind(Severity.ERROR)
 
         data class MissingImplMethod(val name: Name) : Kind(Severity.ERROR)
         data class TraitMethodTypeMismatch(val expected: Type, val found: Type) : Kind(Severity.ERROR)
@@ -205,7 +203,6 @@ data class Diagnostic(
             is DuplicateValueBinding -> "Duplicate value binding. Previously defined at ${existing.location.file}:${existing.location.start.line}"
             ReturningFromVoidFunction -> "Void functions can't return a value."
             MissingThisParam -> "Missing this param."
-            is TraitRequirementNotSatisfied -> "Trait requirement (${requirement.prettyPrint()}) not satisfied."
             TakingAddressOfClosureDisallowed -> "Taking the address of a closure is disallowed."
             ReturnTypeMustNotContainClosuresOrRefs -> "Return types cannot contain closures or refs"
 //            is TypeNotCopyable -> "Type ${type.prettyPrint()} is not copyable"

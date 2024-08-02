@@ -13,7 +13,7 @@ sealed interface Declaration : HasLocation {
      * "Only function defs are allowed inside extensions" should ideally
      * only highlight the first token or two for a struct declaration.
      */
-    open val startLoc get() = location
+    val startLoc get() = location
 
     data class Error(override val location: SourceLocation) : Declaration
     data class ImportAs(
@@ -109,52 +109,10 @@ sealed interface Declaration : HasLocation {
         val name: Binder,
         override val typeParams: List<TypeParam>?,
         val forType: TypeAnnotation,
-        val whereClause: WhereClause?,
         val declarations: List<Declaration>
     ) : Declaration, ScopeTree, HasTypeParams, HasDefId {
         val functionDefs get(): List<FunctionDef> = declarations.filterIsInstance<FunctionDef>()
     }
-
-    data class TraitDef(
-        override val location: SourceLocation,
-        override val defId: DefId,
-        val name: Binder,
-        val params: List<TypeParam>,
-        val members: List<TraitMember>
-    ) : Declaration, ScopeTree, HasDefId, HasTypeParams {
-        override val typeParams: List<TypeParam> = params
-
-        val signatures get() = members.filterIsInstance<TraitMember.Function>().map { it.signature }
-
-        fun hasAssociatedType(name: Identifier): Boolean {
-            return members.filterIsInstance<TraitMember.AssociatedType>()
-                .any { it.binder.identifier.name == name.name }
-        }
-    }
-
-    sealed class TraitMember : HasLocation {
-        data class Function(
-            val signature: FunctionSignature
-        ) : TraitMember() {
-            override val location get() = signature.location
-        }
-
-        data class AssociatedType(
-            val binder: Binder
-        ) : TraitMember() {
-            override val location get() = binder.location
-        }
-    }
-
-    data class ImplementationDef(
-        override val location: SourceLocation,
-        override val defId: DefId,
-        override val typeParams: List<TypeParam>?,
-        val traitRef: QualifiedPath,
-        val traitArguments: List<TypeAnnotation>,
-        val whereClause: WhereClause?,
-        val body: List<Declaration>
-    ) : Declaration, ScopeTree, HasDefId, HasTypeParams
 
     data class Enum(
         override val location: SourceLocation,

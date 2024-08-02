@@ -58,8 +58,6 @@ class TypeChecker(
         is Declaration.ConstDefinition -> visitConstDefinition(decl)
         is Declaration.Enum,
         is Declaration.ExtensionDef,
-        is Declaration.ImplementationDef,
-        is Declaration.TraitDef,
         -> todo(decl)
     }
 
@@ -121,10 +119,9 @@ class TypeChecker(
 
         for (name in decl.names) {
             val typeBinding = resolver.findTypeInSourceFile(name.identifier, sourceFile)
-            val trait = resolver.findTraitInSourceFile(name.identifier, sourceFile)
             val value = resolver.findInSourceFile(name.identifier.name, sourceFile)
 
-            if (typeBinding == null && trait == null && value == null) {
+            if (typeBinding == null && value == null) {
                 diagnostic.report(
                     name.location,
                     "Can not find `${name.identifier.name.text}` in module `${decl.modulePath}`"
@@ -387,9 +384,7 @@ class TypeChecker(
             is Type.GenericInstance -> false
             is Type.Param -> false
             is Type.ForAll -> false
-            is Type.AssociatedTypeRef -> false
             is Type.Ref -> false
-            is Type.Select -> false
             is Type.Array -> itemType.isExternSafe()
             is Type.Error -> true
             Type.CChar -> true
@@ -412,12 +407,10 @@ class TypeChecker(
             is TypeAnnotation.MutPtr -> Type.Ptr(to.lower(), isMutable = true)
             is TypeAnnotation.Ptr -> Type.Ptr(to.lower(), isMutable = false)
             is TypeAnnotation.Qualified -> todo(this)
-            is TypeAnnotation.Select -> todo(this)
             is TypeAnnotation.Union -> todo(this)
             is TypeAnnotation.Var -> {
                 when (val binding = resolver.resolveTypeVariable(name)) {
                     is TypeBinding.Builtin -> binding.type
-                    is TypeBinding.AssociatedType -> todo(this)
                     is TypeBinding.Enum -> todo(this)
                     is TypeBinding.Struct -> {
                         if (binding.declaration.typeParams != null) {
@@ -426,7 +419,6 @@ class TypeChecker(
                         Type.Constructor(resolver.qualifiedName((binding.declaration.binder)))
                     }
 
-                    is TypeBinding.Trait -> todo(this)
                     is TypeBinding.TypeAlias -> {
                         if (binding.declaration.typeParams != null) {
                             todo(this, "The new typechecker doesn't handle type parameters yet.")
@@ -523,7 +515,6 @@ private class NodeMap<T : HasLocation, V> {
 sealed interface ValueConstraint {
     data object None : ValueConstraint
     data class HasType(val type: Type) : ValueConstraint
-    data object IsCallable : ValueConstraint
 }
 
 sealed interface Callee {

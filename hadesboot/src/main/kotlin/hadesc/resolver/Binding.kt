@@ -91,13 +91,3 @@ sealed interface Binding {
         is MatchArmEnumCaseArg -> false
     }
 }
-
-sealed class WhereBindingDeclaration {
-    data class FunctionDef(val declaration: Declaration.FunctionDef) : WhereBindingDeclaration()
-    data class ImplementationDef(val declaration: Declaration.ImplementationDef) : WhereBindingDeclaration()
-
-    val traitRequirements get() = when (this) {
-        is FunctionDef -> declaration.signature.whereClause?.traitRequirements ?: listOf()
-        is ImplementationDef -> declaration.whereClause?.traitRequirements ?: listOf()
-    }
-}

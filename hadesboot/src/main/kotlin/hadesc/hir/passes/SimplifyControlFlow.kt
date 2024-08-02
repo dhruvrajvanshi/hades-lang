@@ -3,7 +3,6 @@ package hadesc.hir.passes
 import hadesc.Name
 import hadesc.assertions.requireUnreachable
 import hadesc.context.Context
-import hadesc.context.NamingCtx
 import hadesc.hir.*
 import hadesc.location.SourceLocation
 import hadesc.types.Type
@@ -40,20 +39,11 @@ class SimplifyControlFlow(private val ctx: Context) {
                     transformFunctionDef(definition)
                 )
             }
-            is HIRDefinition.Implementation -> visitImplementationDef(definition)
             is HIRDefinition.ExternConst,
             is HIRDefinition.Const,
             is HIRDefinition.ExternFunction,
             is HIRDefinition.Struct -> outputModule.addDefinition(definition)
         }
-
-    private fun visitImplementationDef(definition: HIRDefinition.Implementation) {
-        outputModule.addDefinition(
-            definition.copy(
-                functions = definition.functions.map { transformFunctionDef(it) }
-            )
-        )
-    }
 
     private fun transformFunctionDef(definition: HIRDefinition.Function): HIRDefinition.Function {
         val oldFn = currentFunction

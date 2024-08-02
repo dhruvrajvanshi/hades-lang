@@ -1,5 +1,5 @@
-import submodule.printable_interface as p;
 import libc as c;
+import submodule.test_utils.{print_int}
 
 fn main(): Void {
     val opt = Optional.Some(10);
@@ -13,8 +13,8 @@ fn main(): Void {
     c.puts(get_string_value(opt_message_none));
 }
 
-fn print[T](value: T): Void where p.Printable[T] {
-    p.Printable[T].print(value);
+fn print(value: Int): Void {
+    print_int(value);
 }
 
 fn get_string_value(value: Optional[*cchar]): *cchar {

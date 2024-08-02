@@ -12,7 +12,6 @@ data class FunctionSignature(
     val thisParamFlags: ThisParamFlags?,
     val params: List<Param>,
     val returnType: TypeAnnotation,
-    val whereClause: WhereClause?
 ) : HasLocation, HasTypeParams, HasDefId {
     init {
         check(

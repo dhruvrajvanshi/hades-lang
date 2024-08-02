@@ -1,7 +1,6 @@
 package hadesc.analysis.tc
 
 import hadesc.Name
-import hadesc.analysis.TraitRequirement
 import hadesc.assertions.requireUnreachable
 import hadesc.ast.Declaration
 import hadesc.ast.Expression
@@ -71,19 +70,9 @@ sealed interface Env {
                     to = signature.returnType.lower()
                 )
                 return if (typeParams != null) {
-                    val requirements = signature.whereClause?.traitRequirements?.mapNotNull { requirement ->
-                        val declaration = resolver.resolveDeclaration(requirement.path)
-                        val args = requirement.typeArgs?.map { it.lower() }
-                        if (declaration !is Declaration.TraitDef) {
-                            null
-                        } else {
-                            TraitRequirement(resolver.qualifiedName(declaration.name), args ?: listOf(), negated = requirement.negated)
-                        }
-                    }
                     Type.ForAll(
                         typeParams.map { Type.Param(it.binder) },
                         fnPtrType,
-                        requirements = requirements ?: emptyList(),
                     )
                 } else {
                     fnPtrType
@@ -152,7 +141,6 @@ sealed interface Env {
                     is Declaration.FunctionDef -> {
                         values[decl.name.name] = decl.type()
                     }
-                    is Declaration.ImplementationDef -> Unit
                     is Declaration.ImportAs -> Unit
                     is Declaration.ImportMembers -> {
                         val sourceFile = resolver.getSourceFile(decl.modulePath) ?: continue
@@ -190,7 +178,6 @@ sealed interface Env {
                     is Declaration.Struct -> {
                         values[decl.binder.name] = decl.constructorType()
                     }
-                    is Declaration.TraitDef -> Unit
                     is Declaration.TypeAlias -> {
                         // Adds nothing to the environment because
                         // type aliases should already be collapsed

@@ -10,15 +10,14 @@ import hadesc.location.HasLocation
 import hadesc.location.SourcePath
 import hadesc.qualifiedname.QualifiedName
 import hadesc.types.Type
-import llvm.makeList
 
 class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileResolverCtx {
     private val sourceFileScopes = mutableMapOf<SourcePath, MutableList<ScopeTree>>()
     private val sourceFiles = mutableMapOf<SourcePath, SourceFile>()
 
-    override fun resolve(ident: Identifier): Binding? {
-        val scopeStack = getScopeStack(ident)
-        return resolveInScopeStack(ident, scopeStack)
+    override fun resolve(name: Identifier): Binding? {
+        val scopeStack = getScopeStack(name)
+        return resolveInScopeStack(name, scopeStack)
     }
 
     override fun resolveTypeVariable(ident: Identifier): TypeBinding? {
@@ -31,17 +30,6 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
             val binding = findInScope(ctx, ident, scopeNode)
             if (binding != null) {
                 return binding
-            }
-        }
-        return null
-    }
-
-    fun resolveTraitDef(name: Identifier): TraitDef? {
-        val scopeStack = getScopeStack(name)
-        for (scope in scopeStack.scopes) {
-            val typeBinding = findTypeInScope(ctx, name, scope)
-            if (typeBinding is TypeBinding.Trait) {
-                return typeBinding.declaration
             }
         }
         return null
@@ -103,12 +91,8 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
         return ScopeStack(scopes)
     }
 
-    fun qualifiedStructName(declaration: Struct): QualifiedName {
-        return sourceFileOf(declaration).moduleName.append(declaration.binder.identifier.name)
-    }
-
-    override fun qualifiedName(name: Binder): QualifiedName {
-        return sourceFileOf(name).moduleName.append(name.identifier.name)
+    override fun qualifiedName(binder: Binder): QualifiedName {
+        return sourceFileOf(binder).moduleName.append(binder.identifier.name)
     }
 
     fun onParseClosure(closure: Closure) {
@@ -146,8 +130,8 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
     override fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding? {
         return findInSourceFile(ctx, name, sourceFile)
     }
-    override fun findTypeInSourceFile(ident: Identifier, sourceFile: SourceFile): TypeBinding? {
-        return findTypeInSourceFile(ctx, ident, sourceFile)
+    override fun findTypeInSourceFile(identifier: Identifier, sourceFile: SourceFile): TypeBinding? {
+        return findTypeInSourceFile(ctx, identifier, sourceFile)
     }
 
     fun resolveModuleProperty(expression: Property): Binding? {
@@ -220,8 +204,6 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
                     is Struct -> decl.binder.identifier.name == declName
                     is TypeAlias -> decl.name.identifier.name == declName
                     is ExtensionDef -> false
-                    is TraitDef -> decl.name.identifier.name == declName
-                    is ImplementationDef -> false
                     is ImportMembers -> false
                     is Declaration.Enum -> decl.name.identifier.name == declName
                     is ExternConst -> decl.name.identifier.name == declName
@@ -289,12 +271,6 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
                     null
                 }
                 is ExtensionDef -> null
-                is TraitDef -> if (declaration.name.identifier.name == name.name) {
-                    declaration
-                } else {
-                    null
-                }
-                is ImplementationDef -> null
                 is ImportMembers -> {
                     if (declaration.names.map { it.name }.contains(name.name)) {
                         val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
@@ -336,15 +312,7 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
         return getEnclosingScopeTree(node)
     }
 
-    fun getEnclosingTraitDef(node: HasLocation): TraitDef? {
-        return getEnclosingScopeTree(node)
-    }
-
     fun getEnclosingExtensionDef(node: HasLocation): ExtensionDef? {
-        return getEnclosingScopeTree(node)
-    }
-
-    fun getEnclosingImpl(node: HasLocation): ImplementationDef? {
         return getEnclosingScopeTree(node)
     }
 
@@ -399,44 +367,6 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
         }
     }
 
-    val implementationDefs by lazy {
-        makeList {
-            ctx.forEachSourceFile {
-                addAll(implementationDefsInDeclarations(it.declarations))
-            }
-        }
-    }
-
-    private fun implementationDefsInDeclarations(declarations: List<Declaration>): Sequence<ImplementationDef> = sequence {
-        for (declaration in declarations) {
-            if (declaration is ImportAs) {
-                val sourceFile = ctx.resolveSourceFile(declaration.modulePath)
-                if (sourceFile != null) {
-                    yieldAll(
-                        implementationDefsInDeclarations(
-                            sourceFile.declarations
-                        )
-                    )
-                }
-            }
-            if (declaration !is ImplementationDef) {
-                continue
-            }
-            yield(declaration)
-        }
-    }
-
-    override fun findTraitInSourceFile(name: Identifier, sourceFile: SourceFile): TraitDef? {
-        for (declaration in sourceFile.declarations) {
-            if (declaration is TraitDef) {
-                if (declaration.name.identifier.name == name.name) {
-                    return declaration
-                }
-            }
-        }
-        return null
-    }
-
     fun onParseMatchArm(arm: Match.Arm) {
         addScopeNode(arm.value.location.file, arm)
     }
@@ -468,15 +398,14 @@ class Resolver<Ctx>(private val ctx: Ctx): NewResolver where Ctx: SourceFileReso
         return null
     }
 
-    override fun getSourceFile(path: QualifiedPath): SourceFile? {
-        return ctx.resolveSourceFile(path)
+    override fun getSourceFile(modulePath: QualifiedPath): SourceFile? {
+        return ctx.resolveSourceFile(modulePath)
     }
 }
 
 interface NewResolver {
     fun getSourceFile(modulePath: QualifiedPath): SourceFile?
     fun findTypeInSourceFile(identifier: Identifier, sourceFile: SourceFile): TypeBinding?
-    fun findTraitInSourceFile(identifier: Identifier, sourceFile: SourceFile): TraitDef?
     fun findInSourceFile(name: Name, sourceFile: SourceFile): Binding?
     fun resolve(name: Identifier): Binding?
     fun qualifiedName(binder: Binder): QualifiedName

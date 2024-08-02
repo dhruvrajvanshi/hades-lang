@@ -12,7 +12,6 @@ interface SyntaxVisitor {
         is TypeAnnotation.Qualified -> visitQualifiedType(type)
         is TypeAnnotation.Union -> visitUnionType(type)
         is TypeAnnotation.Var -> visitVarType(type)
-        is TypeAnnotation.Select -> visitSelectType(type)
         is TypeAnnotation.Closure -> visitClosureType(type)
         is TypeAnnotation.Array -> visitArrayType(type)
     }
@@ -24,10 +23,6 @@ interface SyntaxVisitor {
     fun visitClosureType(type: TypeAnnotation.Closure) {
         type.from.forEach { visitType(it) }
         visitType(type.to)
-    }
-
-    fun visitSelectType(type: TypeAnnotation.Select) {
-        visitType(type.lhs)
     }
 
     fun visitVarType(type: TypeAnnotation.Var) {
