@@ -50,12 +50,6 @@ class HIRToLLVM(
     private val sizeTy = intType(64, llvmCtx) // FIXME: This isn't portable
     private val byteTy = intType(8, llvmCtx)
 
-    private val gcAllocFnType = functionType(
-        types = listOf(sizeTy),
-        returns = ptrTy(voidTy),
-        variadic = false
-    )
-
     fun lower(): LLVMModuleRef {
         if (shouldEmitDebugSymbols) {
             llvmModule.addModuleFlag("Debug Info Version", constantInt(i32Ty, 3).asMetadata())
@@ -82,7 +76,6 @@ class HIRToLLVM(
             is HIRDefinition.ExternConst -> unit
             is HIRDefinition.ExternFunction -> unit
             is HIRDefinition.Function -> lowerFunction(definition)
-            is HIRDefinition.Implementation -> requireUnreachable()
             is HIRDefinition.Struct -> lowerStructDef(definition)
         }
 
@@ -159,7 +152,7 @@ class HIRToLLVM(
             statement.name.text.length.toLong(),
             getFileScope(statement.location.file),
             statement.location.start.line,
-            statement.type.debugInfo,
+            statement.type.debugInfo(),
             true.toLLVMBool(),
             LLVM.LLVMDIFlagZero,
             value.getType().alignment().bits
@@ -204,7 +197,7 @@ class HIRToLLVM(
         val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
             diBuilder,
             fileScope,
-            defType.from.map { it.debugInfo }.asPointerPointer(),
+            defType.from.map { it.debugInfo() }.asPointerPointer(),
             defType.from.size,
             LLVM.LLVMDIFlagZero
         )
@@ -228,7 +221,7 @@ class HIRToLLVM(
         LLVM.LLVMSetCurrentDebugLocation2(builder, null)
     }
 
-    private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
+    private fun Type.debugInfo(): LLVMMetadataRef = when (this) {
         is Type.Error -> requireUnreachable()
         Type.Void -> diBuilder.createBasicType("Void", 0)
         Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
@@ -241,7 +234,7 @@ class HIRToLLVM(
         is Type.Size -> diBuilder.createBasicType(if (isSigned) "usize" else "isize", sizeInBits)
         is Type.Ptr -> LLVM.LLVMDIBuilderCreatePointerType(
             diBuilder,
-            to.debugInfo,
+            to.debugInfo(),
             sizeInBits,
             8,
             0,
@@ -250,7 +243,7 @@ class HIRToLLVM(
         )
         is Type.Ref -> LLVM.LLVMDIBuilderCreatePointerType(
             diBuilder,
-            inner.debugInfo,
+            inner.debugInfo(),
             sizeInBits,
             8,
             0,
@@ -265,9 +258,8 @@ class HIRToLLVM(
         is Type.ForAll,
         is Type.GenericInstance,
         is Type.Application,
-        is Type.AssociatedTypeRef,
         is Type.Closure,
-        is Type.Select -> requireUnreachable()
+          -> requireUnreachable()
 
     }
 
@@ -398,7 +390,7 @@ class HIRToLLVM(
             is HIRStatement.AllocateClosure -> requireUnreachable()
             is HIRStatement.InvokeClosure -> requireUnreachable()
             is HIRStatement.LoadRefField -> lowerLoadRefField(statement)
-            is HIRStatement.AllocRef -> lowerAllocRef(statement)
+            is HIRStatement.AllocRef -> requireUnreachable()
         }
 
         if (value != null) {
@@ -412,10 +404,6 @@ class HIRToLLVM(
             statement.ref.getRefFieldPtr(statement.memberIndex),
             name = statement.name.text
         )
-    }
-
-    private fun lowerAllocRef(statement: HIRStatement.AllocRef): Value {
-        TODO()
     }
 
     private fun lowerPtrToInt(statement: HIRStatement.PtrToInt): Value {
@@ -514,7 +502,7 @@ class HIRToLLVM(
     }
 
     private fun lowerExpression(expression: HIRExpression): Value {
-        log.debug("${expression.location}: ${expression.prettyPrint()}")
+        log.debug("{}: {}", expression.location, expression.prettyPrint())
 
         if (shouldEmitDebugSymbols) {
             val location = LLVM.LLVMDIBuilderCreateDebugLocation(
@@ -815,8 +803,6 @@ class HIRToLLVM(
                 ctx.makeUniqueName().text
             )
             is HIRDefinition.Const -> lowerExpression(definition.initializer)
-//                builder.buildLoad(getConstRef(definition), ctx.makeUniqueName().text)
-            else -> requireUnreachable { definition.javaClass.name }
         }
     }
     private fun lowerGlobalRef(expression: HIRExpression.GlobalRef): Value {
@@ -901,9 +887,8 @@ class HIRToLLVM(
         is Type.Integral -> intType(type.size, llvmCtx)
         is Type.FloatingPoint -> floatType(type.size, llvmCtx)
         is Type.ForAll,
-        is Type.AssociatedTypeRef,
         is Type.Closure,
-        is Type.Select -> requireUnreachable()
+          -> requireUnreachable()
     }
 
     private fun sizeOfType(type: llvm.Type): Long {

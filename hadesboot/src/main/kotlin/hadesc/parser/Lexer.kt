@@ -31,8 +31,6 @@ val KEYWORDS = mapOf(
     "align_of" to tt.ALIGN_OF,
     "pointer_cast" to tt.POINTER_CAST,
     "mut" to tt.MUT,
-    "interface" to tt.INTERFACE,
-    "implementation" to tt.IMPLEMENTATION,
     "for" to tt.FOR,
     "is" to tt.IS,
     "enum" to tt.ENUM,

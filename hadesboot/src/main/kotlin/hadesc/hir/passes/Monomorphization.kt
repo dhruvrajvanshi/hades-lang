@@ -1,10 +1,6 @@
 package hadesc.hir.passes
 
 import hadesc.Name
-import hadesc.analysis.TraitClause
-import hadesc.analysis.TraitRequirement
-import hadesc.analysis.TraitResolver
-import hadesc.analysis.TypeAnalyzer
 import hadesc.assertions.requireUnreachable
 import hadesc.context.NamingCtx
 import hadesc.hir.*
@@ -22,9 +18,6 @@ class Monomorphization(
     private lateinit var oldModule: HIRModule
     private val specializationQueue = LinkedBlockingQueue<SpecializationRequest>()
     private var currentSpecialization: Substitution? = null
-    private val allImpls by lazy {
-        oldModule.definitions.filterIsInstance<HIRDefinition.Implementation>()
-    }
     private val newDefinitions = mutableListOf<HIRDefinition>()
 
     override fun transformModule(oldModule: HIRModule): HIRModule {
@@ -121,10 +114,6 @@ class Monomorphization(
         requireUnreachable()
     }
 
-    override fun lowerSelectType(type: Type.Select): Type {
-        val impl = getTraitImpl(type.traitName, type.traitArgs)
-        return requireNotNull(impl.associatedTypes[type.associatedTypeName])
-    }
     private fun specializeFunctionSignature(
         name: QualifiedName,
         typeArgs: List<Type>,
@@ -241,156 +230,6 @@ class Monomorphization(
         specializedTypes[specializedName] = type.copy(args = type.args.map { lowerType(it) })
         return Type.Constructor(specializedName)
     }
-
-    override fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {
-        return emptyList()
-    }
-
-    private val globalTraitClauses by lazy {
-        allImpls.map { impl ->
-            TraitClause.Implementation(
-                def = impl,
-                params = impl.typeParams?.map { Type.Param(it.toBinder()) } ?: emptyList(),
-                traitRef = impl.traitName,
-                arguments = impl.traitArgs,
-                requirements = impl.traitRequirements.map { TraitRequirement(it.traitRef, it.arguments, it.negated) }
-
-            )
-        }
-    }
-    override fun transformTraitMethodRef(expression: HIRExpression.TraitMethodRef): HIROperand {
-        val impl = getTraitImpl(expression.traitName, expression.traitArgs)
-        val implMethodNames = impl.methods
-        return HIRExpression.GlobalRef(
-            expression.location,
-            lowerType(expression.type),
-            checkNotNull(implMethodNames[expression.methodName])
-        )
-    }
-
-    private val monoImplCache = mutableMapOf<QualifiedName, MonoImpl>()
-    private fun getTraitImpl(traitName: QualifiedName, requiredTraitArgs: List<Type>): MonoImpl {
-        val implName = specializeName(traitName, requiredTraitArgs)
-        val cached = monoImplCache[implName]
-        if (cached != null) {
-            return cached
-        }
-        // required traitName[...traitArgs]
-
-        // T == traitName
-        // subst = make_subst(...Ps)
-
-        // ------------------------------------------
-        // isCandidate(impl [Ps...] T[...Ps])
-
-        //
-        // ------------
-        // isCandidate(Printable[Box[X, Y]], impl [A, B] Printable[Box[A, B]] where Printable[A], Printable[B]
-
-        val traitArgs = requiredTraitArgs
-            .map { lowerType(it) }
-            .map { if (it is Type.Constructor) specializedTypes[it.name] ?: it else it }
-
-        val eligibleCandidates = mutableListOf<Pair<HIRDefinition.Implementation, Substitution>>()
-        @Suppress("LoopWithTooManyJumpStatements")
-        for (candidate in allImpls) {
-            val typeAnalyzer = TypeAnalyzer()
-            if (candidate.traitName != traitName) continue
-            val substitutionMap =
-                candidate.typeParams?.associate { it.id to typeAnalyzer.makeGenericInstance(it.toBinder()) }
-                    ?: emptyMap()
-            val substitution = substitutionMap.toSubstitution()
-            if (!traitArgs.zip(candidate.traitArgs).all { (requiredType, actualType) ->
-                typeAnalyzer.isTypeAssignableTo(
-                        destination = requiredType,
-                        source = actualType.applySubstitution(substitution)
-                    )
-            }
-            ) {
-                continue
-            }
-
-            val traitResolver = TraitResolver(
-                TraitResolver.Env(globalTraitClauses),
-                typeAnalyzer
-            )
-
-            if (!candidate.traitRequirements.all { requirement ->
-                traitResolver.isSatisfied(
-                        requirement.copy(
-                                arguments = requirement.arguments.map { it.applySubstitution(substitution) }
-                            )
-                    )
-            }
-            ) {
-                continue
-            }
-            val subst = (
-                substitutionMap.mapValues {
-                    requireNotNull(typeAnalyzer.getInstantiatedType(it.value))
-                }
-                )
-            eligibleCandidates.add(
-                candidate to subst.toSubstitution()
-            )
-        }
-        require(eligibleCandidates.isNotEmpty()) {
-            "Trait implementation not found: ${traitName.mangle()}[${traitArgs.joinToString(", ") { it.prettyPrint() }}]"
-        }
-        require(eligibleCandidates.size == 1) {
-            "Overlapping trait implementations."
-        }
-        val (candidate, subst) = eligibleCandidates.first()
-        val result = MonoImpl(
-            generateImplMethodMap(candidate, subst),
-
-            generateImplAssociatedTypeMap(candidate, subst)
-        )
-        monoImplCache[implName] = result
-        return result
-    }
-
-    private fun generateImplAssociatedTypeMap(candidate: HIRDefinition.Implementation, subst: Substitution): Map<Name, Type> {
-        return candidate.typeAliases.mapValues { it.value.applySubstitution(subst) }
-    }
-
-    private fun generateImplMethodMap(impl: HIRDefinition.Implementation, substitution: Substitution): Map<Name, QualifiedName> {
-        val typeArgs = impl.typeParams?.map { requireNotNull(substitution[it.id]) } ?: emptyList()
-
-        val implName = specializeName(QualifiedName(listOf(impl.name)), typeArgs)
-
-        val result = mutableMapOf<Name, QualifiedName>()
-        impl.functions.forEach { fn ->
-            require(fn.name.size == 1)
-            val name = implName.append(fn.name.first)
-            result[fn.name.first] = name
-        }
-
-        impl.functions.forEach { fn ->
-            require(fn.name.size == 1)
-            val name = implName.append(fn.name.first)
-            queuedSpecializationSet.add(name)
-            if (typeArgs.isEmpty()) {
-                transformFunctionDef(fn, name).forEach { newDefinitions.add(it) }
-            } else {
-                specializationQueue.add(
-                    SpecializationRequest.FunctionDef(
-                        name = name,
-                        typeArgs = typeArgs,
-                        def = fn.copy(
-                            signature = fn.signature.copy(
-                                typeParams = impl.typeParams
-                            )
-                        )
-                    )
-                )
-            }
-        }
-        return result
-    }
-
-    private val HIRDefinition.Implementation.name get() =
-        namingCtx.makeName("${traitName.mangle()}[${traitArgs.joinToString(",") { it.prettyPrint() } }]")
 }
 
 sealed class SpecializationRequest {
@@ -404,8 +243,3 @@ sealed class SpecializationRequest {
         val def: HIRDefinition.Function
     ) : SpecializationRequest()
 }
-
-data class MonoImpl(
-    val methods: Map<Name, QualifiedName>,
-    val associatedTypes: Map<Name, Type>
-)

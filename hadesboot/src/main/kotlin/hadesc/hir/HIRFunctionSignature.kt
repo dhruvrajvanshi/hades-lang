@@ -12,7 +12,7 @@ data class HIRFunctionSignature(
     val returnType: Type
 ) {
     val type get(): Type {
-        val fnType = Type.FunctionPtr(params.map { it.type }, to = returnType, traitRequirements = null)
+        val fnType = Type.FunctionPtr(params.map { it.type }, to = returnType)
         return if (typeParams == null) {
             fnType
         } else {

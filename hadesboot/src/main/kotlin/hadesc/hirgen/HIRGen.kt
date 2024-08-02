@@ -107,7 +107,6 @@ class HIRGen(
         closureGen = closureGen,
         postAnalysisContext = postAnalysisContext,
     )
-    private val traitGen = HIRGenTraits(ctx, this, postAnalysisContext)
     override lateinit var currentLocation: SourceLocation
     override var currentStatements: MutableList<HIRStatement>? = null
     override val scopeStack = HIRGenScopeStack()
@@ -179,8 +178,6 @@ class HIRGen(
         is Declaration.Struct -> lowerStructDef(declaration)
         is Declaration.TypeAlias -> emptyList()
         is Declaration.ExtensionDef -> lowerExtensionDef(declaration)
-        is Declaration.TraitDef -> traitGen.lowerTraitDef(declaration)
-        is Declaration.ImplementationDef -> traitGen.lowerImplementationDef(declaration)
         is Declaration.ImportMembers -> emptyList()
         is Declaration.Enum -> lowerEnumDef(declaration)
         is Declaration.ExternConst -> lowerExternConstDef(declaration)
@@ -1132,9 +1129,7 @@ class HIRGen(
             is PropertyBinding.StructField -> lowerStructFieldBinding(expression)
             is PropertyBinding.StructPointerFieldLoad -> lowerStructPointerFieldLoad(expression)
             is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
-            is PropertyBinding.WhereParamRef -> TODO()
             is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
-            is PropertyBinding.InterfaceFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
         }
 
     private fun lowerExtensionPropertyBinding(

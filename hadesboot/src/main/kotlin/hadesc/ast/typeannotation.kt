@@ -48,12 +48,6 @@ sealed class TypeAnnotation : HasLocation {
         val args: List<TypeAnnotation>
     ) : TypeAnnotation()
 
-    data class Select(
-        override val location: SourceLocation,
-        val lhs: TypeAnnotation,
-        val rhs: Identifier
-    ) : TypeAnnotation()
-
     data class Array(
         override val location: SourceLocation,
         val itemType: TypeAnnotation,

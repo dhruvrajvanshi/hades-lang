@@ -14,19 +14,12 @@ interface HIRModuleVisitor : HIRBlockVisitor {
         is HIRDefinition.ExternConst -> visitExternConstDef(definition)
         is HIRDefinition.ExternFunction -> visitExternFunctionDef(definition)
         is HIRDefinition.Function -> visitFunctionDef(definition)
-        is HIRDefinition.Implementation -> visitImplementationDef(definition)
         is HIRDefinition.Struct -> visitStructDef(definition)
     }
 
     fun visitStructDef(definition: HIRDefinition.Struct) {
         for (field in definition.fields) {
             visitType(field.second)
-        }
-    }
-
-    fun visitImplementationDef(definition: HIRDefinition.Implementation) {
-        for (function in definition.functions) {
-            visitFunctionDef(function)
         }
     }
 

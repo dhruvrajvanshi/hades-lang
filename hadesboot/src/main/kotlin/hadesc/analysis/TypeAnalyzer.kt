@@ -1,9 +1,7 @@
 package hadesc.analysis
 
 import hadesc.ast.Binder
-import hadesc.types.Substitution
 import hadesc.types.Type
-import hadesc.types.toSubstitution
 
 class TypeAnalyzer {
     private val genericInstances = mutableMapOf<Long, Type>()
@@ -36,9 +34,6 @@ class TypeAnalyzer {
                     genericInstances[source.id] = destination
                     true
                 }
-            }
-            source is Type.AssociatedTypeRef && destination is Type.AssociatedTypeRef -> {
-                source.binder.location == destination.binder.location
             }
             destination is Type.Application && source is Type.Application -> {
                 isTypeAssignableTo(source.callee, destination.callee) &&
@@ -76,14 +71,6 @@ class TypeAnalyzer {
                         isTypeAssignableTo(source = destParam, destination = sourceParam)
                     }
             }
-            source is Type.Select && destination is Type.Select -> {
-                source.associatedTypeName == destination.associatedTypeName &&
-                    source.traitName == destination.traitName &&
-                    source.traitArgs.size == destination.traitArgs.size &&
-                    source.traitArgs.zip(destination.traitArgs).all { (source, destination) ->
-                        isTypeAssignableTo(source = source, destination = destination)
-                    }
-            }
             else -> false
         }
     }
@@ -97,9 +84,5 @@ class TypeAnalyzer {
             binder.location,
             id = id
         )
-    }
-
-    fun makeParamSubstitution(params: List<Type.Param>): Substitution {
-        return params.associate { it.binder.id to makeGenericInstance(it.binder) }.toSubstitution()
     }
 }

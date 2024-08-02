@@ -1,6 +1,5 @@
 package hadesc.hir
 
-import hadesc.analysis.TraitRequirement
 import hadesc.types.Type
 import hadesc.unit
 
@@ -20,8 +19,6 @@ interface TypeTransformer {
         is Type.ForAll -> lowerTypeFunction(type)
         is Type.Integral -> lowerIntegralType(type)
         is Type.FloatingPoint -> lowerFloatingPointType(type)
-        is Type.AssociatedTypeRef -> lowerAssociatedTypeRef(type)
-        is Type.Select -> lowerSelectType(type)
         is Type.Closure -> lowerClosureType(type)
         is Type.Ref -> lowerRefType(type)
         is Type.Array -> lowerArrayType(type)
@@ -44,16 +41,6 @@ interface TypeTransformer {
         )
     }
 
-    fun lowerSelectType(type: Type.Select): Type {
-        return type.copy(
-            traitArgs = type.traitArgs.map { lowerType(it) }
-        )
-    }
-
-    fun lowerAssociatedTypeRef(type: Type.AssociatedTypeRef): Type {
-        return type
-    }
-
     fun lowerFloatingPointType(type: Type.FloatingPoint): Type {
         return type
     }
@@ -70,7 +57,6 @@ interface TypeTransformer {
         return Type.ForAll(
             params = type.params,
             body = lowerType(type.body),
-            requirements = type.requirements.map { lowerTraitRequirement(it) }
         )
     }
 
@@ -85,12 +71,7 @@ interface TypeTransformer {
     fun lowerFunctionType(type: Type.FunctionPtr): Type = Type.FunctionPtr(
         from = type.from.map { lowerType(it) },
         to = lowerType(type.to),
-        traitRequirements = type.traitRequirements?.map { lowerTraitRequirement(it) }
     )
-
-    fun lowerTraitRequirement(requirement: TraitRequirement): TraitRequirement {
-        return TraitRequirement(requirement.traitRef, requirement.arguments.map { lowerType(it) }, negated = requirement.negated)
-    }
 
     fun lowerSizeType(type: Type): Type = type
 
@@ -128,8 +109,6 @@ interface TypeVisitor {
         is Type.ForAll -> visitTypeFunction(type)
         is Type.Integral -> visitIntegralType(type)
         is Type.FloatingPoint -> visitFloatingPointType(type)
-        is Type.AssociatedTypeRef -> visitAssociatedTypeRef(type)
-        is Type.Select -> visitSelectType(type)
         is Type.Closure -> visitClosureType(type)
         is Type.Ref -> visitRefType(type)
         is Type.Array -> visitArrayType(type)
@@ -151,12 +130,6 @@ interface TypeVisitor {
         visitType(type.to)
     }
 
-    fun visitSelectType(type: Type.Select) = type.traitArgs.forEach {
-        visitType(it)
-    }
-
-    fun visitAssociatedTypeRef(type: Type.AssociatedTypeRef) = unit
-
     fun visitFloatingPointType(type: Type.FloatingPoint) = Unit
 
     fun visitIntegralType(type: Type.Integral) = Unit
@@ -174,11 +147,6 @@ interface TypeVisitor {
     fun visitFunctionType(type: Type.FunctionPtr) {
         type.from.forEach { visitType(it) }
         visitType(type.to)
-        type.traitRequirements?.forEach { visitTraitRequirement(it) }
-    }
-
-    fun visitTraitRequirement(requirement: TraitRequirement) {
-        requirement.arguments.forEach { visitType(it) }
     }
 
     fun visitSizeType(type: Type.Size) = Unit

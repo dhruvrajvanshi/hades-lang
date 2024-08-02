@@ -30,8 +30,6 @@ internal fun findInScope(ctx: SourceFileResolverCtx, ident: Identifier, scope: S
     is Declaration.Struct -> null
     is Declaration.TypeAlias -> null
     is Declaration.ExtensionDef -> null
-    is Declaration.TraitDef -> null
-    is Declaration.ImplementationDef -> null
     is Expression.Closure -> findInClosure(ident, scope)
     is Declaration.Enum -> null
     is Expression.Match -> null
@@ -85,8 +83,6 @@ fun findInSourceFile(ctx: SourceFileResolverCtx, name: Name, sourceFile: SourceF
             }
             is Declaration.TypeAlias -> null
             is Declaration.ExtensionDef -> null
-            is Declaration.TraitDef -> null
-            is Declaration.ImplementationDef -> null
             is Declaration.ImportMembers -> {
                 val importedSourceFile = ctx.resolveSourceFile(declaration.modulePath)
                 if (importedSourceFile != null && declaration.names.any { it.name == name }) {

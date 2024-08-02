@@ -17,10 +17,6 @@ abstract class AbstractHIRTransformer : HIRTransformer {
     override val currentModule: HIRModule = HIRModule(mutableListOf())
     private var basicBlocks: MutableList<HIRBlock>? = null
 
-    protected fun emit(statement: HIRStatement) {
-        checkNotNull(currentStatements).add(statement)
-    }
-
     override fun transformFunctionDef(
         definition: HIRDefinition.Function,
         newName: QualifiedName?
@@ -63,7 +59,6 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
         is HIRDefinition.ExternFunction -> transformExternFunctionDef(definition)
         is HIRDefinition.Struct -> transformStructDef(definition)
         is HIRDefinition.Const -> transformConstDef(definition)
-        is HIRDefinition.Implementation -> transformImplementationDef(definition)
         is HIRDefinition.ExternConst -> transformExternConstDef(definition)
     }
 
@@ -74,20 +69,6 @@ interface HIRTransformer : TypeTransformer, HIRBuilder {
                 transformGlobalName(definition.name),
                 lowerType(definition.type),
                 definition.externName
-            )
-        )
-    }
-
-    fun transformImplementationDef(definition: HIRDefinition.Implementation): Collection<HIRDefinition> {
-        return listOf(
-            HIRDefinition.Implementation(
-                typeParams = definition.typeParams?.map { transformTypeParam(it) },
-                traitName = transformGlobalName(definition.traitName),
-                traitArgs = definition.traitArgs.map { lowerType(it) },
-                functions = definition.functions.flatMap { transformDefinition(it) as Collection<HIRDefinition.Function> }.toList(),
-                typeAliases = definition.typeAliases.mapValues { lowerType(it.value) },
-                location = definition.location,
-                traitRequirements = definition.traitRequirements.map { lowerTraitRequirement(it) }
             )
         )
     }

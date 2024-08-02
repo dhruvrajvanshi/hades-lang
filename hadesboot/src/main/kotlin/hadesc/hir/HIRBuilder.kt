@@ -39,12 +39,6 @@ interface HIRBuilder {
     }
 
     fun Type.verifyAssignableTo(destination: Type) {
-        if (this is Type.Select || destination is Type.Select) {
-            // FIXME: Right now, type analyzer doesn't have access to
-            //        trait bodies, so it can't reduce Trait[someType].AssociatedType
-            //        to it's substituted type.
-            return
-        }
         check(typeAnalyzer.isTypeAssignableTo(source = this, destination = destination)) {
             "${this.prettyPrint()} is not assignable to ${destination.prettyPrint()}"
         }

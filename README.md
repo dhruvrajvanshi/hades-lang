@@ -13,12 +13,6 @@ A systems level programming language that compiles to LLVM
       - Pure stack allocated closures (i.e. can't be returned from functions and stored in structs right now)
       - Once we have proper destructor semantics, I'll implement heap allocated closures that get cleaned up according to their lifetime.
 - [ ] Named function arguments
-- [x] Traits
-- [x] Use after move checking:
-      - Unlike Rust, move is explicit. Types can be made Move only by implementing a builtin NoCopy trait.
-      - This is like C++ except the compiler prevents you from using a reference after moving it.
-- [ ] Rust style destructors using `Drop` trait (Not implemented)
-- [x] Associated trait types
 - [x] Algebraic data types (enums)
 - [x] Windows support
 - Editor integration
@@ -172,93 +166,7 @@ fn main(): Void {
     // we have to take pointer to x to pass it to the method.
     (&x).print_second();
 }
-
-
-
 ```
-
-## Traits
-Hades has a trait system similar to Rust. Traits allow us to define operations on generic
-type parameters. This has the advantage of better error messages than C++ while still
-being more powerful than simpler systems like Java interfaces.
-
-```scala
-
-trait Printable[Self] {
-  fn print(self: Self): Void;
-}
-
-// Interfaces are implemented outside the type declaration
-// this means you can make builtin types implement new interfaces
-implementation Printable[Bool] {
-  fn print(self: Bool): Void {
-    if *this {
-      c.puts(c"true");
-    } else {
-      c.puts(c"false");
-    }
-  }
-}
-
-// Unlike C++, the body of this function can be checked independently
-// of call sites. No type errors on expanded templates :)
-// The where clause is a requirement on type T and a caller can only pass things that are Printable
-fn print[T](value: T): Void where Printable[T] {
-  Printable[T].print(value);
-}
-
-fn main(): Void {
-  print(true);
-  print(10); // type error: Printable[Int] not found
-}
-
-```
-
-Implementations can have type parameters and where clauses, making it possible to implement traits
-for generic types based on other traits.
-
-```scala
-struct Box[T] {
-  val value: T;
-}
-
-// this declaration says that for all type Ts, Box[T] is printable if T is printable.
-// This makes it more powerful that Java/C# interfaces where it's not possible
-// to have an interface for Equality/Hashing and have generic containers conform
-// to them based on their type parameter.
-// Equality and Hashing, Stringification is baked into all objects in Java to get around this problem
-// but it doesn't solve it for custom interfaces.
-implementation[T] Printable[Box[T]] where Printable[T] {
-  fn print(self: Box[T]): Void {
-     print(c"Box("); // implementation Box[*Byte] is omitted for berevity
-     print(self);
-     print(c")");
-  }
-}
-
-fn f() {
-  print(Box(true)); // works
-  print(Box(c"hello")); // works
-  print(Box(10)); // Type error because we haven't provided a Printable[Int] implementation
-}
-```
-
-Although traits directly can't define extension methods yet, (i.e. you have to call `Trait[Type].method(value)`, instead of `value.method()`,
-extension definitions can have where clauses, allowing you to wrap trait functions as extension methods.
-
-
-```scala
-extension StringifiableExtensions[T] for T where Stringifiable[T] {
-  fn to_string(this): *Byte { return Stringifiable[T].print(this); }
-}
-
-fn f[T](value: T): Void where Stringifiable[T] {
-  // now you can call to_string as a method
-  value.to_string();
-}
-```
-
-Directly defining methods inside traits is being considered.
 
 ## Enum types
 Enum types (also known as algebraic data types) allow you to represent types that can be one of a finite set
@@ -343,7 +251,7 @@ fn main(): Void {
   });
 }
 
-fn apply[T, U](arg: T, fn: (T) -> U): U {
+fn apply[T, U](arg: T, fn: |T| -> U): U {
   return fn(arg);
 }
 ```

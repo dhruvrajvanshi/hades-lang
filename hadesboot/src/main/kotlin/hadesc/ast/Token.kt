@@ -26,8 +26,6 @@ data class Token(
         ALIGN_OF,
         POINTER_CAST,
         MUT,
-        INTERFACE,
-        IMPLEMENTATION,
         FOR,
         IS,
         ENUM,

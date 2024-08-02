@@ -1,2 +1,0 @@
-
-extension usizeExtns for usize where Foo[Bar] {}

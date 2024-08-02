@@ -1,6 +1,5 @@
 package hadesc.analysis
 
-import hadesc.ast.Declaration
 import hadesc.ast.TypeAnnotation
 import hadesc.resolver.Resolver
 import hadesc.resolver.TypeBinding
@@ -17,12 +16,11 @@ class ASTConv(val resolver: Resolver<*>) {
             is TypeAnnotation.Application -> typeApplicationToType(this)
             is TypeAnnotation.Array -> Type.Array(itemType.type(), length)
             is TypeAnnotation.Closure -> Type.Closure(from.types(), to.type())
-            is TypeAnnotation.FunctionPtr -> Type.FunctionPtr(from.types(), to.type(), traitRequirements = null)
+            is TypeAnnotation.FunctionPtr -> Type.FunctionPtr(from.types(), to.type())
             is TypeAnnotation.MutPtr -> Type.Ptr(to.type(), isMutable = true)
             is TypeAnnotation.Ptr -> Type.Ptr(to.type(), isMutable = false)
             is TypeAnnotation.Error -> Type.Error(location)
             is TypeAnnotation.Qualified -> qualifiedAnnotationToType(this)
-            is TypeAnnotation.Select -> selectAnnotationToType(this)
             is TypeAnnotation.Union -> Type.UntaggedUnion(args.types())
             is TypeAnnotation.Var -> varAnnotationToType(this)
         }
@@ -41,30 +39,6 @@ class ASTConv(val resolver: Resolver<*>) {
         }
     }
 
-    private fun selectAnnotationToType(select: TypeAnnotation.Select): Type {
-         return when (select.lhs) {
-            is TypeAnnotation.Application -> {
-                val trait = when (select.lhs.callee) {
-                    is TypeAnnotation.Qualified -> {
-                        val decl = resolver.resolveDeclaration(select.lhs.callee.qualifiedPath)
-                        if (decl !is Declaration.TraitDef) {
-                            return Type.Error(select.location)
-                        }
-                        decl
-                    }
-                    is TypeAnnotation.Var -> resolver.resolveTraitDef(select.lhs.callee.name)
-                    else -> return Type.Error(select.location)
-                } ?: return Type.Error(select.location)
-                Type.Select(
-                    resolver.qualifiedName(trait.name),
-                    select.lhs.args.types(),
-                    select.rhs.name,
-                )
-            }
-            else -> return Type.Error(select.location)
-        }
-    }
-
     private fun varAnnotationToType(annotation: TypeAnnotation.Var): Type {
         val binding = resolver.resolveTypeVariable(annotation.name) ?: return Type.Error(annotation.location)
         return when (binding) {
@@ -74,8 +48,6 @@ class ASTConv(val resolver: Resolver<*>) {
                 Type.Constructor(resolver.qualifiedName(binding.declaration.binder))
             is TypeBinding.TypeAlias -> binding.declaration.rhs.type()
             is TypeBinding.Builtin -> binding.type
-            is TypeBinding.AssociatedType -> Type.Error(binding.binder.location)
-            is TypeBinding.Trait -> Type.Error(binding.declaration.location)
             is TypeBinding.TypeParam -> Type.Param(binding.binder)
         }
     }
