@@ -47,16 +47,6 @@ sealed class PropertyBinding {
         val type: Type
     ) : PropertyBinding()
 
-    data class WhenCaseFieldRef(
-        val declaration: Declaration.Enum,
-        val caseName: Name,
-        val typeArgs: List<Type>,
-        val name: Identifier,
-        val propertyIndex: Int,
-        val propertyName: Identifier,
-        val type: Type
-    ) : PropertyBinding()
-
     data class InterfaceFunctionRef(
         val traitName: QualifiedName,
         val args: List<Type>,
