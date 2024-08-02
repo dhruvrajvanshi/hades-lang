@@ -152,7 +152,7 @@ class HIRToLLVM(
             statement.name.text.length.toLong(),
             getFileScope(statement.location.file),
             statement.location.start.line,
-            statement.type.debugInfo,
+            statement.type.debugInfo(),
             true.toLLVMBool(),
             LLVM.LLVMDIFlagZero,
             value.getType().alignment().bits
@@ -197,7 +197,7 @@ class HIRToLLVM(
         val typeDI = LLVM.LLVMDIBuilderCreateSubroutineType(
             diBuilder,
             fileScope,
-            defType.from.map { it.debugInfo }.asPointerPointer(),
+            defType.from.map { it.debugInfo() }.asPointerPointer(),
             defType.from.size,
             LLVM.LLVMDIFlagZero
         )
@@ -221,7 +221,7 @@ class HIRToLLVM(
         LLVM.LLVMSetCurrentDebugLocation2(builder, null)
     }
 
-    private val Type.debugInfo get(): LLVMMetadataRef = when (this) {
+    private fun Type.debugInfo(): LLVMMetadataRef = when (this) {
         is Type.Error -> requireUnreachable()
         Type.Void -> diBuilder.createBasicType("Void", 0)
         Type.Bool -> diBuilder.createBasicType("Bool", sizeInBits)
@@ -234,7 +234,7 @@ class HIRToLLVM(
         is Type.Size -> diBuilder.createBasicType(if (isSigned) "usize" else "isize", sizeInBits)
         is Type.Ptr -> LLVM.LLVMDIBuilderCreatePointerType(
             diBuilder,
-            to.debugInfo,
+            to.debugInfo(),
             sizeInBits,
             8,
             0,
@@ -243,7 +243,7 @@ class HIRToLLVM(
         )
         is Type.Ref -> LLVM.LLVMDIBuilderCreatePointerType(
             diBuilder,
-            inner.debugInfo,
+            inner.debugInfo(),
             sizeInBits,
             8,
             0,
@@ -502,7 +502,7 @@ class HIRToLLVM(
     }
 
     private fun lowerExpression(expression: HIRExpression): Value {
-        log.debug("${expression.location}: ${expression.prettyPrint()}")
+        log.debug("{}: {}", expression.location, expression.prettyPrint())
 
         if (shouldEmitDebugSymbols) {
             val location = LLVM.LLVMDIBuilderCreateDebugLocation(
