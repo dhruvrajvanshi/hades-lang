@@ -1134,7 +1134,6 @@ class HIRGen(
             is PropertyBinding.ExtensionDef -> lowerExtensionPropertyBinding(expression, binding)
             is PropertyBinding.WhereParamRef -> TODO()
             is PropertyBinding.EnumTypeCaseConstructor -> lowerEnumCaseConstructor(expression, binding)
-            is PropertyBinding.WhenCaseFieldRef -> lowerWhenCaseFieldRef(expression, binding)
             is PropertyBinding.InterfaceFunctionRef -> traitGen.lowerTraitFunctionRef(expression, binding)
         }
 
@@ -1147,33 +1146,6 @@ class HIRGen(
             binding.type,
             extensionMethodName(binding.extensionDef, binding.functionDef)
         )
-    }
-
-    private fun lowerWhenCaseFieldRef(
-        expression: Expression.Property,
-        binding: PropertyBinding.WhenCaseFieldRef
-    ): HIROperand {
-        return HIRExpression.LocalRef(
-            expression.lhs.location,
-            caseType(binding),
-            binding.name.name
-        )
-            .load()
-            .getStructField(binding.propertyName.name)
-    }
-
-    private fun caseType(binding: PropertyBinding.WhenCaseFieldRef): Type {
-        val constructorType = Type.Constructor(
-            name = ctx.resolver.qualifiedName(binding.declaration.name).append(binding.caseName)
-        )
-        return if (binding.typeArgs.isEmpty()) {
-            constructorType
-        } else {
-            Type.Application(
-                constructorType,
-                binding.typeArgs
-            )
-        }
     }
 
     private fun lowerEnumCaseConstructor(

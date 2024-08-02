@@ -1237,7 +1237,6 @@ class Analyzer<Ctx>(
             is PropertyBinding.ExtensionDef -> binding.type
             is PropertyBinding.WhereParamRef -> binding.type
             is PropertyBinding.EnumTypeCaseConstructor -> binding.type
-            is PropertyBinding.WhenCaseFieldRef -> binding.type
             null -> Type.Error(expression.location)
             is PropertyBinding.InterfaceFunctionRef -> binding.type
         }
