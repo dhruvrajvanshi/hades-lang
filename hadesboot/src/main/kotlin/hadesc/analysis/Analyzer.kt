@@ -686,15 +686,8 @@ class Analyzer<Ctx>(
     }
 
     private fun visitLocalAssignment(statement: Statement.LocalAssignment) {
-        return when (val binding = ctx.resolver.resolve(statement.name)) {
-            is Binding.ValBinding -> {
-                visitValStatement(binding.statement)
-                val type = typeOfBinding(binding)
-                checkExpression(statement.value, type)
-                Unit
-            }
-            else -> Unit
-        }
+        val lhsType = inferIdentifier(statement.name)
+        checkExpression(statement.value, lhsType)
     }
 
     private fun visitMemberAssignment(statement: Statement.MemberAssignment) {
