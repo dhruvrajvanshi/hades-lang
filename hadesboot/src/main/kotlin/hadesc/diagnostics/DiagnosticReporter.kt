@@ -256,7 +256,7 @@ class DiagnosticReporter(private val fileTextProvider: FileTextProvider) {
         }
         val severity = colorize(kind.severity.toString(), severityColor, Attribute.BOLD())
         val path = colorize(location.file.path.toString(), Attribute.BOLD())
-        val lineInfo = colorize("(${location.start.line}:${location.start.column})", Attribute.BOLD())
+        val lineInfo = colorize("${location.start.line}:${location.start.column}", Attribute.BOLD())
         val coloredKind = colorize(kind.prettyPrint(), Attribute.BOLD())
         printErrLn("$path:$lineInfo: $severity: $coloredKind")
         printLocationLine(location)
