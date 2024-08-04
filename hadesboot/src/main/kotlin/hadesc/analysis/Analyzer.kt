@@ -213,7 +213,7 @@ class Analyzer<Ctx>(
                 annotationToType(extensionDef.forType)
             }
             var methodType: Type = Type.FunctionPtr(
-                from = listOf(receiverType) + functionDef.params.mapIndexed { paramIndex, _ ->
+                from = listOf(receiverType) + List(functionDef.params.size) { paramIndex ->
                     typeOfParam(functionDef, paramIndex)
                 },
                 to = annotationToType(functionDef.signature.returnType),
