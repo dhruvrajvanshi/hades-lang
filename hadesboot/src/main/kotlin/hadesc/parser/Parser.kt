@@ -84,7 +84,7 @@ private val INTRINSIC_TYPE = mapOf(
     "memcpy" to IntrinsicType.MEMCPY
 )
 
-object SyntaxError : Error()
+private class SyntaxError : Error()
 
 class Parser<Ctx>(
     private val ctx: Ctx,
@@ -474,22 +474,26 @@ class Parser<Ctx>(
         )
     }
 
-    private fun parseOptionalTypeParams(): List<TypeParam>? = if (currentToken.kind == tt.LSQB) {
-        advance()
-        val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.RSQB) {
-            parseTypeParam()
+    private fun parseOptionalTypeParams(): List<TypeParam>? = when (currentToken.kind) {
+        tt.LSQB -> {
+            advance()
+            val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.RSQB) {
+                parseTypeParam()
+            }
+            expect(tt.RSQB)
+            list
         }
-        expect(tt.RSQB)
-        list
-    } else if (currentToken.kind == tt.LESS_THAN) {
-        advance()
-        val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.GREATER_THAN) {
-            parseTypeParam()
+        tt.LESS_THAN -> {
+            advance()
+            val list: List<TypeParam> = parseSeperatedList(tt.COMMA, tt.GREATER_THAN) {
+                parseTypeParam()
+            }
+            expect(tt.GREATER_THAN)
+            list
         }
-        expect(tt.GREATER_THAN)
-        list
-    } else {
-        null
+        else -> {
+            null
+        }
     }
 
     private fun parseTypeParam(): TypeParam {
@@ -1036,7 +1040,7 @@ class Parser<Ctx>(
                     if (escapeChar != null) {
                         add(escapeChar)
                     } else {
-                        TODO("Invalid byte string escape $escapeChar in ${token.location}")
+                        TODO("Invalid byte string escape ${token.text[i]} in ${token.location}")
                     }
                 } else {
                     add(char)
@@ -1362,7 +1366,7 @@ class Parser<Ctx>(
 
     private fun <T> syntaxError(location: SourceLocation, kind: Diagnostic.Kind): T {
         diagnosticReporter.report(location, kind)
-        throw SyntaxError
+        throw SyntaxError()
     }
 
     private fun parseTypeAnnotationTail(head: TypeAnnotation): TypeAnnotation {
