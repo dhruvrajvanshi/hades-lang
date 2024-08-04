@@ -13,11 +13,6 @@ interface SyntaxVisitor {
         is TypeAnnotation.Union -> visitUnionType(type)
         is TypeAnnotation.Var -> visitVarType(type)
         is TypeAnnotation.Closure -> visitClosureType(type)
-        is TypeAnnotation.Array -> visitArrayType(type)
-    }
-
-    fun visitArrayType(type: TypeAnnotation.Array) {
-        visitType(type.itemType)
     }
 
     fun visitClosureType(type: TypeAnnotation.Closure) {

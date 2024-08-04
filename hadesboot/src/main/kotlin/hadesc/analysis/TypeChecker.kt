@@ -400,7 +400,6 @@ class TypeChecker(
     private fun TypeAnnotation.lower(): Type = loweredTypes.getOrPut(this) {
         when (this) {
             is TypeAnnotation.Application -> todo(this)
-            is TypeAnnotation.Array -> todo(this)
             is TypeAnnotation.Closure -> todo(this)
             is TypeAnnotation.Error -> todo(this)
             is TypeAnnotation.FunctionPtr -> todo(this)

@@ -14,7 +14,6 @@ class ASTConv(val resolver: Resolver<*>) {
     private fun TypeAnnotation.type(): Type = annotationToTypeCache.getOrPut(this) {
         when(this) {
             is TypeAnnotation.Application -> typeApplicationToType(this)
-            is TypeAnnotation.Array -> Type.Array(itemType.type(), length)
             is TypeAnnotation.Closure -> Type.Closure(from.types(), to.type())
             is TypeAnnotation.FunctionPtr -> Type.FunctionPtr(from.types(), to.type())
             is TypeAnnotation.MutPtr -> Type.Ptr(to.type(), isMutable = true)
