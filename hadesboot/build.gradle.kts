@@ -2,7 +2,7 @@ plugins {
     java
     application
     kotlin("jvm")
-    kotlin("plugin.serialization") version "2.0.0"
+    kotlin("plugin.serialization") version "2.0.10"
     jacoco
 }
 
