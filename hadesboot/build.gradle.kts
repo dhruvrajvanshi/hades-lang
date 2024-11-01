@@ -32,7 +32,7 @@ dependencies {
     implementation("org.bytedeco:llvm-platform:16.0.4-1.5.9")
 
     // Get the latest version number from https://github.com/charleskorn/kaml/releases/latest
-    implementation("com.charleskorn.kaml:kaml:0.61.0")
+    implementation("com.charleskorn.kaml:kaml:0.62.2")
     implementation(project(":hadesboot-pretty-print"))
 
     testImplementation(kotlin("test"))
