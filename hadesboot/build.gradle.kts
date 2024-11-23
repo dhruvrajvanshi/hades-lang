@@ -9,7 +9,7 @@ plugins {
 val logbackVersion = "1.5.12"
 val slf4jVersion = "2.0.16"
 val junitVersion = "5.11.3"
-val kotlinxSerializationVersion = "1.7.2"
+val kotlinxSerializationVersion = "1.7.3"
 
 application {
     group = "org.hades"
